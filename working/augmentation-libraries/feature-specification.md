@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.26 (see [Changelog](#Changelog) at end)
+Version: 1.27 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -936,6 +936,11 @@ conversions that sidestep the constructor.)*
 other types in which case the extension type syntax will then be understood by
 users to be a primary constructor for the extension type.*
 
+The extension type's representation object is **not** a variable, even though it
+looks and behaves much like one, and it cannot be augmented as such. It is a
+compile time error to have any augmenting declaration with the same name as the
+representation object.
+
 [primary constructors]:
 https://github.com/dart-lang/language/blob/main/working/2364%20-%20primary%20constructors/feature-specification.md
 
@@ -1346,6 +1351,10 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.27
+
+*   Specify that representation objects for extension types cannot be augmented.
 
 ### 1.26
 
