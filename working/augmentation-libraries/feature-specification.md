@@ -936,7 +936,7 @@ conversions that sidestep the constructor.)*
 other types in which case the extension type syntax will then be understood by
 users to be a primary constructor for the extension type.*
 
-The extension type's representation object is **not** a variable, even though it
+The extension type's representation object is _not_ a variable, even though it
 looks and behaves much like one, and it cannot be augmented as such. It is a
 compile time error to have any augmenting declaration with the same name as the
 representation object.
