@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.27 (see [Changelog](#Changelog) at end)
+Version: 1.31 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -1066,6 +1066,12 @@ introducing a lexical scope for the declaration’s contents. In the middle, eac
 passes through the shared library declaration namespaces for the top-level
 instances themselves.
 
+It is a compile time error for both a static and instance member of the same
+name to be defined on the same type, even if they live in different lexical
+scopes. You cannot work around this restriction by moving the static member
+out to an augmentation, even though it would result in an unambiguous resolution
+for references to those members.
+
 ## Syntax
 
 The grammar changes are fairly simple. The grammar is modified to allow an
@@ -1351,6 +1357,11 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.31
+
+*   Specify that it is an error to have a static and instance member with the
+    same name in the fully merged declaration.
 
 ### 1.27
 
