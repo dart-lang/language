@@ -679,8 +679,7 @@ It is a **compile-time error** if:
 *   An augmenting declaration uses `augmented` when the augmented declaration
     has no concrete implementation. Note that all external declarations are
     assumed to have an implementation provided by another external source, and
-    otherwise they will throw a runtime error when called. An `abstract`
-    variable introduces no implementation.
+    otherwise they will throw a runtime error when called.
 
 *   An augmenting variable’s initializing expression uses `augmented`, and
     the stack of augmented declarations do not include a variable with an
