@@ -924,9 +924,9 @@ It is a compile-time error if:
 When augmenting an extension type declaration, the parenthesized clause where
 the representation type is specified is treated as a constructor that has a
 single positional parameter, a single initializer from the parameter to the
-representation field, and an empty body. This clause must be present on the
-declaration which introduces the extension type, and must be ommitted from all
-augmentations of the extension type.
+representation field, and an empty body. The representation field clause must
+be present on the declaration which introduces the extension type, and must be
+omitted from all augmentations of the extension type.
 
 **TODO**: Update the grammar to allow extension types to omit the parenthesized
 clause with the representation type (or possibly only augmentations of extension
@@ -959,8 +959,7 @@ representation object.
 
 It is a compile time error if:
 
-*   An extension type augmentation contains a parenthesized clause after the type
-    name.
+*   An extension type augmentation contains a representation field clause.
 
 [primary constructors]:
 https://github.com/dart-lang/language/blob/main/working/2364%20-%20primary%20constructors/feature-specification.md
