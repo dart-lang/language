@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.29 (see [Changelog](#Changelog) at end)
+Version: 1.30 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -939,13 +939,29 @@ It is a compile-time error if:
 When augmenting an extension type declaration, the parenthesized clause where
 the representation type is specified is treated as a constructor that has a
 single positional parameter, a single initializer from the parameter to the
-representation field, and an empty body.
+representation field, and an empty body. The representation field clause must
+be present on the declaration which introduces the extension type, and must be
+omitted from all augmentations of the extension type.
 
-This means that an augmentation can add a body to an extension type's
-constructor, which isn't otherwise possible. *(But note that there is no
+**TODO**: Update the grammar to allow extension types to omit the parenthesized
+clause with the representation type (or possibly only augmentations of extension
+types, but it is probably better to make this a semantic error and not a
+syntactic one to provide a better dev experience).
+
+This means that an augmentation can add a body to an extension type's implicit
+constructor, which isn't otherwise possible. This is done by augmenting the
+constructor in the body of the extension type *(But note that there is no
 guarantee that any instance of an extension type will have necessarily executed
 that body, since you can get instances of extension types through casts or other
-conversions that sidestep the constructor.)*
+conversions that sidestep the constructor.)*. For example:
+
+```dart
+extension type A(int b) {
+  augment A(int b) {
+    assert(b > 0);
+  }
+}
+```
 
 *This is designed in anticipation of supporting [primary constructors][] on
 other types in which case the extension type syntax will then be understood by
@@ -955,6 +971,10 @@ The extension type's representation object is _not_ a variable, even though it
 looks and behaves much like one, and it cannot be augmented as such. It is a
 compile time error to have any augmenting declaration with the same name as the
 representation object.
+
+It is a compile time error if:
+
+*   An extension type augmentation contains a representation field clause.
 
 [primary constructors]:
 https://github.com/dart-lang/language/blob/main/working/2364%20-%20primary%20constructors/feature-specification.md
@@ -1366,6 +1386,11 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.30
+
+*   Simplify extension type augmentations, don't allow them to contain the
+    representation type at all.
 
 ### 1.29
 
