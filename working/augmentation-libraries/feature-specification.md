@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.28 (see [Changelog](#Changelog) at end)
+Version: 1.29 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -724,23 +724,18 @@ It is a **compile-time error** if:
 ### Augmenting enum values
 
 Enum values can _only_ be augmented by enum values, and the implicit getter
-introduced by them is not augmentable. The one thing you are allowed to do
-is to replace the argument list and add metadata or doc comments. There is
-no way to refer to the original argument list (although a macro may be able
-introspect on it and copy over some or all of the arguments).
+introduced by them is not augmentable. The only thing you are allowed to do
+when augmenting an enum value is add metadata annotations or doc comments.
 
-An augmenting enum value is allowed to invoke a different constructor than
-the augmented enum value, or provide an argument list where none was present
-before.
+When augmenting an enum value, no constructor invocation should be provided.
+The original value is always used, and the explicit constructor invocation (if
+present) should not be copied.
 
-If no argument list is provided, the augmented argument list is not altered,
-this allows augmenting with metadata or comments without copying over the entire
-argument list.
+New enum values may be defined in an augmenting enum, and they will be appended
+to the current values of the declaration in augmentation application order.
 
-New enum values may also be defined in the augmentation, and they will be
-appended to the current values of the declaration in augmentation application
-order. Augmenting an existing enum value never changes the order in which it
-appears in `values`.
+Augmenting an existing enum value never changes the order in which it appears in
+`values`.
 
 For example:
 
@@ -750,7 +745,15 @@ part 'a.dart';
 part 'c.dart';
 
 enum A {
-  first;
+  first,
+  second.custom(1);
+
+  final int b;
+
+  const A() : b = 0;
+
+  const A.custom(this.b);
+}
 }
 
 // a.dart
@@ -758,31 +761,41 @@ part of 'main.dart';
 part 'b.dart';
 
 augment enum A {
-  second;
+  third;
+
+  /// Some doc comment
   augment first; // This is still `first` in values.
+
+  @someAnnotation
+  augment second; // Don't repeat the argument list, original is used.
 }
 
 // b.dart
 part of 'a.dart';
 
 augment enum A {
-  augment third;
+  fourth;
 }
 
 // c.dart
 part of 'main.dart';
 
 augment enum A {
-  augment fourth;
+  fifth;
+
+  // Error, enum value augmentations cannot have an explicit constructor
+  // invocation.
+  augment third.custom(3);
 }
 ```
 
-Then `A.values` is `[A.first, A.second, A.third, A.fourth]`.
+Then `A.values` is `[A.first, A.second, A.third, A.fourth, A.fifth]`.
 
 It is a compile-time error if:
 
 *   An augmenting getter is defined for an enum value. _An enum value
     counts as a constant variable._
+*   An enum value augmentation provides an explicit constructor invocation.
 
 ### Augmenting constructors
 
@@ -1353,6 +1366,11 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.29
+
+*   Simplify enum value augmentations, no longer allow altering the
+    constructor invocation.
 
 ### 1.28
 
