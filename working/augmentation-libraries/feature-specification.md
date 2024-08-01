@@ -679,8 +679,7 @@ It is a **compile-time error** if:
 *   An augmenting declaration uses `augmented` when the augmented declaration
     has no concrete implementation. Note that all external declarations are
     assumed to have an implementation provided by another external source, and
-    otherwise they will throw a runtime error when called. An `abstract`
-    variable introduces no implementation.
+    otherwise they will throw a runtime error when called.
 
 *   An augmenting variable’s initializing expression uses `augmented`, and
     the stack of augmented declarations do not include a variable with an
@@ -706,9 +705,6 @@ It is a **compile-time error** if:
 
 *   A getter or setter declaration is augmented by an augmenting variable.
 
-*   An abstract or external variable declaration is augmented by an
-    augmenting variable.
-
 *   A late final variable with no initializer expression is augmented by an
     augmenting variable with an initializer expression.
     _A late final variable with no initializer has a setter, while one with an
@@ -719,26 +715,27 @@ It is a **compile-time error** if:
     const variable be augmented by another const variable, changing its value,
     or is that too weird?)**
 
+*   An `abstract` variable is augmented with a non-abstract variable, getter,
+    or setter.
+
+*   An `external` declaration is augmented with an `abstract` declaration. For
+    variables this also applies to the implicit getter and setter.
+
 ### Augmenting enum values
 
 Enum values can _only_ be augmented by enum values, and the implicit getter
-introduced by them is not augmentable. The one thing you are allowed to do
-is to replace the argument list and add metadata or doc comments. There is
-no way to refer to the original argument list (although a macro may be able
-introspect on it and copy over some or all of the arguments).
+introduced by them is not augmentable. The only thing you are allowed to do
+when augmenting an enum value is add metadata annotations or doc comments.
 
-An augmenting enum value is allowed to invoke a different constructor than
-the augmented enum value, or provide an argument list where none was present
-before.
+When augmenting an enum value, no constructor invocation should be provided.
+The original value is always used, and the explicit constructor invocation (if
+present) should not be copied.
 
-If no argument list is provided, the augmented argument list is not altered,
-this allows augmenting with metadata or comments without copying over the entire
-argument list.
+New enum values may be defined in an augmenting enum, and they will be appended
+to the current values of the declaration in augmentation application order.
 
-New enum values may also be defined in the augmentation, and they will be
-appended to the current values of the declaration in augmentation application
-order. Augmenting an existing enum value never changes the order in which it
-appears in `values`.
+Augmenting an existing enum value never changes the order in which it appears in
+`values`.
 
 For example:
 
@@ -748,7 +745,15 @@ part 'a.dart';
 part 'c.dart';
 
 enum A {
-  first;
+  first,
+  second.custom(1);
+
+  final int b;
+
+  const A() : b = 0;
+
+  const A.custom(this.b);
+}
 }
 
 // a.dart
@@ -756,31 +761,41 @@ part of 'main.dart';
 part 'b.dart';
 
 augment enum A {
-  second;
+  third;
+
+  /// Some doc comment
   augment first; // This is still `first` in values.
+
+  @someAnnotation
+  augment second; // Don't repeat the argument list, original is used.
 }
 
 // b.dart
 part of 'a.dart';
 
 augment enum A {
-  augment third;
+  fourth;
 }
 
 // c.dart
 part of 'main.dart';
 
 augment enum A {
-  augment fourth;
+  fifth;
+
+  // Error, enum value augmentations cannot have an explicit constructor
+  // invocation.
+  augment third.custom(3);
 }
 ```
 
-Then `A.values` is `[A.first, A.second, A.third, A.fourth]`.
+Then `A.values` is `[A.first, A.second, A.third, A.fourth, A.fifth]`.
 
 It is a compile-time error if:
 
 *   An augmenting getter is defined for an enum value. _An enum value
     counts as a constant variable._
+*   An enum value augmentation provides an explicit constructor invocation.
 
 ### Augmenting constructors
 
@@ -924,13 +939,29 @@ It is a compile-time error if:
 When augmenting an extension type declaration, the parenthesized clause where
 the representation type is specified is treated as a constructor that has a
 single positional parameter, a single initializer from the parameter to the
-representation field, and an empty body.
+representation field, and an empty body. The representation field clause must
+be present on the declaration which introduces the extension type, and must be
+omitted from all augmentations of the extension type.
 
-This means that an augmentation can add a body to an extension type's
-constructor, which isn't otherwise possible. *(But note that there is no
+**TODO**: Update the grammar to allow extension types to omit the parenthesized
+clause with the representation type (or possibly only augmentations of extension
+types, but it is probably better to make this a semantic error and not a
+syntactic one to provide a better dev experience).
+
+This means that an augmentation can add a body to an extension type's implicit
+constructor, which isn't otherwise possible. This is done by augmenting the
+constructor in the body of the extension type *(But note that there is no
 guarantee that any instance of an extension type will have necessarily executed
 that body, since you can get instances of extension types through casts or other
-conversions that sidestep the constructor.)*
+conversions that sidestep the constructor.)*. For example:
+
+```dart
+extension type A(int b) {
+  augment A(int b) {
+    assert(b > 0);
+  }
+}
+```
 
 *This is designed in anticipation of supporting [primary constructors][] on
 other types in which case the extension type syntax will then be understood by
@@ -940,6 +971,10 @@ The extension type's representation object is _not_ a variable, even though it
 looks and behaves much like one, and it cannot be augmented as such. It is a
 compile time error to have any augmenting declaration with the same name as the
 representation object.
+
+It is a compile time error if:
+
+*   An extension type augmentation contains a representation field clause.
 
 [primary constructors]:
 https://github.com/dart-lang/language/blob/main/working/2364%20-%20primary%20constructors/feature-specification.md
@@ -1362,6 +1397,25 @@ to the augmentation.
 
 *   Specify that it is an error to have a static and instance member with the
     same name in the fully merged declaration.
+
+### 1.30
+
+*   Simplify extension type augmentations, don't allow them to contain the
+    representation type at all.
+
+### 1.29
+
+*   Simplify enum value augmentations, no longer allow altering the
+    constructor invocation.
+
+### 1.28
+
+*   Explicitly disallow augmenting abstract variables with non-abstract
+    variables, getters, or setters.
+*   Explicitly disallow augmenting external declarations with abstract
+    declarations.
+*   Remove error when augmenting an abstract or external variable with a
+    variable (allowed for adding comments/annotations).
 
 ### 1.27
 
