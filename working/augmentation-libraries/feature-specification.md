@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.31 (see [Changelog](#Changelog) at end)
+Version: 1.32 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -575,6 +575,10 @@ declaration, and if not `final`, also an abstract setter declaration. An
 `external` setter.  Unlike abstract declarations, they are considered to
 have a concrete implementation.
 
+Variables which require an initializer expression (such as those which have a
+non-nullable type and are not marked `late`) need not initially be defined
+with one, as long as there exists some augmentation which supplies it.
+
 Augmentations on variables, getters, and setters works mostly at the level of
 these separate capabilities. For example, augmenting a variable with a getter
 replaces the augmented variable's implicit getter body with the augmenting
@@ -650,10 +654,11 @@ More specifically:
     usual, external and abstract variables cannot augment their
     initializing expression, since it does not exist.*
 
-    Augmenting initializer expressions replace the augmented initializer. The
-    augmenting initializer may use an `augmented` expression which executes the
-    augmented initializer expression when evaluated. If no initializer is
-    provided then the augmented initializer is not altered.
+    Augmenting initializer expressions replace the augmented initializer (or
+    provide one where none existed previously). The augmenting initializer
+    may use an `augmented` expression which executes the augmented initializer
+    expression (if present) when evaluated. If no initializer is provided then
+    the augmented initializer is not altered.
 
     The `late` property of a variable must always be consistent between the
     augmented variable and its augmenting variables.
@@ -683,7 +688,9 @@ It is a **compile-time error** if:
 
 *   An augmenting variable’s initializing expression uses `augmented`, and
     the stack of augmented declarations do not include a variable with an
-    initializing expression.
+    explicit initializing expression. For nullable fields, the implicit null
+    initialization only happens if there is no explicit initializer after the
+    entire stack of augmentations has been applied.
 
 *   A non-writable variable declaration is augmented with a setter. (Instead,
     the author can declare a *non-augmenting* setter that goes alongside the
@@ -1392,6 +1399,13 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.32
+
+*   Specify that variables which require an initializer can have it defined
+    in any augmentation.
+*   Specify that the implicit null initialization is not applied until after
+    augmentation.
 
 ### 1.31
 
