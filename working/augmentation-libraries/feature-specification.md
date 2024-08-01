@@ -575,7 +575,8 @@ declaration, and if not `final`, also an abstract setter declaration. An
 `external` setter.  Unlike abstract declarations, they are considered to
 have a concrete implementation.
 
-Variables which require an initializer expression need not initially be defined
+Variables which require an initializer expression (such as those which have a
+non-nullable type and are not marked `late`) need not initially be defined
 with one, as long as there exists some augmentation which supplies it.
 
 Augmentations on variables, getters, and setters works mostly at the level of
