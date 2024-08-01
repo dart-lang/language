@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.27 (see [Changelog](#Changelog) at end)
+Version: 1.28 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -679,8 +679,7 @@ It is a **compile-time error** if:
 *   An augmenting declaration uses `augmented` when the augmented declaration
     has no concrete implementation. Note that all external declarations are
     assumed to have an implementation provided by another external source, and
-    otherwise they will throw a runtime error when called. An `abstract`
-    variable introduces no implementation.
+    otherwise they will throw a runtime error when called.
 
 *   An augmenting variable’s initializing expression uses `augmented`, and
     the stack of augmented declarations do not include a variable with an
@@ -706,9 +705,6 @@ It is a **compile-time error** if:
 
 *   A getter or setter declaration is augmented by an augmenting variable.
 
-*   An abstract or external variable declaration is augmented by an
-    augmenting variable.
-
 *   A late final variable with no initializer expression is augmented by an
     augmenting variable with an initializer expression.
     _A late final variable with no initializer has a setter, while one with an
@@ -718,6 +714,12 @@ It is a **compile-time error** if:
 *   A `const` variable is augmented by an augmenting getter. **(TODO: Can a
     const variable be augmented by another const variable, changing its value,
     or is that too weird?)**
+
+*   An `abstract` variable is augmented with a non-abstract variable, getter,
+    or setter.
+
+*   An `external` declaration is augmented with an `abstract` declaration. For
+    variables this also applies to the implicit getter and setter.
 
 ### Augmenting enum values
 
@@ -1351,6 +1353,15 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.28
+
+*   Explicitly disallow augmenting abstract variables with non-abstract
+    variables, getters, or setters.
+*   Explicitly disallow augmenting external declarations with abstract
+    declarations.
+*   Remove error when augmenting an abstract or external variable with a
+    variable (allowed for adding comments/annotations).
 
 ### 1.27
 
