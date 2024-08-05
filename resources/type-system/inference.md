@@ -1139,8 +1139,8 @@ invocations, function object invocations, instance method invocations, and
 static/toplevel method invocations to be distinguished. In these forms, `n_i:
 m_i` (where `i` is an integer) is used as a convenient meta-syntax to refer to
 an invocation argument `m_i` (an elaborated expression), possibly preceded by a
-name selector `n_i:` (where `n_i` is a string). In this document, we use the
-string `∅` to represent a name selector which is absent (meaning the
+name selector `n_i:` (where `n_i` is a parameter name). In this document, we use
+the string `∅` to represent a name selector which is absent (meaning the
 corresponding `m_i` is a positional argument rather than a named argument).
 
 The new invocation forms are as follows:
