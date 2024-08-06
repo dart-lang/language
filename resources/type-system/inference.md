@@ -969,27 +969,6 @@ with respect to `L` under constraints `C0`
   - If for `i` in `0...m`, `Mi` is a subtype match for `Ni` with respect to `L`
   under constraints `Ci`.
 
-## Bound resolution
-
-For any type `T`, the _bound resolution_ of `T` is a type `U`, defined by the
-following recursive process:
-
-- If `T` is a type variable `X`, then let `B` be the bound of `X`. Then let `U`
-  be the bound resolution of `B`.
-
-- Otherwise, if `T` is a promoted type variable `X&B`, then let `U` be the bound
-  resolution of `B`.
-
-- Otherwise, let `U` be `T`.
-
-_The point of bound resolution of `T` is to find a non-type-variable type which
-is a (minimal) supertype of `T`._
-
-_Note that the spec notions of __dynamic__ boundedness and __Function__
-boundedness can be defined in terms of bound resolution, as follows: a type is
-__dynamic__ bounded iff its bound resolution is __dynamic__, and a type is
-__Function__ bounded iff its bound resolution is __Function__._
-
 # Expression inference
 
 Expression inference is a recursive process of elaborating an expression in Dart
@@ -1602,7 +1581,7 @@ static type `T`, where `m` and `T` are determined as follows:
 
 - If `T_0` is `void`, there is a compile-time error.
 
-- Let `U_0` be the [bound resolution](#Bound-resolution) of `T_0`.
+- Let `U_0` be the unique type such that `T_0` is `U_0` bounded.
 
 - If `U_0` is `dynamic` or `Never`, or `U_0` is `Function` and `id` is `call`,
   then:

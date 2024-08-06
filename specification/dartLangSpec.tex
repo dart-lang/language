@@ -13039,6 +13039,7 @@ It is a compile-time error if $q_j = q_k$ for any $j \ne k$.
 \LMHash{}%
 For a given type $T_0$, we introduce the notion of a
 \IndexCustom{$T_0$ bounded type}{type!T0 bounded}:
+If $T_0$ is neither a type variable nor an intersection type, then
 $T_0$ itself is $T_0$ bounded;
 if $B$ is $T_0$ bounded and
 $X$ is a type variable with bound $B$
@@ -13053,6 +13054,12 @@ or a type variable whose bound is \DYNAMIC{} bounded,
 or an intersection whose second operand is \DYNAMIC{} bounded.
 Similarly for a
 \IndexCustom{\FUNCTION{} bounded type}{type!function bounded}.
+
+\commentary{%
+Since it is illegal for a type parameter to be a supertype of its own
+bound, it follows that for any type $T$, there exists exactly one type
+$T_0$ for which $T$ is $T_0$ bounded.%
+}
 
 \LMHash{}%
 A
