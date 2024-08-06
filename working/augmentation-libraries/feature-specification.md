@@ -952,10 +952,10 @@ omitted from all augmentations of the extension type.
 
 This means that an augmentation can add a body to an extension type's implicit
 constructor, which isn't otherwise possible. This is done by augmenting the
-constructor in the body of the extension type *(But note that there is no
+constructor in the body of the extension type. *Note that there is no
 guarantee that any instance of an extension type will have necessarily executed
 that body, since you can get instances of extension types through casts or other
-conversions that sidestep the constructor)*. For example:
+conversions that sidestep the constructor.* For example:
 
 ```dart
 extension type A(int b) {
