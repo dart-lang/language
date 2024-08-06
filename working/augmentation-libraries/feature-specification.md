@@ -1400,7 +1400,7 @@ to the augmentation.
 ### 1.33
 
 *   Change the grammar to remove the primary constructor parts of an
-    extension type declaration when it is augmenting.
+    augmenting extension type declaration.
 
 ### 1.32
 
