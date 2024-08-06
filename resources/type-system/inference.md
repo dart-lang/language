@@ -982,10 +982,13 @@ following recursive process:
 
 - Otherwise, let `U` be `T`.
 
+_The point of bound resolution of `T` is to find a non-type-variable type which
+is a (minimal) supertype of `T`._
+
 _Note that the spec notions of __dynamic__ boundedness and __Function__
 boundedness can be defined in terms of bound resolution, as follows: a type is
 __dynamic__ bounded iff its bound resolution is __dynamic__, and a type is
-__Function__ bounded if its bound resolution if __Function__._
+__Function__ bounded iff its bound resolution is __Function__._
 
 # Expression inference
 
