@@ -1134,37 +1134,39 @@ topLevelDeclaration ::= classDeclaration
 
 classDeclaration ::= 'augment'? (classModifiers | mixinClassModifiers)
     'class' typeWithParameters superclass? interfaces?
-    '{' (metadata classMemberDeclaration)* '}'
+    memberedDeclarationBody
   | 'augment'? classModifiers 'mixin'? 'class' mixinApplicationClass
 
 mixinDeclaration ::= 'augment'? 'base'? 'mixin' typeIdentifier
   typeParameters? ('on' typeNotVoidNotFunctionList)? interfaces?
-  '{' (metadata mixinMemberDeclaration)* '}'
+  memberedDeclarationBody
 
 extensionDeclaration ::=
     'extension' typeIdentifierNotType? typeParameters? 'on' type
-    extensionBody
+    memberedDeclarationBody
   | 'augment' 'extension' typeIdentifierNotType typeParameters?
-    extensionBody
-
-extensionBody ::= '{' (metadata classMemberDeclaration)* '}'
+    memberedDeclarationBody
 
 extensionTypeDeclaration ::=
     'extension' 'type' 'const'? typeIdentifier
     typeParameters? representationDeclaration interfaces?
-    '{' (metadata classMemberDeclaration)* '}'
+    memberedDeclarationBody
   | 'augment' 'extension' 'type' typeIdentifier typeParameters? interfaces?
-    '{' (metadata classMemberDeclaration)* '}'
+    memberedDeclarationBody
 
 enumType ::= 'augment'? 'enum' typeIdentifier
   typeParameters? mixins? interfaces?
   '{' enumEntry (',' enumEntry)* (',')?
-  (';' (metadata classMemberDeclaration)*)? '}'
+  (';' memberDeclarations)? '}'
 
 typeAlias ::= 'augment'? 'typedef' typeIdentifier typeParameters? '=' type ';'
   | 'augment'? 'typedef' functionTypeAlias
 
-classMemberDeclaration ::= declaration ';'
+memberedDeclarationBody ::= '{' memberDeclarations '}'
+
+memberDeclarations ::= (metadata memberDeclaration)*
+
+memberDeclaration ::= declaration ';'
   | 'augment'? methodSignature functionBody
 
 enumEntry ::= metadata 'augment'? identifier argumentPart?
