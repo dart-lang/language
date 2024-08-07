@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.32 (see [Changelog](#Changelog) at end)
+Version: 1.33 (see [Changelog](#Changelog) at end)
 
 Augmentations allow spreading your implementation across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -950,17 +950,12 @@ representation field, and an empty body. The representation field clause must
 be present on the declaration which introduces the extension type, and must be
 omitted from all augmentations of the extension type.
 
-**TODO**: Update the grammar to allow extension types to omit the parenthesized
-clause with the representation type (or possibly only augmentations of extension
-types, but it is probably better to make this a semantic error and not a
-syntactic one to provide a better dev experience).
-
 This means that an augmentation can add a body to an extension type's implicit
 constructor, which isn't otherwise possible. This is done by augmenting the
-constructor in the body of the extension type *(But note that there is no
+constructor in the body of the extension type. *Note that there is no
 guarantee that any instance of an extension type will have necessarily executed
 that body, since you can get instances of extension types through casts or other
-conversions that sidestep the constructor.)*. For example:
+conversions that sidestep the constructor.* For example:
 
 ```dart
 extension type A(int b) {
@@ -1139,35 +1134,39 @@ topLevelDeclaration ::= classDeclaration
 
 classDeclaration ::= 'augment'? (classModifiers | mixinClassModifiers)
     'class' typeWithParameters superclass? interfaces?
-    '{' (metadata classMemberDeclaration)* '}'
+    memberedDeclarationBody
   | 'augment'? classModifiers 'mixin'? 'class' mixinApplicationClass
 
 mixinDeclaration ::= 'augment'? 'base'? 'mixin' typeIdentifier
   typeParameters? ('on' typeNotVoidNotFunctionList)? interfaces?
-  '{' (metadata mixinMemberDeclaration)* '}'
+  memberedDeclarationBody
 
 extensionDeclaration ::=
     'extension' typeIdentifierNotType? typeParameters? 'on' type
-    extensionBody
+    memberedDeclarationBody
   | 'augment' 'extension' typeIdentifierNotType typeParameters?
-    extensionBody
-
-extensionBody ::= '{' (metadata classMemberDeclaration)* '}'
+    memberedDeclarationBody
 
 extensionTypeDeclaration ::=
-  'augment'? 'extension' 'type' 'const'? typeIdentifier
-  typeParameters? representationDeclaration interfaces?
-  '{' (metadata classMemberDeclaration)* '}'
+    'extension' 'type' 'const'? typeIdentifier
+    typeParameters? representationDeclaration interfaces?
+    memberedDeclarationBody
+  | 'augment' 'extension' 'type' typeIdentifier typeParameters? interfaces?
+    memberedDeclarationBody
 
 enumType ::= 'augment'? 'enum' typeIdentifier
   typeParameters? mixins? interfaces?
   '{' enumEntry (',' enumEntry)* (',')?
-  (';' (metadata classMemberDeclaration)*)? '}'
+  (';' memberDeclarations)? '}'
 
 typeAlias ::= 'augment'? 'typedef' typeIdentifier typeParameters? '=' type ';'
   | 'augment'? 'typedef' functionTypeAlias
 
-classMemberDeclaration ::= declaration ';'
+memberedDeclarationBody ::= '{' memberDeclarations '}'
+
+memberDeclarations ::= (metadata memberDeclaration)*
+
+memberDeclaration ::= declaration ';'
   | 'augment'? methodSignature functionBody
 
 enumEntry ::= metadata 'augment'? identifier argumentPart?
@@ -1399,6 +1398,11 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.33
+
+*   Change the grammar to remove the primary constructor parts of an
+    augmenting extension type declaration.
 
 ### 1.32
 
