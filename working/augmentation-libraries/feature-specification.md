@@ -722,11 +722,9 @@ It is a **compile-time error** if:
     const variable be augmented by another const variable, changing its value,
     or is that too weird?)**
 
-*   An `abstract` variable is augmented with a non-abstract variable, getter,
-    or setter.
+*   An `abstract` variable is augmented with a non-abstract variable.
 
-*   An `external` declaration is augmented with an `abstract` declaration. For
-    variables this also applies to the implicit getter and setter.
+*   An `external` variable is augmented with an `abstract` variable.
 
 ### Augmenting enum values
 
@@ -1199,9 +1197,6 @@ declaration ::= 'external' factoryConstructorSignature
 
 It is a compile-time error if:
 
-*   A function, getter, setter, or operator declaration marked `augment` is also
-    abstract. **(TODO: Remove. This can be used to add metadata.)**
-
 *   A declaration marked `augment` is also marked `external`. **(TODO: Probably
     remove for functions, so change to "A variable declaration". A macro should
     be able to implement a method as an external with a `@JS()` annotation.)**
@@ -1398,6 +1393,15 @@ original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
 ## Changelog
+
+### 1.34
+
+*   Revert some errors introduced in version 1.28.
+
+    *   An abstract variable can now be augmented with non-abstract getters and
+        setters.
+    *   External variables can now be augmented with abstract getters and
+        setters.
 
 ### 1.33
 
