@@ -2911,13 +2911,17 @@ or via mixin applications (\ref{mixinApplication}).
 <classDeclaration> ::=
   \ABSTRACT? \CLASS{} <typeIdentifier> <typeParameters>?
   \gnewline{} <superclass>? <interfaces>?
-  \gnewline{} `{' (<metadata> <classMemberDeclaration>)* `}'
+  \gnewline{} <memberedDeclarationBody>
   \alt \ABSTRACT? \CLASS{} <mixinApplicationClass>
 
 <typeNotVoidList> ::= <typeNotVoid> (`,' <typeNotVoid>)*
 
-<classMemberDeclaration> ::= <declaration> `;'
+<memberDeclarationNoMetadata> ::= <declaration> `;'
   \alt <methodHeader> <functionBody>
+
+<memberDeclaration> ::= <metadata> <memberDeclarationNoMetadata>
+
+<memberedDeclarationBody> ::= `{' <memberDeclaration>* `}'
 
 <methodHeader> ::= <constructorHeader> <initializers>?
   \alt <factoryConstructorHeader>
@@ -6088,7 +6092,7 @@ for static member declarations.
 \begin{grammar}
 <mixinDeclaration> ::= \MIXIN{} <typeIdentifier> <typeParameters>?
   \gnewline{} (\ON{} <typeNotVoidList>)? <interfaces>?
-  \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
+  \gnewline{} <memberedDeclarationBody>
 \end{grammar}
 
 %% TODO(eernst): Change this paragraph if we allow factory constructors.
@@ -6365,7 +6369,7 @@ and whether the invocation satisfies several other requirements.
 \begin{grammar}
 <extensionDeclaration> ::= \gnewline{}
   \EXTENSION{} <typeIdentifierNotType>? <typeParameters>? \ON{} <type>
-  \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
+  \gnewline{} <memberedDeclarationBody>
 \end{grammar}
 
 \LMHash{}%
@@ -22349,8 +22353,8 @@ Types are specified using the following grammar rules.
 
 <optionalPositionalParameterTypes> ::= `[' <normalParameterTypes> `,'? `]'
 
-<namedParameterTypes> ::=
-  `\{' <namedParameterType> (`,' <namedParameterType>)* `,'? `\}'
+<namedParameterTypes> ::= \gnewline{}
+  `{' <namedParameterType> (`,' <namedParameterType>)* `,'? `}'
 
 <namedParameterType> ::=
   <metadata> \REQUIRED? <typedIdentifier>
