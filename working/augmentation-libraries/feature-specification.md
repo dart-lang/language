@@ -888,8 +888,8 @@ A non-redirecting generative constructor marked `augment` may:
         the augmented body will see the updated value, because the parameter
         scope is identical.
 
-    *   Local variables in scope where augmented is evaluated are not in scope
-        for the execution of the augmented constructor's body.
+    *   Local variables in scope where `augmented()` is evaluated are not in
+        scope for the execution of the augmented constructor's body.
 
 *   Add initializers to the initializer list. If the augmenting constructor has
     an initializer list then:
