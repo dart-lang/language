@@ -219,7 +219,7 @@ Stack(
   fit: StackFit.expand,
   children: [
     const AbsorbPointer(),
-    ?widget?.child,
+    ?widget.child,
   ],
 )
 
