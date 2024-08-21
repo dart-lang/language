@@ -107,12 +107,12 @@ import widget.tla.proto/client/component;
 ```
 
 You can probably infer what's going on from the before and after, but the basic
-idea is that the library is a slash-separated series of dotted identifier
-segments. The first segment is the name of the package. The rest is the path to
-the library within that package. A `.dart` extension is implicitly added to the
-end. If there is only a single segment, it is treated as the package name and
-its last dotted component is the path. If the package name is `dart`, it's a
-"dart:" library import.
+idea is that the library is a slash-separated series path segments, each of
+which is a dotted-separated identifier component. The first segment is the name
+of the package. The rest is the path to the library within that package. A
+`.dart` extension is implicitly added to the end. If there is only a single
+segment, it is treated as the package name and its last dotted component is the
+path. If the package name is `dart`, it's a "dart:" library import.
 
 The way I think about the proposed syntax is that relative imports are
 *physical* in that they specify the actual relative path on the file system from
@@ -235,15 +235,14 @@ Unlike Lasse's [earlier proposal][lasse], this proposal does *not* tokenize a
 package path as a single token. Instead, it's tokenized using Dart's current
 lexical grammar.
 
-This means you can't have a path segment that uses some combination of
+This means you can't have a path component that uses some combination of
 characters that isn't currently a single token in Dart, like `hyphen-separated`
-or `123LeadingDigits`. A path component must be an identifier (which may be a
-reserved word or built-in identifier, discussed below). Fortunately, our
-published guidance has *always* told users that [package names][name guideline]
-and [directories][directory guideline] should be valid Dart identifiers. Pub
-will complain if you try to publish a package whose name isn't a valid
-identifier. Likewise, the linter will flag directory or file names that aren't
-identifiers.
+or `123LeadingDigits`. A path component must be an identifier (including
+built-in identifiers) or a reserved word. Fortunately, our published guidance
+has *always* told users that [package names][name guideline] and
+[directories][directory guideline] should be valid Dart identifiers. Pub will
+complain if you try to publish a package whose name isn't a valid identifier.
+Likewise, the linter will flag file names that aren't identifiers.
 
 [name guideline]: https://dart.dev/tools/pub/pubspec#name
 [directory guideline]: https://dart.dev/effective-dart/style#do-name-packages-and-file-system-entities-using-lowercase-with-underscores
@@ -296,14 +295,17 @@ import show/hide;
 
 Many Dart users (including experts, some of whom may be members of the Dart
 language team) don't know the full list of reserved or semi-reserved words. We
-don't want them to run into problems determining which identifiers work in
-package paths. To that end, we allow *all* identifiers, including reserved
-words, built-in identifiers, and contextual keywords as path segments.
+don't want users to run into problems determining which identifiers work in
+package paths. To that end, we allow *all* reserved words and identifiers,
+including built-in identifiers and contextual keywords as path components.
 
 ### Whitespace and comments
 
-If we don't use any special tokenizing rules for the path, that suggests that
-whitespace and comments are allowed between the tokens as in:
+Even though the unquoted path is tokenized as separate tokens, we don't allow
+whitespace or comments to appear between them as we do in most other places in
+the language.
+
+We could allow users to write code like:
 
 ```dart
 import strange /* comment */    .   but
@@ -358,10 +360,10 @@ and export directives:
 uri               ::= stringLiteral | packagePath
 packagePath       ::= pathSegment ( '/' pathSegment )*
 pathSegment       ::= segmentComponent ( '.' segmentComponent )*
-segmentComponent  ::= identifier
-                    | ⟨RESERVED_WORD⟩
-                    | ⟨BUILT_IN_IDENTIFIER⟩
-                    | ⟨OTHER_IDENTIFIER⟩
+segmentComponent  ::= IDENTIFIER
+                    | RESERVED_WORD
+                    | BUILT_IN_IDENTIFIER
+                    | OTHER_IDENTIFIER
 ```
 
 It is a compile-time error if any whitespace, newlines, or comments occur
@@ -389,8 +391,8 @@ has other places that require much more (sometimes unbounded) lookahead.*
 ## Static semantics
 
 The semantics of the new syntax are defined by taking the `packagePath` and
-converting it to a string. The directive then behaves as if the user had written
-a string literal containing that string. The process is:
+converting it to a URI string. The directive then behaves as if the user had
+written a string literal containing that URI. The process is:
 
 1.  Let the *segment* for a `pathSegment` be a string defined by the ordered
     concatenation of the `segmentComponent` and `.` terminals in the
@@ -414,8 +416,8 @@ a string literal containing that string. The process is:
         imports. But a custom Dart embedder or future version of Dart could in
         theory introduce directories for SDK libraries.*
 
-    3.  The URI is "dart:*path*". *So `import dart/async;` desugars to
-        `import "dart:async";`.*
+    3.  The URI is "dart:*path*". *So `import dart/async;` imports the library
+        `"dart:async"`.*
 
 4.  Else if there is only a single segment:
 
@@ -426,26 +428,26 @@ a string literal containing that string. The process is:
         Otherwise, it's the last identifier after the last `.`. So in `foo`,
         *path* is `foo`. In `foo.bar.baz`, it's `baz`.*
 
-    3.  The URI is "package:*name*/*path*.dart". *So `import test;` desugars to
-        `import "package:test/test.dart";`, and `import server.api;` desugars to
-        `import "package:server.api/api.dart";`.*
+    3.  The URI is "package:*name*/*path*.dart". *So `import test;` imports the
+        library `"package:test/test.dart"`, and `import server.api;` imports
+        `"package:server.api/api.dart"`.*
 
 5.  Else:
 
     1.  Let *path* be the concatenation of the segments, separated by `/`.
 
-    3.  The URI is "package:*path*.dart". *So `import a/b/c/d;` desugars to
-        `import "package:a/b/c/d.dart";`.
+    2.  The URI is "package:*path*.dart". *So `import a/b/c/d;` imports
+        `"package:a/b/c/d.dart"`.
 
 Once the `packagePath` has been converted to a string, the directive behaves
 exactly as if the user had written a `stringLiteral` containing that same
 string.
 
-Given the list of segments, here is a complete implementation of the desugaring
-logic in Dart:
+Given the list of segments, here is a complete Dart implementation of the logic
+to convert an unquoted path to the effective URI it refers to:
 
 ```dart
-String desugar(List<String> segments) => switch (segments) {
+String toUri(List<String> segments) => switch (segments) {
   ['dart']              => 'ERROR. Not allowed to import just "dart"',
   ['dart', ...var rest] => 'dart:${rest.join('/')}',
   [var name]            => 'package:$name/${name.split('.').last}.dart',
@@ -476,7 +478,7 @@ may make a breaking change and remove support for the old syntax.
 
 The `part of` directive allows a library name after `of` instead of a string
 literal. With this proposal, that syntax is now ambiguous. Is it interpreted
-as a library name, or as an unquoted URI that should be desugared to a URI?
+as a library name, or as an unquoted URI that should be converted to a URI?
 In other words, given:
 
 ```dart
@@ -484,7 +486,7 @@ part of foo.bar;
 ```
 
 Is the file saying it's a part of the library containing `library foo.bar;` or
-that it's part of the library found at URI `package:foo/bar.dart`?
+that it's part of the library found at URI `package:foo.bar/bar.dart`?
 
 Library names in `part of` directives have been deprecated for many years
 because the syntax doesn't work well with many tools. How is a given tool
@@ -554,7 +556,7 @@ Since the static semantics are so simple, it is trivial to write a `dart fix`
 that automatically converts existing "dart:" and "package:" string-based
 directives to the new syntax. A handful of regexes are sufficient to break an
 existing import into a series of slash-separated segments which are
-dot-separated identifiers. Then the above snippet of Dart code will convert that
+dot-separated components. Then the above snippet of Dart code will convert that
 to the new syntax.
 
 ### Lint
