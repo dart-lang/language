@@ -125,18 +125,19 @@ Map<String, List<bool>> string2listOfBool = Map.fromString([]);
 
 The grammar remains unchanged.
 
-However, it is no longer an error to declare a factory constructor in an
-extension declaration that has an on-class, be it redirecting or not,
-constant or not.  *Such declarations may of course give rise to errors as
-usual, e.g., if a redirecting factory constructor redirects to a
-constructor that does not exist, or there is a redirection cycle.*
+However, it is no longer an error to declare a factory constructor
+(redirecting or not) or a redirecting generative constructor in an
+extension declaration that has an on-class, possibly constant.  *Such
+declarations may of course give rise to errors as usual, e.g., if a
+redirecting factory constructor redirects to a constructor that does not
+exist, or there is a redirection cycle.*
 
 In an extension declaration of the form `extension E on C {...}` where `C`
 is an identifier or an identifier with an import prefix that denotes a
 class, mixin, enum, or extension type declaration, we say that the
 _on-class_ of the extension is `C`. If `C` denotes a non-generic class,
-mixin, mixin class, or extension type then we say that the _constructor return
-type_ of the extension is `C`.
+mixin, mixin class, or extension type then we say that the _constructor
+return type_ of the extension is `C`.
 
 If `C` denotes a generic class then `E` is treated as
 `extension E on C<T1 .. Tk> {...}` where `T1 .. Tk` are obtained by
@@ -193,44 +194,79 @@ on-class. The warning above is aimed at static members and constructors,
 but a similar warning would probably be useful for instance members as
 well.*
 
-#### Invocation of a static member of an extension
+#### Invocation of a static member
 
-An _explicitly resolved invocation_ of a static member of an extension
-named `E` is an expression of the form `E.m()` (or any other member access,
-*e.g., `E.m`, `E.m = e`, etc*), where `m` is a static member declared by
-`E`.
+*The language specification defines the notion of a _member invocation_ in
+the section [Member Invocations][], which is used below. This concept
+includes method invocations like `e.aMethod<int>(24)`, property extractions
+like `e.aGetter` or `e.aMethod` (tear-offs), operator invocations like
+`e1 + e2` or `aListOrNull?[1] = e`, function invocations like `f()`.  Each
+of these expressions has a _syntactic receiver_ and an _associated member
+name_.  With `e.aMethod<int>(24)`, the receiver is `e` and the associated
+member name is `aMethod`, with `e1 + e2` the receiver is `e1` and the
+member name is `+`, and with `f()` the receiver is `f` and the member name
+is `call`. Note that the syntactic receiver is a type literal in the case
+where the member invocation invokes a static member. In the following we
+will specify invocations of static members using this concept.*
+
+[Member Invocations]: https://github.com/dart-lang/language/blob/94194cee07d7deadf098b1f1e0475cb424f3d4be/specification/dartLangSpec.tex#L13903
+
+Consider an expression `e` which is a member invocation with syntactic
+receiver `E` and associated member name `m`, where `E` denotes an extension
+and `m` is a static member declared by `E`. We say that `e` is an
+_explicitly resolved invocation_ of said static member of `E`.
 
 *This can be used to invoke a static member of a specific extension in
-order to manually resolve a name clash. At the same time, in current Dart
-(without the feature which is specified in this document), this is the only 
-way we can invoke a static member of an extension, so it may be useful for
-backward compatibility reasons.*
+order to manually resolve a name clash. At the same time, in Dart without
+the feature which is specified in this document, this is the only way we
+can invoke a static member of an extension (except when it is in scope, see
+below), so it may be useful for backward compatibility.*
 
-A static member invocation on a class `C`, of the form `C.m()` (or any
-other member access), is resolved by looking up static members in `C` named
-`m` and looking up static members of every accessible extension with
-on-class `C` and a static member named `m`.
+Consider an expression `e` which is a member invocation with syntactic
+receiver `C` and an associated member name `m`, where `C` denotes a class
+and `m` is a static member declared by `C`. The static analysis and dynamic
+semantics of this expression is the same as in Dart before the introduction
+of this feature.
 
-If `C` contains such a declaration then the expression is an invocation of
-that static member of `C`, with the same static analysis and dynamic
-semantics as before the introduction of this feature.
+When `C` declares a static member whose basename is the basename of `m`,
+but `C` does not declare a static member named `m` or a constructor named
+`C.m`, a compile-time error occurs. *This is the same behavior as in
+pre-feature Dart.*
 
-Otherwise, if `C` declares a constructor named `C.m` then the given
-expression is not a static member invocation. It is then handled with the
-same static analysis and dynamic semantics as before the introduction of
-this feature *(it may be an error, or it may be an instance creation
-expression; in any case, declarations in `C` are given a higher priority
-than declarations in extensions)*.
+In the case where `C` does not declare any static members whose basename is
+the basename of `m`, and `C` does not declare any constructors named `C.m2`
+where `m2` is the basename of `m`, let _M_ be the set of each accessible
+extension whose on-class is `C`, and whose static members include one with
+the name `m`, or which declares a constructor named `C.m`.
 
-Otherwise, an error occurs if no declarations named `m` or more than one
-declaration named `m` were found, or if both static members named `m` and
-constructors named `C.m` were found. *They would necessarily be declared in
-extensions.*
+*If `C` does declare a constructor with such a name `C.m2` then the given
+expression is not a static member invocation. This case is described in a
+section below.*
 
-Otherwise, the invocation is resolved to the given static member
-declaration in an extension named `Ej`, and the invocation is treated
-as `Ej.m()` *(this is an explicitly resolved invocation, which is specified
-above)*.
+Otherwise, an error occurs if _M_ is empty or _M_ contains more than one
+member.
+
+Otherwise, assume that _M_ contains exactly one element which is an
+extension `E` that declares a static member named `m`. The invocation is
+then treated as `E.m()` *(this is an explicitly resolved invocation, which
+is specified above)*.
+
+Otherwise, _M_ will contain exactly one element which is a constructor
+named `C.m`. This is not a static member invocation, and it is specified in
+a section below.
+
+In addition to these rules for invocations of static members of a class or
+an extension, a corresponding set of rules exist for the following: An
+enumerated declaration *(`enum ...`)*, a mixin class, a mixin, and an
+extension type. They only differ by being concerned with a different kind
+of declaration.
+
+In addition to the member invocations specified above, it is also possible
+to invoke a static member of the enclosing declaration based on lexical
+lookup. This case is applicable when an expression in a class, enum, mixin
+or extension type resolves to an invocation of a static member of the
+enclosing declaration. It will never invoke a static member of an extension
+which is not the enclosing declaration.
 
 #### The instantiated constructor return type of an extension
 
@@ -255,11 +291,11 @@ and it has a constructor return type of the form `C<S1 .. Sk>`. In this
 case the instantiated constructor return type of _D_ is `C<S1 .. Sk>`,
 which is a ground type, and it is the same for all call sites.*
 
-#### Explicit invocation of a constructor in an extension
+#### Invocation of a constructor in an extension
 
-Explicit constructor invocations are similar to static member invocations,
-but they need more detailed rules because they can use the formal type
-parameters declared by an extension.
+Explicit constructor invocations are similar to explicitly resolved static
+member invocations, but they need more detailed rules because they can use
+the formal type parameters declared by an extension.
 
 An _explicitly resolved invocation_ of a constructor named `C.name` in a
 extension declaration _D_ named `E` with `s` type parameters and on-class
@@ -269,10 +305,10 @@ similarly for a constructor named `C` using `E<S1 .. Ss>.C(args)`, etc).
 
 A compile-time error occurs if the type arguments passed to `E` violate the
 declared bounds. A compile-time error occurs if no type arguments are
-passed to `E`, and type arguments `U1 .. Uk` are passed to `C`, but no list
-of actual type arguments for the type variables of `E` can be found such
-that the instantiated constructor return type of `E` with said type
-arguments is `C<U1 .. Uk>`.
+passed to `E`, and type arguments `U1 .. Uk` are passed to `C`, but no
+actual type arguments for the type variables of `E` can be found such that
+the instantiated constructor return type of `E` with said type arguments is
+`C<U1 .. Uk>`.
 
 *Note that we must be able to choose the values of the type parameters
 `X1 .. Xs` such that the instantiated constructor return type is
@@ -288,7 +324,7 @@ normalization occurs. *In other words, the types must be equal, not
 just mutual subtypes.*
 
 *Note that explicitly resolved invocations of constructors declared in
-extensions are an exception in real code, usable in the case where a
+extensions are a rare exception in real code, usable in the case where a
 name clash prevents an implicitly resolved invocation. However, implicitly
 resolved invocations are specified in the rest of this section by reducing
 them to explicitly resolved ones.*
@@ -303,16 +339,26 @@ If a constructor in `C` with the requested name was found, the pre-feature
 static analysis and dynamic semantics apply. *That is, the class always
 wins.*
 
-Otherwise, the invocation is partially resolved to a set of candidate
-constructors found in extensions. Each of the candidates _kj_ is
-vetted as follows:
+Otherwise, if `m` is zero *(which means that the invocation is
+`C.name(args)`)*, and `C` declares a static member whose basename is the
+basename of `name`, the invocation is a static member invocation *(which is
+specified in an earlier section)*.
 
-Assume that _kj_ is a constructor declared by an extension _D_ named
-`E` with type parameters `X1 extends B1 .. Xs extends Bs` and on-type
-`C<S1 .. Sm>`.  Find actual values `U1 .. Us` for `X1 .. Xs` satisfying the
-bounds `B1 .. Bs`, such that `([U1/X1 .. Us/Xs]C<S1 .. Sm>) == C<T1 .. Tm>`.
-If this fails then remove _kj_ from the set of candidate constructors.
-Otherwise note that _kj_ uses actual type arguments `U1 .. Us`.
+Otherwise, the invocation is partially resolved to a set _M_ of candidate
+constructors and static members found in extensions. Each of the candidates
+_kj_ is vetted as follows:
+
+If `m` is zero and `E` is an accessible extension with on-class `C`
+that declares a static member whose basename is `name` then the invocation
+is a static member invocation *(which is specified in an earlier section)*.
+
+Otherwise, assume that _kj_ is a constructor declared by an extension _D_
+named `E` with type parameters `X1 extends B1 .. Xs extends Bs`, on-class
+`C`, and on-type `C<S1 .. Sm>`. Find actual values `U1 .. Us` for 
+`X1 .. Xs` satisfying the bounds `B1 .. Bs`, such that
+`([U1/X1 .. Us/Xs]C<S1 .. Sm>) == C<T1 .. Tm>`.  If this fails then remove
+_kj_ from the set of candidate constructors.  Otherwise note that _kj_ 
+uses actual type arguments `U1 .. Us`.
 
 If all candidate constructors have been removed, or more than one candidate
 remains, a compile-time error occurs. Otherwise, the invocation is
@@ -338,12 +384,18 @@ In the case where the invocation resolves to exactly one constructor
 `C.name` (or `C`) declared by an extension named `E`, the invocation
 is treated as `E.C.name(args)` (respectively `E.C(args)`).
 
-Otherwise, when there are two or more candidates from extensions,
-an error occurs. *We do not wish to specify an approach whereby `args` is
-subject to type inference multiple times, and hence we do not support type
-inference for `C.name(args)` in the case where there are multiple distinct
+Otherwise, when there are two or more candidates from extensions, an error
+occurs. *We do not wish to specify an approach whereby `args` is subject to
+type inference multiple times, and hence we do not support type inference
+for `C.name(args)` in the case where there are multiple distinct
 declarations whose signature could be used during the static analysis of
 that expression.*
+
+In addition to these rules for invocations of constructors of a class or an
+extension, a corresponding set of rules exist for the following: An
+enumerated declaration *(`enum ...`)*, a mixin class, a mixin, and an
+extension type. They only differ by being concerned with a different kind
+of declaration.
 
 ### Dynamic Semantics
 
@@ -361,6 +413,10 @@ extension is reduced to an explicitly resolved one during static analysis.
 This fully determines the dynamic semantics of this feature.
 
 ### Changelog
+
+1.1 - Aug 21, 2024
+
+* Extensive revision of this document based on thorough review.
 
 1.0 - May 31, 2024
 
