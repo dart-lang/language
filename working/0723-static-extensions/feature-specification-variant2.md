@@ -9,9 +9,9 @@ Version: 1.1
 Experiment flag: static-extensions
 
 This document specifies extensions with static capabilities. This is a
-feature that supports the addition of static members and/or factory
-constructors to an existing declaration that can have such members, based
-on a generalization of the features offered by `extension` declarations.
+feature that supports the addition of static members and/or constructors to
+an existing declaration that can have such members, based on a
+generalization of the features offered by `extension` declarations.
 
 ## Introduction
 
@@ -25,9 +25,9 @@ constructors or static members to an existing class, mixin, enum, or
 extension type declaration, but they do not have the ability to directly
 edit the source code of said declaration.
 
-This feature allows static members declared in an `extension` on a given
-class/mixin/etc. declaration _D_ to be invoked as if they were static
-members of _D_.
+This feature allows static members and constructors declared in an
+`extension` on a given class/mixin/etc. declaration _D_ to be invoked as if
+they were static members respectively constructors declared by _D_.
 
 Here is an example:
 
@@ -59,8 +59,9 @@ above, the on-class of `E1` is `Distance`.
 For example:
 
 ```dart
-// Static members must ignore the type parameters. It may be useful to omit
-// the type parameters in the case where every member is static.
+// Static members must ignore the type parameters. It may be useful
+// to omit the type parameters in the case where every member is 
+// static.
 extension E2 on Map {
   static Map<K2, V> castFromKey<K, V, K2>(Map<K, V> source) =>
       Map.castFrom<K, V, K2, V>(source);
@@ -108,15 +109,15 @@ extension E4<X> on Map<X, List<X>> {
   factory Map.listValue(X x) => {x: [x]};
 }
 
-var int2intList = Map.listValue(1); // Inferred as `Map<int, List<int>>`.
+var map = Map.listValue(1); // Inferred as `Map<int, List<int>>`.
 // `Map<int, double>.listValue(...)` is an error.
 
 extension E6<Y> on Map<String, Y> {
   factory Map.fromString(Y y) => {y.toString(): y};
 }
 
-var string2bool = Map.fromString(true); // Inferred as `Map<String, bool>`.
-Map<String, List<bool>> string2listOfBool = Map.fromString([]);
+var map2 = Map.fromString(true); // Infers `Map<String, bool>`.
+Map<String, List<bool>> map3 = Map.fromString([]);
 ```
 
 ## Specification
@@ -154,6 +155,9 @@ or extension type `C`, we say that the _on-class_ of `E` is `C`, and the
 _constructor return type_ of `E` is the transitive alias expansion of 
 `F<T1 .. Tk>`.
 
+In all other cases, an extension declaration does not have an on-class nor a
+constructor return type.
+
 For the purpose of identifying the on-class and constructor return type of
 a given extension, the types `void`, `dynamic`, and `Never` are not
 considered to be classes, and neither are record types or function types.
@@ -163,9 +167,6 @@ considered to be classes, and neither are record types or function types.
 - *A type of the form `T?` or `FutureOr<T>`, for any type `T`.*
 - *A type variable.*
 - *An intersection type*.
-
-In all other cases, an extension declaration does not have an on-class nor a
-constructor return type.
 
 *It may well be possible to allow record types and function types to be
 extended with constructors that are declared in an extension, but this is
@@ -179,7 +180,8 @@ by specifying several errors.
 It is a compile-time error to declare a constructor in an extension whose
 on-type is not regular-bounded, assuming that the type parameters declared
 by the extension satisfy their bounds. It is a compile-time error to invoke
-a constructor of an extension whose on-type is not regular-bounded.
+a constructor of an extension whose instantiated on-type is not
+regular-bounded.
 
 Tools may report diagnostic messages like warnings or lints in certain
 situations. This is not part of the specification, but here is one
@@ -187,7 +189,8 @@ recommended message:
 
 A compile-time diagnostic is emitted if an extension _D_ declares a
 constructor or a static member with the same basename as a constructor or a
-static member in the on-class of _D_.
+static member in the on-class of _D_. A similar diagnostic is emitted when
+_D_ is an enum, mixin, mixin class, or extension type declaration.
 
 *In other words, an extension should not have name clashes with its
 on-class. The warning above is aimed at static members and constructors,
@@ -235,9 +238,9 @@ pre-feature Dart.*
 
 In the case where `C` does not declare any static members whose basename is
 the basename of `m`, and `C` does not declare any constructors named `C.m2`
-where `m2` is the basename of `m`, let _M_ be the set of each accessible
-extension whose on-class is `C`, and whose static members include one with
-the name `m`, or which declares a constructor named `C.m`.
+where `m2` is the basename of `m`, let _M_ be the set containing each
+accessible extension whose on-class is `C`, and whose static members
+include one with the name `m`, or which declares a constructor named `C.m`.
 
 *If `C` does declare a constructor with such a name `C.m2` then the given
 expression is not a static member invocation. This case is described in a
@@ -363,7 +366,8 @@ uses actual type arguments `U1 .. Us`.
 If all candidate constructors have been removed, or more than one candidate
 remains, a compile-time error occurs. Otherwise, the invocation is
 henceforth treated as `E<U1 .. Us>.C<T1 .. Tm>.name(args)` (respectively
-`E<U1 .. Us>.C<T1 .. Tm>(args)`).
+`E<U1 .. Us>.C<T1 .. Tm>(args)`). *This is an explicitly resolved extension
+constructor invocation, which is specified above.*
 
 A constructor invocation of the form `C.name(args)` (respectively
 `C(args)`) where `C` denotes a non-generic class is resolved in the
@@ -380,16 +384,20 @@ determines the actual type arguments of `C`, the expression is changed to
 receive said actual type arguments, `C<T1 .. Tm>.name(args)`, and treated
 as described above.
 
-In the case where the invocation resolves to exactly one constructor
-`C.name` (or `C`) declared by an extension named `E`, the invocation
-is treated as `E.C.name(args)` (respectively `E.C(args)`).
+Next, we construct a set _M_ containing all accessible extensions with
+on-class `C` that declare a constructor named `C.name` (respectively `C`).
+
+In the case where _M_ contains exactly one extension `E` that declares a
+constructor named `C.name` (or `C`), the invocation is treated as
+`E.C.name(args)` (respectively `E.C(args)`).
 
 Otherwise, when there are two or more candidates from extensions, an error
 occurs. *We do not wish to specify an approach whereby `args` is subject to
 type inference multiple times, and hence we do not support type inference
 for `C.name(args)` in the case where there are multiple distinct
 declarations whose signature could be used during the static analysis of
-that expression.*
+that expression. The workaround is to specify the actual type arguments
+explicitly.*
 
 In addition to these rules for invocations of constructors of a class or an
 extension, a corresponding set of rules exist for the following: An
