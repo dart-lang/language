@@ -1,7 +1,7 @@
 # Part files with imports
 
 Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.0 (See [Changelog](#Changelog) at end)
+Version: 1.1 (See [Changelog](#Changelog) at end)
 
 This is a stand-along definition of _improved part files_, where the title of
 this document/feature is highlighting only the most prominent part of the
@@ -295,6 +295,118 @@ your code. Top-level declarations are global and the unit of ownership is the
 library, so the library author should fix the conflict by renaming the prefix.
 That such a name conflict is a compile-time error, makes it much easier to
 detect if it happens._
+
+### Extension accessibility and specificity
+
+An `extension` declaration is specified to be *accessible* to the code of a
+library if the extension declaration is imported by an `import` declaration
+of that library that doesn't hide the declaration.
+It's "in the import scope" somewhere, even if the extension cannot be
+directly referred to by name, for example due to naming conflicts or shadowing.
+
+With the enhanced parts with imports feature, an extension imported by a `part`
+file is not in the import scope of its parent or sibling files.
+The definition of an extension being accessible is changed from the phrasing
+of the [extension feature specification on accessibility][] to:
+
+> An extension is accessible (with priority *n*) in a Dart file if either:
+> * The extension is declared by the library of the Dart file, in which
+>   case it's accessible with priority zero.
+> * The extension is accessible by import with priority *n* in the Dart file.
+>
+> An extension is accessible by import with priority *n* in a Dart file iff:
+> * The Dart file *imports* the extension, meaning that the Dart file
+>   contains a non-deferred import directive whose imported
+>   library has the extension in its export scope, and where the name of
+>   the extension is not private, and is not hidden by either a `hide`
+>   combinator mentioning the extension name or by a `show` combinator
+>   not mentioning the name.
+>   In that case the extension is accessible with priority 1.
+>   _This includes non-deferred imports with a prefix, and even an unnamed
+>   prefix using the the "wildcard variable" unnamed variable notation
+>   `as _`._
+> * Or otherwise, if the Dart file is a part file and the extension is
+>   accessible by import in the part file's parent file with priority *n*.
+>   In that case the extension is accessible by import to the current file
+>   with priority *n + 1*. _(Lower is better.)_
+
+The "priority *n*" of an extension for a particular Dart file is a measure
+of how far up in the parent chain the import for that extension occurred.
+A value of "1" means the current Dart file, and each step up the parent
+chain increases the value by one. A value of zero means the declaration
+is in the current library, and that is the priority of the extension
+in all files of the library, even if the same extension is *also* imported.
+
+[extension feature specification on accessibility]: https://github.com/dart-lang/language/blob/main/accepted/2.7/static-extension-methods/feature-specification.md#accessibility "Accessibility"
+
+The rules for *applicability* of extensions do not change.
+
+The conflict resolution, used when multiple accessible extensions apply
+to an invocation, are updated to give priority to an extension imported
+by a part file over extensions made accssible by its parent file.
+This maintains the guarantee that a part file can ignore
+parent file imports, as long as it imports all its own dependencies:
+every name it refers to itself, *and* every extension that it refers
+to *implicitly*.
+
+The [extension feature specification on specificity] is updated to
+the following:
+
+> Let *i* be a member invocation with target expression `e` and corresponding
+> member name *m*, and let *E1* and *E2* denote different accessible and
+> applicable extensions for *i*.
+> 
+> Whether *E1* is more specific than *E2* wrt. *i* of *e* is determined by
+> the following steps, stopping when an answer is given:
+> * If *E1* is accessible with priority *n1* &gt; 0 and *E2* is accessible
+>   with priority *n2* &gt; 0 _(so both accessible by import)_ then
+>     * if *n1* < *n2* then *E1* is more specific than *E2*, and
+>     * if *n2* < *n1* then *E1* is *not* more specific than *E2*.
+> * If the *E2* extension is declared in a platform library and the *E1*
+>   extension is not, then *E1* is more specific than *E2*.
+> * If the *E1* extension is declared in a platform library and the *E2*
+>   extension is not, then *E1* is *not* more specific than *E2*.
+> * Let *T1* be the instantiated "on" type of *E1* wrt. `e`
+>   and *T2* be the instantiated "on" type of *E2* wrt. `e`.
+> * If *T1* is a subtype of *T2*:
+>    * If *T2* is not also a subtype of *T1*, then *E1* is more specific
+>      than *E2*.
+>    * If *T2* is also a subtype of *T1*:
+>      * let *B1* be the instantiate-to-bounds `on` type of *E1*
+>        and *B2* be the instantiate-to-bounds `on` type of *E2*.
+>      * If *B1* is a subtype of *B2* and *B2* is not a subtype of *B1*,
+>        then *E1* is more specific than *E2*.
+> * Otherwise *E1* is _not_ more specific than *E2*.
+
+The only change to behavior (not just refactoring) is the first step,
+which makes one imported extension more specific than another imported
+extension if the former is imported "closer to" the place of use than
+the latter.
+
+The change does give priority to a platform extension imported by a
+part file, over a non-platform extension imported by a parent file.
+This should be non-breaking on introduction since there are no part
+files with imports. It may make it breaking to add an extension to
+a platform file that is imported in a part file, since it can now
+shadow an extension for the same invocation imported by a parent
+file.
+It does, however, ensure that part files which import all their
+dependencies, including platform library dependencies with extensions,
+can safely ignore their parent file imports.
+
+This change does not affect the priority of extensions declared
+in the library itself. They are still on even footing with imported
+extensions, allowing a library to declare *more or less specific*
+extensions without automatically taking precedence over imported
+extensions.
+_(To give declarations of the current library the highest priority, remove
+the "&gt; 0" from the priority rule. This would include locally declared
+extensions in the comparison with highest priority. Doing so would be a
+potentially breaking change, so it's deliberately omitted, even though
+it could make sense. The library declaration scope is below the combined
+import scope in the part file scope chain.)_
+
+[extension feature specification on specificity]: https://github.com/dart-lang/language/blob/main/accepted/2.7/static-extension-methods/feature-specification.md#specificity "Specificity"
 
 ### Export directives
 
@@ -611,11 +723,19 @@ will already be compatible.
 
 ## Changelog
 
+### 1.1
+
+*   Addresses extension accessibility and specificitiy.
+    *   Makes extension accessibility follow the import scope that
+        extensions are imported into, so inherited by parts, but not
+        visible outside of the file doing the import.
+    *   Makes closer imports in the import scope chain be more specific
+        than ones further up.
+
 ### 1.0
 
 *   Initial version. The corresponding version of [Augmentations], which refers
     to part files with imports, is version 1.21.
-
 *   Combines augmentation libraries, libraries and part files into just
     libraries and part files, where the part files can have import, export and
     further part directives. Those part directives can use configurable imports.
