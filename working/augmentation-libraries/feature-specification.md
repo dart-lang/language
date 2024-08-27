@@ -313,7 +313,7 @@ that includes omitting the `extends` keyword. For a variable or parameter,
 a `var` keyword may replace the type.
 
 When applying an augmenting declaration that contains a type annotation at
-one of these positions, to a defintion to be augmented, it's a compile-time
+one of these positions, to a definition to be augmented, it's a compile-time
 error if the type denoted by the augmenting declaration is not the same
 type as the type that the augmented definition has at the corresponding
 position. __An augmenting declaration can omit type annotations, but if it
@@ -999,7 +999,7 @@ whether there is an external implementation to call?**
 All declarations can be augmented with metadata annotations and/or doc comments
 directly preceding an augmenting declaration.
 
-In both cases, these should be appended to exising metadata or doc comments. For
+In both cases, these should be appended to existing metadata or doc comments. For
 metadata annotations, these may trigger additional macro applications.
 
 ## Scoping
@@ -1036,7 +1036,7 @@ part 'some_augment.dart';
 const b = 37;
 
 class C {
-  const int b = 42;
+  static const int b = 42;
   bool isEven(int n) {
     if (n == 0) return true;
     return !_isOdd(n - 1);
