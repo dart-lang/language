@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Draft
 
-Version: 1.0
+Version: 1.1
 
 Experiment flag: static-extensions
 
@@ -334,19 +334,35 @@ When a static extension declaration _D_ named `E` has an on-clause which
 denotes a non-generic class `C`, the instantiated constructor return type
 is `C`, for any list of actual type arguments.
 
-*It is not very useful to declare a type parameter of a static extension
-which isn't used in the constructor return type, because it can only be
-passed in an explicitly resolved constructor invocation, e.g.,
-`E<int>.C(42)`. In all other invocations, the value of such type variables
-is determined by instantiation to bound. In any case, the type parameters
-are always ignored by static member declarations, they are only relevant to
-constructors.*
+*Note that such type arguments can be useful, in spite of the fact that
+they do not occur in the type of the newly created object. For example:*
+
+```dart
+class A {
+  final int i;
+  A(this.i);
+}
+
+static extension E<X> on A {
+  A.computed(X x, int Function(X) fun): this(fun(x));
+}
+
+void main() {
+  // We can create an `A` "directly".
+  A a = A(42);
+  
+  // We can also use a function to compute the `int`.
+  a = A.computed('Hello!', (s) => s.length);
+}
+```
 
 When a static extension declaration _D_ has no formal type parameters, and
 it has an on-type `C<S1 .. Sk>`, the instantiated constructor return type
-of _D_ is `C<S1 .. Sk>`. *In this case the on-type is a fixed type (also
-known as a ground type), e.g., `List<int>`. This implies that the
-constructor return type of D is the same for every call site.*
+of _D_ is `C<S1 .. Sk>`.
+
+*In this case the on-type is a fixed type (also known as a ground type),
+e.g., `List<int>`. This implies that the constructor return type of D is
+the same for every call site.*
 
 Finally we have the general case: Consider a static extension declaration
 _D_ named `E` with formal type parameters `X1 extends B1 .. Xs extends Bs`
@@ -354,7 +370,7 @@ and a constructor return type `C<S1 .. Sk>`. With actual type arguments
 `T1 .. Ts`, the instantiated constructor return type of _D_ with type
 arguments `T1 .. Ts` is `[T1/X1 .. Ts/Xs]C<S1 .. Sk>`.
 
-#### Explicit invocation of a constructor in a static extension
+#### Invocation of a constructor in a static extension
 
 Explicit constructor invocations are similar to static member invocations,
 but they need more detailed rules because they can use the formal type
@@ -366,6 +382,15 @@ on-class `C` can be expressed as `E<S1 .. Ss>.C.name(args)`,
 `E.C<U1 .. Uk>.name(args)`, or `E<S1 .. Ss>.C<U1 .. Uk>.name(args)`
 (and similarly for a constructor named `C` using `E<S1 .. Ss>.C(args)`,
 etc).
+
+*The point is that an explicitly resolved invocation has a static analysis
+and dynamic semantics which is very easy to understand, based on the
+information. In particular, the actual type arguments passed to the
+extension determines the actual type arguments passed to the class, which
+means that the explicitly resolved invocation typically has quite some
+redundancy (but it is very easy to check whether it is consistent, and it
+is an error if it is inconsistent). Every other form is reduced to the
+explicitly resolved form.*
 
 A compile-time error occurs if the type arguments passed to `E` violate the
 declared bounds. A compile-time error occurs if no type arguments are
@@ -399,6 +424,9 @@ every accessible static extension with on-class `C`. A compile-time error
 occurs if no such constructor is found. Similarly, an invocation of the
 form `C<T1 ... Tm>(args)` uses a lookup for constructors named `C`.
 
+*Note that, as always, a constructor named `C` can also be denoted by
+`C.new` (and it must be denoted as such in a constructor tear-off).*
+
 If a constructor in `C` with the requested name was found, the pre-feature
 static analysis and dynamic semantics apply. *That is, the class always
 wins.*
@@ -421,8 +449,11 @@ henceforth treated as `E<U1 .. Us>.C<T1 .. Tm>.name(args)` (respectively
 
 A constructor invocation of the form `C.name(args)` (respectively
 `C(args)`) where `C` denotes a non-generic class is resolved in the
-same manner, with `m == 0`. *In this case, type parameters declared by `E`
-will be bound to values selected by instantiation to bound.*
+same manner, with `m == 0`. 
+
+*In this case, type parameters declared by `E` may be inferred based on the
+constructor signature (similarly to the example with `A.computed` above),
+or they will be bound to values selected by instantiation to bound.*
 
 Consider a constructor invocation of the form `C.name(args)` (and similarly
 for `C(args)`) where `C` denotes a generic class. As usual, the
@@ -461,6 +492,10 @@ extension is reduced to an explicitly resolved one during static analysis.
 This fully determines the dynamic semantics of this feature.
 
 ### Changelog
+
+1.1 - August 28, 2024
+
+* Clarify many parts.
 
 1.0 - May 31, 2024
 
