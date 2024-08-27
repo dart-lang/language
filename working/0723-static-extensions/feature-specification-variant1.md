@@ -180,8 +180,8 @@ If `C` denotes a non-generic class, mixin, mixin class, or extension
 type then we say that the _constructor return type_ of the static extension
 is `C`.
 
-If `C` denotes a generic class then `E` is treated as
-`static extensionE on C<T1 .. Tk> {...}` 
+If `C` denotes a generic declaration then `E` is treated as
+`static extension E on C<T1 .. Tk> {...}`
 where `T1 .. Tk` are obtained by instantiation to bound.
 
 In a static extension of the form `static extension E on C<T1 .. Tk> {...}`
