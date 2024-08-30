@@ -50,12 +50,12 @@ void main() {
 
 In the case where the on-type of an extension declaration satisfies some
 constraints, we say that the class/mixin/etc. which is referred in the
-on-type is the _on-class_ of the extension.
+on-type is the _on-declaration_ of the extension.
 
 The enhancements specified for `extension` declarations in this document
-are only applicable to extensions that have an on-class, all other
+are only applicable to extensions that have an on-declaration, all other
 extensions will continue to work exactly as they do today. In the example
-above, the on-class of `E1` is `Distance`.
+above, the on-declaration of `E1` is `Distance`.
 
 For example:
 
@@ -131,38 +131,39 @@ The grammar remains unchanged.
 
 However, it is no longer an error to declare a factory constructor
 (redirecting or not) or a redirecting generative constructor in an
-extension declaration that has an on-class, possibly constant.  *Such
-declarations may of course give rise to errors as usual, e.g., if a
+extension declaration that has an on-declaration, possibly constant. 
+
+*Such declarations may of course give rise to errors as usual, e.g., if a
 redirecting factory constructor redirects to a constructor that does not
 exist, or there is a redirection cycle.*
 
 In an extension declaration of the form `extension E on C {...}` where `C`
 is an identifier or an identifier with an import prefix that denotes a
 class, mixin, enum, or extension type declaration, we say that the
-_on-class_ of the extension is `C`. If `C` denotes a non-generic class,
-mixin, mixin class, or extension type then we say that the _constructor
-return type_ of the extension is `C`.
+_on-declaration_ of the extension is `C`. If `C` denotes a non-generic
+class, mixin, mixin class, or extension type then we say that the
+_constructor return type_ of the extension is `C`.
 
 If `C` denotes a generic class then `E` is treated as
 `extension E on C<T1 .. Tk> {...}` where `T1 .. Tk` are obtained by
 instantiation to bound.
 
-In an extension of the form `extension E on C<T1 .. Tk> {...}`
-where `C` is an identifier or prefixed identifier that denotes a class,
-mixin, enum, or extension type declaration, we say that the _on-class_
-of `E` is `C`, and the _constructor return type_ of `E` is `C<T1 .. Tk>`.
+In an extension of the form `extension E on C<T1 .. Tk> {...}`  where `C`
+is an identifier or prefixed identifier that denotes a class, mixin, enum,
+or extension type declaration, we say that the _on-declaration_ of `E` is
+`C`, and the _constructor return type_ of `E` is `C<T1 .. Tk>`.
 
 In an extension of the form `extension E on F<T1 .. Tk> {...}` where `F` is
 a type alias whose transitive alias expansion denotes a class, mixin, enum,
-or extension type `C`, we say that the _on-class_ of `E` is `C`, and the
-_constructor return type_ of `E` is the transitive alias expansion of
+or extension type `C`, we say that the _on-declaration_ of `E` is `C`, and
+the _constructor return type_ of `E` is the transitive alias expansion of
 `F<T1 .. Tk>`.
 
-In all other cases, an extension declaration does not have an on-class nor a
-constructor return type.
+In all other cases, an extension declaration does not have an
+on-declaration nor a constructor return type.
 
-For the purpose of identifying the on-class and constructor return type of
-a given extension, the types `void`, `dynamic`, and `Never` are not
+For the purpose of identifying the on-declaration and constructor return
+type of a given extension, the types `void`, `dynamic`, and `Never` are not
 considered to be classes, and neither are record types or function types.
 
 *Also note that none of the following types are classes:*
@@ -192,13 +193,13 @@ recommended message:
 
 A compile-time diagnostic is emitted if an extension _D_ declares a
 constructor or a static member with the same basename as a constructor or a
-static member in the on-class of _D_. A similar diagnostic is emitted when
-_D_ is an enum, mixin, mixin class, or extension type declaration.
+static member in the on-declaration of _D_. A similar diagnostic is emitted
+when _D_ is an enum, mixin, mixin class, or extension type declaration.
 
 *In other words, an extension should not have name clashes with its
-on-class. The warning above is aimed at static members and constructors,
-but a similar warning would probably be useful for instance members as
-well.*
+on-declaration. The warning above is aimed at static members and
+constructors, but a similar warning would probably be useful for instance
+members as well.*
 
 #### Invocation of a static member
 
@@ -242,7 +243,7 @@ pre-feature Dart.*
 In the case where `C` does not declare any static members whose basename is
 the basename of `m`, and `C` does not declare any constructors named `C.m2`
 where `m2` is the basename of `m`, let _M_ be the set containing each
-accessible extension whose on-class is `C`, and whose static members
+accessible extension whose on-declaration is `C`, and whose static members
 include one with the name `m`, or which declares a constructor named `C.m`.
 
 *If `C` does declare a constructor with such a name `C.m2` then the given
@@ -322,8 +323,8 @@ member invocations, but they need more detailed rules because they can use
 the formal type parameters declared by an extension.
 
 An _explicitly resolved invocation_ of a constructor named `C.name` in a
-extension declaration _D_ named `E` with `s` type parameters and on-class
-`C` can be expressed as `E<S1 .. Ss>.C.name(args)`,
+extension declaration _D_ named `E` with `s` type parameters and
+on-declaration `C` can be expressed as `E<S1 .. Ss>.C.name(args)`,
 `E.C<U1 .. Uk>.name(args)`, or `E<S1 .. Ss>.C<U1 .. Uk>.name(args)` (and
 similarly for a constructor named `C` using `E<S1 .. Ss>.C(args)`, etc).
 
@@ -355,7 +356,7 @@ them to explicitly resolved ones.*
 
 A constructor invocation of the form `C<T1 .. Tm>.name(args)` is partially
 resolved by looking up a constructor named `C.name` in the class `C` and in
-every accessible extension with on-class `C`. A compile-time error
+every accessible extension with on-declaration `C`. A compile-time error
 occurs if no such constructor is found. Similarly, an invocation of the
 form `C<T1 ... Tm>(args)` uses a lookup for constructors named `C`.
 
@@ -367,14 +368,14 @@ Otherwise, the invocation is partially resolved to a set _M_ of candidate
 constructors and static members found in extensions. Each of the candidates
 _kj_ is vetted as follows:
 
-If `m` is zero and `E` is an accessible extension with on-class `C`
+If `m` is zero and `E` is an accessible extension with on-declaration `C`
 that declares a static member whose basename is `name` then the invocation
 is a static member invocation *(which is specified in an earlier section)*.
 
 Otherwise, assume that _kj_ is a constructor declared by an extension _D_
-named `E` with type parameters `X1 extends B1 .. Xs extends Bs`, on-class
-`C`, and on-type `C<S1 .. Sm>`. Find actual values `U1 .. Us` for
-`X1 .. Xs` satisfying the bounds `B1 .. Bs`, such that
+named `E` with type parameters `X1 extends B1 .. Xs extends Bs`,
+on-declaration `C`, and on-type `C<S1 .. Sm>`. Find actual values
+`U1 .. Us` for `X1 .. Xs` satisfying the bounds `B1 .. Bs`, such that
 `([U1/X1 .. Us/Xs]C<S1 .. Sm>) == C<T1 .. Tm>`. This may determine the
 value of some of the actual type arguments `U1 .. Us`, and others may be
 unconstrained (because they do not occur in `C<T1 .. Tm>`). Actual type
@@ -406,7 +407,8 @@ unconstrained actual type arguments are given as `_` and inferred later).
 The expression is then treated as described above.
 
 Next, we construct a set _M_ containing all accessible extensions with
-on-class `C` that declare a constructor named `C.name` (respectively `C`).
+on-declaration `C` that declare a constructor named `C.name` (respectively
+`C`).
 
 In the case where _M_ contains exactly one extension `E` that declares a
 constructor named `C.name` (or `C`), the invocation is treated as

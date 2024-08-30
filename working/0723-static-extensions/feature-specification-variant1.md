@@ -9,7 +9,7 @@ Version: 1.1
 Experiment flag: static-extensions
 
 This document specifies static extensions. This is a feature that supports
-the addition of static members and/or factory constructors to an existing
+the addition of static members and/or constructors to an existing
 declaration that can have such members, in a way which is somewhat similar
 to the addition of instance members using a plain `extension` declaration.
 
@@ -48,21 +48,22 @@ void main() {
 }
 ```
 
-A static extension declaration is associated with an _on-class_ (as opposed
-to a plain extension declaration which is associated with an on-type). In
-the example above, the on-class of `E1` is `Distance`.
+A static extension declaration is associated with an _on-declaration_ (as
+opposed to a plain extension declaration which is associated with an
+on-type). In the example above, the on-declaration of `E1` is `Distance`.
 
-When the on-class of a static extension declaration is a generic class `G`,
-the on-class may be denoted by a raw type `G`, or by a parameterized type
-`G<T1, .. Tk>`.
+When the on-declaration of a static extension declaration is a generic
+class `G`, the on-declaration may be denoted by a raw type `G`, or by a
+parameterized type `G<T1, .. Tk>`.
 
-When the on-class is denoted by a raw type, the static extension cannot
-declare any constructors, it can only declare static members. In this case
-the type arguments of the on-class are ignored, which is what the `static`
-members must do anyway.
+When the on-declaration is denoted by a raw type, the static extension
+cannot declare any constructors, it can only declare static members. In
+this case the type arguments of the on-declaration are ignored, which is
+what the `static` members must do anyway.
 
-When the on-class is denoted by a parameterized type `T`, constructors in the
-static extension must return an object whose type is `T`.
+When the on-declaration is denoted by a parameterized type `T`,
+constructors in the static extension must return an object whose type is
+`T`.
 
 For example:
 
@@ -75,7 +76,7 @@ static extension E2 on Map {
 }
 
 // Declare extension type parameters, to be used by constructors. The
-// type parameters can have stronger bounds than the on-class.
+// type parameters can have stronger bounds than the on-declaration.
 static extension E3<K extends String, V> on Map<K, V> {
   factory Map.fromJson(Map<String, Object?> source) => Map.from(source);
 }
@@ -111,8 +112,8 @@ static extension<X extends Comparable<X>> on SortedList<X> {
 
 A static extension with type parameters can be specialized for specific
 values of specific type arguments by specifying actual type arguments of
-the on-class to be types that depend on each other, or types with no type
-variables:
+the on-declaration to be types that depend on each other, or types with no
+type variables:
 
 ```dart
 static extension E4<X> on Map<X, List<X>> {
@@ -174,7 +175,7 @@ The grammar is modified as follows:
 
 In a static extension of the form `static extension E on C {...}` where `C`
 is an identifier or an identifier with an import prefix, we say that the
-on-class of the static extension is `C`.
+on-declaration of the static extension is `C`.
 
 If `C` denotes a non-generic class, mixin, mixin class, or extension
 type then we say that the _constructor return type_ of the static extension
@@ -185,8 +186,9 @@ If `C` denotes a generic declaration then `E` is treated as
 where `T1 .. Tk` are obtained by instantiation to bound.
 
 In a static extension of the form `static extension E on C<T1 .. Tk> {...}`
-where `C` is an identifier or prefixed identifier, we say that the on-class
-of `E` is `C`, and the _constructor return type_ of `E` is `C<T1 .. Tk>`.
+where `C` is an identifier or prefixed identifier, we say that the
+on-declaration of `E` is `C`, and the _constructor return type_ of `E` is
+`C<T1 .. Tk>`.
 
 In both cases, `E` is an identifer `id` which is optionally followed by a
 term derived from `<typeParameters>`. We say that the identifier `id` is
@@ -198,9 +200,9 @@ occurrences of those type parameters.*
 At first, we establish some sanity requirements for a static extension
 declaration by specifying several errors.
 
-A compile-time error occurs if the on-class of a static extension does not
-resolve to an enum declaration or a declaration of a class, a mixin, a mixin
-class, or an extension type.
+A compile-time error occurs if the on-declaration of a static extension
+does not resolve to an enum declaration or a declaration of a class, a
+mixin, a mixin class, or an extension type.
 
 A compile-time error occurs if a static extension has an on-clause of the
 form `on C` where `C` denotes a generic class and no type arguments are
@@ -208,8 +210,8 @@ passed to `C` *(i.e., it is a raw type)*, and the static extension contains
 one or more constructor declarations.
 
 *In other words, if the static extension ignores the type parameters of the
-on-class then it can only contain `static` members. Note that if the
-on-class is non-generic then `C` is not a raw type, and the static
+on-declaration then it can only contain `static` members. Note that if the
+on-declaration is non-generic then `C` is not a raw type, and the static
 extension can contain constructors.*
 
 A compile-time error occurs if a static extension has an on-clause of the
@@ -252,10 +254,10 @@ recommended message:
 
 A compile-time diagnostic is emitted if a static extension _D_ declares a
 constructor or a static member with the same basename as a constructor or a
-static member in the on-class of _D_.
+static member in the on-declaration of _D_.
 
 *In other words, a static extension should not have name clashes with its
-on-class.*
+on-declaration.*
 
 #### Static extension scopes
 
@@ -308,7 +310,7 @@ in order to manually resolve a name clash.*
 A static member invocation on a class `C`, of the form `C.m()` (or any
 other member access), is resolved by looking up static members in `C` named
 `m` and looking up static members of every accessible static extension with
-on-class `C` and a member named `m`.
+on-declaration `C` and a member named `m`.
 
 If `C` contains such a declaration then the expression is an invocation of
 that static member of `C`, with the same static analysis and dynamic
@@ -378,7 +380,7 @@ parameters declared by a static extension.
 
 An _explicitly resolved invocation_ of a constructor named `C.name` in a
 static extension declaration _D_ named `E` with `s` type parameters and
-on-class `C` can be expressed as `E<S1 .. Ss>.C.name(args)`,
+on-declaration `C` can be expressed as `E<S1 .. Ss>.C.name(args)`,
 `E.C<U1 .. Uk>.name(args)`, or `E<S1 .. Ss>.C<U1 .. Uk>.name(args)`
 (and similarly for a constructor named `C` using `E<S1 .. Ss>.C(args)`,
 etc).
@@ -420,9 +422,9 @@ them to explicitly resolved ones.*
 
 A constructor invocation of the form `C<T1 .. Tm>.name(args)` is partially
 resolved by looking up a constructor named `C.name` in the class `C` and in
-every accessible static extension with on-class `C`. A compile-time error
-occurs if no such constructor is found. Similarly, an invocation of the
-form `C<T1 ... Tm>(args)` uses a lookup for constructors named `C`.
+every accessible static extension with on-declaration `C`. A compile-time
+error occurs if no such constructor is found. Similarly, an invocation of
+the form `C<T1 ... Tm>(args)` uses a lookup for constructors named `C`.
 
 *Note that, as always, a constructor named `C` can also be denoted by
 `C.new` (and it must be denoted as such in a constructor tear-off).*
