@@ -49,7 +49,8 @@ void main() {
 ```
 
 In the case where the on-type of an extension declaration satisfies some
-constraints, we say that it is the _on-class_ of the extension.
+constraints, we say that the class/mixin/etc. which is referred in the
+on-type is the _on-class_ of the extension.
 
 The enhancements specified for `extension` declarations in this document
 are only applicable to extensions that have an on-class, all other
@@ -60,7 +61,7 @@ For example:
 
 ```dart
 // Static members must ignore the type parameters. It may be useful
-// to omit the type parameters in the case where every member is 
+// to omit the type parameters in the case where every member is
 // static.
 extension E2 on Map {
   static Map<K2, V> castFromKey<K, V, K2>(Map<K, V> source) =>
@@ -69,12 +70,14 @@ extension E2 on Map {
 
 // Type parameters are used by constructors.
 extension E3<K extends String, V> on Map<K, V> {
-  factory Map.fromJson(Map<String, Object?> source) => Map.from(source);
+  factory Map.fromJson(Map<String, Object?> source) =>
+      Map.from(source);
 }
 
 var jsonMap = <String, Object?>{"key": 42};
 var typedMap = Map<String, int>.fromJson(jsonMap);
-// `Map<int, int>.fromJson(...)` is an error: Violates the bound of `K`.
+// `Map<int, int>.fromJson(...)` is an error: It violates the
+// bound of `K`.
 ```
 
 Another motivation for this mechanism is that it supports constructors of
@@ -152,7 +155,7 @@ of `E` is `C`, and the _constructor return type_ of `E` is `C<T1 .. Tk>`.
 In an extension of the form `extension E on F<T1 .. Tk> {...}` where `F` is
 a type alias whose transitive alias expansion denotes a class, mixin, enum,
 or extension type `C`, we say that the _on-class_ of `E` is `C`, and the
-_constructor return type_ of `E` is the transitive alias expansion of 
+_constructor return type_ of `E` is the transitive alias expansion of
 `F<T1 .. Tk>`.
 
 In all other cases, an extension declaration does not have an on-class nor a
@@ -271,6 +274,8 @@ or extension type resolves to an invocation of a static member of the
 enclosing declaration. It will never invoke a static member of an extension
 which is not the enclosing declaration.
 
+*In other words, there is nothing new in this case.*
+
 #### The instantiated constructor return type of an extension
 
 Assume that _D_ is a generic extension declaration named `E` with formal
@@ -283,11 +288,27 @@ _instantiated constructor return type_ of _D_ _with actual type arguments_
 non-generic class `C`. In this case, the instantiated constructor return
 type is `C`, for any list of actual type arguments.*
 
-*It is not very useful to declare a type parameter of an extension which
-isn't used in the on-type (and hence in the constructor return type, if it
-exists), because it can only be passed in an explicitly resolved
-invocation, e.g., `E<int>.C(42)`. In all other invocations, the value of
-such type variables is determined by instantiation to bound.*
+*Note that such type arguments can be useful, in spite of the fact that
+they do not occur in the type of the newly created object. For example:*
+
+```dart
+class A {
+  final int i;
+  A(this.i);
+}
+
+static extension E<X> on A {
+  A.computed(X x, int Function(X) fun): this(fun(x));
+}
+
+void main() {
+  // We can create an `A` "directly".
+  A a = A(42);
+
+  // We can also use a function to compute the `int`.
+  a = A.computed('Hello!', (s) => s.length);
+}
+```
 
 *As another special case, assume that _D_ has no formal type parameters,
 and it has a constructor return type of the form `C<S1 .. Sk>`. In this
@@ -302,7 +323,7 @@ the formal type parameters declared by an extension.
 
 An _explicitly resolved invocation_ of a constructor named `C.name` in a
 extension declaration _D_ named `E` with `s` type parameters and on-class
-`C` can be expressed as `E<S1 .. Ss>.C.name(args)`, 
+`C` can be expressed as `E<S1 .. Ss>.C.name(args)`,
 `E.C<U1 .. Uk>.name(args)`, or `E<S1 .. Ss>.C<U1 .. Uk>.name(args)` (and
 similarly for a constructor named `C` using `E<S1 .. Ss>.C(args)`, etc).
 
@@ -342,11 +363,6 @@ If a constructor in `C` with the requested name was found, the pre-feature
 static analysis and dynamic semantics apply. *That is, the class always
 wins.*
 
-Otherwise, if `m` is zero *(which means that the invocation is
-`C.name(args)`)*, and `C` declares a static member whose basename is the
-basename of `name`, the invocation is a static member invocation *(which is
-specified in an earlier section)*.
-
 Otherwise, the invocation is partially resolved to a set _M_ of candidate
 constructors and static members found in extensions. Each of the candidates
 _kj_ is vetted as follows:
@@ -357,11 +373,16 @@ is a static member invocation *(which is specified in an earlier section)*.
 
 Otherwise, assume that _kj_ is a constructor declared by an extension _D_
 named `E` with type parameters `X1 extends B1 .. Xs extends Bs`, on-class
-`C`, and on-type `C<S1 .. Sm>`. Find actual values `U1 .. Us` for 
+`C`, and on-type `C<S1 .. Sm>`. Find actual values `U1 .. Us` for
 `X1 .. Xs` satisfying the bounds `B1 .. Bs`, such that
-`([U1/X1 .. Us/Xs]C<S1 .. Sm>) == C<T1 .. Tm>`.  If this fails then remove
-_kj_ from the set of candidate constructors.  Otherwise note that _kj_ 
-uses actual type arguments `U1 .. Us`.
+`([U1/X1 .. Us/Xs]C<S1 .. Sm>) == C<T1 .. Tm>`. This may determine the
+value of some of the actual type arguments `U1 .. Us`, and others may be
+unconstrained (because they do not occur in `C<T1 .. Tm>`). Actual type
+arguments corresponding to unconstrained type parameters are given as `_`
+(and they are subject to inference later on, where the types of the actual
+arguments `args` may influence their value). If this inference fails
+then remove _kj_ from the set of candidate constructors.  Otherwise note
+that _kj_ uses actual type arguments `U1 .. Us`.
 
 If all candidate constructors have been removed, or more than one candidate
 remains, a compile-time error occurs. Otherwise, the invocation is
@@ -371,18 +392,18 @@ constructor invocation, which is specified above.*
 
 A constructor invocation of the form `C.name(args)` (respectively
 `C(args)`) where `C` denotes a non-generic class is resolved in the
-same manner, with `m == 0`. *In this case, type parameters declared by `E`
-will be bound to values selected by instantiation to bound.*
+same manner, with `m == 0`.
 
 Consider a constructor invocation of the form `C.name(args)` (and similarly
 for `C(args)`) where `C` denotes a generic class. As usual, the
 invocation is treated as in the pre-feature language when it denotes a
 constructor declared by the class `C`.
 
-In the case where the context type schema for this invocation fully
-determines the actual type arguments of `C`, the expression is changed to
-receive said actual type arguments, `C<T1 .. Tm>.name(args)`, and treated
-as described above.
+In the case where the context type schema for this invocation
+determines some actual type arguments of `C`, the expression is changed to
+receive said actual type arguments, `C<T1 .. Tm>.name(args)` (where the
+unconstrained actual type arguments are given as `_` and inferred later).
+The expression is then treated as described above.
 
 Next, we construct a set _M_ containing all accessible extensions with
 on-class `C` that declare a constructor named `C.name` (respectively `C`).
