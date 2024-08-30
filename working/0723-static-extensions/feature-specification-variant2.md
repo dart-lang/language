@@ -131,7 +131,7 @@ The grammar remains unchanged.
 
 However, it is no longer an error to declare a factory constructor
 (redirecting or not) or a redirecting generative constructor in an
-extension declaration that has an on-declaration, possibly constant. 
+extension declaration that has an on-declaration, possibly constant.
 
 *Such declarations may of course give rise to errors as usual, e.g., if a
 redirecting factory constructor redirects to a constructor that does not
@@ -193,13 +193,12 @@ recommended message:
 
 A compile-time diagnostic is emitted if an extension _D_ declares a
 constructor or a static member with the same basename as a constructor or a
-static member in the on-declaration of _D_. A similar diagnostic is emitted
-when _D_ is an enum, mixin, mixin class, or extension type declaration.
+static member in the on-declaration of _D_.
 
 *In other words, an extension should not have name clashes with its
 on-declaration. The warning above is aimed at static members and
-constructors, but a similar warning would probably be useful for instance
-members as well.*
+constructors, but a similar warning would probably be useful for name
+clashes with instance members as well.*
 
 #### Invocation of a static member
 
@@ -238,7 +237,7 @@ of this feature.
 When `C` declares a static member whose basename is the basename of `m`,
 but `C` does not declare a static member named `m` or a constructor named
 `C.m`, a compile-time error occurs. *This is the same behavior as in
-pre-feature Dart.*
+pre-feature Dart. It's about "near name clashes" involving a setter.*
 
 In the case where `C` does not declare any static members whose basename is
 the basename of `m`, and `C` does not declare any constructors named `C.m2`
@@ -250,32 +249,33 @@ include one with the name `m`, or which declares a constructor named `C.m`.
 expression is not a static member invocation. This case is described in a
 section below.*
 
-Otherwise, an error occurs if _M_ is empty or _M_ contains more than one
-member.
+Otherwise *(when `C` does not declare such a constructor)*, an error occurs
+if _M_ is empty or _M_ contains more than one member.
 
-Otherwise, assume that _M_ contains exactly one element which is an
-extension `E` that declares a static member named `m`. The invocation is
-then treated as `E.m()` *(this is an explicitly resolved invocation, which
-is specified above)*.
+Otherwise *(when no error occurred)*, assume that _M_ contains exactly one
+element which is an extension `E` that declares a static member named
+`m`. The invocation is then treated as `E.m()` *(this is an explicitly
+resolved invocation, which is specified above)*.
 
-Otherwise, _M_ will contain exactly one element which is a constructor
-named `C.m`. This is not a static member invocation, and it is specified in
-a section below.
+Otherwise *(when `E` does not declare such a static member)*, _M_ will
+contain exactly one element which is a constructor named `C.m`. This is not
+a static member invocation, and it is specified in a section below.
 
-In addition to these rules for invocations of static members of a class or
-an extension, a corresponding set of rules exist for the following: An
-enumerated declaration *(`enum ...`)*, a mixin class, a mixin, and an
-extension type. They only differ by being concerned with a different kind
-of declaration.
+In addition to these rules for invocations of static members of an
+extension or a class, a corresponding set of rules exist for an extension
+and the following: An enumerated declaration *(`enum ...`)*, a mixin class,
+a mixin, and an extension type. They only differ by being concerned with a
+different kind of on-declaration.
 
 In addition to the member invocations specified above, it is also possible
 to invoke a static member of the enclosing declaration based on lexical
 lookup. This case is applicable when an expression in a class, enum, mixin
 or extension type resolves to an invocation of a static member of the
-enclosing declaration. It will never invoke a static member of an extension
-which is not the enclosing declaration.
+enclosing declaration.
 
-*In other words, there is nothing new in this case.*
+*This invocation will never invoke a static member of an extension which is
+not the enclosing declaration. In other words, there is nothing new in this
+case.*
 
 #### The instantiated constructor return type of an extension
 
@@ -285,7 +285,7 @@ type `C<S1 .. Sk>`. Let `T1, ..., Ts` be a list of types. The
 _instantiated constructor return type_ of _D_ _with actual type arguments_
 `T1 .. Ts` is then the type `[T1/X1 .. Ts/Xs]C<S1 .. Sk>`.
 
-*As a special case, assume that _D_ has an on-clause which denotes a
+*As a special case, assume that _D_ has an on-type which denotes a
 non-generic class `C`. In this case, the instantiated constructor return
 type is `C`, for any list of actual type arguments.*
 
@@ -298,7 +298,7 @@ class A {
   A(this.i);
 }
 
-static extension E<X> on A {
+extension E<X> on A {
   A.computed(X x, int Function(X) fun): this(fun(x));
 }
 
@@ -322,18 +322,27 @@ Explicit constructor invocations are similar to explicitly resolved static
 member invocations, but they need more detailed rules because they can use
 the formal type parameters declared by an extension.
 
-An _explicitly resolved invocation_ of a constructor named `C.name` in a
+An _explicitly resolved invocation_ of a constructor named `C.name` in an
 extension declaration _D_ named `E` with `s` type parameters and
 on-declaration `C` can be expressed as `E<S1 .. Ss>.C.name(args)`,
 `E.C<U1 .. Uk>.name(args)`, or `E<S1 .. Ss>.C<U1 .. Uk>.name(args)` (and
 similarly for a constructor named `C` using `E<S1 .. Ss>.C(args)`, etc).
 
+*The point is that an explicitly resolved invocation has a static analysis
+and dynamic semantics which is very easy to understand, based on the
+information. In particular, the actual type arguments passed to the
+extension determines the actual type arguments passed to the class, which
+means that the explicitly resolved invocation typically has quite some
+redundancy (but it is very easy to check whether it is consistent, and it
+is an error if it is inconsistent). Every other form is reduced to this
+explicitly resolved form.*
+
 A compile-time error occurs if the type arguments passed to `E` violate the
 declared bounds. A compile-time error occurs if no type arguments are
-passed to `E`, and type arguments `U1 .. Uk` are passed to `C`, but no
-actual type arguments for the type variables of `E` can be found such that
-the instantiated constructor return type of `E` with said type arguments is
-`C<U1 .. Uk>`.
+passed to `E`, and type arguments `U1 .. Uk` are passed to `C`, but no list
+of actual type arguments for the type variables of `E` can be found such
+that the instantiated constructor return type of `E` with said type
+arguments is `C<U1 .. Uk>`.
 
 *Note that we must be able to choose the values of the type parameters
 `X1 .. Xs` such that the instantiated constructor return type is
@@ -359,6 +368,9 @@ resolved by looking up a constructor named `C.name` in the class `C` and in
 every accessible extension with on-declaration `C`. A compile-time error
 occurs if no such constructor is found. Similarly, an invocation of the
 form `C<T1 ... Tm>(args)` uses a lookup for constructors named `C`.
+
+*Note that, as always, a constructor named `C` can also be denoted by
+`C.new` (and it must be denoted as such in a constructor tear-off).*
 
 If a constructor in `C` with the requested name was found, the pre-feature
 static analysis and dynamic semantics apply. *That is, the class always
@@ -411,7 +423,7 @@ on-declaration `C` that declare a constructor named `C.name` (respectively
 `C`).
 
 In the case where _M_ contains exactly one extension `E` that declares a
-constructor named `C.name` (or `C`), the invocation is treated as
+constructor named `C.name` (respectively `C`), the invocation is treated as
 `E.C.name(args)` (respectively `E.C(args)`).
 
 Otherwise, when there are two or more candidates from extensions, an error
