@@ -1,5 +1,0 @@
-name: test_macro_annotations
-publish-to: none
-
-environment:
-  sdk: ^3.4.0

@@ -1,8 +1,0 @@
-name: json_benchmark
-publish-to: none
-
-environment:
-  sdk: ^3.4.0
-
-dev_dependencies:
-  test: ^1.25.0
