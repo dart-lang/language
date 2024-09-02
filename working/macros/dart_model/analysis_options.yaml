@@ -2,6 +2,7 @@ analyzer:
   enable-experiment:
   # For augmentations.
     - macros
+    - enhanced-parts
 
   exclude:
     - /**.a.dart
