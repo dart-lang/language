@@ -2,7 +2,7 @@ name: dart_model_repl
 publish-to: none
 
 environment:
-  sdk: ^3.4.0
+  sdk: ^3.6.0-0
 
 dependencies:
   analyzer: any

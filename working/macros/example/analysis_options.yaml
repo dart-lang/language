@@ -2,6 +2,7 @@ include: ../../../analysis_options.yaml
 
 analyzer:
   enable-experiment:
+    - enhanced-parts
     - macros
   exclude:
     # TODO: remove these when the analyzer supports macros enough to run them
