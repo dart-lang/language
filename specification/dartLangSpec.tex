@@ -2092,7 +2092,7 @@ OR
       that the returned object will not be used
       (\ref{return}).%
     }
-  \item The function is asynchronous, \flatten{T} is not \VOID,
+  \item The function is asynchronous, \Flatten{T} is not \VOID,
     and it would have been a compile-time error
     to declare the function with the body
     \code{\ASYNC{} \{ \RETURN{} $e$; \}}
@@ -11879,7 +11879,7 @@ $F$ in the following cases, using the first applicable case:
   \commentary{%
     There is no rule for the case where $T$ is of the form \code{$X$\,\&\,$S$}
     because this will never occur
-    (this concept is only used in \flattenName, which is defined below).%
+    (this concept is only used in \FlattenName, which is defined below).%
   }
 \end{itemize}
 
@@ -11936,7 +11936,7 @@ we say that $T$ does not derive a future type.
 
 \LMHash{}%
 We define the auxiliary function
-\IndexCustom{\flatten{T}}{flatten(t)@\emph{flatten}$(T)$}
+\IndexCustom{\Flatten{T}}{flatten(t)@\emph{flatten}$(T)$}
 as follows, using the first applicable case:
 
 \begin{itemize}
@@ -11946,24 +11946,24 @@ as follows, using the first applicable case:
 
   \begin{itemize}
   \item if $S$ derives a future type $U$
-    then \DefEquals{\flatten{T}}{\code{\flatten{U}}}.
+    then \DefEquals{\Flatten{T}}{\code{\Flatten{U}}}.
   \item otherwise,
-    \DefEquals{\flatten{T}}{\code{\flatten{X}}}.
+    \DefEquals{\Flatten{T}}{\code{\Flatten{X}}}.
   \end{itemize}
 
 \item If $T$ derives a future type \code{Future<$S$>}
   or \code{FutureOr<$S$>}
-  then \DefEquals{\flatten{T}}{S}.
+  then \DefEquals{\Flatten{T}}{S}.
 
 \item If $T$ derives a future type \code{Future<$S$>?}\ or
-  \code{FutureOr<$S$>?}\ then \DefEquals{\flatten{T}}{\code{$S$?}}.
+  \code{FutureOr<$S$>?}\ then \DefEquals{\Flatten{T}}{\code{$S$?}}.
 
-\item Otherwise, \DefEquals{\flatten{T}}{T}.
+\item Otherwise, \DefEquals{\Flatten{T}}{T}.
 \end{itemize}
 
 \rationale{%
   This definition guarantees that for any type $T$,
-  \code{$T <:$ FutureOr<$\flatten{T}$>}. The proof is by induction on the
+  \code{$T <:$ FutureOr<$\Flatten{T}$>}. The proof is by induction on the
   structure of $T$:
 
   \begin{itemize}
@@ -11972,21 +11972,21 @@ as follows, using the first applicable case:
     \begin{itemize}
     \item if $S$ derives a future type $U$,
       then \code{$T <: S$} and \code{$S <: U$}, so \code{$T <: U$}.
-      By the induction hypothesis, \code{$U <:$ FutureOr<$\flatten{U}$>}.
-      Since \code{$\flatten{T} = \flatten{U}$} in this case, it follows that
-      \code{$U <:$ FutureOr<$\flatten{T}$>}, and so
-      \code{$T <:$ FutureOr<$\flatten{T}$>}.
+      By the induction hypothesis, \code{$U <:$ FutureOr<$\Flatten{U}$>}.
+      Since \code{$\Flatten{T} = \Flatten{U}$} in this case, it follows that
+      \code{$U <:$ FutureOr<$\Flatten{T}$>}, and so
+      \code{$T <:$ FutureOr<$\Flatten{T}$>}.
     \item otherwise, \code{$T <: X$}.
-      By the induction hypothesis, \code{$X <:$ FutureOr<$\flatten{X}$>}.
-      Since \code{$\flatten{T} = \flatten{X}$} in this case, it follows that
-      \code{$U <:$ FutureOr<$\flatten{T}$>}, and so
-      \code{$T <:$ FutureOr<$\flatten{T}$>}.
+      By the induction hypothesis, \code{$X <:$ FutureOr<$\Flatten{X}$>}.
+      Since \code{$\Flatten{T} = \Flatten{X}$} in this case, it follows that
+      \code{$U <:$ FutureOr<$\Flatten{T}$>}, and so
+      \code{$T <:$ FutureOr<$\Flatten{T}$>}.
     \end{itemize}
 
   \item If $T$ derives a future type \code{Future<$S$>}
     or \code{FutureOr<$S$>}, then, since \code{Future<$S$> $<:$ FutureOr<$S$>},
-    it follows that \code{$T <:$ FutureOr<$S$>}. Since \code{$\flatten{T} = S$}
-    in this case, it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
+    it follows that \code{$T <:$ FutureOr<$S$>}. Since \code{$\Flatten{T} = S$}
+    in this case, it follows that \code{$T <:$ FutureOr<$\Flatten{T}$>}.
 
   \item If $T$ derives a future type \code{Future<$S$>?} or
     \code{FutureOr<$S$>?}, then, since \code{Future<$S$>? $<:$ FutureOr<$S$>?},
@@ -11994,13 +11994,13 @@ as follows, using the first applicable case:
     \code{FutureOr<$S$>? $<:$ FutureOr<$S$?>} for any type $S$
     (this can be shown using the union type subtype rules and from
     \code{Future<$S$> $<:$ Future<$S$?>} by covariance), so by transivitity,
-    \code{$T <:$ FutureOr<$S$?>}. Since \code{$\flatten{T} = S$?} in this case,
-    it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
+    \code{$T <:$ FutureOr<$S$?>}. Since \code{$\Flatten{T} = S$?} in this case,
+    it follows that \code{$T <:$ FutureOr<$\Flatten{T}$>}.
 
-  \item Otherwise, \code{$\flatten{T} = T$}, so
-    \code{FutureOr<$\flatten{T}$> $=$ FutureOr<$T$>}. Since
+  \item Otherwise, \code{$\Flatten{T} = T$}, so
+    \code{FutureOr<$\Flatten{T}$> $=$ FutureOr<$T$>}. Since
     \code{$T <:$ FutureOr<$T$>}, it follows that
-    \code{$T <:$ FutureOr<$\flatten{T}$>}.
+    \code{$T <:$ FutureOr<$\Flatten{T}$>}.
   \end{itemize}
 }
 
@@ -12035,7 +12035,7 @@ The static type of a function literal of the form
 
 \noindent
 is
-\FunctionTypePositionalStdCr{\code{Future<\flatten{T_0}>}},
+\FunctionTypePositionalStdCr{\code{Future<\Flatten{T_0}>}},
 
 \noindent
 where $T_0$ is the static type of $e$.
@@ -12071,7 +12071,7 @@ The static type of a function literal of the form
 
 \noindent
 is
-\FunctionTypeNamedStdCr{\code{Future<\flatten{T_0}>}},
+\FunctionTypeNamedStdCr{\code{Future<\Flatten{T_0}>}},
 
 \noindent
 where $T_0$ is the static type of $e$.
@@ -16887,13 +16887,13 @@ completes.
 \BlindDefineSymbol{a, e, S}%
 Let $a$ be an expression of the form \code{\AWAIT\,\,$e$}.
 Let $S$ be the static type of $e$.
-The static type of $a$ is then \flatten{S}
+The static type of $a$ is then \Flatten{S}
 (\ref{functionExpressions}).
 
 \LMHash{}%
 Evaluation of $a$ proceeds as follows:
 First, the expression $e$ is evaluated to an object $o$.
-Let \DefineSymbol{T} be \flatten{S}.
+Let \DefineSymbol{T} be \Flatten{S}.
 If the run-time type of $o$ is a subtype of \code{Future<$T$>},
 then let \DefineSymbol{f} be $o$;
 otherwise let $f$ be the result of creating
@@ -16914,7 +16914,7 @@ $a$ throws $x$ and $t$
 If $f$ completes with an object $v$, $a$ evaluates to $v$.
 
 \rationale{%
-  The use of \flattenName{} to find $T$
+  The use of \FlattenName{} to find $T$
   and hence determine the dynamic type test
   implies that we await a future in every case where this choice is sound.%
 }
@@ -16931,7 +16931,7 @@ If $f$ completes with an object $v$, $a$ evaluates to $v$.
   However, the second kind could be a \code{Future<Object?>}.
   This object isn't a \code{Future<Object>}, and it isn't \NULL,
   so it \emph{must} be considered to be in the second group.
-  Nevertheless, \flatten{\code{FutureOr<Object>?}} is \code{Object?},
+  Nevertheless, \Flatten{\code{FutureOr<Object>?}} is \code{Object?},
   so we \emph{will} await a \code{Future<Object?>}.
   We have chosen this semantics because it was the smallest breaking change
   relative to the semantics in earlier versions of Dart,
@@ -19379,7 +19379,7 @@ Consider the case where $f$ is an asynchronous non-generator function
 %
 % Returning without an object is only ok for async-"voidy" return types.
 It is a compile-time error if $s$ is \code{\RETURN;},
-unless \flatten{T}
+unless \Flatten{T}
 (\ref{functionExpressions})
 is \VOID, \DYNAMIC, or \code{Null}.
 %
@@ -19392,26 +19392,26 @@ is \VOID, \DYNAMIC, or \code{Null}.
 % Returning with an object in an void async function only ok
 % when that value is async-"voidy".
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-\flatten{T} is \VOID,
-and \flatten{S} is neither \VOID, \DYNAMIC, nor \code{Null}.
+\Flatten{T} is \VOID,
+and \Flatten{S} is neither \VOID, \DYNAMIC, nor \code{Null}.
 %
 % Returning async-void in a "non-async-voidy" function is an error.
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-\flatten{T} is neither \VOID, \DYNAMIC, nor \code{Null},
-and \flatten{S} is \VOID.
+\Flatten{T} is neither \VOID, \DYNAMIC, nor \code{Null},
+and \Flatten{S} is \VOID.
 %
 % Otherwise, returning an un-deasync-assignable value is an error.
 It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
-\flatten{S} is not \VOID,
-and \code{Future<\flatten{S}>} is not assignable to $T$.
+\Flatten{S} is not \VOID,
+and \code{Future<\Flatten{S}>} is not assignable to $T$.
 
 \commentary{%
-  Note that \flatten{T} cannot be \VOID, \DYNAMIC, or \code{Null}
+  Note that \Flatten{T} cannot be \VOID, \DYNAMIC, or \code{Null}
   in the last case,
   because then \code{Future<$U$>} is assignable to $T$ for \emph{all} $U$.
   In particular, when $T$ is \code{FutureOr<Null>}
   (which is equivalent to \code{Future<Null>}),
-  \code{Future<\flatten{S}>} is assignable to $T$ for all $S$.
+  \code{Future<\Flatten{S}>} is assignable to $T$ for all $S$.
   This means that no compile-time error is raised,
   but \emph{only} the null object (\ref{null})
   or an instance of \code{Future<Null>}
@@ -19423,7 +19423,7 @@ and \code{Future<\flatten{S}>} is not assignable to $T$.
 
   An error will not be raised if $f$ has no declared return type,
   since the return type would be \DYNAMIC,
-  and \code{Future<\flatten{S}>} is assignable to \DYNAMIC{} for all $S$.
+  and \code{Future<\Flatten{S}>} is assignable to \DYNAMIC{} for all $S$.
   However, an asynchronous non-generator function
   that declares a return type which is not ``voidy''
   must return an expression explicitly.%
@@ -19474,7 +19474,7 @@ Let $S$ be the run-time type of $o$ and
 let $T$ be the actual return type of $f$
 (\ref{actualTypes}).
 If the body of $f$ is marked \ASYNC{} (\ref{functions})
-and $S$ is a subtype of \code{Future<\flatten{T}>}
+and $S$ is a subtype of \code{Future<\Flatten{T}>}
 then let $r$ be the result of evaluating \code{await $v$}
 where $v$ is a fresh variable bound to $o$.
 Otherwise let $r$ be $o$.
