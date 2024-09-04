@@ -1,5 +1,0 @@
-name: goldens
-publish-to: none
-
-environment:
-  sdk: ^3.4.0
