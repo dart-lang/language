@@ -174,7 +174,7 @@ that still means we need to be able to understand that `foo.widget` and
 `some_model/pb.dart`.
 
 In fact, inside Google's monorepo, dotted package names are idiomatic and
-universally used. If our import shorthand syntax couldn't hangle package names
+universally used. If our import shorthand syntax couldn't handle package names
 with dots in them, no one inside Google would be able to use it.
 
 Instead of `.`, this proposal uses `/`. This is obviously a natural path
