@@ -323,7 +323,7 @@ of the [extension feature specification on accessibility][] to:
 >   not mentioning the name.
 >   In that case the extension is accessible with priority 1.
 >   _This includes non-deferred imports with a prefix, and even an unnamed
->   prefix using the the "wildcard variable" unnamed variable notation
+>   prefix using the "wildcard variable" unnamed variable notation
 >   `as _`._
 > * Or otherwise, if the Dart file is a part file and the extension is
 >   accessible by import in the part file's parent file with priority *n*.
@@ -331,7 +331,7 @@ of the [extension feature specification on accessibility][] to:
 >   with priority *n + 1*. _(Lower is better.)_
 
 The "priority *n*" of an extension for a particular Dart file is a measure
-of how far up in the parent chain the import for that extension occurred.
+of how far up in the `part of` chain the import for that extension occurred.
 A value of "1" means the current Dart file, and each step up the parent
 chain increases the value by one. A value of zero means the declaration
 is in the current library, and that is the priority of the extension
