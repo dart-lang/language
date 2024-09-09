@@ -41,6 +41,10 @@ As mentioned, alternative proposals should have their own issue and writeup.
 All proposals should be linked from and link to the 'request' for
 the user problem/feature request they are trying to address.
 
+For smaller and non-controversial features, we will sometimes skip this step and
+proceed directly to the [Acceptance and
+implementation](#acceptance-and-implementation) phase.
+
 ### External (outside of the language team) feedback
 
 We expect to use the github issue tracker as the primary place for accepting
@@ -55,40 +59,23 @@ significant changes.
 
 If consensus is reached on a specific proposal and we decide to accept it, a
 member of the language team will be chosen to shepherd the implementation.
-The implementation will be tracked via three artifacts:
-
-  - An implementation plan document
+The implementation will be tracked via two artifacts:
 
   - A 'implementation' issue.
 
   - A feature specification document
 
-The implementation plan must be located in a sub-directory with the name of the
-feature (`/[feature-name]/`) located inside the `accepted/future-releases/`
-folder. The filename should be `implementation-plan.md`. The implementation
-plan should generally include at least:
-
-  - Affected implementation teams.
-
-  - Schedule and release milestones.
-
-  - Release flag if required, plan for shipping.
-
 The 'feature specification' is **a single canonical writeup of the language
 feature** which is to serve as the implementation reference. Feature
 specifications use Markdown format. The file name should be
-`feature-specification.md`, and the feature specification should
-be located in the same sub-directory as the implementation plan.
+`feature-specification.md`, and the feature specification should be located
+inside the `accepted/future-releases/` folder.
 
-A meta-issue (labelled `implementation`) will be filed in the language
-repository for tracking the implementation process. This top of this issue must
-contain links to:
+The implementation issue (labelled `implementation`) will be filed in the
+language repository for tracking the implementation process. This top of this
+issue must contain links to:
 
-  - The related `request` issue
-
-  - The related `feature` issue
-
-  - A link to the implementation plan
+  - The related `request` and `feature` issues (if they exist)
 
   - A link to the feature specification
 
@@ -145,11 +132,9 @@ shipped (e.g. `2.1`).
     2.0/
     2.1/
       super-mixins/
-        implementation-plan.md
         feature-specification.md
     future-releases/
       spread-operator/
-        implementation-plan.md
         feature-specification.md
   /resources/
     [various supporting documents and resources]
