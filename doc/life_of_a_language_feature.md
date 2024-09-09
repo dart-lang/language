@@ -79,20 +79,144 @@ issue must contain links to:
 
   - A link to the feature specification
 
+### Kick-off meetings
+
 The next step of the implementation issue is to get sign-off from all of the
 relevant implementation teams indicating that they understand the proposal,
 believe that it can reasonably be implemented, and feel that they have
-sufficient details to proceed.  There may be further iteration on the proposal
+sufficient details to proceed.
+
+At a minimum, the set of relevant implementation teams should nearly always
+include both the analyzer and CFE teams. Often, back-end teams (Dart native
+runtime, Dart for web, and Wasm) should be included too. Note that if a feature
+consists entirely of a new piece of syntactic sugar, it can be tempting to
+assume that it's not necessary to consult with any back-end teams (since the CFE
+will lower the new syntax into a kernel form that is already supported). But
+this can be a dangerous assumption. It's easy to forget that even in features
+that appear to consist purely of syntactic sugar, some back-end support may be
+needed in order to properly support single-step debugging or hot reload. Also,
+some work may need to be done on back-end code generators in order to make sure
+that the new feature is lowered into a form that can be well optimized. To avoid
+missing things, we prefer to err on the side of asking teams whether they're
+affected, rather than assuming they won't be.
+
+Since feature specification documents are usually long and very detailed, we
+like to begin this sign-off process with a set of kick-off meetings, typically
+one for each affected implementation team. These meetings are on opportunity for
+a language team representative to present a broad outline of the new feature,
+give some concrete examples, and collect insights from the implementation teams
+about what aspects of the implementation might need special attention.
+
+There may be further iteration on the proposal
 in this phase. This sign-off must be recorded in the implementation issue.
 Changes will be done in place on the writeup.
 
-## Testing
+### Implementation issues
+
+A typical outcome of the kick-off meetings will be a set of implementaiton
+issues in the SDK repo, to track specific pieces of work that need to be
+done.
+
+Additionally, Kevin Chisholm has a script for generating the core set of
+implementation issues for a feature:
+https://github.com/itsjustkevin/flutter_release_scripts/blob/main/languageFeatures.js. We
+like to use this script for larger features. It creates a large number of
+issues, though, so we will sometimes skip it for smaller features that only
+require a small amount of work.
+
+Some teams have checklists that they consult when creating implementation
+issues, to make sure important areas of work aren't forgotten. For example:
+
+- [Implementing a new language feature
+  (analyzer)](https://github.com/dart-lang/sdk/blob/main/pkg/analyzer/doc/process/new_language_feature.md)
+
+- [Implementing a new language feature (analysis
+  server)](https://github.com/dart-lang/sdk/blob/main/pkg/analysis_server/doc/process/new_language_feature.md)
+
+### Feature flag
+
+Most new language features should be implemented using a feature flag. The
+feature flag serves several purposes:
+
+- It allows the feature to be implemented over a series of CLs without
+  destabilizing the SDK. If it comes time to ship a new release of the SDK
+  before the feature is ready, the feature flag can remain off, so users won't
+  be exposed to a partially-implemented or buggy feature before it's ready.
+
+- It allows users to opt in to trying out features that have not yet been
+  released, by turning on the feature flag locally.
+
+- Once the feature is enabled, the feature flag logic ensures that it will only
+  affect users who have set their language version to a version that includes
+  the new feature. This is especially important for package developers who may
+  want to support a range of versions of the Dart SDK.
+
+Note that implementing a language feature using a feature flag is frequently
+more work that implementing it without a feature flag, since the compiler and
+analyzer must faithfully implement both the old and new behaviors. Occasionally
+the language team may decide that the benefits of using a feature flag don't
+justify this extra work. But this is a rare senario. If you are working on a
+feature and believe you don't need to use a feature flag, please consult with
+the language team to be sure.
+
+Creating the feature flag should be one of the first implementation
+tasks. Here's how to do it:
+
+- Add an entry to `tools/experimental_features.yaml` describing the feature, in
+  the top section (above the line that says `Flags below this line are
+  shipped`).
+
+- Run `dart pkg/front_end/tool/fasta.dart generate-experimental-flags` to update
+  `pkg/_fe_analyzer_shared/lib/src/experiments/flags.dart` and
+  `pkg/front_end/lib/src/api_prototype/experimental_flags_generated.dart`.
+
+- Run `dart pkg/analyzer/tool/experiments/generate.dart` to update
+  `pkg/analyzer/lib/src/dart/analysis/experiments.g.dart`.
+
+- Add a static final declaration to the `Feature` class in
+  `pkg/analyzer/lib/dart/analysis/features.dart`.
+
+- Increment the value of `AnalysisDriver.DATA_VERSION` in
+  `pkg/analyzer/lib/src/dart/analysis/driver.dart`.
+
+- Example CL: https://dart-review.googlesource.com/c/sdk/+/365545
+
+### Language testing
 
 The language team will generally write a preliminary set of language tests for a
-feature.  These tests are not intended to be exhaustive, but should illustrate
-and exercise important and non-obvious features.  Implementation teams are
-encouraged to write additional language or unit tests.  The language team may
-also coordinate the writing of additional tests.
+feature, in the SDK's `tests/language` subdirectory.  These tests are not
+intended to be exhaustive, but should illustrate and exercise important and
+non-obvious features.  Implementation teams are encouraged to write additional
+language or unit tests.  The language team may also coordinate the writing of
+additional tests.
+
+An important use case for any new language feature is to ensure that the feature
+isn't accidentally used by package authors that have not yet opted into a
+language version that supports it. So in addition to testing that the new
+language feature works when the feature flag is turned on, the tests added to
+`tests/language` should verify that when the feature flag is turned off, the
+previous behavior of the SDK is preserved.
+
+One important exception to preserving previous SDK behavior is that it's
+permissible (and even encouraged) to improve error messages so that if the user
+tries to use a disabled language feature, they receive an error explaining that
+they need to enable it, rather than, say, a confusing set of parse errors.
+
+To enable the feature in a language test, include the line `//
+SharedOptions=--enable-experiment=$FEATURE` near the top of the test (before the
+first directive), where `$FEATURE` is replaced with the feature name. To disable
+the feature in a language test, include the line `// @dart=$VERSION` near the
+top of the test (before the first directive), where `$VERSION` is the current
+stable release of Dart (and therefore is the largest version that is guaranteed
+_not_ to contain the feature).
+
+### Google3 testing
+
+New features should be tested in Google's internal code base before they are
+switched on.
+
+Details of how to do this will be described in a separate (Google internal)
+document.
 
 ## Shipping
 
