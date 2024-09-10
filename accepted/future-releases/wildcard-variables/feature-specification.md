@@ -2,9 +2,11 @@
 
 Author: Bob Nystrom
 
-Status: In-progress
+Status: Accepted
 
 Version 1.6
+
+Experiment Flag: wildcard-variables
 
 ## Motivation
 
