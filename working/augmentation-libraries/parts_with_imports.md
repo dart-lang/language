@@ -146,7 +146,7 @@ The design goals and principles are:
         into a separate library and imported back into the original library, or
         it can be moved to another position in the part tree hierarchy. _(Again
         augmentations introduce complications, which is why it’s usually a good
-        idea to keep all augmentations inside the same part sub-tree).
+        idea to keep all augmentations inside the same part sub-tree)._
 
 ### Grammar
 
