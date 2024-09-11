@@ -61,9 +61,9 @@ If consensus is reached on a specific proposal and we decide to accept it, a
 member of the language team will be chosen to shepherd the implementation.
 The implementation will be tracked via two artifacts:
 
-  - A 'implementation' issue.
-
   - A feature specification document
+
+  - A 'implementation' issue.
 
 The 'feature specification' is **a single canonical writeup of the language
 feature** which is to serve as the implementation reference. Feature
@@ -86,19 +86,31 @@ relevant implementation teams indicating that they understand the proposal,
 believe that it can reasonably be implemented, and feel that they have
 sufficient details to proceed.
 
-At a minimum, the set of relevant implementation teams should nearly always
-include both the analyzer and CFE teams. Often, back-end teams (Dart native
-runtime, Dart for web, and Wasm) should be included too. Note that if a feature
-consists entirely of a new piece of syntactic sugar, it can be tempting to
-assume that it's not necessary to consult with any back-end teams (since the CFE
-will lower the new syntax into a kernel form that is already supported). But
-this can be a dangerous assumption. It's easy to forget that even in features
-that appear to consist purely of syntactic sugar, some back-end support may be
-needed in order to properly support single-step debugging or hot reload. Also,
-some work may need to be done on back-end code generators in order to make sure
-that the new feature is lowered into a form that can be well optimized. To avoid
-missing things, we prefer to err on the side of asking teams whether they're
-affected, rather than assuming they won't be.
+Consider getting sign-off from the following teams:
+
+- The analyzer team.
+
+- The CFE team.
+
+- Back-end teams:
+
+  - Dart native runtime
+
+  - Dart for web
+
+  - Wasm
+
+Note that if a feature consists entirely of a new piece of syntactic sugar, it
+can be tempting to assume that it's not necessary to consult with any back-end
+teams (since the CFE will lower the new syntax into a kernel form that is
+already supported). But this can be a dangerous assumption. It's easy to forget
+that even in features that appear to consist purely of syntactic sugar, some
+back-end support may be needed in order to properly support single-step
+debugging or hot reload. Also, some work may need to be done on back-end code
+generators in order to make sure that the new feature is lowered into a form
+that can be well optimized. To avoid missing things, we prefer to err on the
+side of asking teams whether they're affected, rather than assuming they won't
+be.
 
 Since feature specification documents are usually long and very detailed, we
 like to begin this sign-off process with a set of kick-off meetings, typically
