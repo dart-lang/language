@@ -364,9 +364,9 @@ the Dart file, or if the file is a *sub-part* of a file included by the
     That is, if the *includes* relation has a cycle. This is not a *necessary*
     error from the language's perspective, since no library can contain such a
     part file without introducing another error; at the first `part` directive
-    which includes a file from the cycle, the including file is not the parent
-    of that file.
-    The rule is included to as a help to tools that try to analyzer Dart code
+    reachable from a library file which includes a file from the cycle, 
+    the including file is not the parent of that file.
+    The rule is included as a help to tools that try to analyzer Dart code
     starting at individual files, they can then assume that either a part file
     has an ancestor which is a library file, or there is a compile-time error.
     Or an infinite number of part files.)
