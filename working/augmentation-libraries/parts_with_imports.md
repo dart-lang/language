@@ -359,7 +359,8 @@ the Dart file, or if the file is a *sub-part* of a file included by the
     *included by* relation. We’ll refer to it by saying either that one Dart
     file is an ancestor file of another part file, or that a part file is a
     sub-part of another Dart file.
-*   _It’s a compile-time error if a part file is a sub-part of itself._
+*   <a name="part_cycle">_It’s a compile-time error if a part file is a sub-part
+    of itself._</a>
     That is, if the *includes* relation has a cycle. This is not a *necessary*
     error from the language's perspective, since no library can contain such a
     part file without introducing another error; at the first `part` directive
