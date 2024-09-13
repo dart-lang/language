@@ -235,6 +235,7 @@ final myClassMethods = [
             identifier: objectIdentifier,
             isNullable: false,
             typeArguments: const []),
+        style: ParameterStyle.normal,
       )
     ],
     returnType: boolType,
