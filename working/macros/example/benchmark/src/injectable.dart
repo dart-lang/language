@@ -357,6 +357,7 @@ final electricHeaterConstructors = [
   ConstructorDeclarationImpl(
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
+      isConst: false,
       library: fooLibrary,
       metadata: [],
       hasBody: true,
@@ -477,6 +478,7 @@ final thermosiphonConstructors = [
   ConstructorDeclarationImpl(
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
+      isConst: false,
       library: fooLibrary,
       metadata: [],
       hasBody: true,
@@ -492,6 +494,7 @@ final thermosiphonConstructors = [
             isNamed: false,
             isRequired: true,
             type: field.type,
+            style: ParameterStyle.normal,
           ),
       ],
       returnType: NamedTypeAnnotationImpl(
@@ -520,24 +523,26 @@ final generatedThermosiphonMethods = [
       namedParameters: [],
       positionalParameters: [
         FormalParameterDeclarationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier: IdentifierImpl(
-                id: RemoteInstance.uniqueId, name: 'heaterProvider'),
-            library: fooLibrary,
-            metadata: [],
-            isNamed: false,
-            isRequired: true,
-            type: NamedTypeAnnotationImpl(
-                id: RemoteInstance.uniqueId,
-                isNullable: false,
-                identifier: providerIdentifier,
-                typeArguments: [
-                  NamedTypeAnnotationImpl(
-                      id: RemoteInstance.uniqueId,
-                      isNullable: false,
-                      identifier: heaterIdentifier,
-                      typeArguments: []),
-                ]))
+          id: RemoteInstance.uniqueId,
+          identifier: IdentifierImpl(
+              id: RemoteInstance.uniqueId, name: 'heaterProvider'),
+          library: fooLibrary,
+          metadata: [],
+          isNamed: false,
+          isRequired: true,
+          type: NamedTypeAnnotationImpl(
+              id: RemoteInstance.uniqueId,
+              isNullable: false,
+              identifier: providerIdentifier,
+              typeArguments: [
+                NamedTypeAnnotationImpl(
+                    id: RemoteInstance.uniqueId,
+                    isNullable: false,
+                    identifier: heaterIdentifier,
+                    typeArguments: []),
+              ]),
+          style: ParameterStyle.normal,
+        )
       ],
       returnType: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -622,6 +627,7 @@ final coffeeMakerConstructors = [
   ConstructorDeclarationImpl(
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
+      isConst: false,
       library: fooLibrary,
       metadata: [],
       hasBody: true,
@@ -637,6 +643,7 @@ final coffeeMakerConstructors = [
             isNamed: false,
             isRequired: true,
             type: field.type,
+            style: ParameterStyle.normal,
           ),
       ],
       returnType: NamedTypeAnnotationImpl(
@@ -667,43 +674,47 @@ final generatedCoffeeMakerMethods = [
       namedParameters: [],
       positionalParameters: [
         FormalParameterDeclarationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier: IdentifierImpl(
-                id: RemoteInstance.uniqueId, name: 'heaterProvider'),
-            library: fooLibrary,
-            metadata: [],
-            isNamed: false,
-            isRequired: true,
-            type: NamedTypeAnnotationImpl(
-                id: RemoteInstance.uniqueId,
-                isNullable: false,
-                identifier: providerIdentifier,
-                typeArguments: [
-                  NamedTypeAnnotationImpl(
-                      id: RemoteInstance.uniqueId,
-                      isNullable: false,
-                      identifier: heaterIdentifier,
-                      typeArguments: [])
-                ])),
+          id: RemoteInstance.uniqueId,
+          identifier: IdentifierImpl(
+              id: RemoteInstance.uniqueId, name: 'heaterProvider'),
+          library: fooLibrary,
+          metadata: [],
+          isNamed: false,
+          isRequired: true,
+          type: NamedTypeAnnotationImpl(
+              id: RemoteInstance.uniqueId,
+              isNullable: false,
+              identifier: providerIdentifier,
+              typeArguments: [
+                NamedTypeAnnotationImpl(
+                    id: RemoteInstance.uniqueId,
+                    isNullable: false,
+                    identifier: heaterIdentifier,
+                    typeArguments: [])
+              ]),
+          style: ParameterStyle.normal,
+        ),
         FormalParameterDeclarationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier: IdentifierImpl(
-                id: RemoteInstance.uniqueId, name: 'pumpProvider'),
-            library: fooLibrary,
-            metadata: [],
-            isNamed: false,
-            isRequired: true,
-            type: NamedTypeAnnotationImpl(
-                id: RemoteInstance.uniqueId,
-                isNullable: false,
-                identifier: providerIdentifier,
-                typeArguments: [
-                  NamedTypeAnnotationImpl(
-                      id: RemoteInstance.uniqueId,
-                      isNullable: false,
-                      identifier: pumpIdentifier,
-                      typeArguments: [])
-                ])),
+          id: RemoteInstance.uniqueId,
+          identifier:
+              IdentifierImpl(id: RemoteInstance.uniqueId, name: 'pumpProvider'),
+          library: fooLibrary,
+          metadata: [],
+          isNamed: false,
+          isRequired: true,
+          type: NamedTypeAnnotationImpl(
+              id: RemoteInstance.uniqueId,
+              isNullable: false,
+              identifier: providerIdentifier,
+              typeArguments: [
+                NamedTypeAnnotationImpl(
+                    id: RemoteInstance.uniqueId,
+                    isNullable: false,
+                    identifier: pumpIdentifier,
+                    typeArguments: [])
+              ]),
+          style: ParameterStyle.normal,
+        ),
       ],
       returnType: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -760,18 +771,19 @@ final dripCoffeeModuleMethods = [
       namedParameters: [],
       positionalParameters: [
         FormalParameterDeclarationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier:
-                IdentifierImpl(id: RemoteInstance.uniqueId, name: 'impl'),
-            library: fooLibrary,
-            metadata: [],
-            isNamed: false,
-            isRequired: true,
-            type: NamedTypeAnnotationImpl(
-                id: RemoteInstance.uniqueId,
-                isNullable: false,
-                identifier: electricHeaterIdentifier,
-                typeArguments: [])),
+          id: RemoteInstance.uniqueId,
+          identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'impl'),
+          library: fooLibrary,
+          metadata: [],
+          isNamed: false,
+          isRequired: true,
+          type: NamedTypeAnnotationImpl(
+              id: RemoteInstance.uniqueId,
+              isNullable: false,
+              identifier: electricHeaterIdentifier,
+              typeArguments: []),
+          style: ParameterStyle.normal,
+        ),
       ],
       returnType: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -795,18 +807,19 @@ final dripCoffeeModuleMethods = [
       namedParameters: [],
       positionalParameters: [
         FormalParameterDeclarationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier:
-                IdentifierImpl(id: RemoteInstance.uniqueId, name: 'impl'),
-            library: fooLibrary,
-            metadata: [],
-            isNamed: false,
-            isRequired: true,
-            type: NamedTypeAnnotationImpl(
-                id: RemoteInstance.uniqueId,
-                isNullable: false,
-                identifier: thermosiphonIdentifier,
-                typeArguments: [])),
+          id: RemoteInstance.uniqueId,
+          identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'impl'),
+          library: fooLibrary,
+          metadata: [],
+          isNamed: false,
+          isRequired: true,
+          type: NamedTypeAnnotationImpl(
+              id: RemoteInstance.uniqueId,
+              isNullable: false,
+              identifier: thermosiphonIdentifier,
+              typeArguments: []),
+          style: ParameterStyle.normal,
+        ),
       ],
       returnType: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -837,24 +850,26 @@ final generatedDripCoffeeModuleMethods = [
       namedParameters: [],
       positionalParameters: [
         FormalParameterDeclarationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier: IdentifierImpl(
-                id: RemoteInstance.uniqueId, name: 'provideImpl'),
-            library: fooLibrary,
-            metadata: [],
-            isNamed: false,
-            isRequired: true,
-            type: NamedTypeAnnotationImpl(
-                id: RemoteInstance.uniqueId,
-                isNullable: false,
-                identifier: providerIdentifier,
-                typeArguments: [
-                  NamedTypeAnnotationImpl(
-                      id: RemoteInstance.uniqueId,
-                      isNullable: false,
-                      identifier: electricHeaterIdentifier,
-                      typeArguments: [])
-                ]))
+          id: RemoteInstance.uniqueId,
+          identifier:
+              IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provideImpl'),
+          library: fooLibrary,
+          metadata: [],
+          isNamed: false,
+          isRequired: true,
+          type: NamedTypeAnnotationImpl(
+              id: RemoteInstance.uniqueId,
+              isNullable: false,
+              identifier: providerIdentifier,
+              typeArguments: [
+                NamedTypeAnnotationImpl(
+                    id: RemoteInstance.uniqueId,
+                    isNullable: false,
+                    identifier: electricHeaterIdentifier,
+                    typeArguments: [])
+              ]),
+          style: ParameterStyle.normal,
+        )
       ],
       returnType: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -884,24 +899,26 @@ final generatedDripCoffeeModuleMethods = [
       namedParameters: [],
       positionalParameters: [
         FormalParameterDeclarationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier: IdentifierImpl(
-                id: RemoteInstance.uniqueId, name: 'provideImpl'),
-            library: fooLibrary,
-            metadata: [],
-            isNamed: false,
-            isRequired: true,
-            type: NamedTypeAnnotationImpl(
-                id: RemoteInstance.uniqueId,
-                isNullable: false,
-                identifier: providerIdentifier,
-                typeArguments: [
-                  NamedTypeAnnotationImpl(
-                      id: RemoteInstance.uniqueId,
-                      isNullable: false,
-                      identifier: thermosiphonIdentifier,
-                      typeArguments: [])
-                ]))
+          id: RemoteInstance.uniqueId,
+          identifier:
+              IdentifierImpl(id: RemoteInstance.uniqueId, name: 'provideImpl'),
+          library: fooLibrary,
+          metadata: [],
+          isNamed: false,
+          isRequired: true,
+          type: NamedTypeAnnotationImpl(
+              id: RemoteInstance.uniqueId,
+              isNullable: false,
+              identifier: providerIdentifier,
+              typeArguments: [
+                NamedTypeAnnotationImpl(
+                    id: RemoteInstance.uniqueId,
+                    isNullable: false,
+                    identifier: thermosiphonIdentifier,
+                    typeArguments: [])
+              ]),
+          style: ParameterStyle.normal,
+        )
       ],
       returnType: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -972,6 +989,7 @@ final dripCoffeeComponentConstructors = [
   ConstructorDeclarationImpl(
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: ''),
+      isConst: false,
       library: fooLibrary,
       metadata: [],
       hasBody: true,
@@ -979,18 +997,20 @@ final dripCoffeeComponentConstructors = [
       namedParameters: [],
       positionalParameters: [
         FormalParameterDeclarationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier: IdentifierImpl(
-                id: RemoteInstance.uniqueId, name: 'dripCoffeeModule'),
-            library: fooLibrary,
-            metadata: [],
-            isNamed: false,
-            isRequired: true,
-            type: NamedTypeAnnotationImpl(
-                id: RemoteInstance.uniqueId,
-                isNullable: false,
-                identifier: dripCoffeeModuleIdentifier,
-                typeArguments: [])),
+          id: RemoteInstance.uniqueId,
+          identifier: IdentifierImpl(
+              id: RemoteInstance.uniqueId, name: 'dripCoffeeModule'),
+          library: fooLibrary,
+          metadata: [],
+          isNamed: false,
+          isRequired: true,
+          type: NamedTypeAnnotationImpl(
+              id: RemoteInstance.uniqueId,
+              isNullable: false,
+              identifier: dripCoffeeModuleIdentifier,
+              typeArguments: []),
+          style: ParameterStyle.normal,
+        ),
       ],
       returnType: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,
@@ -1008,6 +1028,7 @@ final generatedDripCoffeeComponentConstructors = [
   ConstructorDeclarationImpl(
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: '_'),
+      isConst: false,
       library: fooLibrary,
       metadata: [],
       hasBody: true,
@@ -1015,13 +1036,15 @@ final generatedDripCoffeeComponentConstructors = [
       namedParameters: [],
       positionalParameters: [
         FormalParameterDeclarationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier: generatedDripCoffeeComponentFields.first.identifier,
-            library: fooLibrary,
-            metadata: [],
-            isNamed: false,
-            isRequired: true,
-            type: generatedDripCoffeeComponentFields.first.type),
+          id: RemoteInstance.uniqueId,
+          identifier: generatedDripCoffeeComponentFields.first.identifier,
+          library: fooLibrary,
+          metadata: [],
+          isNamed: false,
+          isRequired: true,
+          type: generatedDripCoffeeComponentFields.first.type,
+          style: ParameterStyle.normal,
+        ),
       ],
       returnType: NamedTypeAnnotationImpl(
           id: RemoteInstance.uniqueId,

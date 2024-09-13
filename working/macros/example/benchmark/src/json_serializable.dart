@@ -227,6 +227,7 @@ final myClassConstructors = [
   ConstructorDeclarationImpl(
       id: RemoteInstance.uniqueId,
       identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'fromJson'),
+      isConst: false,
       library: fooLibrary,
       metadata: [],
       hasBody: false,
@@ -234,18 +235,19 @@ final myClassConstructors = [
       namedParameters: [],
       positionalParameters: [
         FormalParameterDeclarationImpl(
-            id: RemoteInstance.uniqueId,
-            identifier:
-                IdentifierImpl(id: RemoteInstance.uniqueId, name: 'json'),
-            library: fooLibrary,
-            metadata: [],
-            isNamed: false,
-            isRequired: true,
-            type: NamedTypeAnnotationImpl(
-                id: RemoteInstance.uniqueId,
-                isNullable: false,
-                identifier: mapIdentifier,
-                typeArguments: [stringType, dynamicType]))
+          id: RemoteInstance.uniqueId,
+          identifier: IdentifierImpl(id: RemoteInstance.uniqueId, name: 'json'),
+          library: fooLibrary,
+          metadata: [],
+          isNamed: false,
+          isRequired: true,
+          type: NamedTypeAnnotationImpl(
+              id: RemoteInstance.uniqueId,
+              isNullable: false,
+              identifier: mapIdentifier,
+              typeArguments: [stringType, dynamicType]),
+          style: ParameterStyle.normal,
+        )
       ],
       returnType: myClassType,
       typeParameters: [],
