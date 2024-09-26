@@ -726,7 +726,18 @@ It is a **compile-time error** if:
 
 *   An `external` variable is augmented with an `abstract` variable.
 
-### Augmenting enum values
+### Augmenting enum members
+
+Some enum members can not be augmented: It is a compile-time error if an
+augmenting declaration in an enum declaration (introductory or augmenting)
+has the name `values`, `index`, `hashCode`, `==`, or `name`.
+
+*It has always been an error for an enum declaration to declare a member
+named `index`, `hashCode`, `==`, or `values`, and this rule just clarifies
+that this error is applicable for augmenting declarations as well. This
+rule also protects the extension instance member `name` against being
+shadowed by another declaration. This is not technically necessary, but it
+seems helpful in practice.*
 
 Enum values can _only_ be augmented by enum values, and the implicit getter
 introduced by them is not augmentable. The only thing you are allowed to do
