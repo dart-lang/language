@@ -1126,7 +1126,7 @@ topLevelDeclaration ::= classDeclaration
   | 'augment'? functionSignature functionBody
   | 'augment'? getterSignature functionBody
   | 'augment'? setterSignature functionBody
-  | 'augment'? ('final' | 'const') type? staticFinalDeclarationList ';'
+  | 'augment'? ('final' | 'const') type? initializedIdentifierList ';'
   | 'augment'? 'late' 'final' type? initializedIdentifierList ';'
   | 'augment'? 'late'? varOrType initializedIdentifierList ';'
 
@@ -1171,17 +1171,17 @@ enumEntry ::= metadata 'augment'? identifier argumentPart?
   | metadata 'augment'? identifier typeArguments?
     '.' identifierOrNew arguments
 
-declaration ::= 'external' factoryConstructorSignature
+declaration ::= 'external'? factoryConstructorSignature
   | 'external' constantConstructorSignature
   | 'external' constructorSignature
-  | ('external' 'static'?)? getterSignature
-  | ('external' 'static'?)? setterSignature
-  | ('external' 'static'?)? functionSignature
+  | 'external'? 'static'? getterSignature
+  | 'external'? 'static'? setterSignature
+  | 'external'? 'static'? functionSignature
   | 'external' ('static'? finalVarOrType | 'covariant' varOrType) identifierList
   | 'external'? operatorSignature
   | 'abstract' (finalVarOrType | 'covariant' varOrType) identifierList
-  | 'augment'? 'static' 'const' type? staticFinalDeclarationList
-  | 'augment'? 'static' 'final' type? staticFinalDeclarationList
+  | 'augment'? 'static' 'const' type? initializedIdentifierList
+  | 'augment'? 'static' 'final' type? initializedIdentifierList
   | 'augment'? 'static' 'late' 'final' type? initializedIdentifierList
   | 'augment'? 'static' 'late'? varOrType initializedIdentifierList
   | 'augment'? 'covariant' 'late' 'final' type? identifierList
