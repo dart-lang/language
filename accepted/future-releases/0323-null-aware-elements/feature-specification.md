@@ -252,8 +252,8 @@ final tag = Tag()
       'comment': comms!
           .asMap()
           .map((key, value) => MapEntry<String, Comment>(value.key, value)),
-    'track': Song.numberInAlbum?.toString(),
-    'genre': Song.genre,
+    'track': ?Song.numberInAlbum?.toString(),
+    'genre': ?Song.genre,
     if (Song.albumArt != null) 'picture': {pic.key: pic},
   }
   ..type = 'ID3'
