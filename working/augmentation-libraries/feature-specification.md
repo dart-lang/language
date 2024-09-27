@@ -1127,13 +1127,13 @@ topLevelDeclaration ::= classDeclaration
   | extensionDeclaration
   | enumType
   | typeAlias
-  | 'external' functionSignature ';'
-  | 'external' getterSignature ';'
-  | 'external' setterSignature ';'
-  | 'external' finalVarOrType identifierList ';'
-  | 'augment'? functionSignature functionBody
-  | 'augment'? getterSignature functionBody
-  | 'augment'? setterSignature functionBody
+  | 'augment'? 'external' functionSignature ';'
+  | 'augment'? 'external' getterSignature ';'
+  | 'augment'? 'external' setterSignature ';'
+  | 'augment'? 'external' finalVarOrType identifierList ';'
+  | 'augment'? functionSignature (functionBody | ';')
+  | 'augment'? getterSignature (functionBody | ';')
+  | 'augment'? setterSignature (functionBody | ';')
   | 'augment'? ('final' | 'const') type? initializedIdentifierList ';'
   | 'augment'? 'late' 'final' type? initializedIdentifierList ';'
   | 'augment'? 'late'? varOrType initializedIdentifierList ';'
@@ -1172,7 +1172,7 @@ memberedDeclarationBody ::= '{' memberDeclarations '}'
 
 memberDeclarations ::= (metadata memberDeclaration)*
 
-memberDeclaration ::= declaration ';'
+memberDeclaration ::= 'augment'? declaration ';'
   | 'augment'? methodSignature functionBody
 
 enumEntry ::= metadata 'augment'? identifier argumentPart?
@@ -1188,17 +1188,17 @@ declaration ::= 'external'? factoryConstructorSignature
   | 'external' ('static'? finalVarOrType | 'covariant' varOrType) identifierList
   | 'external'? operatorSignature
   | 'abstract' (finalVarOrType | 'covariant' varOrType) identifierList
-  | 'augment'? 'static' 'const' type? initializedIdentifierList
-  | 'augment'? 'static' 'final' type? initializedIdentifierList
-  | 'augment'? 'static' 'late' 'final' type? initializedIdentifierList
-  | 'augment'? 'static' 'late'? varOrType initializedIdentifierList
-  | 'augment'? 'covariant' 'late' 'final' type? identifierList
-  | 'augment'? 'covariant' 'late'? varOrType initializedIdentifierList
-  | 'augment'? 'late'? 'final' type? initializedIdentifierList
-  | 'augment'? 'late'? varOrType initializedIdentifierList
-  | 'augment'? redirectingFactoryConstructorSignature
-  | 'augment'? constantConstructorSignature (redirection | initializers)?
-  | 'augment'? constructorSignature (redirection | initializers)?
+  | 'static' 'const' type? initializedIdentifierList
+  | 'static' 'final' type? initializedIdentifierList
+  | 'static' 'late' 'final' type? initializedIdentifierList
+  | 'static' 'late'? varOrType initializedIdentifierList
+  | 'covariant' 'late' 'final' type? identifierList
+  | 'covariant' 'late'? varOrType initializedIdentifierList
+  | 'late'? 'final' type? initializedIdentifierList
+  | 'late'? varOrType initializedIdentifierList
+  | redirectingFactoryConstructorSignature
+  | constantConstructorSignature (redirection | initializers)?
+  | constructorSignature (redirection | initializers)?
 ```
 
 **TODO: Define the grammar for the various `augmented` expressions.**
