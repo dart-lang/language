@@ -1,6 +1,5 @@
 # Dart static access shorthand
-Author: lrn@google.com<br>Version: 0.9
-
+Author: lrn@google.com<br>Version: 0.2
 
 Pitch: You can write `.foo` instead of `ContextType.foo` when it makes sense.
 
@@ -36,11 +35,22 @@ We introduce grammar productions of the form:
 
 and we add `.` to the tokens that an expression statement cannot start with. _(Just to be safe. If we ever allow metadata on statements, we don’t want `@foo . bar - 4 ;` to be ambiguous. If we ever allow metadata on expressions, we have bigger issues.)_
 
+That means you can write things like:
+
+```dart
+BigInt b0 = .zero; // Context type BigInt
+BigInt b1 = b0 + .one; // BigInt.operator+(BigInt other)
+String s = .fromCharCode(42);
+List<int> l = .filled(10, 42); // (Will use instantiated type).
+```
+
 This is a simple grammatical change.
 
 A primary expression cannot follow any other complete expression, something which would parse as an expression that `e.id` could be a member access on. We know that because a primary expression already contains the production `'(' <expression> ')'` which would cause an ambiguity for `e1(e2)` if `(e2)` could also be parsed as a `<primary>`. 
 
 A primary expression *can* follow a `?` in a conditional expression: `{e1?.id:e2}`. This could be ambiguous, but we handle it at tokenization time by making `?.` a single token, so there is no ambiguity here, just potentially surprising parsing if you omit a space between `?` and `.id`. It’s consistent, and a solved problem.
+
+It avoids being ambiguous with `<postfixExpression> ::= <primary> <selector>*` by only adding the `<argumentPart>` if there is a `const` in front. (As long as we don’t introduce `'const' <expression>` as a general operator, the `const .` sequence is unique.)
 
 ### Semantics
 
@@ -51,8 +61,6 @@ Because of that, the specification of the static and runtime semantics of the ne
 _(It also addresses `.new<typeArgs>` and `.new<typeArgs>(args)`, but those will always be compile-time errors because `.new` denotes a non-generic function, if it denotes anything.)_
 
 The *general rule* is that any of the expression forms above, starting with <code>.id</code>, are treated exactly *as if* they were prefixed by a fresh variable, <code>*X*</code> which denotes an accessible type alias for the greatest closure of the context type scheme of the expression.
-
-
 
 #### Type inference
 
@@ -135,11 +143,21 @@ where we recognize a `<staticMemberShorthand> <selector*>` and use the context 
 
 ```dart
 Range range = .new(0, 100).translate(userDelta);
+BigInt p64 = .two.pow(64);
 ```
 
 Here the `.new(0, 100)` itself has no context type, but the entire selector chain does, and that is the type used for resolving `.new`.
 
 This should allow more expressions to use the context. It may make it easier to get a *wrong* result, but you can do that in the first step if `.foo()` returns something of a wrong type.
+
+It does *not* allow other operators, so the following are invalid:
+
+```dart
+BigInt m2 = -.two; // INVALID (No context type for operand of unary `-`)
+BigInt m2 = .two + .one; // INVALID (No context type for first operand of `+`)
+```
+
+_(We could go further and look at the syntactically first *primary expression* in the entire expression, and apply the full context type to that, if it gets no context type otherwise. Something like `!e` gives `e` a real context type of `bool`, but `.foo + 2` and `-.foo` do not. It’s much more complicated, though.)_
 
 An expression of the form `.foo.bar.baz` might not be considered an *assignable* expression, so you can’t do `SomeType v = .current = SomeType();`. An expression of the form `.something` should *produce* the value of the context type, that’s why it’s based on the context type, and an assignment produces the value of its right-hand side, not of the assignable expression.
 
@@ -151,11 +169,11 @@ All in all, it doesn’t seem like an implicit static member access can be assig
 
 #### Nullable types
 
-Should a nullable context type, `Foo?` look for members in `Foo`. Or in `Foo` *and* `Null`. (Which will make more sense when we get static extensions.)
+Should a nullable context type, `Foo?` look for members in `Foo`. Or in `Foo` *and* `Null`. (Which will make more sense when we get static extensions which can add members on `Null`.)
 
-It would allow `Foo x = .current ?? Foo(0);` to work, which it doesn’t today when the context type of `.current` is `Foo?`, and a union type doesn’t denote a static namespace.
+It would allow `Foo x = .current ?? Foo(0);` to work, which it doesn’t today when the context type of `.current` is `Foo?`, and a union type doesn’t denote a static namespace otherwise.
 
-It’s an option we can add later if there is big demand. Which there might be, because otherwise it makes a difference whether you declare your method as:
+If we don’t allow it, it then makes a difference whether you declare your method as:
 
 ```dart
 void foo([Foo? foo]) {
@@ -172,17 +190,31 @@ void foo([Foo foo = const Foo(null)]) {
 }
 ```
 
-which are both completely valid ways to write the same function. It makes a difference because the latter can be called as `foo(.someFoo)` and the former cannot. I’m not sure we *want* to cause that kind of forced choices on API design.
+which are both completely valid ways to write essentially the same function. It makes a difference because the latter can be called as `foo(.someFoo)` and the former cannot, and the former can be called with `null`, which is why you might want it. If we don’t allow shorthands with nullable context types, we effectively encourage people to write in the latter style, and it’s a usability pitfall to use the former with an enum type. I’m not sure we *want* to cause that kind of forced choices on API design. The shorthand shouldn’t punish you for an otherwise reasonable choice. 
+
+So leaning on allowing.
 
 #### Asynchrony and other element types
 
-If we say that a type is the authority on creating instances of itself, it *might* also be an authority on creating those instances *asynchronously*. With a context type of `Future<Foo>`, should we check the `Foo` declaration for a `Future<Foo>`-returning function, or just the `Future` class? If do we check `Foo`, we should probably check be both.
+The nullable type is a union type. So is `FutureOr<Foo>`.
 
-This gets even further away from being simple, and it special cases the `Future` type.
+If we allow the nullable context to access members on the type (and on `Null`), should we allow static members of `Foo` (and `Future`) to be accessed with that as context type?
 
-While `Future` is special, it’s not *that* special, and we could equally well have a context type of `List<Foo>` and decider to ask `Foo` for such a list. For enums, that’s even useful: `var fooSet = EnumSet<Foo>(.values)`.
+It’s useful. Until [#870](https://dartbug.com/language/870) gets done, the return type of a return expression in an `async` function is `FutureOr<F>` where `F` is the future-value-type of the function. If we don’t allow access, then changing `Foo foo() => .value;` to `Future<Foo> foo() async => .value;` will not work. That’s definitely going to be a surprise to users, and it’s a usability cliff. And telling them to do `Foo result = .value; return result;` instead of `return .value;` goes against everything we have so far tried to teach.
 
-So probably a “no” to this.
+Same applies to `Future<SomeEnum> f = Future.value(.someValue);` where `Future.value` which also takes `FutureOr<SomeEnum>` as argument. That would be an argument for having a *real* `Future.valueOnly(T value) : …`, and it’s too bad the good name is taken.
 
+If we say that a type is the authority on creating instances of itself, it *might* also be an authority on creating those instances *asynchronously*. With a context type of `Future<Foo>`, should we check the `Foo` declaration for a `Future<Foo>`-returning function, or just the `Future` class? If do we check `Foo`, we should probably check be both. 
+
+If we allow a static member of `Foo` to be accessed on `FutureOr<Foo>`, and to return a `Future<Foo>`, but do not allow that with a context type of `Future<Foo>`, it punishes people for being specific. It would *encourage* using `FutureOr<Foo>` as type instead of `Future<Foo>`, to make the API more user friendly. So, if we allow shorthand `Foo` member access on `FutureOr<Foo>`, we *may* want to allow it on `Future<Foo>` too. (But not on more specialized subtype of `Future<Foo>`, like `class MyFuture<T> implements Future<T> …`.)
+
+This gets even further away from being simple, and it special cases the `Future` type, which isn’t *that* special as a type. (It’s not a union type. It is very special *semantically*, an asynchronous function is a completely different kind of function than a synchronous one, and `Future<Foo>` is really a way of saying “`Foo`, but later”. But the type is just another type.)
+
+If we don’t consider `Future` to be special in the language, then allowing shorthand access to `Foo` members on `Future<Foo>` can also be used, using the same arguments, for allowing it on `List<Foo>`.
+
+For enums, that’s even useful: `var fooSet = EnumSet<Foo>(.values)` which expects a `List<Foo>` as argument.
+
+So probably a “no” to `Future<Foo>` and therefore `FutureOr<Foo>`. But it is annoying because of the implicit `FutureOr` context types. (Maybe we can special case `.foo` in returns of `async` functions only.)
 ## Versions
-0.9: First version, for initial comments.
+0.2: Updated with more examples and more arguments (in both directions) in the union type sections.
+0.1: First version, for initial comments.
