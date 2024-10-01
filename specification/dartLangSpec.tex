@@ -41,6 +41,9 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Sep 2024
+% - Clarify extension member invocation rule.
+%
 % Jun 2024
 % - Add missing references to section 'Type dynamic' at the points where the
 %   static analysis of Object member invocations is specified.
@@ -6661,7 +6664,7 @@ to $e$ if the following conditions are all satisfied:
     because they do not have a type.%
   }
 \item
-  The type $S$ does not have a member with the basename $m$,
+  The type $S$ does not have an instance member with the basename $m$,
   and $S$ is neither \DYNAMIC{} nor \code{Never}.
 
   \commentary{%
