@@ -1,5 +1,7 @@
 # Dart static access shorthand
-Author: lrn@google.com<br>Version: 0.2
+Author: lrn@google.com<br>Version: 0.3
+
+# Dart static access shorthand
 
 Pitch: You can write `.foo` instead of `ContextType.foo` when it makes sense.
 
@@ -35,13 +37,17 @@ We introduce grammar productions of the form:
 
 and we add `.` to the tokens that an expression statement cannot start with. _(Just to be safe. If we ever allow metadata on statements, we don’t want `@foo . bar - 4 ;` to be ambiguous. If we ever allow metadata on expressions, we have bigger issues.)_
 
-That means you can write things like:
+That means you can write things like the following (with the intended meaning as comments, specification to achieve that below):
 
 ```dart
-BigInt b0 = .zero; // Context type BigInt
-BigInt b1 = b0 + .one; // BigInt.operator+(BigInt other)
-String s = .fromCharCode(42);
-List<int> l = .filled(10, 42); // (Will use instantiated type).
+BigInt b0 = .zero; // Getter. Context type BigInt => BigInt.zero
+BigInt b1 = b0 + .one; // Getter. Context from BigInt.operator+(BigInt other) => BigInt.one
+String s = .fromCharCode(42); // Constructor. Context type String => String.fromCharCode(42)
+List<num> l = .filled(10, 42); // Constructor. Context type List<num> => List<num>.filled(10, 42)
+int value = .parse(input); // Static function. Context type int => int.parse(input)
+Future<List<int>> futures = .wait([.value(1), .value(2)]); // => 
+Future<List<int>> futures = .wait<int>([.value(1), .value(2)]); // => 
+// Both: Future.wait<int>(<Future<int>>[Future<int>.value(1), Future<int>.value(2)]);
 ```
 
 This is a simple grammatical change.
@@ -58,17 +64,47 @@ Dart semantics, static and dynamic, does not follow the grammar precisely. For e
 
 Because of that, the specification of the static and runtime semantics of the new constructs need to address all the forms <Code>.*id*</code>, <code>.*id*\<*typeArgs*\></code>, <code>.*id*(*args*)</code>, <code>.*id*\<*typeArgs*\>(*args*)</code>, `.new` or <code>.new(*args*)</code>.
 
-_(It also addresses `.new<typeArgs>` and `.new<typeArgs>(args)`, but those will always be compile-time errors because `.new` denotes a non-generic function, if it denotes anything.)_
+_(It also addresses `.new<typeArgs>` and `.new<typeArgs>(args)`, but those will always be compile-time errors because `.new` denotes a constructor which is not generic. We do not want this to be treated as `(.new)<typeArgs>(args)` which does a tear-off of the constructor, which is generic if the class is. That’s bad for readability, and would put `(.new)` in a position with no context type.)_
 
-The *general rule* is that any of the expression forms above, starting with <code>.id</code>, are treated exactly *as if* they were prefixed by a fresh variable, <code>*X*</code> which denotes an accessible type alias for the greatest closure of the context type scheme of the expression.
+The *general rule* is that any of the expression forms above, starting with <code>.id</code>, are treated exactly *as if* they were prefixed by a fresh variable, <code>*X*</code> which denotes an accessible type alias for the greatest closure of the context type scheme of the expression. We just want to specify that precisely, and handle, and reject, the case of `.id(args)` where `.id` is a getter.
 
 #### Type inference
 
-In every place where the current specification specifies type inference for one of the forms <Code>*T*.*id*</code>, <code>*T*.*id*\<*typeArgs*\></code>, <code>*T*.*id*(*args*)</code>, <code>*T*.*id*\<*typeArgs*\>(*args*)</code>, <code>*T*.new</code> or <code>*T*.new(*args*)</code>, where *T* is a type clause or and identifier denoting a type declaration or a type alias declaration, we introduce a parallel “or <code>.id…</code>” clause, and then continue either with the type denoted by *T* as normal, or, for the <code>.*id*</code> clause, with the greatest closure of the context type scheme, and the *`id`* is looked up in that just as one would in the type denoted by *`T`* for *`T.id`*.
+In every place where the current specification specifies type inference for one of the forms <Code>*T*.*id*</code>, <code>*T*.*id*\<*typeArgs*\></code>, <code>*T*.*id*(*args*)</code>, <code>*T*.*id*\<*typeArgs*\>(*args*)</code>, <code>*T*.new</code> or <code>*T*.new(*args*)</code>, where *T* is a type clause or and identifier denoting a type declaration or a type alias declaration, we introduce a parallel “or <code>.id…</code>” clause, and then continue either with the type denoted by *T* as normal, or, for the <code>.*id*</code> clause, with the greatest closure of the context type scheme, and the *`id`* is looked up in that just as one would in the type denoted by *`T`* for *`T.id`*.
 
-That makes it is a compile-time error if the greatest closure of the context type scheme is not a type with a static namespace, so not a type introduced by a `class`, `enum`, `mixin`, or `extension type` declaration. _(There is no way to refer to a static  `extension` namespace this way, since it introduces no type.)_ The same is the case for an explicit static member access like `dynamic.id` or `X.id`.
+However, the current semantics of `T.id<typeArgs>`, `T.id(args)` and `T.id<typeArgs>(args)` depends on whether `T.id` is a getter, a method or a constructor. If we only want one layer of invocation, then we should not allow `.getter(args)` to have the same context type for `.getter` as it has for `(args`). Today it doesn’t matter because a getter cannot use its context type for anything. Here we actually want to treat `.getter(args)` as `(.getter)(args)` for type inference, because that’s how it’s analyzed and executed if written as `T.getter(args)`. We just don’t know what `.id` is until we have resolved it to a declaration, which we would be doing *too early* if we did it at `.id(args)`. “Luckily” recognizing that `id` denotes a getter at that point doesn’t mean we have to do a lookup again on `.id` alone, because we know it’ll have an empty context and be a compile-time error.
 
-Whichever static member or constructor the *`.id`* denotes, it is remembered for the runtime semantics.
+So inference works as:
+
+* For any of the expression forms: .new<typeArgs> or .new<typeArgs>(args), it’s a compile-time error. (The grammar allows writing it, but it must be a constructor invocation, and constructors cannot take type arguments as part of the parameter part.)
+
+* For any of the expression forms: .id, .new, .id(args), .new(args), .id<typeArgs>, .id<typeArgs>(args) with C being the greatest closure of the context type scheme.
+
+* If C does not denote a type that can have a static namespace (the type of a class, mixin, enum or extension type declaration, possibly instantiated), it’s a compile-time error.
+
+* Otherwise let D be the member with base name id in the static namespace associated with C.
+  * It’s a compile-time error if there is no such declaration.
+
+* If D is a getter and the expression is of the form .id(args), id<typeArgs> or .id<typeArgs>(args), it’s a compile-time error. (The invocation will be treated as (.id)(args) etc., which puts .id in a position with no context type, which is an error.)
+
+* Otherwise treat the expression as if it was a static getter, function or constructor invocation of the member D on the type C. For constructors of a generic type, that includes any type arguments in C. For methods and getters it means a static invocation of the getter or of the function with the provided arguments. (The same ways that X.id… would work where X is a type alias for C. We should refactor the spec so we can refer to “static inference of a resolved static function/constructor with/without arguments” and then reference that from both, .id, T.id and id-in-scope after we have resolved the target to a static declaration or constructor)
+
+* The static type of the expression is the return type of the getter, the inferred return type of the function after doing type inference on the arguments and inferring type arguments and return type for the function invocation, and C for a constructor invocation.
+
+Whichever static member or constructor the *`.id`* denotes, it is remembered for the runtime semantics.
+
+That means that the following are *not* allowed:
+
+```dart
+// NOT ALLOWED, ALL `.id`S ARE ERRORS!
+int v1 = .parse("42") + 1; // Context `_`
+int v2 = .parse("42").abs(); // Context `_`
+Zone zone = .current.errorZone; // Context `_`
+extension on Object? {
+  int call() => "${this}".length; // Call *all* the objects!
+}
+double x = .nan(); // Is getter, treated as Context `_` when recognized.
+```
 
 #### Special case for `==`
 
@@ -84,31 +120,67 @@ If an expression has the form `e1 == e2` or `e1 != e2` , then
   * Let *S1* be the static type of `e1` with context type scheme `_`.
   * Let <code>*R* Function(*T*)</code> be the function signature of `operator==` of *S1*.
   * If `e2` *starts with an implicit static access*, and *T* is a supertype of `Object`, then let *S2* be the static type of `e2` with context type *S1*.
-  * Otherwise let *S2* be the static type of `e2` with context type *T*.
-* It’s a compile-time error if *S2* is not assignable to <code>*T*?</code>.
+  * Otherwise let *S2* be the static type of `e2` with context type *T*?.
+* It’s a compile-time error if *S2* is not assignable to <code>*T*?</code>. _(Notice, we do not require the expression to match the context type of S1, that is a *recommended* type only, a typing hint.)_
 * The static type of the expression is *R*.
 
 An expression *starts with an implicit static access* if and only if one of the following:
 
-* The expression is an `<implicitStaticAccess>.`
+* The expression is an `<implicitStaticAccess>` optionally followed by a single `<typeArguments>` and an optional `<arguments>`.
 * The expression is `(e)` and `e` starts with an implicit static access.
 * The expression is `e..<cascadeSelector>` or `e?..<cascadeSelector>` and `e` starts with an implicit static access.
 * The expression is `e1 ? e2 : e3` and at least one of `e2` or `e3` starts with an implicit static access.
-* The expression is `e <selector>*` and `e` starts with an implicit static access.
+* *(Any more? It’s an approximation of “in tail-like position”, which should mean that the the implicit static access should get the context type of the entire expression.)*
+
+Examples of allowed comparisons:
+
+```dart
+if (Endian.host == .big) ok!;
+if (.host == Endian.big) ok!;
+if (Endian.host == preferLittle ? .little : .big) isPreferredEndian!;
+```
+
+Not allowed:
+
+```dart
+// NOT ALLOWED, ALL `.id`S ARE ERRORS
+if (.host == .big) notOk!;
+if ((Endian.host as Object) == .little) notOk!; // Context type `Object`.
+```
+
+It’s possible that this rule is too complicated, and we should just drop the first part, and only use the type of the first operand as context type for the second operand if what we have is no better than `Object`. Then tell people that they can only have `.foo` on in the second operand of `==`, which is the same as for example  `+`, like `BigInt.zero + .one`.
 
 #### Runtime semantics
 
-Similar to type inference, in every place where we specify an explicit static member access or invocation, we introduce a clause including the <Code>.*id*…</code> variant too, the “implicit static access”, and refer to type inference for “the declaration denoted by <code>*id*</code> as determined during type inference”, then invoke it the same way an explicit static access would.
+Similar to type inference, in every place where we specify an explicit static member access or invocation, we introduce a clause including the <Code>.*id*…</code> variant too, the “implicit static access”, and refer to type inference for “the declaration denoted by <code>*id*</code> as determined during type inference”, then invoke it the same way an explicit static access would. 
+
+If we get here, it’s just invoking a known static member as normal.
 
 #### Patterns
 
-A constant pattern is treated the same as the expression, with the matched value type used as typing context, and then the expression must be a constant expression. Since a constant pattern cannot occur in a declaration pattern, there is no need to assign an initial type scheme to the pattern in the first phase of the three-step inference. _If there were, the type scheme would be `_`._
+A *constant pattern* is treated the same as normal, with the matched value type used as typing context, and then the expression must be a constant expression. Since a constant pattern cannot occur in a declaration pattern, there is no need to assign an initial type scheme to the pattern in the first phase of the three-step inference. _If there were, the type scheme would be `_`._
+
+Example:
+
+```dart
+switch (Endian.host) {
+  case .big: // Context type is matched value type, which is `Endian` => `Endian.big`.
+  case .little: // => `Endian.little`
+}
+```
 
 #### Constant expressions
 
-The form starting with `const` is inferred in the same way, and then the identifier must denote a constant constructor, and the expression is then a constant constructor invocation of that constructor.
+The form starting with `const` is inferred in the same way, and then the identifier *must* denote a constant constructor, and the expression is then a constant constructor invocation of that constructor, which is a constant expression. 
 
-An expression without a leading `const` is a potential constant and constant expression if the corresponding explicit static access would be one.
+An expression in a `const` context is inferred as normal, then it’s a compile-time error if it is not a constant expression, which it is if is a constant getter or constant constructor invocation. _(There is no chance of a method or constructor tear-off having the correct type for the context, but if the context type is not enforced for some reason, like being lost in an **Up** computation, it’s technically possible to tear off a static method as a constant expression. It’s unlikely to succeed dynamic type tests at runtime.)_
+
+An expression without a leading `const` is a potential constant and constant expression if the corresponding explicit static access would be one. Being a potentially constant expression only really works for static constant getters. A method or constructor tear-off won’t have the context type, a non-`const` constructor invocation or method invocation is not potentially constant.
+
+```dart
+Symbol symbol = const .new("orange"); // Context type is `Symbol` for `.new("Orange") => const Symbol.new("Orange")
+Endian endian = .big; // => Endian.big.
+```
 
 ## New complications and concerns
 
@@ -129,9 +201,9 @@ Instead of introducing a new primary, we can make it a `<postfixExpression>`:
 ```ebnf
 <postfixExpression> ::= <assignableExpression> <postfixOperator>
   | <primary> <selector>*
-  | <staticMemberShorthand <selector>*
+  | <staticMemberShorthand> <selector>*
   
-<staticMemberShorthand> ::= 
+<staticMemberShorthand> ::= <sta 
      `const` '.' (<identifier> | 'new') <argumentPart>
    | '.' (<identifier> | 'new') 
 
@@ -150,7 +222,9 @@ Here the `.new(0, 100)` itself has no context type, but the entire selector chai
 
 This should allow more expressions to use the context. It may make it easier to get a *wrong* result, but you can do that in the first step if `.foo()` returns something of a wrong type.
 
-It does *not* allow other operators, so the following are invalid:
+This also *avoids* the complication of having to recognize `.getter(args)` and disallow it. It works, if it has the correct type. It won’t be possible to have `?.id` or `?[e]` selectors in the chain because that makes the static type nullable, and the context type is not nullable if it allows static member lookup _(but see below on nullability)_.
+
+This syntax still does *not* allow other operators than the selector ones (index operator, call operator if we consider it one), so the following are invalid:
 
 ```dart
 BigInt m2 = -.two; // INVALID (No context type for operand of unary `-`)
@@ -215,6 +289,8 @@ If we don’t consider `Future` to be special in the language, then allowing sho
 For enums, that’s even useful: `var fooSet = EnumSet<Foo>(.values)` which expects a `List<Foo>` as argument.
 
 So probably a “no” to `Future<Foo>` and therefore `FutureOr<Foo>`. But it is annoying because of the implicit `FutureOr` context types. (Maybe we can special case `.foo` in returns of `async` functions only.)
+
 ## Versions
+0.3: More details on type inference and examples.
 0.2: Updated with more examples and more arguments (in both directions) in the union type sections.
 0.1: First version, for initial comments.
