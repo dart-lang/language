@@ -32,29 +32,45 @@ for concrete code examples.
 > in the Dart SDK. For example, we will be able to move `dart:io` implementation
 > from C++ into Dart and later split it into a package.
 
-The core of this proposal are two new concepts:
+This proposal:
 
-- [Shareable Data](#shareable-data) introduces the relaxation of isolate model
-  allowing controlled sharing of mutable data and static state between isolates
-  within an isolate group. This allows developer to write Dart code which can
-  access shared mutable state concurrently.
-- [Shared Isolates](#shared-isolates) introduces a concept of _shared isolate_,
-  an isolate which only has access to a state shared between all isolates of the
-  group. This concept allows to bridge interoperability gap with native code.
-  _Shared isolate_ becomes an answer to the previously unresolved question
-  _"what if native code wants to call back into Dart from an arbitrary thread,
-  which isolate does the Dart code run in?"_.
+- allows developer to selectively break isolation boundary between isolates by
+declaring some static fields to be [_shared_](#shared-fields) between isolates
+within isolate group.
 
-In addition to introducing these new concepts the proposal tries to suggest a
-number of API changes to various core libraries which are essentially to making
-Dart a good multithreaded language. Some of this proposals, like adding
-[atomics](#atomic-operations), are fairly straightforward and non-controversial,
-others, like [coroutines](#coroutines), are included to show the extent of
+- introduces the concept of [_shared isolate_](#shared-isolates),
+an isolate which only has access to a state shared between all isolates of the
+group. This concept allows to bridge interoperability gap with native code.
+_Shared isolate_ becomes an answer to the previously unresolved question
+_"what if native code wants to call back into Dart from an arbitrary thread,
+which isolate does the Dart code run in?"_.
+
+> [!NOTE]
+>
+> Earlier version of this proposal was also introducing the concept of
+> _shareable data_ based on a marker interface (`Shareable`) which
+> required developer to explicitly opt in into shared memory multithreading
+> for their classes. In this model only instances of classes which implement
+> the marker interface could be shared between isolates.
+>
+> Based on the extensive discussions with the language team and implementors
+> I have arrived to the conclusion that this separation does not have clear
+> benefits which are worth the associated implementation complexity.
+> Consequently I remove this concept from the proposal and instead propose
+> that we eventually allow unrestricted _share everything_ multithreading
+> within the isolate group.
+
+Additionally the proposal tries to suggest a number of API changes to various
+core libraries which are essentially to making Dart a good multithreaded
+language. Some of this proposals, like adding [atomics](#atomic-operations),
+are fairly straightforward and non-controversial, others, like
+[coroutines](#coroutines), are included to show the extent of
 possible changes and to provoke thought.
 
-The [Prototyping Roadmap](#prototyping-roadmap) section of the proposal tries to
-suggest a possible way forward with validating some of the possible benefits of
-the proposal without committing to specific major changes in the Dart language.
+The [Implementation Roadmap](#implementation-roadmap) section of the proposal
+tries to suggest a possible way forward with validating some of the possible
+benefits of the proposal without committing to specific major changes in the
+Dart language.
 
 ## What issues are we trying to solve?
 
@@ -262,7 +278,7 @@ all different solutions fall short.
 
 Before we discuss our proposal for Dart it is worth look at what other popular
 and niche languages do around share memory multithreading. If you feel familiar
-with the space feel free to skip to [Shareable Data](#shareable-data) section.
+with the space feel free to skip to [Shared Isolate](#shared-isolate) section.
 
 **C/C++**, **Java**, **Scala**, **Kotlin**, **C#** all have what I would call an
 unrestricted shared memory multithreading:
@@ -477,317 +493,65 @@ shared global state.
 [Retrofitting Effect Handlers onto OCaml]: https://kcsrk.info/papers/drafts/retro-concurrency.pdf
 [ocaml-domain]: https://v2.ocaml.org/manual/parallelism.html#s:par_domains
 
-## Shareable Data
+## Shared Fields
 
-I propose to extend Dart with a shared memory multithreading but provide a clear
-type-based delineation between two concurrency worlds. **Only instances of
-classes implementing `Shareable` interface can be concurrently mutated by
-another thread.** We restrict the kind of data that a shareable class can
-contain: **fields of shareable classes can only contain references to instances
-of shareable classes.** This requirement is enforced at compile time by
-requiring that declared types of all fields are shareable.
+Normally each isolate gets its own fresh copy of all static fields. If one
+isolate changes one of the fields no other isolate can observe this change.
+I propose to punch a hole in this boundary by allowing programmer to opt out
+of this isolation: a field marked as `shared` will be shared between all
+isolates. Changing a field in one isolate can be observed from another isolate.
 
-```dart
-// dart:core
+Shared fields should guarantee atomic initialization: if multiple threads
+access the same uninitialized field then only one thread will invoke the
+initializer and initialize the field, all other threads will block until
+initialization it complete.
 
-/// [Shareable] instances can be shared between isolates in
-/// a group and mutated concurrently.
-///
-/// A class implementing [Shareable] can only declare fields
-/// which have a declared type that is a subtype of [Shareable].
-abstract interface class Shareable {
-}
-```
+In the _shared **everything** multithreading_ shared fields can be allowed to
+contain anything - including instances of mutable Dart classes. However,
+initially I propose to limit shared fields by allowing only _trivially shareable
+types_. These types are those which already can pass through
+`SendPort` without copying:
 
-```dart
-class S implements Shareable {
-  // ...
-}
-```
+- strings;
+- numbers;
+- [deeply immutable][] types;
+- builtin implementations of `SendPort` and `TypedData`;
+- tear-offs of static methods;
+- closures which capture variables of trivially shareable types;
+
+Sharing of these types don't break isolate boundaries.
+
+[deeply immutable]: https://github.com/dart-lang/sdk/blob/bb59b5c72c52369e1b0d21940008c4be7e6d43b3/runtime/docs/deeply_immutable.md
 
 > [!NOTE]
 >
-> I choose marker interface rather than dedicated syntax (e.g.
-> `shareable class`) because marker interface comes handy when declaring type
-> bounds for generics and allows to perform runtime checking if needed.
+> It might seem strange to include mutable types like `TypedData` into trivially
+> shareable, but in reality allowing to share these type does not actually
+> introduce any fundamentally new capabilities. A `TypedData` instance can
+> already be backed by native memory and as such shared between two
+> isolates.
 
-References to shareable instances can be passed between isolates within an
-isolate group directly.
-
-```dart
-class S implements Shareable {
-  int v = 0;
-}
-
-void main() async {
-  final s = S();
-
-  await Isolate.run(() {
-    // Even though the function is running in a different
-    // isolate it has access to the original `s` and
-    // mutations of `s.v` performed in this isolate will be
-    // visible to other isolates.
-    //
-    // (Subject to memory model constraints).
-    s.v = 10;
-  });
-
-  expect(equals(10), s.v);
-}
-```
-
-To make state sharing between isolates simpler we also allow to declare static
-fields which are shared between all isolates in the isolate group. `shared`
-global fields are required to have shareable declared type.
-
-```dart
-// All isolates within an isolate group share this variable.
-shared int v = 0;
-```
-
-Shareable classes are not required to be immutable. Field reads and writes are
-_atomic_, but other than that there are no implicit synchronization, locking or
-strong memory barriers associated with fields. Possible executions in terms of
-observed values will be specified by the Dart's [memory model](#memory-models) -
-which I propose to model after JavaScript's and Go's: **program which is free of
-data races will execute in a sequentially consistent manner**.
+> [!NOTE]
+>
+> Types like `SendPort` are not `final` so strictly speaking we can't make a
+> decision whether an instance of `SendPort` is trivially shareable or not
+> based on the static type alone. Instead we must dynamically check if
+> `SendPort` is an internal implementation or not. Similar tweak should probably
+> be applied to the specification of `@pragma('vm:deeply-immutable')`
+> allowing classes containing `SendPort` fields to be marked `deeply-immutable`
+> at the cost of introducing additional runtime checks when the object is created.
 
 > [!CAUTION]
 >
-> Atomicity of field access means considerable overhead on 32-bit platforms for
-> reads/writes into unboxed `int` and `double` fields - because these fields are
-> 64-bits wide. We might want to eschew atomicity guarantees and allow load
-> tearing for primitive fields - though it makes semantics somewhat
-> unpredictable and architecture dependent. The same concern applies to unboxed
-> SIMD values inside `Shareable` objects.
-
-### Shareable Types
-
-> Type is _shareable_ if and only if one of the following applies:
+> Shared field reads and writes are _atomic_ for reference types, but other
+> than that there are no implicit synchronization, locking or strong memory
+> barriers associated with shared fields. Possible executions in terms of
+> observed values will be specified by the Dart's [memory model](#memory-models)
+> which I propose to model after JavaScript's and Go's: **program which is
+> free of data races will execute in a sequentially consistent manner**.
 >
-> - It is `Null` or `Never`.
-> - It is an interface type which is subtype of `Shareable`.
-> - It is a record type where all field types are shareable.
-> - It is a nullable type `T?` where `T` is shareable type.
-
-### Why type based opt-in?
-
-There are two main reasons for choosing explicit opt-in into shareability:
-
-1. **Aligning with emerging JS and Wasm capabilities.** Current proposals for
-   shared memory multithreading on the Web (see details
-   [below](#web-js-and-wasm)) propose partitioning shareable objects from
-   non-shareable. We would like to make sure that Dart's semantics is possible
-   to translate to both JS and Wasm - allowing us to fully implement our
-   concurrency story on the Web.
-2. **Enabling graceful adoption of shared memory multithreading.** Shared memory
-   multithreading is complicated enough by itself, so I feel that it would
-   complicate things more if we were to forcefully bring all existing libraries
-   (not written with shared memory in mind) into the world where any data can be
-   accessed from multiple threads at once. Existing code will continue to run
-   _as is_ within isolates. Newly written code can choose to opt-in into
-   shareability where it matters for performance or interoperability reasons.
-   Marking class as `Shareable` gives a strong signal that the developer has
-   considered implications of sharing instances of these class across threads
-   and took measure to ensure that it is safe.
-
-I would like to introduce shared memory multithreading into Dart in a way that
-avoids subtle breakages in the existing code. Consider for a moment a library
-which maintains a global cache internally and is written under the assumption
-that Dart is a single threaded:
-
-```dart
-int _nextId = 0;
-
-int allocateId() => _nextId++;
-```
-
-This was a valid way to structure this code in single-threaded Dart, but the
-same code becomes thread _unsafe_ in the presence of shared memory
-multithreading.
-
-### Generics
-
-When declaring a generic type the developer will have to use type parameter
-bounds to ensure that resulting class conforms to restrictions imposed by
-`Shareable`:
-
-```dart
-class X<T> implements Shareable {
-  T v;  // compile time error.
-}
-
-class Y<T extends Shareable> implements Shareable {
-  T v;  // ok.
-}
-```
-
-> [!NOTE]
->
-> We could really benefit from the ability to use intersection types here (see
-> [#2709][] and [#1152][], which would allow to specify complicated bounds like
-> `T extends Shareable & I`. In the absence of intersections types developers
-> would be forced to declare intermediate interfaces which implement all
-> required interfaces (e.g.
-> `abstract interface ShareableI implements Shareable, I {}`) and require users
-> to implement those by specifying `T extends ShareableI`.
-
-[#2709]: https://github.com/dart-lang/language/issues/2709
-[#1152]: https://github.com/dart-lang/language/issues/1152
-
-### Functions
-
-Shareability of a function depends on the values that it captures. We could
-define that any **function is shareable iff it captures only variables of
-shareable declared type**. Incorporating this property into the type system
-naturally leads to the desire to use _intersection types_ to express the
-property that some value is both a function of a specific type _and_ shareable:
-
-```dart
-class A implements Shareable {
-  void Function() f;  // compile time error
-  void Function() & Shareable f;  // ok
-}
-```
-
-Introducing intersection types into type system might be a huge undertaking. For
-the purposes of developing an MVP we can choose one of the two approaches:
-
-- Ignore functions entirely: consider functions un-shareable. It becomes a
-  compile time error to have a function type field inside a shareable class.
-- Allow function type fields inside a shareable class, but enforce shareability
-  in runtime on assignment to the field.
-
-### Shareable core types
-
-The following types will become shareable:
-
-- `num` (`int` and `double`), `String`, `bool`, `Null`, `BigInt`
-- `Enum` and consequently all user defined enums
-- `RegExp`, `DateTime`, `Uri`
-- `TypedData` - which makes all typed data types shareable.
-- `Pointer`
-- `Type` and `Symbol`
-- `StackTrace`
-
-#### Collections
-
-`dart:core` will provide shareable variants of all collection classes:
-
-```dart
-abstract interface class ShareableList<E extends Shareable?>
-    implements List<E>, Shareable {
-}
-
-abstract interface class ShareableSet<E extends Shareable?>
-    implements Set<E>, Shareable {
-}
-
-abstract interface class ShareableMap<K extends Shareable?,
-                                  V extends Shareable?>
-    implements Map<K, V>, Shareable {
-}
-```
-
-Default implementations of `List`, `Set` and `Map` will be changed to be
-shareable if their element type is shareable
-
-```dart
-<Shareable>[] is ShareableList<Shareable> // => true
-```
-
-We will also provide methods to convert collections to their shareable
-counterparts:
-
-```dart
-extension ToShareableList<E extends Shareable?> on List<E> {
-  /// Converts the list to [ShareableList] if it is not already shareable.
-  ShareableList<E> toShareable() =>
-    switch (this) {
-      final ShareableList<Shareable?> shareable => shareable,
-      _ => ShareableList<E>.from(this),
-    };
-}
-
-extension ToShareableSet<E extends Shareable?> on Set<E> {
-  ShareableSet<E> toShareable() => /* ... */
-}
-
-extension ToShareableMap<K extends Shareable?,
-                         V extends Shareable?> on Map<K, V> {
-  ShareableMap<K, V> toShareable() => /* ... */
-}
-```
-
-### `SendPort` semantics
-
-`SendPort` is extended with a new method to which allows sending `Shareable`
-values by reference without copying:
-
-```dart
-abstract interface class SendPort {
-    /// Sends an asynchronous [message] through this send port, to its
-    /// corresponding [ReceivePort].
-    ///
-    /// The message is passed by reference to the receiver without
-    /// copying.
-    ///
-    /// If sender and receiver do not share the same code then
-    /// an [IllegalArgument] exception is thrown.
-    void share(Shareable message);
-}
-```
-
-### `ShareableBox<T>`
-
-In some situations we might need to put a non-shareable value inside a shareable
-type. This is okay as long as we can guarantee that this value will only be
-accessed within the isolate it originally belonged to.
-
-```dart
-abstract interface class ShareableBox<T> implements Shareable {
-    factory ShareableBox(T value);
-    T get value;
-}
-
-abstract interface class MutableShareableBox<T> implements ShareableBox<T> {
-    factory MutableShareableBox(T value);
-    set value(T newValue);
-}
-```
-
-> [!NOTE]
->
-> It is possible to implement `ShareableBox<T>` on top of `Expando` but for
-> efficiency reasons we might want to provide a built-in implementation
->
-> ```dart
-> class _MutableShareableBoxImpl<T> implements MutableShareableBox<T> {
->     final _lock = Lock();
->     var _token = _AccessToken();
->     static final _values = Expando<AccessToken, (T,)>();
->
->     T get value => _lock.runLocked(() =>
->        switch (_values[_token]) {
->          (final v,) => v,
->          _ => throw StateError("not owned by current isolate"),
->        };
->     });
->
->     set value(T v) {
->        _lock.runLocked(() {
->          // If we don't own this box then reset access token so that
->          // expandos in the other isolate can get cleared.
->          if (_values[_token] == null) {
->      	    _token = _AccessToken();
->          }
->          _values[_token] = v;
->        });
->     }
-> }
->
-> final class _AccessToken implements Shareable {}
-> ```
+> Furthermore, shared fields of `int` and `double` types are allowed to exhibit
+> _tearing_ on 32-bit platforms.
 
 ## Shared Isolates
 
@@ -842,9 +606,7 @@ class Isolate {
   /// Shared isolate contains a copy of the
   /// global `shared` state of the current isolate and does not have any
   /// non-`shared` state of its own. An attempt to access non-`shared` static variable throws [IsolationError].
-  ///
-  /// If [task] is not [Shareable] then [ArgumentError] is thrown.
-  static Future<S> runShared<S extends Shared>(S Function() task);
+  external static Future<S> runShared<S>(S Function() task);
 }
 ```
 
@@ -868,53 +630,15 @@ void main() async {
 }
 ```
 
-### Why not compile time isolation?
-
-It is tempting to try introducing a compile time separation between functions
-which only access `shared` state and functions which can access isolated state.
-However an attempt to fit such separation into the existing language quickly
-breaks down.
-
-One obvious approach is to introduce a modifier (e.g. `shared`) which can be
-applied to function declarations and impose a number of restrictions that
-`shared` functions have to satisfy. These restrictions should guarantee that
-`shared` functions can only access `shared` state.
-
-```dart
-shared void foo() {
-  // ...
-}
-```
-
-- You can't override non-`shared` method with `shared` method.
-- Within a `shared` function
-  - If `f(...)` is a static function invocation then `f` must be a `shared`
-    function.
-  - If `o.m(...)` is an instance method invocation, then `o` must be a subtype
-    of `Shareable` and `m` must be `shared` method.
-  - If `C(...)` is a constructor invocation then `C` must be a shareable class.
-  - If `g` is a reference to a global variable then `g` must be `shared`.
-
 > [!NOTE]
 >
-> You can pass non-`Shareable` values to `shared` methods but you can't do
-> anything useful with them because you can't touch their state. In other words
-> non-`Shareable` types become opaque within `shared` methods.
-
-This approach seems promising on the surface, but quickly hits issues:
-
-- It's unclear how to treat `Object` members like `toString`, `operator ==` and
-  `get hashCode`. These can't be marked as `shared` but should be accessible to
-  both `shared` and non-`shared` code.
-- It's unclear how to treat function expression invocations:
-  - Function types don't encode necessary separation between `shared` and
-    non-`shared` functions.
-  - Methods like `List<T>.forEach` pose challenge because they should be usable
-    in both `shared` and non-`shared` contexts.
-
-**This makes us think that language changes required to achieve sound compile
-time delineation between `shared` and isolate worlds are too complicated to be
-worth it.**
+> It is tempting to try introducing a compile time separation between functions
+> which only access `shared` state and functions which can access isolated state.
+> However an attempt to fit such separation into the existing language requires
+> significant and complex language changes: type system would need capabilities
+> to express which functions touch isolate state and which only touch `shared`
+> state. Things will get especially complicated around higher-order functions
+> like those on `List`.
 
 ### Upgrading `dart:ffi`
 
@@ -927,12 +651,12 @@ can be extended with the corresponding constructor:
 class NativeCallable<T extends Function> {
   /// Constructs a [NativeCallable] that can be invoked from any thread.
   ///
-  /// When the native code invokes the function [nativeFunction], the corresponding
-  /// [callback] will be synchronously executed on the same thread within a
-  /// shared isolate corresponding to the current isolate group.
+  /// When the native code invokes the function [nativeFunction], the
+  /// corresponding [callback] will be synchronously executed on the same
+  /// thread within a shared isolate corresponding to the current isolate group.
   ///
-  /// [callback] must be [Shareable] that is: all variables it captures must
-  /// have shareable declared type.
+  /// Throws [ArgumentError] if [callback] captures state which can't be
+  /// transferred to shared isolate without copying.
   external factory NativeCallable.shared(
     @DartRepresentationOf("T") Function callback,
     {Object? exceptionalReturn});
@@ -951,6 +675,24 @@ associated with that:
 - Clear semantics of globals:
   - `shared` global state is accessible and independent from the current thread;
   - accessing non-`shared` state will throw an `IsolationError`.
+
+In _shared **everything** multithreading_ world `callback` can be allowed to
+capture arbitrary state, however in _shared **native memory** multithreading_
+this state has to be restricted to trivially shareable types:
+
+```dart
+// This code is okay because `int` is trivially shareable.
+int counter = 0;
+NativeCallable.shared(() {
+  counter++;
+});
+
+// This code is not okay because `List<T>` is not trivially shareable.
+List<int> list = [];
+NativeCallable.shared(() {
+  list.add(1);
+});
+```
 
 #### Linking to Dart code from native code
 
@@ -1010,37 +752,6 @@ native caller:
 
 ### Upgrading `dart:async` capabilities
 
-#### Shareable `Future` and `Stream` instances
-
-`Future` and `Stream` should receive the same treatment as `List`: `dart:async`
-should be extended with shareable versions of these and a way to convert an
-existing object to a shareable one.
-
-```dart
-class ShareableFuture<T implements Shareable?>
-    implements Future<T>, Shareable {
-}
-
-class ShareableStream<T implements Shareable?>
-    implements Stream<T>, Shareable {
-}
-
-extension ToShareableFuture<E extends Shareable?> on Future<E> {
-  /// Converts the [Future] to [ShareableFuture] if it is not already shareable.
-  ShareableFuture<E> toShareable() => /* ... */;
-}
-
-extension ToShareableStream<E extends Shareable?> on Stream<E> {
-  /// Converts the [Future] to [ShareableFuture] if it is not already shareable.
-  ShareableStream<E> toShareable() => /* ... */;
-}
-```
-
-The reason for providing these is to allow developers to structure their code
-using well understood primitives futures and streams instead of devising new
-primitives which reimplement some of the same functionality and is compatible
-with threading.
-
 #### Executors of async callbacks
 
 Consider the following code:
@@ -1058,33 +769,21 @@ void main() async {
 }
 ```
 
-What happens when `Future` completes in a shared isolate? Who drives event loop
+What happens when `Future` completes in the shared isolate? Who drives event loop
 of that isolate? Which thread will callbacks run on?
 
 I propose to introduce another concept similar to `Zone`: `Executor`. Executors
 encapsulate the notion of the event loop and control how tasks are executed.
 
 ```dart
-abstract interface class Executor implements Shareable {
-    /// Returns the current executor.
+abstract interface class Executor {
+    /// Current executor
     static Executor get current;
 
     Isolate get owner;
 
     /// Schedules the given task to run in the given executor.
-    ///
-    /// If the current isolate is not the [owner] of this executor
-    /// the behavior depends on [copy]:   ///
-    ///   * When [copy] is `false` (which is default) [task] is
-    ///     expected to be [Shareable] and is transfered to the
-    ///     target isolate directly. If it is not [Shareable] then
-    ///     `ArgumentError` will be thrown.
-    ///   * If [copy] is `true` then [task] is copied to the
-    ///     target isolate using the same algorithm [SendPort.send]
-    ///     uses.
-    ///
-    void schedule(void Function() task,
-                  {bool copy = false});
+    void schedule(void Function() task);
 }
 ```
 
@@ -1095,43 +794,6 @@ tasks to run and let embedder run these tasks.
 All built-in asynchronous primitives will make the following API guarantee: **a
 callback passed to `Future` or `Stream` APIs will be invoked using executor
 which was running the code which registered the callback.**
-
-> [!NOTE]
->
-> We need to be careful here to prevent crossing shareable and non-shareable
-> domains. If you have a `Future<T>` where `T` is not a subtype of `Shareable`
-> we should not allow registering multiple callbacks on it in a shared isolate
-> because these callbacks end up running concurrently.
->
-> Consider for example the following code:
->
-> ```dart
-> final executor = ThreadPool(concurrency: 2);
->
-> executor.schedule(() {
->   final Future<List<int>> list = Future.value(<int>[]);
->   list..then(cb1)..then(cb2);
-> });
-> ```
-
-In other words `fut1 = fut.then(cb)` is equivalent to:
-
-```dart
-final result = ShareableBox(Completer<R>());
-final callback = ShareableBox(Zone.current.bind(cb));
-final executor = Executor.current;
-fut.then((v) {
-  executor.schedule(() {
-    try {
-      final r = callback.value(v);
-      result.value.complete(r);
-    } catch (e, st) {
-      result.value.completeError(e, st);
-    }
-  });
-});
-final fut1 = result.value.future;
-```
 
 > [!NOTE]
 >
@@ -1195,10 +857,10 @@ to control threads.
 ```dart
 // dart:concurrent
 
-abstract class Thread implements Shareable {
+abstract class Thread {
   /// Runs the given function in a new thread.
   ///
-  /// The function is run in a shared isolate, meaning that
+  /// The function is run in the shared isolate, meaning that
   /// it will not have access to the non-shared state.
   ///
   /// The function will be run in a `Zone` which uses the
@@ -1207,17 +869,19 @@ abstract class Thread implements Shareable {
   /// a callback referencing it.
   external static Thread start<T>(FutureOr<T> Function() main);
 
-  /// Returns the current thread on which the execution occurs.
+  /// Current thread on which the execution occurs.
   ///
-  /// Note: Dart code is only guaranteed to be pinned to a specific OS thread during a synchronous execution.
+  /// Note: Dart code is only guaranteed to be pinned to a specific OS thread
+  /// during a synchronous execution.
   external static Thread get current;
 
-  Future<void> join();
+  external Future<void> join();
 
-  void interrupt();
+  external void interrupt();
 
   external set priority(ThreadPriority value);
-  ThreadPriority get priority;
+
+  external ThreadPriority get priority;
 }
 
 /// An [Executor] backed by a fixed size thread
@@ -1233,7 +897,7 @@ isolate on the _current_ thread might be useful:
 
 ```dart
 class Isolate {
-    T runSync<T>(T Function() cb);
+    external T runSync<T>(T Function() cb);
 }
 ```
 
@@ -1257,7 +921,9 @@ and will not change threads between suspending and resumptions.
 `AtomicRef<T>` is a wrapper around a value of type `T` which can be updated
 atomically. It can only be used with true reference types - an attempt to create
 an `AtomicRef<int>`, `AtomicRef<double>` , `AtomicRef<(T1, ..., Tn)>` will
-throw.
+throw. The reason from disallowing this types is to avoid implementation
+complexity in `compareAndSwap` which is defined in terms of `identity`. We also
+impose the restriction on `compareAndSwap`.
 
 > [!NOTE]
 >
@@ -1272,16 +938,21 @@ throw.
 ```dart
 // dart:concurrent
 
-class AtomicRef<T extends Shareable> implements Shareable {
+final class AtomicRef<T> {
+  /// Creates an [AtomicRef] initialized with the given value.
+  ///
+  /// Throws `ArgumentError` if `T` is a subtype of [num] or [Record].
+  external factory AtomicRef(T initialValue);
+
   /// Atomically updates the current value to [desired].
   ///
   /// The store has release memory order semantics.
-  void store(T desired);
+  external void store(T desired);
 
   /// Atomically reads the current value.
   ///
   /// The load has acquire memory order semantics.
-  T load();
+  external T load();
 
   /// Atomically compares whether the current value is identical to
   /// [expected] and if it is sets it to [desired] and returns
@@ -1289,38 +960,65 @@ class AtomicRef<T extends Shareable> implements Shareable {
   ///
   /// Otherwise the value is not changed and `(false, currentValue)` is
   /// returned.
-  (bool, T) compareAndSwap(T expected, T desired);
+  ///
+  /// Throws argument error if `expected` is a instance of [int], [double] or
+  /// [Record].
+  external (bool, T) compareAndSwap(T expected, T desired);
 }
 
-class AtomicInt32 implements Shareable {
-  void store(int value);
-  int load();
-  (bool, int) compareAndSwap(int expected, int desired);
+final class AtomicInt32 {
+  external void store(int value);
+  external int load();
+  external (bool, int) compareAndSwap(int expected, int desired);
 
-  int fetchAdd(int v);
-  int fetchSub(int v);
-  int fetchAnd(int v);
-  int fetchOr(int v);
-  int fetchXor(int v);
+  external int fetchAdd(int v);
+  external int fetchSub(int v);
+  external int fetchAnd(int v);
+  external int fetchOr(int v);
+  external int fetchXor(int v);
+}
+
+final class AtomicInt64 {
+  external void store(int value);
+  external int load();
+  external (bool, int) compareAndSwap(int expected, int desired);
+
+  external int fetchAdd(int v);
+  external int fetchSub(int v);
+  external int fetchAnd(int v);
+  external int fetchOr(int v);
+  external int fetchXor(int v);
 }
 
 extension Int32ListAtomics on Int32List {
-  void atomicStore(int index, int value);
-  int atomicLoad(int index);
-  (bool, int) compareAndSwap(int index, int expected, int desired);
-  int fetchAdd(int index, int v);
-  int fetchSub(int index, int v);
-  int fetchAnd(int index, int v);
-  int fetchOr(int index, int v);
-  int fetchXor(int index, int v);
+  external void atomicStore(int index, int value);
+  external int atomicLoad(int index);
+  external (bool, int) compareAndSwap(int index, int expected, int desired);
+  external int fetchAdd(int index, int v);
+  external int fetchSub(int index, int v);
+  external int fetchAnd(int index, int v);
+  external int fetchOr(int index, int v);
+  external int fetchXor(int index, int v);
 }
+
+extension Int64ListAtomics on Int64List {
+  external void atomicStore(int index, int value);
+  external int atomicLoad(int index);
+  external (bool, int) compareAndSwap(int index, int expected, int desired);
+  external int fetchAdd(int index, int v);
+  external int fetchSub(int index, int v);
+  external int fetchAnd(int index, int v);
+  external int fetchOr(int index, int v);
+  external int fetchXor(int index, int v);
+}
+
 
 // These extension methods will only work on fixed-length builtin
 // List<T> type and will throw an error otherwise.
-extension RefListAtomics<T extends Shareable> on List<T> {
-  void atomicStore(int index, T value);
-  T atomicLoad(int index);
-  (bool, T) compareAndSwap(T expected, T desired);
+extension RefListAtomics<T> on List<T> {
+  external void atomicStore(int index, T value);
+  external T atomicLoad(int index);
+  external (bool, T) compareAndSwap(T expected, T desired);
 }
 ```
 
@@ -1334,22 +1032,22 @@ primitives like re-entrant or reader-writer locks.
 // dart:concurrent
 
 // Non-reentrant Lock.
-class Lock implements Shareable {
-  void acquireSync();
-  bool tryAcquireSync({Duration? timeout});
+final class Lock {
+  external void acquireSync();
+  external bool tryAcquireSync({Duration? timeout});
 
-  void release();
+  external void release();
 
-  Future<void> acquire();
-  Future<bool> tryAcquire({Duration? timeout});
+  external Future<void> acquire();
+  external Future<bool> tryAcquire({Duration? timeout});
 }
 
-class Condition implements Shareable {
-  bool waitSync(Lock lock, {Duration? timeout});
-  Future<bool> wait(Lock lock, {Duration? timeout});
+final class Condition {
+  external bool waitSync(Lock lock, {Duration? timeout});
+  external Future<bool> wait(Lock lock, {Duration? timeout});
 
-  void notify();
-  void notifyAll();
+  external void notify();
+  external void notifyAll();
 }
 ```
 
@@ -1381,26 +1079,26 @@ as well.
 ```dart
 abstract interface class Coroutine {
   /// Return currently running coroutine if any.
-  static Coroutine? get current;
+  external static Coroutine? get current;
 
   /// Create a suspended coroutine which will execute the given
   /// [body] when resumed.
-  static Coroutine create(void Function() body);
+  external static Coroutine create(void Function() body);
 
   /// Suspends the given currently running coroutine.
   ///
   /// This makes `resume` return with
   /// Expects resumer to pass back a value of type [R].
-  static void suspend();
+  external static void suspend();
 
   /// Resumes previously suspended coroutine.
   ///
   /// If there is a coroutine currently running the suspends it
   /// first.
-  void resume();
+  external void resume();
 
   /// Resumes previously suspended coroutine with exception.
-  void resumeWithException(Object error, [StackTrace? st]);
+  external void resumeWithException(Object error, [StackTrace? st]);
 }
 ```
 
@@ -1453,31 +1151,31 @@ and under condition that it is not going to block the executor's event loop.
 
 ```dart
 extension Int32PointerAtomics on Pointer<Int32> {
-  void atomicStore(int value);
-  int atomicLoad();
-  (bool, int) compareAndSwap(int expected, int desired);
-  int fetchAdd(int v);
-  int fetchSub(int v);
-  int fetchAnd(int v);
-  int fetchOr(int v);
-  int fetchXor(int v);
+  external void atomicStore(int value);
+  external int atomicLoad();
+  external (bool, int) compareAndSwap(int expected, int desired);
+  external int fetchAdd(int v);
+  external int fetchSub(int v);
+  external int fetchAnd(int v);
+  external int fetchOr(int v);
+  external int fetchXor(int v);
 }
 
 extension IntPtrPointerAtomics on Pointer<IntPtr> {
-  void atomicStore(int value);
-  int atomicLoad();
-  (bool, int) compareAndSwap(int expected, int desired);
-  int fetchAdd(int v);
-  int fetchSub(int v);
-  int fetchAnd(int v);
-  int fetchOr(int v);
-  int fetchXor(int v);
+  external void atomicStore(int value);
+  external int atomicLoad();
+  external (bool, int) compareAndSwap(int expected, int desired);
+  external int fetchAdd(int v);
+  external int fetchSub(int v);
+  external int fetchAnd(int v);
+  external int fetchOr(int v);
+  external int fetchXor(int v);
 }
 
 extension PointerPointerAtomics<T> on Pointer<Pointer<T>> {
-  void atomicStore(Pointer<T> value);
-  Pointer<T> atomicLoad();
-  (bool, Pointer<T>) compareAndSwap(Pointer<T> expected, Pointer<T> desired);
+  external void atomicStore(Pointer<T> value);
+  external Pointer<T> atomicLoad();
+  external (bool, Pointer<T>) compareAndSwap(Pointer<T> expected, Pointer<T> desired);
 }
 ```
 
@@ -1486,7 +1184,7 @@ For convenience reasons we might also consider making the following work:
 ```dart
 final class MyStruct extends Struct {
   @Int32()
-  external final AtomicInt value;
+  external final AtomicInt32 value;
 }
 ```
 
@@ -1495,35 +1193,35 @@ access the value.
 
 > [!CAUTION]
 >
-> Support for `AtomicInt` in FFI structs is meant to enable atomic access to
+> Support for `AtomicInt<N>` in FFI structs is meant to enable atomic access to
 > fields without requiring developers to go through `Pointer` based atomic APIs.
 > It is **not** meant as a way to interoperate with structs that contain
 > `std::atomic<int32_t>` (C++) or `_Atomic int32_t` (C11) because these types
 > don't have a defined ABI.
 
-## Prototyping Roadmap
+## Implementation Roadmap
 
-The change of this impact has to be carefully evaluated. I suggest we start with
-bare minimum needed to validate share memory concurrency in a realistic setting:
+We start by implementing _shared isolates_ and allowing `shared` global
+fields (designated via `@pragma('vm:shared')` rather than a keyword) of
+trivially shareable types. We then expose shared isolates to FFI by introducing
+`NativeCallable.shared` and allowing to call into an isolate group from
+an arbitrary thread.
 
-1. Implement `shared` global fields using a VM specific pragma
-   `@pragma('vm:shared')`.
-2. Hiding under an experimental flag and in a separate library (e.g.
-   `dart:concurrent`):
+These changes do not significantly change the shape of Dart programming
+language, they streamline the interoperability with native code but do not
+introduce any new fundamental capabilities: developers can already share
+native memory between isolates and that simply makes such sharing more
+convenient to use. There is no sharing of mutable Dart objects at this stage
+yet.
 
-- Introduce `Shareable` interface and enforce suggested restrictions using a
-  Kernel transformation instead of incorporating them into CFE.
-- Introduce minimum amount of core library changes (e.g. `ShareableList`).
+Consequently I feel that this set of features (_shared **native** memory
+multithreading_) can be shipped to Dart developers and that will significantly
+streamline out interoperability story.
 
-With these changes we can try prototyping a multicore based optimization in
-either CFE or analyzer and assess the usability and the impact of the change.
-
-Next we can add support for shared isolates and use that to prototype and
-evaluate benefits for the interop (e.g. write some code which uses thread pinned
-native API).
-
-With feedback from these experiments we can update the proposal and formulate
-concrete plans on how we should proceed.
+Separately from this we will work on allowing to share arbitrary Dart objects
+_under an experimental flag_. And use these capabilities to prototype
+multicore based optimizations in either CFE or analyzer and assess the
+usability and the impact of the change.
 
 ## Appendix
 
@@ -1564,10 +1262,9 @@ No shared memory multithreading currently (beyond unstructured binary data
 shared via `SharedArrayBuffer`). However there is a Stage 1 TC-39 proposal
 [JavaScript Structs: Fixed Layout Objects and Some Synchronization Primitives](https://github.com/tc39/proposal-structs)
 which introduces the concept of _struct_ - fixed shape mutable object which can
-be shared between different workers. Structs are very similar to `Shareable`
-objects I propose, however they can't have any methods associated with them.
-This makes structs unsuitable for representing arbitrary Dart classes - which
-usually have methods associated with them.
+be shared between different workers. Structs can't have any methods associated
+with them. This makes structs unsuitable for representing arbitrary Dart
+classes - which usually have methods associated with them.
 
 Wasm GC does not have a well defined concurrency story, but a
 [shared-everything-threads](https://github.com/WebAssembly/shared-everything-threads/pull/23)
@@ -1583,22 +1280,13 @@ able to implement proposed semantics on top of it.
 >    other.
 > 2. It prohibits `externref` inside shareable structs
 >
-> Dart has `Object` as a base class for both shareable and non-shareable
-> classes. If a program contains `Shareable` type - such type would need to be
-> represented as a `shared` struct which means we have to mark `Object` struct
-> as `shared` as well. But this means Dart objects can no longer directly
-> contain `externref`s inside them.
+> If Dart introduces share memory multithreading it would need to mark
+> `struct` type representing `Object` as `shared`, but this means Dart objects
+> can no longer directly contain `externref`s inside them.
 >
 > Assuming that Wasm is going to move forward with type based partitioning, we
-> can still resolve this conundrum by employing a
-> [`ShareableBox`](#shareableboxt)-like wrapper, which can be implemented on top
-> of TLS storage and `WeakMap`.
->
-> An alternative could be to tweak semantics of Wasm's `externref` a bit: tag
-> `externref` with their origin and dynamically checking origin match when
-> `externref` is passed back from Wasm to the host environment (see
-> [Dynamic sharedness checks as an escape hatch](https://github.com/WebAssembly/shared-everything-threads/issues/37)
-> issue).
+> would need to resolve this conundrum by employing some sort of thread local
+> wrapper, which can be implemented on top of TLS storage and `WeakMap`.
 
 ### `dart:*` race safety
 
