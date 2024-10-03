@@ -38,7 +38,7 @@ This proposal:
 declaring some static fields to be [_shared_](#shared-fields) between isolates
 within isolate group.
 
-- introduces the concept a concept of [_shared isolate_](#shared-isolates),
+- introduces the concept of [_shared isolate_](#shared-isolates),
 an isolate which only has access to a state shared between all isolates of the
 group. This concept allows to bridge interoperability gap with native code.
 _Shared isolate_ becomes an answer to the previously unresolved question
@@ -501,12 +501,24 @@ I propose to punch a hole in this boundary by allowing programmer to opt out
 of this isolation: a field marked as `shared` will be shared between all
 isolates. Changing a field in one isolate can be observed from another isolate.
 
-In the _shared **anything** multithreading_ shared fields can be allowed to
+Shared fields should guarantee atomic initialization: if multiple threads
+access the same uninitialized field then only one thread will invoke the
+initializer and initialize the field, all other threads will block until
+initialization it complete.
+
+In the _shared **everything** multithreading_ shared fields can be allowed to
 contain anything - including instances of mutable Dart classes. However,
 initially I propose to limit shared fields by allowing only _trivially shareable
 types_. These types are those which already can pass through
-`SendPort` without copying like strings or numbers or [deeply immutable][]
-types, as well as types like `SendPort` and subclasses of `TypedData`.
+`SendPort` without copying:
+
+- strings;
+- numbers;
+- [deeply immutable][] types;
+- builtin implementations of `SendPort` and `TypedData`;
+- tear-offs of static methods;
+- closures which capture variables of trivially shareable types;
+
 Sharing of these types don't break isolate boundaries.
 
 [deeply immutable]: https://github.com/dart-lang/sdk/blob/bb59b5c72c52369e1b0d21940008c4be7e6d43b3/runtime/docs/deeply_immutable.md
@@ -527,7 +539,7 @@ Sharing of these types don't break isolate boundaries.
 > `SendPort` is an internal implementation or not. Similar tweak should probably
 > be applied to the specification of `@pragma('vm:deeply-immutable')`
 > allowing classes containing `SendPort` fields to be marked `deeply-immutable`
-> at the cost of introducing additional runtime checks.
+> at the cost of introducing additional runtime checks when the object is created.
 
 > [!CAUTION]
 >
@@ -594,7 +606,7 @@ class Isolate {
   /// Shared isolate contains a copy of the
   /// global `shared` state of the current isolate and does not have any
   /// non-`shared` state of its own. An attempt to access non-`shared` static variable throws [IsolationError].
-  static Future<S> runShared<S>(S Function() task);
+  external static Future<S> runShared<S>(S Function() task);
 }
 ```
 
@@ -618,46 +630,15 @@ void main() async {
 }
 ```
 
-### Why not compile time isolation?
-
-It is tempting to try introducing a compile time separation between functions
-which only access `shared` state and functions which can access isolated state.
-However an attempt to fit such separation into the existing language quickly
-breaks down.
-
-One obvious approach is to introduce a modifier (e.g. `shared`) which can be
-applied to function declarations and impose a number of restrictions that
-`shared` functions have to satisfy. These restrictions should guarantee that
-`shared` functions can only access `shared` state.
-
-```dart
-shared void foo() {
-  // ...
-}
-```
-
-- You can't override non-`shared` method with `shared` method.
-- Within a `shared` function
-  - If `f(...)` is a static function invocation then `f` must be a `shared`
-    function.
-  - If `o.m(...)` is an instance method invocation, then `m` must be `shared` method.
-  - If `C(...)` is a constructor invocation then `C` must be a class with a `shared` constructor.
-  - If `g` is a reference to a global variable then `g` must be `shared`.
-
-This approach seems promising on the surface, but quickly hits issues:
-
-- It's unclear how to treat `Object` members like `toString`, `operator ==` and
-  `get hashCode`. These can't be marked as `shared` but should be accessible to
-  both `shared` and non-`shared` code.
-- It's unclear how to treat function expression invocations:
-  - Function types don't encode necessary separation between `shared` and
-    non-`shared` functions.
-  - Methods like `List<T>.forEach` pose challenge because they should be usable
-    in both `shared` and non-`shared` contexts.
-
-**This makes us think that language changes required to achieve sound compile
-time delineation between `shared` and isolate worlds are too complicated to be
-worth it.**
+> [!NOTE]
+>
+> It is tempting to try introducing a compile time separation between functions
+> which only access `shared` state and functions which can access isolated state.
+> However an attempt to fit such separation into the existing language requires
+> significant and complex language changes: type system would need capabilities
+> to express which functions touch isolate state and which only touch `shared`
+> state. Things will get especially complicated around higher-order functions
+> like those on `List`.
 
 ### Upgrading `dart:ffi`
 
@@ -670,9 +651,12 @@ can be extended with the corresponding constructor:
 class NativeCallable<T extends Function> {
   /// Constructs a [NativeCallable] that can be invoked from any thread.
   ///
-  /// When the native code invokes the function [nativeFunction], the corresponding
-  /// [callback] will be synchronously executed on the same thread within a
-  /// shared isolate corresponding to the current isolate group.
+  /// When the native code invokes the function [nativeFunction], the
+  /// corresponding [callback] will be synchronously executed on the same
+  /// thread within a shared isolate corresponding to the current isolate group.
+  ///
+  /// Throws [ArgumentError] if [callback] captures state which can't be
+  /// transferred to shared isolate without copying.
   external factory NativeCallable.shared(
     @DartRepresentationOf("T") Function callback,
     {Object? exceptionalReturn});
@@ -691,6 +675,24 @@ associated with that:
 - Clear semantics of globals:
   - `shared` global state is accessible and independent from the current thread;
   - accessing non-`shared` state will throw an `IsolationError`.
+
+In _shared **everything** multithreading_ world `callback` can be allowed to
+capture arbitrary state, however in _shared **native memory** multithreading_
+this state has to be restricted to trivially shareable types:
+
+```dart
+// This code is okay because `int` is trivially shareable.
+int counter = 0;
+NativeCallable.shared(() {
+  counter++;
+});
+
+// This code is not okay because `List<T>` is not trivially shareable.
+List<int> list = [];
+NativeCallable.shared(() {
+  list.add(1);
+});
+```
 
 #### Linking to Dart code from native code
 
@@ -767,7 +769,7 @@ void main() async {
 }
 ```
 
-What happens when `Future` completes in a shared isolate? Who drives event loop
+What happens when `Future` completes in the shared isolate? Who drives event loop
 of that isolate? Which thread will callbacks run on?
 
 I propose to introduce another concept similar to `Zone`: `Executor`. Executors
@@ -775,7 +777,7 @@ encapsulate the notion of the event loop and control how tasks are executed.
 
 ```dart
 abstract interface class Executor {
-    /// Returns the current executor.
+    /// Current executor
     static Executor get current;
 
     Isolate get owner;
@@ -858,7 +860,7 @@ to control threads.
 abstract class Thread {
   /// Runs the given function in a new thread.
   ///
-  /// The function is run in a shared isolate, meaning that
+  /// The function is run in the shared isolate, meaning that
   /// it will not have access to the non-shared state.
   ///
   /// The function will be run in a `Zone` which uses the
@@ -867,17 +869,19 @@ abstract class Thread {
   /// a callback referencing it.
   external static Thread start<T>(FutureOr<T> Function() main);
 
-  /// Returns the current thread on which the execution occurs.
+  /// Current thread on which the execution occurs.
   ///
-  /// Note: Dart code is only guaranteed to be pinned to a specific OS thread during a synchronous execution.
+  /// Note: Dart code is only guaranteed to be pinned to a specific OS thread
+  /// during a synchronous execution.
   external static Thread get current;
 
-  Future<void> join();
+  external Future<void> join();
 
-  void interrupt();
+  external void interrupt();
 
   external set priority(ThreadPriority value);
-  ThreadPriority get priority;
+
+  external ThreadPriority get priority;
 }
 
 /// An [Executor] backed by a fixed size thread
@@ -893,7 +897,7 @@ isolate on the _current_ thread might be useful:
 
 ```dart
 class Isolate {
-    T runSync<T>(T Function() cb);
+    external T runSync<T>(T Function() cb);
 }
 ```
 
@@ -917,7 +921,9 @@ and will not change threads between suspending and resumptions.
 `AtomicRef<T>` is a wrapper around a value of type `T` which can be updated
 atomically. It can only be used with true reference types - an attempt to create
 an `AtomicRef<int>`, `AtomicRef<double>` , `AtomicRef<(T1, ..., Tn)>` will
-throw.
+throw. The reason from disallowing this types is to avoid implementation
+complexity in `compareAndSwap` which is defined in terms of `identity`. We also
+impose the restriction on `compareAndSwap`.
 
 > [!NOTE]
 >
@@ -932,16 +938,21 @@ throw.
 ```dart
 // dart:concurrent
 
-class AtomicRef<T> {
+final class AtomicRef<T> {
+  /// Creates an [AtomicRef] initialized with the given value.
+  ///
+  /// Throws `ArgumentError` if `T` is a subtype of [num] or [Record].
+  external factory AtomicRef(T initialValue);
+
   /// Atomically updates the current value to [desired].
   ///
   /// The store has release memory order semantics.
-  void store(T desired);
+  external void store(T desired);
 
   /// Atomically reads the current value.
   ///
   /// The load has acquire memory order semantics.
-  T load();
+  external T load();
 
   /// Atomically compares whether the current value is identical to
   /// [expected] and if it is sets it to [desired] and returns
@@ -949,38 +960,65 @@ class AtomicRef<T> {
   ///
   /// Otherwise the value is not changed and `(false, currentValue)` is
   /// returned.
-  (bool, T) compareAndSwap(T expected, T desired);
+  ///
+  /// Throws argument error if `expected` is a instance of [int], [double] or
+  /// [Record].
+  external (bool, T) compareAndSwap(T expected, T desired);
 }
 
-class AtomicInt32 {
-  void store(int value);
-  int load();
-  (bool, int) compareAndSwap(int expected, int desired);
+final class AtomicInt32 {
+  external void store(int value);
+  external int load();
+  external (bool, int) compareAndSwap(int expected, int desired);
 
-  int fetchAdd(int v);
-  int fetchSub(int v);
-  int fetchAnd(int v);
-  int fetchOr(int v);
-  int fetchXor(int v);
+  external int fetchAdd(int v);
+  external int fetchSub(int v);
+  external int fetchAnd(int v);
+  external int fetchOr(int v);
+  external int fetchXor(int v);
+}
+
+final class AtomicInt64 {
+  external void store(int value);
+  external int load();
+  external (bool, int) compareAndSwap(int expected, int desired);
+
+  external int fetchAdd(int v);
+  external int fetchSub(int v);
+  external int fetchAnd(int v);
+  external int fetchOr(int v);
+  external int fetchXor(int v);
 }
 
 extension Int32ListAtomics on Int32List {
-  void atomicStore(int index, int value);
-  int atomicLoad(int index);
-  (bool, int) compareAndSwap(int index, int expected, int desired);
-  int fetchAdd(int index, int v);
-  int fetchSub(int index, int v);
-  int fetchAnd(int index, int v);
-  int fetchOr(int index, int v);
-  int fetchXor(int index, int v);
+  external void atomicStore(int index, int value);
+  external int atomicLoad(int index);
+  external (bool, int) compareAndSwap(int index, int expected, int desired);
+  external int fetchAdd(int index, int v);
+  external int fetchSub(int index, int v);
+  external int fetchAnd(int index, int v);
+  external int fetchOr(int index, int v);
+  external int fetchXor(int index, int v);
 }
+
+extension Int64ListAtomics on Int64List {
+  external void atomicStore(int index, int value);
+  external int atomicLoad(int index);
+  external (bool, int) compareAndSwap(int index, int expected, int desired);
+  external int fetchAdd(int index, int v);
+  external int fetchSub(int index, int v);
+  external int fetchAnd(int index, int v);
+  external int fetchOr(int index, int v);
+  external int fetchXor(int index, int v);
+}
+
 
 // These extension methods will only work on fixed-length builtin
 // List<T> type and will throw an error otherwise.
 extension RefListAtomics<T> on List<T> {
-  void atomicStore(int index, T value);
-  T atomicLoad(int index);
-  (bool, T) compareAndSwap(T expected, T desired);
+  external void atomicStore(int index, T value);
+  external T atomicLoad(int index);
+  external (bool, T) compareAndSwap(T expected, T desired);
 }
 ```
 
@@ -994,22 +1032,22 @@ primitives like re-entrant or reader-writer locks.
 // dart:concurrent
 
 // Non-reentrant Lock.
-class Lock {
-  void acquireSync();
-  bool tryAcquireSync({Duration? timeout});
+final class Lock {
+  external void acquireSync();
+  external bool tryAcquireSync({Duration? timeout});
 
-  void release();
+  external void release();
 
-  Future<void> acquire();
-  Future<bool> tryAcquire({Duration? timeout});
+  external Future<void> acquire();
+  external Future<bool> tryAcquire({Duration? timeout});
 }
 
-class Condition {
-  bool waitSync(Lock lock, {Duration? timeout});
-  Future<bool> wait(Lock lock, {Duration? timeout});
+final class Condition {
+  external bool waitSync(Lock lock, {Duration? timeout});
+  external Future<bool> wait(Lock lock, {Duration? timeout});
 
-  void notify();
-  void notifyAll();
+  external void notify();
+  external void notifyAll();
 }
 ```
 
@@ -1041,26 +1079,26 @@ as well.
 ```dart
 abstract interface class Coroutine {
   /// Return currently running coroutine if any.
-  static Coroutine? get current;
+  external static Coroutine? get current;
 
   /// Create a suspended coroutine which will execute the given
   /// [body] when resumed.
-  static Coroutine create(void Function() body);
+  external static Coroutine create(void Function() body);
 
   /// Suspends the given currently running coroutine.
   ///
   /// This makes `resume` return with
   /// Expects resumer to pass back a value of type [R].
-  static void suspend();
+  external static void suspend();
 
   /// Resumes previously suspended coroutine.
   ///
   /// If there is a coroutine currently running the suspends it
   /// first.
-  void resume();
+  external void resume();
 
   /// Resumes previously suspended coroutine with exception.
-  void resumeWithException(Object error, [StackTrace? st]);
+  external void resumeWithException(Object error, [StackTrace? st]);
 }
 ```
 
@@ -1113,31 +1151,31 @@ and under condition that it is not going to block the executor's event loop.
 
 ```dart
 extension Int32PointerAtomics on Pointer<Int32> {
-  void atomicStore(int value);
-  int atomicLoad();
-  (bool, int) compareAndSwap(int expected, int desired);
-  int fetchAdd(int v);
-  int fetchSub(int v);
-  int fetchAnd(int v);
-  int fetchOr(int v);
-  int fetchXor(int v);
+  external void atomicStore(int value);
+  external int atomicLoad();
+  external (bool, int) compareAndSwap(int expected, int desired);
+  external int fetchAdd(int v);
+  external int fetchSub(int v);
+  external int fetchAnd(int v);
+  external int fetchOr(int v);
+  external int fetchXor(int v);
 }
 
 extension IntPtrPointerAtomics on Pointer<IntPtr> {
-  void atomicStore(int value);
-  int atomicLoad();
-  (bool, int) compareAndSwap(int expected, int desired);
-  int fetchAdd(int v);
-  int fetchSub(int v);
-  int fetchAnd(int v);
-  int fetchOr(int v);
-  int fetchXor(int v);
+  external void atomicStore(int value);
+  external int atomicLoad();
+  external (bool, int) compareAndSwap(int expected, int desired);
+  external int fetchAdd(int v);
+  external int fetchSub(int v);
+  external int fetchAnd(int v);
+  external int fetchOr(int v);
+  external int fetchXor(int v);
 }
 
 extension PointerPointerAtomics<T> on Pointer<Pointer<T>> {
-  void atomicStore(Pointer<T> value);
-  Pointer<T> atomicLoad();
-  (bool, Pointer<T>) compareAndSwap(Pointer<T> expected, Pointer<T> desired);
+  external void atomicStore(Pointer<T> value);
+  external Pointer<T> atomicLoad();
+  external (bool, Pointer<T>) compareAndSwap(Pointer<T> expected, Pointer<T> desired);
 }
 ```
 
@@ -1146,7 +1184,7 @@ For convenience reasons we might also consider making the following work:
 ```dart
 final class MyStruct extends Struct {
   @Int32()
-  external final AtomicInt value;
+  external final AtomicInt32 value;
 }
 ```
 
@@ -1155,7 +1193,7 @@ access the value.
 
 > [!CAUTION]
 >
-> Support for `AtomicInt` in FFI structs is meant to enable atomic access to
+> Support for `AtomicInt<N>` in FFI structs is meant to enable atomic access to
 > fields without requiring developers to go through `Pointer` based atomic APIs.
 > It is **not** meant as a way to interoperate with structs that contain
 > `std::atomic<int32_t>` (C++) or `_Atomic int32_t` (C11) because these types
