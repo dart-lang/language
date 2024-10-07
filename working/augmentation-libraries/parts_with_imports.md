@@ -315,7 +315,7 @@ and the import directive does not have a `show` or `hide` combinator
 which hides the name of the extension declaration.
 
 With this feature, imports are not global to the entire library,
-and neither are extension availability. 
+and neither is extension availability. 
 
 Extension availability is defined *per file*, and an extension 
 is available *in a Dart file* if any of:
