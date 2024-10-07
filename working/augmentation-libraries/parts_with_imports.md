@@ -324,8 +324,8 @@ is available *in a Dart file* if any of:
 
 where an extension is available by import in a Dart file if any of:
 * That file contains an import directive which *imports the extension*
-* That file is a part file and the extension is available by import
-  in its parent file.
+* That file is a part file and the extension is (recursively) available
+  by import in its parent file.
   
 (One way to visualize the availability is to associate declared
 or imported extensions with scopes. If a file has an import directive
