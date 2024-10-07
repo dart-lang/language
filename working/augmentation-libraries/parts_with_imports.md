@@ -1,9 +1,9 @@
 # Part files with imports
 
 Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.0 (See [Changelog](#Changelog) at end)
+Version: 1.1 (See [Changelog](#Changelog) at end)
 
-This is a stand-along definition of _improved part files_, where the title of
+This is a stand-alone definition of _enhanced part files_, where the title of
 this document/feature is highlighting only the most prominent part of the
 feature. This document is extracted and distilled from the [Augmentations][]
 specification. The original specification introduced special files for
@@ -197,7 +197,7 @@ as a `<partDirective>`, or if its leading `<partHeader>`'s `<uri>` string,
 resolved as a URI reference against the URI *U*, does not denote the library of
 *P*. _That is, if a Dart file has a part directive, its target must be a part
 file whose “part of” directive points back to the first Dart file. Nothing new,
-except that now the parent file may not be a library file.)_
+except that now the parent file may not be a library file._
 
 ### Resolution and scopes (part and import directives)
 
@@ -269,7 +269,7 @@ defined as:
 
 That is: The combined import scope of a Dart file is a chain of the combined
 import scopes of the file and its parent files, each step adding two scopes:
-The (unnamed, top-level) import scope of the unprefixed imports and the prefix
+The (unnamed) import scope of the unprefixed imports and the prefix
 scope with prefixed imports, each shadowing names further up in the chain.
 
 The *top-level scope* of a Dart file is a library *declaration scope*
@@ -279,14 +279,16 @@ the combined import scope of that Dart file. _Each Dart file has its own copy
 of the library declaration scope, all containing the same declarations, because
 the declaration scopes of different files have different parent scopes._
 
-**It’s a compile-time error ** if any file declares an import prefix with the
+**It’s a compile-time error** if any file declares an import prefix with the
 same base name as a top-level declaration of the library.
 
 _We have split the prefixes out of the top-level scope, but we maintain that
-they must not have the same names anyway. Any prefix that has the same name as
-a top-level declaration of the library is impossible to reference, because the
-library declaration scope always precedes the prefix scope in any scope chain
-lookup. This does mean that adding a top-level declaration in one part file may
+they must not have the same names anyway. Not because it's a problem for the
+compiler or language, but because it's probably a sign of a user error.
+Any prefix that has the same name as a top-level declaration of the library 
+is impossible to reference, because the library declaration scope 
+always precedes the prefix scope in any scope chain lookup. 
+This does mean that adding a top-level declaration in one part file may
 conflict with a prefix name in another part file in a completely different
 branch of the library file tree. That is not a conflict with the “other file’s
 imports cannot break your code” principle, rather the error is in the file
@@ -296,14 +298,56 @@ library, so the library author should fix the conflict by renaming the prefix.
 That such a name conflict is a compile-time error, makes it much easier to
 detect if it happens._
 
+#### Resolving implicitly applied extensions
+
+The only change to implicit extension application in this feature
+is in the definition of whether an extension is *available*. 
+Whether an extension is *applicable*, its *specificity* if applicable,
+and how that is used to to choose between multiple available and applicable
+extensions is unchanged.
+
+An extension declaration being *available* has been defined as being
+declared or *imported* by the current library.
+Being imported by a library means that the library has at least one 
+import directive which *imports the extensions*, which again means that it
+imports a library which has the extension declaration in its export scope,
+and the import directive does not have a `show` or `hide` combinator 
+which hides the name of the extension declaration.
+
+With this feature, imports are not global to the entire library,
+and neither is extension availability. 
+
+Extension availability is defined *per file*, and an extension 
+is available *in a Dart file* if any of:
+* The extension is declared by the library of the Dart file.
+* The extension is available *by import* in the Dart file.
+
+where an extension is available by import in a Dart file if any of:
+* That file contains an import directive which *imports the extension*
+* That file is a part file and the extension is (recursively) available
+  by import in its parent file.
+  
+(One way to visualize the availability is to associate declared
+or imported extensions with scopes. If a file has an import directive
+which imports an extension, the extension is associated with the 
+import scope of that file, or with the prefix import scope
+if the import is prefixed. A declaration in the library itself 
+is associated with the top-level scope of each file. 
+Then an extension is available in a file if it is associated with
+any scope in the top-level scope chain of that file.)
+
+There is no attempt to *prioritize* available extensions based on
+where they are imported. Every extension imported or declared in the 
+file's top-level scope chain is equally available.
+
 ### Export directives
 
 Any Dart file can contain an `export` directive. It makes no difference which
-file an `export` is in, its declarations (filtered by any `hide` or `show`
-modifiers) are added to the library’s single export scope, along with those of
-any other  `export`s in the library and the non-private declarations of the
-library itself. Conflicts are handled as usual (as an error if it’s not the
-*same* declaration).
+file an `export` is in, its exported declarations (filtered by any `hide` or 
+`show` combinators) are added to the library’s single export scope, 
+along with those of any other `export` directives in the library and 
+the all non-private declarations of the library itself. Conflicts are handled
+as usual (as an error if it’s not the *same* declaration).
 
 Allowing a part file to have its own export is mainly for consistency.
 Most libraries will likely keep all `export` directives in the library file.
@@ -332,7 +376,7 @@ URI denoting that part file.
 *   _It’s a compile-time error if a Dart file has two `part` directives with
     the same URI, so each included part file is included exactly once._
 *   _It’s a compile-time error if a `part` directive denotes a file which is
-    not a part file._
+    not a Dart part file._
 
 The *parent file* of a part file is the file denoted by the URI of the
 `part of` declaration of the part file. A library file has no parent file.
@@ -340,12 +384,13 @@ The *parent file* of a part file is the file denoted by the URI of the
 *   _It’s a compile-time error if a part file is included by any Dart file
     other than the part file’s parent file._
 *   The *includes* and *is the parent file of* properties are equivalent for
-    the files of a Dart program. A Dart file includes a part file if, and only
-    if, the Dart file is the parent file of the part file, otherwise there is a
-    compile-time error. (There are no restrictions on the parent file of a part
-    file which is not part of a library of a Dart program. Dart semantics is
-    only assigned to entire libraries and programs, not individual part files.
-    We’ll refer to the relation as both one file being included by another, and
+    the files of a valid Dart program. A Dart file includes a part file if, 
+    and only if, the Dart file is the parent file of the part file, otherwise
+    there is a compile-time error. 
+    _(There are no restrictions on the parent file of a part file which is not
+    part of a library of a Dart program. Dart semantics is only assigned to
+    entire libraries and programs, not individual part files.)_
+    We’ll refer to this relation as both one file being included by another, and
     the former file being the parent (file) of the latter file.
 
 Two or more part files are called *sibling part files* (or just
@@ -359,17 +404,17 @@ the Dart file, or if the file is a *sub-part* of a file included by the
     *included by* relation. We’ll refer to it by saying either that one Dart
     file is an ancestor file of another part file, or that a part file is a
     sub-part of another Dart file.
-*   <a name="part_cycle"></a>_It’s a compile-time error if a part file is a sub-part
-    of itself._
-    That is, if the *includes* relation has a cycle. This is not a *necessary*
+*   <a name="part_cycle"></a>_It’s a compile-time error if a part file is
+    a sub-part of itself._
+    That is, if the *includes* relation has a cycle. _This is not a *necessary*
     error from the language's perspective, since no library can contain such a
     part file without introducing another error; at the first `part` directive
     reachable from a library file which includes a file from the cycle, 
-    the including file is not the parent of that file.
-    The rule is included as a help to tools that try to analyzer Dart code
+    the including file is not the parent of that file._
+    _The rule is included as a help to tools that try to analyzer Dart code
     starting at individual files, they can then assume that either a part file
     has an ancestor which is a library file, or there is a compile-time error.
-    Or an infinite number of part files.)
+    Or an infinite number of part files._
 
 The *sub-tree* of a Dart file is the set of files containing the file itself
 and all its sub-parts. The *root* of a sub-tree is the Dart file that all other
@@ -399,9 +444,9 @@ least containing sub-tree for any set of nodes._
     included parts or some in the file itself, and then no included part file
     contains all the files, so there is no lesser containing file.)_
 
-The *files of a library* is the entire sub-tree of the defining library file.
-It contains the library file.
-The sub-tree of a part file of a library contains no library file.
+The *files of a library* is the entire sub-tree of the defining library file,
+and the only subtree which contains the library file.
+The sub-tree of a part file of a library contains only part files.
 
 In short:
 
@@ -610,13 +655,29 @@ will already be compatible.
 
 [string_part_of_lint]: https://dart.dev/tools/linter-rules/use_string_in_part_of_directives	"use_string_in_part_of_directives lint"
 
+### Development
+
+The experiment name for this feature is `enhanced-parts`.
+
+The macro feature requires both this feature and the augmentations feature.
+Tools can choose to enable these features automatically when the macros feature
+is enabled, or they can enable it selectively only for code generated by macros.
+
+The augmentations feature does not require enhanced parts, it can work
+within the existing part requirements.
+
 ## Changelog
+
+### 1.1
+
+*   Specifies resolution of implicit extension declarations.
+*   Names the feature "Enhanced parts".
+*   Fixes some typos.
 
 ### 1.0
 
 *   Initial version. The corresponding version of [Augmentations], which refers
     to part files with imports, is version 1.21.
-
 *   Combines augmentation libraries, libraries and part files into just
     libraries and part files, where the part files can have import, export and
     further part directives. Those part directives can use configurable imports.
