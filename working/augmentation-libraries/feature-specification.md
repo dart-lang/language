@@ -344,7 +344,7 @@ being augmented.
     induced getter of the augmented variable declaration.
     _This applies even to `late` variable declarations, where the implicit
     getter does more than just access the underlying storage._
-    The reserved words parses as a `<primary>` expression.
+    The reserved word parses as a `<primary>` expression.
     Evaluating `augmented` invokes the augmented declaration's getter
     function, and evaluates to the returned value.
     The static type of `augmented` is the declared return type of the augmented
