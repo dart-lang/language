@@ -375,7 +375,7 @@ being augmented.
     `augmented.call()`._
     The expression `augmented` must not occur in an optional parameter
     default value expressions _It is a reserved word in such expressions,
-    but is currently cannot be used._
+    but it currently cannot be used._
     The term <code>'augmented' \<argumentPart\></code> words parses
     as a `<primary>` expression.
     Evaluating the function invocation, after having evaluated the
