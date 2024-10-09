@@ -7,11 +7,11 @@ are fairly simple and easy to explain.
 
 ### Elevator pitch
 
-An expression starting with `.` is an implicit static namespaces access on the
+An expression starting with `.` is an implicit static namespace access on the
 *apparent context type*.
 
-The type that the context expects is known, and the expression avoids repeating
-the type, and starts by doing a static access on that type.
+Since the type that the context expects is known, the shorthand expression
+avoids repeating the type, and starts by doing a static access on that type.
 
 This makes immediate sense for accessing enum and enum-like constants or
 invoking constructors, which will have the desired type. There is no requirement
@@ -22,7 +22,7 @@ the end. The context type used is the one for the entire selector chain.
 There must be a context type that allows static member access, similar to when
 we allow static access through a type alias.
 
-We also special-case the `==` and `!=` operators, but nothing else.
+We also special-case the `==` and `!=` operators, but nothing else.
 
 ## Specification
 
@@ -44,7 +44,8 @@ We introduce grammar productions of the form:
 
 We also add `.` to the tokens that an expression statement cannot start with.
 
-That means you can write things like the following (with the intended meaning as comments, specification to achieve that below):
+That means you can write things like the following (with the intended meaning as
+comments, specification to achieve that below):
 
 ```dart
 Endian littleEndian = .little; // -> Endian.little (enum value)
@@ -79,6 +80,8 @@ This is a simple grammatical change. It allows new constructs in any place where
 we currently allow primary expressions, which can be followed by selector chains
 through the `<postfixExpression>` production `<primary> <selector>*`.
 
+#### Non-ambiguity
+
 A `<primary>` cannot immediately follow any other complete expression. We trust
 that because a primary expression already contains the production
 `'(' <expression> ')'` which would cause an ambiguity for `e1(e2)` since `(e2)`
@@ -100,7 +103,7 @@ shorthand can compile at all. If we ever allow metadata on statements, we don’
 want `@foo . bar(4) ;` to be ambiguous. If we ever allow metadata on
 expressions, we have bigger issues.)_
 
-A primary expression *can* follow a `?` in a conditional expression,
+A primary expression *can* follow a `?` in a conditional expression, as in
 `{e1 ? . id : e2}`. This is not ambiguous with `e1?.id` since we parse `?.` as a
 single token, and will keep doing so. It does mean that `{e1?.id:e2}` and
 `{e1? .id:e2}` will now both be valid and have different meanings, where the
@@ -108,9 +111,9 @@ existing grammar didn’t allow the `?` token to be followed by `.` anywhere.
 
 ### Semantics
 
-Dart semantics, static and dynamic, does not follow the grammar precisely. For
+Dart semantics, static and dynamic, do not follow the grammar precisely. For
 example, a static member invocation expression of the form `C.id<T1>(e2)` is
-treated as an atomic entity for type inference (and runtime semantics), it’s not
+treated as an atomic entity for type inference (and runtime semantics). It’s not
 a combination of doing a `C.id` tear-off, then a `<T1>` instantiation and then
 an `(e2)` invocation. The context type of that entire expression is used
 throughout the inference, where `(e1.id<T1>)(e2)` has `(e1.id<T1>)` in a
@@ -119,14 +122,15 @@ inference, it may have something, but a selector context is not a type context,
 and it won’t be the context type of the entire expression)._
 
 Because of that, the specification of the static and runtime semantics of the
-new constructs need to address all the forms <Code>.*id*</code>,
+new constructs needs to address all the forms <code>.*id*</code>,
 <code>.*id*\<*typeArgs*\></code>, <code>.*id*(*args*)</code>,
 <code>.*id*\<*typeArgs*\>(*args*)</code>, `.new` or <code>.new(*args*)</code>.
 
-_(It also addresses `.new<typeArgs>` and `.new<typeArgs>(args)`, but those will
-always be compile-time errors because `.new` denotes a constructor which is not
-generic. We do not want this to be treated as `(.new)<typeArgs>(args)` which
-creates and calls a generic tear-off of the constructor.)_
+_(The proposal also addresses `.new<typeArgs>` and `.new<typeArgs>(args)`, but
+those will always be compile-time errors because `.new` denotes a constructor
+which is not generic. We do not want this to be treated as
+`(.new)<typeArgs>(args)` which creates and calls a generic tear-off of the
+constructor.)_
 
 The *general rule* is that any of the expression forms above, starting with
 <code>.id</code>, are treated exactly *as if* they were prefixed by a fresh
@@ -144,13 +148,13 @@ context type scheme of the entire, maximal selector chain to the static member
 shorthand, and does not change that when recursing on shorter prefixes._
 
 _The effect will be that `.id…` will behave exactly like `T.id…` where `T`
-denotes the declaration of the context type.
+denotes the declaration of the context type._
 
 **Definition:** If a shorthand context type schema has the form `C` or `C<...>`,
 and `C` is a type introduced by the type declaration *D*, then the shorthand
 context *denotes the type declaration* *D*. If a shorthand context `S` denotes a
-type declaration *D*, then so does a shorthand context `S?`. Otherwise a
-shorthand context it does not denote any declaration.
+type declaration *D*, then so does a shorthand context `S?`. Otherwise, a
+shorthand context does not denote any declaration.
 
 _This effectively derives a *declaration* from the context type scheme of the
 surrounding `<postfixExpression>`. It allows a nullable context type to denote
@@ -160,12 +164,10 @@ type to nullable just to allow omitting things ._
 
 **Constant shorthand**: When inferring types for a `const .id(arguments)` or
 `const .new(arguments)` with context type schema *C*, let *D* be the declaration
-denoted by the shorthand context assigned to the `<staticMemberShorthand>`. It’s
-a compile-time error if the shorthand context does not denote a class, mixin,
-enum or extension type declaration. Then proceed with type inference as if
-`.id`/`.new` was preceded by an identifier denoting the declaration *D*. It’s a
-compile-time error if the shorthand context does not denote a class, mixin, enum
-or extension type declaration.
+denoted by the shorthand context assigned to the `<staticMemberShorthand>`. Then
+proceed with type inference as if `.id`/`.new` was preceded by an identifier
+denoting the declaration *D*. It’s a compile-time error if the shorthand context
+does not denote a class, mixin, enum or extension type declaration.
 
 **Non-constant shorthand**: When inferring types for constructs containing the
 non-`const` production, in every place where the current specification specifies
@@ -193,12 +195,13 @@ Doing `List<int> l = .filled(10, 10);` works like doing
 `List<int> l = List.filled(10, 10);`, and it is the following downwards
 inference with context type `List<int>` that makes it into
 `List<int>.filled(10, 10);`. This distinction matters for something like:
+
 ```dart
 List<String> l = .generate(10, (int i) => i + 1).map((x) => x.toRadixString(16)).toList();
 ```
 
-which is equivalent to inserting `List` in front of `.filled`, which will then
-be inferred as `List<int>`. In most normal use-cases it doesn’t matter, because
+which is equivalent to inserting `List` in front of `.generate`, which will then
+be inferred as `List<int>`. In most normal use cases it doesn’t matter, because
 the context type will fill in the missing type variables, but if the
 construction is followed by more selectors, it loses that context type. _It also
 means that the meaning of `.id`/`.new` is *always* the same, it doesn’t matter
@@ -218,21 +221,23 @@ FutureOr<int> = .parse("42"); // Context `FutureOr<int>` is structural type.
 
 #### Special case for `==`
 
-For `==`, we special-case a second operand that is an static member shorthand.
+For `==`, we special-case when the right operand is a static member shorthand.
 
 If an expression has the form `e1 == e2` or `e1 != e2`, or a pattern has the
-form `== e2`, where static type of `e1` is *S1* and the function signature of
-`operator ==` of `S1` is <code>*R* Function(*T*)</code>, *then*
-before doing type inference of `e2` as part of that expression or pattern:
-*   If `e2` has the form `<staticMemberShorthand> <selector>*` and
+form `== e2`, where the static type of `e1` is *S1* and the function signature
+of `operator ==` of `S1` is <code>*R* Function(*T*)</code>, *then* before doing
+type inference of `e2` as part of that expression or pattern:
+
+*   If `e2` has the form `<staticMemberShorthand> <selector>*` and
     <code>*T*</code> is a supertype of `Object`,
+
 *   Then assign *T* as the shorthand context of `e2`.
 
 _If the parameter type of the `==` operator of the type of `e1` is,
-unexpectedly, a proper subtype of `Object` (so it's declared `covariant`),
-it's assumed that that is the kind of object it should be compared to.
-Otherwise it's assumed that it's something of the same type,
-most likely an enum value._
+unexpectedly, a proper subtype of `Object` (so it's declared `covariant`), it's
+assumed that that is the kind of object it should be compared to. Otherwise we
+assume the right-hand side should have the same type as the left-hand side, most
+likely an enum value._
 
 This special-casing is only against an immediate static member shorthand.
 It does not change the *context type* of the second operand, so it would not
@@ -245,8 +250,8 @@ second operand.
 Examples of allowed comparisons:
 
 ```dart
-if (Endian.host == .big) ok!;
-if (Endian.host case == .big) ok!
+if (Endian.host == .big);       // ok!
+if (Endian.host case == .big);  // ok!
 ```
 
 Not allowed:
@@ -380,7 +385,7 @@ shorthands for any interface type.
 It is a conspicuous special-casing to allow `int?` to denote a static namespace,
 but it’s special casing of a type that we otherwise special-case all the time.
 
-It allows `int? v = .tryParse(42);` will work. That’s a *pretty good reason*.<br>
+It allows `int? v = .tryParse(42);` to work. That’s a *pretty good reason*.
 It also allows `int x = .tryParse(input) ?? 0;` to work, which it
 wouldn’t otherwise because the context type of `.tryParse(input)` is `int?`.
 
