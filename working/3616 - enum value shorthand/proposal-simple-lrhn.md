@@ -250,8 +250,8 @@ second operand.
 Examples of allowed comparisons:
 
 ```dart
-if (Endian.host == .big);       // ok!
-if (Endian.host case == .big);  // ok!
+if (Endian.host == .big) ok!;
+if (Endian.host case == .big) ok!;
 ```
 
 Not allowed:
