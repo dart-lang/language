@@ -73,7 +73,7 @@ Future<List<int>> futures = .wait([.value(1), .value(2)]);
 Future futures = .wait<int>([.value(1), .value(2)]);
 
 // -> Future<List<String>>.wait([lazyString(), lazyString()]).then<String>((list) => list.join())
-Future<String> = .wait([lazyString(), lazyString()]).then((list) => list.join());
+Future<String> futures = .wait([lazyString(), lazyString()]).then((list) => list.join());
 ```
 
 This is a simple grammatical change. It allows new constructs in any place where
@@ -216,7 +216,7 @@ denotes an allowed type declaration:
 int v1 = .parse("42") + 1; // Context `_`.
 int v2 = (.parse("42")).abs(); // Context `_`.
 dynamic v3 = .parse("42"); // Context `_`.
-FutureOr<int> = .parse("42"); // Context `FutureOr<int>` is structural type.
+FutureOr<int> v4 = .parse("42"); // Context `FutureOr<int>` is structural type.
 ```
 
 #### Special case for `==`
