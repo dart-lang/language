@@ -22516,16 +22516,17 @@ parameters can make them identical.
 
 \LMHash{}%
 A function object is always an instance of some class $C$ that implements
-the class \FUNCTION{} (\ref{functionType}),
-and which has a method named \CALL,
-whose signature is the function type $C$ itself.
+a function type $F$ which is a subtype of the class \FUNCTION{}
+(\ref{functionType}).
+The function object has a method named \CALL,
+whose signature is said function type $F$.
 \commentary{%
   Consequently, all function types are subtypes of \FUNCTION{}
   (\ref{subtypes}).%
 }
 
 
-\subsection{Type \FUNCTION}
+\subsection{Type Function}
 \LMLabel{functionType}
 
 \LMHash{}%
@@ -22547,13 +22548,13 @@ does not have \FUNCTION{} as a superinterface.
 \LMHash{}%
 If a mixin application mixes \FUNCTION{} onto a superclass, it follows the
 normal rules for mixin-application, but since the result of that mixin
-application is equivalent to a class with \code{implements Function}, and
+application is equivalent to a class with \code{implements \FUNCTION}, and
 that clause has no effect, the resulting class also does not
 implement \FUNCTION.
 \commentary{%
   The \FUNCTION{} class declares no concrete instance members,
-  so the mixin application creates a sub-class of
-  the superclass with no new members and no new interfaces.%
+  so the mixin application creates a sub-class
+  of the superclass with no new members and no new interfaces.%
 }
 
 \rationale{%
@@ -22566,7 +22567,7 @@ implement \FUNCTION.
 }
 
 
-\subsection{Type \DYNAMIC}
+\subsection{Type dynamic}
 \LMLabel{typeDynamic}
 
 \LMHash{}%
@@ -22707,7 +22708,7 @@ whenever doing so is sound.
   \metavar{typeArguments} is a list of actual
   type arguments derived from \synt{typeArguments}, and
   \metavar{arguments} is an actual argument list derived from \synt{arguments}.
-  It is a compile-time error if \id{} is the name of
+  It is a \Error{compile-time error} if \id{} is the name of
   a non-generic method declared in \code{Object}.
   \commentary{%
     No generic methods are declared in \code{Object}.
@@ -22782,7 +22783,7 @@ which is regular-bounded for all $T$.
   That is, \code{FutureOr} is in a sense
   the union of $T$ and the corresponding future type.
   The last point guarantees that
-  \code{FutureOr<$T$>} <: \code{Object},
+  \code{FutureOr<$T$>} <: \code{Object?},
   and also that \code{FutureOr} is covariant in its type parameter,
   just like class types:
   if $S$ <: $T$ then \code{FutureOr<$S$>} <: \code{FutureOr<$T$>}.%
@@ -22791,7 +22792,7 @@ which is regular-bounded for all $T$.
 \LMHash{}%
 If the type arguments passed to \code{FutureOr} would incur compile-time errors
 if applied to a normal generic class with one type parameter,
-the same compile-time errors are issued for \code{FutureOr}.
+the same \Error{compile-time errors} are issued for \code{FutureOr}.
 The name \code{FutureOr} as an expression
 denotes a \code{Type} object representing the type \code{FutureOr<dynamic>}.
 
@@ -22836,7 +22837,7 @@ as follows:
 \end{itemize}
 
 
-\subsection{Type Void}
+\subsection{Type void}
 \LMLabel{typeVoid}
 
 \LMHash{}%
@@ -22866,16 +22867,16 @@ that the value of an expression is meaningless and intended to be discarded.
 \commentary{%
   The type \VOID{} is a top type
   (\ref{superBoundedTypes}),
-  so \VOID{} and \code{Object} are subtypes of each other
+  so \VOID{} and \code{Object?} are subtypes of each other
   (\ref{subtypes}),
   which also implies that any object can be
   the value of an expression of type \VOID.
   %
   Consequently, any instance of type \code{Type} which reifies the type \VOID{}
   must compare equal (according to the \lit{==} operator \ref{equality})
-  to any instance of \code{Type} which reifies the type \code{Object}
+  to any instance of \code{Type} which reifies the type \code{Object?}
   (\ref{dynamicTypeSystem}).
-  It is not guaranteed that \code{identical(\VOID, Object)} evaluates to true.
+  It is not guaranteed that those two reified types are identical.
   In fact, it is not recommended that implementations strive to achieve this,
   because it may be more important to ensure that diagnostic messages
   (including stack traces and dynamic error messages)
@@ -22887,7 +22888,7 @@ that the value of an expression is meaningless and intended to be discarded.
 In support of the notion
 that the value of an expression with static type \VOID{} should be discarded,
 such objects can only be used in specific situations:
-The occurrence of an expression of type \VOID{} is a compile-time error
+The occurrence of an expression of type \VOID{} is a \Error{compile-time error}
 unless it is permitted according to one of the following rules.
 
 \begin{itemize}
@@ -22917,6 +22918,7 @@ unless it is permitted according to one of the following rules.
     where it is not an error to have it.%
   }
 \item
+  %% This relies on \IsMoreTopType{\VOID}{$T$} = \VOID.
   In a conditional expression \code{$e$\,?\,$e_1$\,:\,$e_2$},
   $e_1$ and $e_2$ may have type \VOID.
   \rationale{%
@@ -22926,19 +22928,12 @@ unless it is permitted according to one of the following rules.
     in some context where it is not an error to have it.%
   }
 \item
+  %% This relies on \IsMoreTopType{\VOID}{$T$} = \VOID.
   In a null coalescing expression \code{$e_1$\,??\,$e_2$},
   $e_2$ may have type \VOID.
   \rationale{%
     The static type of the null coalescing expression is then \VOID,
     which in turn restricts where it can occur.%
-  }
-\item
-  In an expression of the form \code{\AWAIT\,\,$e$}, $e$ may have type \VOID.
-  \rationale{%
-    This rule was adopted because it was a substantial breaking change
-    to turn this situation into an error
-    at the time where the treatment of \VOID{} was changed.
-    Tools may choose to give a hint in such cases.%
   }
 \item
   \commentary{%
@@ -23021,13 +23016,13 @@ unless it is permitted according to one of the following rules.
 Finally, we need to address situations involving implicit usage of
 an object whose static type can be \VOID.
 %
-It is a compile-time error for a for-in statement to have an iterator
+It is a \Error{compile-time error} for a for-in statement to have an iterator
 expression of type $T$ such that \code{Iterator<\VOID{}>}
 is the most specific instantiation of \code{Iterator}
 that is a superinterface of $T$, unless the
 iteration variable has type \VOID.
 %
-It is a compile-time error for an asynchronous for-in statement
+It is a \Error{compile-time error} for an asynchronous for-in statement
 to have a stream expression of type $T$
 such that \code{Stream<\VOID{}>} is the most specific
 instantiation of \code{Stream} that is a superinterface of $T$,
@@ -23036,7 +23031,7 @@ unless the iteration variable has type \VOID.
 \commentary{Here are some examples:}
 
 \begin{dartCode}
-\FOR{} (Object x in <\VOID>[]) \{\} // \comment{Error.}
+\FOR{} (Object? x in <\VOID>[]) \{\} // \comment{Error.}
 \AWAIT{} \FOR{} (int x \IN{} new Stream<\VOID{}>.empty()) \{\} // \comment{Error.}
 \FOR{} (\VOID{} x \IN{} <\VOID{}>[]) \{\ldots\} // \comment{OK.}
 \FOR (\VAR{} x \IN{} <\VOID{}>[]) \{\ldots\} // \comment{OK, type of x inferred.}
@@ -23084,22 +23079,22 @@ are not strictly enforced.
 \ABSTRACT{} \CLASS A<X> \{
   final X x;
   A(this.x);
-  Object foo(X x);
+  Object? foo(X x);
 \}
 \\
 \CLASS{} B<X> \EXTENDS{} A<X> \{
   B(X x): super(x);
-  Object foo(Object x) => x;
+  Object? foo(Object? x) => x;
 \}
 \\
-Object f<X>(X x) => x;
+Object? f<X>(X x) => x;
 \\
 \VOID{} main() \{
   \VOID x = 42;
   print(f(x)); // \comment{(1)}
   \\
   A<\VOID{}> a = B<\VOID{}>(x);
-  A<Object> aObject = a;
+  A<Object?> aObject = a;
   print(aObject.x); // \comment{(2)}
   print(a.foo(x)); // \comment{(3)}
 \}
@@ -23116,25 +23111,25 @@ Object f<X>(X x) => x;
   which is or contains a type variable whose value could be \VOID,
   so we are allowed to return \code{x} in the body of \code{f},
   even though this means that we indirectly get access to the value
-  of an expression of type \VOID, under the static type \code{Object}.
+  of an expression of type \VOID, under the static type \code{Object?}.
 
   At (2), we indirectly obtain access to the value of
   the variable \code{x} with type \VOID,
   because we use an assignment to get access to the instance of \code{B}
   which was created with type argument \VOID{} under the type
-  \code{A<Object>}.
-  Note that \code{A<Object>} and \code{A<\VOID{}>} are subtypes of each other,
+  \code{A<Object?>}.
+  Note that \code{A<Object?>} and \code{A<\VOID{}>} are subtypes of each other,
   that is, they are equivalent according to the subtype rules,
   so neither static nor dynamic type checks will fail.
 
   At (3), we indirectly obtain access to the value of
   the variable \code{x} with type \VOID{}
-  under the static type \code{Object},
+  under the static type \code{Object?},
   because the statically known method signature of \code{foo}
   has parameter type \VOID,
   but the actual implementation of \code{foo} which is invoked
-  is an override whose parameter type is \code{Object},
-  which is allowed because \code{Object} and \VOID{} are both top types.%
+  is an override whose parameter type is \code{Object?},
+  which is allowed because \code{Object?} and \VOID{} are both top types.%
 }
 
 \rationale{%
@@ -23155,7 +23150,7 @@ Object f<X>(X x) => x;
   from one variable or parameter to the next one, all with type \VOID,
   explicitly, or as the value of a type parameter.
   In particular, we could require that method overrides should
-  never override return type \code{Object} by return type \VOID,
+  never override return type \code{Object?} by return type \VOID,
   or parameter types in the opposite direction;
   parameterized types with type argument \VOID{} could not be assigned
   to variables where the corresponding type argument is anything other than
@@ -23203,7 +23198,7 @@ a generic type is applied to actual type arguments.
 Let $T$ be a parameterized type \code{$G$<$S_1, \ldots,\ S_n$>}.
 
 \LMHash{}%
-It is a compile-time error if $G$ is not a generic type,
+It is a \Error{compile-time error} if $G$ is not a generic type,
 or $G$ is a generic type,
 but the number of formal type parameters in the declaration of $G$ is not $n$.
 Otherwise, let
@@ -23218,7 +23213,7 @@ $S_i$ is malbounded for one or more $i \in 1 .. n$,
 or $T$ is not well-bounded (\ref{superBoundedTypes}).
 
 \LMHash{}%
-It is a compile-time error if $T$ is malbounded.
+It is a \Error{compile-time error} if $T$ is malbounded.
 
 \LMHash{}%
 $T$ is evaluated as follows.
@@ -23242,7 +23237,8 @@ where $X_1, \ldots, X_n$ are the formal type parameters of $G$.
 %% replaced by the bottom type (`Null`, for now) in locations of the member
 %% type where it occurs contravariantly. For instance, `c.f` should have
 %% static type `void Function(Null)` when `c` has static type `C<T>` for any
-%% `T`, and we have `class C<X> { void Function(X) f; }`.
+%% `T`, and we have `class C<X> { void Function(X) f; }`. Cf. issue
+%% https://github.com/dart-lang/language/issues/297.
 
 
 \subsubsection{Actual Types}
@@ -23423,7 +23419,7 @@ the longest possible token is recognized.
 \LMHash{}%
 A \Index{reserved word} can only be used in the syntactic positions
 specified by the grammar.
-In particular, a compile-time error occurs if a reserved word is used
+In particular, a \Error{compile-time error} occurs if a reserved word is used
 where an identifier is expected.
 
 \commentary{%
