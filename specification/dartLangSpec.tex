@@ -24,13 +24,7 @@
 % CHANGES
 % =======
 %
-% Significant changes to the specification. Note that the versions specified
-% below indicate the current tool chain version when those changes were made.
-% In practice, new features have always been integrated into the language
-% specification (this document) a while after the change was accepted into
-% the language and implemented. As of September 2022, the upcoming version of
-% the language which is being specified is indicated by a version number in
-% parentheses after the tool chain version.
+% Significant changes to the specification.
 %
 % Note that the version numbers used below (up to 2.15) were associated with
 % the currently released language and tools at the time of the spec change,
@@ -40,6 +34,10 @@
 % the 'Version' specified on the front page has been changed to indicate the
 % version of the language which will actually be specified by the next stable
 % release of this document.
+%
+% Oct 2024
+% - Integrate the subtyping rule updates that are needed in order to support
+%   null-safety.
 %
 % Sep 2024
 % - Clarify the extension applicability rule to explicitly state that it
@@ -62,8 +60,6 @@
 %   a function literal.
 % - Specify in which situations it is an error to declare an initializing
 %   formal parameter.
-% - Integrate the subtyping rule updates that are needed in order to support
-%   null-safety.
 %
 % Nov 2023
 % - Specify that the dynamic error for calling a function in a deferred and
