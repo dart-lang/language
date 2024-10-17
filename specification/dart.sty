@@ -173,9 +173,12 @@
 \newcommand{\id}{\metavar{id}}
 \newcommand{\op}{\metavar{op}}
 
+% Used in margin to indicate that a term is being defined here.
+\newcommand{\IndexMarker}{\ensuremath{^\vartriangle}}
+
 % Used for defining occurrence of phrase, with customized index entry.
 \newcommand{\IndexCustom}[2]{%
-  \leavevmode\marginpar{\ensuremath{_{^\vartriangle}}}\emph{#1}\index{#2}}
+  \leavevmode\marginpar{\IndexMarker}\emph{#1}\index{#2}}
 
 % Used for the defining occurrence of a local symbol.
 \newcommand{\DefineSymbol}[1]{%
@@ -196,7 +199,7 @@
 
 % Same appearance, but not adding an entry to the index.
 \newcommand{\NoIndex}[1]{%
-  \leavevmode\marginpar{\ensuremath{_{^\vartriangle}}}\emph{#1}}
+  \leavevmode\marginpar{\IndexMarker}\emph{#1}}
 
 % Mark a compile-time error in the margin.
 \newcommand{\Error}[1]{%
@@ -470,15 +473,13 @@
 \newcommand{\SubtypeStd}[2]{\Subtype{\Delta}{#1}{#2}}
 % Subtype judgment where the environment is omitted (NE: "no environment").
 \newcommand{\SubtypeNE}[2]{\ensuremath{{#1}\,<:\,{#2}}}
+\newcommand{\MutualSubtype}[3]{\ensuremath{{#1}\vdash{#2}\,<:>\,{#3}}}
+\newcommand{\MutualSubtypeStd}[2]{\MutualSubtype{\Delta}{#1}{#2}}
+\newcommand{\MutualSubtypeNE}[2]{\ensuremath{{#1}\,<:>\,{#2}}}
 
 % Judgment expressing that a supertype relation exists.
 \newcommand{\Supertype}[3]{\ensuremath{{#1}\vdash{#2}\,:>\,{#3}}}
 \newcommand{\SupertypeStd}[2]{\Supertype{\Delta}{#1}{#2}}
-
-% Judgment expressing that a subtype and a supertype relation exist.
-\newcommand{\MutualSubtype}[3]{\ensuremath{{#1}\vdash{#2}\,<:>\,{#3}}}
-\newcommand{\MutualSubtypeStd}[2]{\MutualSubtype{\Delta}{#1}{#2}}
-\newcommand{\MutualSubtypeNE}[2]{\ensuremath{{#1}\,<:>\,{#2}}}
 
 % Semantic function delivering the superinterfaces of a class.
 \newcommand{\Superinterfaces}[1]{\ensuremath{\metavar{Superinterfaces}({#1})}}
