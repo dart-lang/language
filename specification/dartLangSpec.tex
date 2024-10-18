@@ -23629,7 +23629,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
 \item
   \textbf{Type Variable Reflexivity 1:}
   if $T_0$ is a type variable $X_0$
-  or a promoted type variables \code{$X_0$\,\&\,$S_0$} and $T_1$ is $X_0$
+  or a promoted type variable \code{$X_0$\,\&\,$S_0$} and $T_1$ is $X_0$
   then \SubtypeNE{T_0}{T_1}.
 
   \commentary{%
@@ -23671,12 +23671,12 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   \end{itemize}
 \item
   \textbf{Left Promoted Variable:}
-  $T_0$ is a promoted type variable \code{$X_0$\,\&\,$S_0$}
-  and \SubtypeNE{S_0}{T_1}.
+  If $T_0$ is a promoted type variable \code{$X_0$\,\&\,$S_0$}
+  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{S_0}{T_1}.
 \item
   \textbf{Left Type Variable Bound:}
   $T_0$ is a type variable $X_0$ with bound $B_0$
-  and \SubtypeNE{B_0}{T_1}.
+  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{B_0}{T_1}.
 \item
   \textbf{Function Type/Function:}
   $T_0$ is a function type and $T_1$ is \FUNCTION.
