@@ -23770,6 +23770,11 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
     It is valid to choose $Z_i$ to be $X_i$ or $Y_i$,
     so long as capture is avoided.%
   }
+
+\item
+  If $T_0$ is \code{($V_0$, \ldots, $V_n$, \{$V_{n+1} d_{n+1}$, \ldots, $V_m d_m$\})}
+  and $T_1$ is \code{($S_0$, \ldots, $S_n$, \{$S_{n+1} d_{n+1}$, \ldots, $S_m d_m$\})}
+  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{V_i}{S_i} for each $i \in 0 .. m$.  
 \end{itemize}
 
 
