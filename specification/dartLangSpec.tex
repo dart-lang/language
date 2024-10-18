@@ -21840,7 +21840,7 @@ Intersection types
 may arise during static analysis due to type promotion
 (\ref{typePromotion}).
 They never occur during execution,
-and there are many other restrictions on where they can occur
+and there are several other restrictions on where they can occur
 (\ref{intersectionTypes}).
 However, their subtype relations are specified without restrictions.
 \commentary{%
@@ -23542,9 +23542,6 @@ It shows that Dart subtyping relationships can be decided
 with good performance.
 
 \LMHash{}%
-In this algorithm, types are considered to be the same when they have
-the same canonical syntax
-(\ref{theCanonicalSyntaxOfTypes}).
 The algorithm must be performed such that the first case that matches
 is always the case which is performed.
 The algorithm produces results which are both positive and negative
@@ -23718,8 +23715,11 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   \item \SubtypeNE{[Z_0/Y_0, \ldots, Z_k/Y_k]S_i}{[Z_0/X_0, \ldots, Z_k/X_k]V_i}
     for $i \in 0 .. q$.
   \item \SubtypeNE{[Z_0/X_0, \ldots, Z_k/X_k]U_0}{[Z_0/Y_0, \ldots, Z_k/Y_k]U_1}.
-  \item $[Z_0/X_0, \ldots, Z_k/X_k]B_{0i}$ and $[Z_0/Y_0, \ldots, Z_k/Y_k]B_{1i}$
-    have the same canonical syntax, for $i \in 0 .. k$.
+  \item
+    \MutualSubtypeNE{%
+      [Z_0/X_0, \ldots, Z_k/X_k]B_{0i}}{%
+      [Z_0/Y_0, \ldots, Z_k/Y_k]B_{1i}},
+    for $i \in 0 .. k$.
   \end{itemize}
 \item
   \textbf{Named Function Types:}
@@ -23759,8 +23759,9 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   \item
     \SubtypeNE{[Z_0/X_0, \ldots, Z_k/X_k]U_0}{[Z_0/Y_0, \ldots, Z_k/Y_k]U_1}.
   \item
-    $[Z_0/X_0, \ldots, Z_k/X_k]B_{0i}$ and $[Z_0/Y_0, \ldots, Z_k/Y_k]B_{1i}$
-    have the same canonical syntax,
+    \MutualSubtypeNE{%
+      [Z_0/X_0, \ldots, Z_k/X_k]B_{0i}}{%
+      [Z_0/Y_0, \ldots, Z_k/Y_k]B_{1i}},
     for each $i \in 0 .. k$.
   \end{itemize}
 
