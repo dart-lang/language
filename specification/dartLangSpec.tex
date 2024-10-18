@@ -23690,8 +23690,8 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{S_i}{U_i} for each $i$.
 \item
   \textbf{Super-Interface:}
-  $T_0$ is an interface type with super-interfaces \List{S}{0}{n}
-  and \SubtypeNE{S_i}{T_1} for some $i$.
+  If $T_0$ is an interface type with super-interfaces \List{S}{0}{n}
+  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{S_i}{T_1} for some $i$.
 \item
   \textbf{Positional Function Types:}
   $T_0$ is
