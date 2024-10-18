@@ -23685,8 +23685,9 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   $T_0$ is a record type and $T_1$ is \RECORD.
 \item
   \textbf{Interface Compositionality:}
-  $T_0$ is an interface type \code{$C_0$<$S_0$, \ldots, $S_k$>}
-  and $T_1$ is \code{$C_0$<$U_0$, \ldots, $U_k$>} and each \SubtypeNE{S_i}{U_i}.
+  If $T_0$ is an interface type \code{$C_0$<$S_0$, \ldots, $S_k$>}
+  and $T_1$ is \code{$C_0$<$U_0$, \ldots, $U_k$>}
+  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{S_i}{U_i} for each $i$.
 \item
   \textbf{Super-Interface:}
   $T_0$ is an interface type with super-interfaces \List{S}{0}{n}
