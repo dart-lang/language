@@ -1,4 +1,4 @@
-# Null-aware elements
+# Inference using bounds
 
 Author: Chloe Stefantsova
 
