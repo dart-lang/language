@@ -723,6 +723,12 @@ the set of type schemas `{U0, ..., Un}` such that:
     with respect to the constraint set `C`.
   - If `Vi` is not known (that is, it contains `_`), then `Ui = Vi`.
   - Otherwise, if `Xi` does not have an explicit bound, then `Ui = Vi`.
+  - Otherwise, let `Mb <: Xi <: Mt` be the merge of `C` with respect to `Xi`. If
+    `Mb` is not `_`, let `C1` be the constraint set produced by the subtype
+    constraint generation algorithm for `P = Mb`, `Q = B`, `L = {X0, ..., Xn}`.
+    Then `Ui` is the constraint solution for the type variable `Xi` with respect
+    to the constraint set `C + C1`. *Note that `X` is in `L` and that `Mb`
+    doesn't contain any of `X0, ..., Xn`.*
   - Otherwise, let `Bi` be the bound of `Xi`.  Then, let `Bi'` be the type
     schema formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in
     place of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we
