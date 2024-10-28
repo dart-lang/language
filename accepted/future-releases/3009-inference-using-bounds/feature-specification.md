@@ -89,90 +89,236 @@ A convenient way to graphically represent CSSTV is by a square, where three side
 block-beta
   columns 5
 
-  space
-  constraints["Inference phase"]:3
-  space
+  space:2
+  previousPhase["Previous phase"]
+  space:2
 
   space:5
 
-  preliminarySolution["(1) Preliminary solution (from the previous phase)"]
-  space
-  csstv["CSSTV"]
-  space
-  currentSolution["Current solution (to the next phase)"]
+  block:current:5
+    columns 5
+
+    commentCurrent(["Current phase:"])
+    space:4
+
+    constraintsCurrent["(2) Constraints"]
+    space
+    csstvCurrent["CSSTV"]
+    space
+    boundsCurrent["(3) Bounds"]
+  end
 
   space:5
 
   space:2
-  bounds["(3) Bounds"]
+  nextPhase["Next pahse"]
   space:2
 
-  constraints -- "(2) Collected constraints" --> csstv
-  preliminarySolution --> csstv
-  csstv --> currentSolution
-  bounds --> csstv
+  previousPhase -- "(1) Preliminary solution" --> csstvCurrent
+
+  constraintsCurrent --> csstvCurrent
+  boundsCurrent --> csstvCurrent
+  csstvCurrent -- "Current solution" --> nextPhase
 ```
 
 Since the output from CSSTV for one phase becomes an input for CSSTV for the next phase, the entire process of type inference can be thought of as multiple runs of the CSSTV chained together, each taking the collected constraints from its respective phase.
 
 ```mermaid
 block-beta
-  columns 15
-
-  space
-  downwards["Downwards phase"]:3
-  horizontal1["Horizontal 1 phase"]:3
-  space
-  horizontalN["Horizontal N phase"]:3
-  upwards["Upwards phase"]:3
-  space
-
-  space:15
-
-  inputOverall["Input"]
-  space
-  csstvDownwards["CSSTV"]
-  space:2
-  csstvHorizontal1["CSSTV"]
-  space:3
-  csstvHorizontalN["CSSTV"]
-  space:2
-  csstvUpwards["CSSTV"]
-  space
-  outputOverall["Output"]
-
-  space:15
+  columns 5
 
   space:2
-  boundsDownwards["Bounds*"]
-  space:2
-  boundsHorizontal1["Bounds*"]
-  space:3
-  boundsHorizontalN["Bounds*"]
-  space:2
-  boundsUpwards["Bounds*"]
+  overallInput["Input"]
   space:2
 
-  downwards -- "Constraints" --> csstvDownwards
-  horizontal1 -- "Constraints" --> csstvHorizontal1
-  horizontalN -- "Constraints" --> csstvHorizontalN
-  upwards -- "Constraints" --> csstvUpwards
+  space:5
 
-  inputOverall --> csstvDownwards
-  csstvDownwards --> csstvHorizontal1
-  csstvHorizontal1 -- "..." --> csstvHorizontalN
-  csstvHorizontalN --> csstvUpwards
-  csstvUpwards --> outputOverall
+  block:downwards:5
+    columns 5
 
+    commentDownwardsConstraints(["Downwards phase:"])
+    space:4
+
+    constraintsDownwards["Constraints"]
+    space
+    csstvDownwards["CSSTV"]
+    space
+    boundsDownwards["Bounds*"]
+  end
+
+  space:5
+
+  block:horizontal1:5
+    columns 5
+
+    commentHorizontal1Constraints(["Horizontal phase 1:"])
+    space:4
+
+    constraintsHorizontal1["Constraints"]
+    space
+    csstvHorizontal1["CSSTV"]
+    space
+    boundsHorizontal1["Bounds*"]
+  end
+
+  space:5
+
+  block:horizontalN:5
+    columns 5
+
+    commentHorizontalNConstraints(["Horizontal phase N:"])
+    space:4
+
+    constraintsHorizontalN["Constraints"]
+    space
+    csstvHorizontalN["CSSTV"]
+    space
+    boundsHorizontalN["Bounds*"]
+  end
+
+  space:5
+
+  block:upwards:5
+    columns 5
+
+    commentUpwardsConstraints(["Upwards phase:"])
+    space:4
+
+    constraintsUpwards["Constraints"]
+    space
+    csstvUpwards["CSSTV"]
+    space
+    boundsUpwards["Bounds*"]
+  end
+
+  space:5
+
+  space:2
+  overallOutput["Output"]
+  space:2
+
+  overallInput -- "Empty solution" --> csstvDownwards
+
+  constraintsDownwards --> csstvDownwards
   boundsDownwards --> csstvDownwards
+  csstvDownwards --> csstvHorizontal1
+
+  constraintsHorizontal1 --> csstvHorizontal1
   boundsHorizontal1 --> csstvHorizontal1
+  csstvHorizontal1 -- "..." --> csstvHorizontalN
+
+  constraintsHorizontalN --> csstvHorizontalN
   boundsHorizontalN --> csstvHorizontalN
+  csstvHorizontalN --> csstvUpwards
+
+  constraintsUpwards --> csstvUpwards
   boundsUpwards --> csstvUpwards
+
+  csstvUpwards -- "Overall solution" --> overallOutput
 ```
 
 An important property of CSSTV is the following: if an element of the preliminary solution from the previous phase is known (that is, it doesn't contain `_`), it is not changed by the current run of CSSTV. Effectively, once a known type is produced at the end of any phase, it becomes "frozen" through the rest of the inference process and becomes a part of the overall inference result.
 
 The picture below shows the details of the type inference process for the motivating example using the schematic representation.
+
+```mermaid
+block-beta
+  columns 5
+
+  space:2
+  overallInput["Input"]
+  space:2
+
+  space:5
+
+  block:downwards:5
+    columns 5
+
+    commentDownwardsConstraints(["Downwards constraints:"])
+    space:3
+    commentDownwardsBounds(["Bounds:"])
+
+    constraintsDownwards["∅"]
+    space
+    csstvDownwards["CSSTV"]
+    space
+    boundsDownwards["X extends A&lt;X&gt;"]
+  end
+
+  space:5
+
+  block:upwards:5
+    columns 5
+
+    commentUpwardsConstraints(["Upwards constraints:"])
+    space:3
+    commentUpwardsBounds(["Bounds:"])
+
+    constraintsUpwards["C <: X"]
+    space
+    csstvUpwards["CSSTV"]
+    space
+    boundsUpwards["X extends A&lt;X&gt;"]
+  end
+
+  space:5
+
+  space
+  block:constraintsUpwardsUpdated:1
+    columns 1
+    constraintUpwards2["C <: X"]
+    constraintUpwards1["X <: A&lt;_&gt;"]
+  end
+  space
+  constraintGeneration["X <: A&lt;_&gt;"]
+  space
+
+  space:2
+  overallOutput["Output"]
+  space:2
+
+  overallInput -- "{X = _}" --> csstvDownwards
+
+  constraintsDownwards --> csstvDownwards
+  boundsDownwards --> csstvDownwards
+  csstvDownwards -- "{X = _}" --> csstvUpwards
+
+  constraintGeneration --> constraintUpwards1
+
+  constraintsUpwards --> constraintUpwards2
+  constraintsUpwards --> csstvUpwards
+  boundsUpwards --> csstvUpwards
+  boundsUpwards -- "best-effort approximation of the bound" --> constraintGeneration
+  constraintsUpwardsUpdated --> csstvUpwards
+
+  csstvUpwards -- "{X = C}" --> overallOutput
+```
+
+## Proposed changes
+
+We propose generating more constraints from existing constraints and the bound. The original example is solved by this proposal and a few more beneficial examples are discussed afterwards.
+
+In the motivating example, adding the best-effort bound approximation didn't affect the result since the set of constraints for `X` already contained a lower-bound constraint for `X` (`C <# X`), and that constraint had the priority over the upper-bound "best-effort" approximation constraint, since type `C` is fully known (i.e. doesn't contain `_`). In the current proposal ***we aim to derive a lower-bound constraint by combining the already existing lower-bound constraint with the actual bound***.
+
+In general, if we have two type constraints of the form `E <: Y` and `Y <: F`, where `Y` is a type variable and `E` and `F` are type schemas, it follows that `E <: F` holds if the `E <: Y` and `Y <: F` hold. So, what if instead of adding the constraint `X <: B'` in step 5 of CSSTV, where `B'` is the best-effort bound approximation, we generate a new set of constraints, running the subtype constraint generation algorithm described in [Subtype constraint generation][subtype-constraint-generation] for `P = C`, `Q = B`, `L = {..., X, ...}`.
+
+`C` doesn't contain type variables from `L` by construction, and `B` may contain type variables from `L` (confidently, `X` in case X is F-bounded, but also any type variables from the same declaration, regardless of F-boundness of `X`), which makes `C <# B` a valid input for [Subtype constraint generation][subtype-constraint-generation] and a good source of additional type information.
+
+The new constraints, generated by [Subtype constraint generation][subtype-constraint-generation] from `C <# B` are then added to the overall set of constraints for the current phase of type inference. Then, the solution for type variable `X` is computed from the new constraint set, at the end of the updated step 5 of CSSTV. 
+Note that when `X` isn't F-bounded and its bound doesn't refer to other type variables from the same declaration, the suggested changes for step 5 of CSSTV work exactly as the unmodified step 5 of the same algorithm.
+
+## Re-evaluating the motivating example
+Let's see how type inference, updated as proposed, works in the motivating example.
+
+The downwards phase isn't affected, since it doesn't provide any contextual type information in this specific example. In the upwards phase, before step 5 of CSSTV we have the partial solution `X = _`, the constraint set `{C <: X}`, and the solution of the constraint set for `X` is `C`, which is known (that is, it doesn't contain `_`).
+
+At step 5 of the modified CSSTV, `C <# X` is a lower-bound constraint of `X`, so we run [Subtype constraint generation][subtype-constraint-generation] with `P = C`, `Q = A<X>` (where `A<X>` is the bound of `X`), `L = {X}`. The next steps are as follows: `C <# A<X>` → `A<B> <# A<X>` → `B <# X`, which is the new constraint to add.
+
+We add `B <: X` to the constraint set for `X` (or, equivalently, merge it with the already merged constraint set for `X`, depending on the implementation) — it gives us `{C <# X, B <# X}`, and the solution for `X` becomes `X = B` at the end of step 5 of CSSTV.
+
+`X = B` is "frozen" since B is known, and the overall solution for `X` is `B`, making the motivating example compile and run without errors.
+
+The picture below shows the details of the updated type inference process for the example.
 
 ```mermaid
 block-beta
@@ -210,77 +356,6 @@ block-beta
   csstvDownwards -- "{X = _}" --> csstvUpwards
   csstvUpwards -- "{X = C}" --> overallOutput
 
-  constraintGeneration --> newConstraint
-  boundsUpwards --> constraintGeneration
-
-  boundsDownwards --> csstvDownwards
-  boundsUpwards --> csstvUpwards
-```
-
-## Proposed changes
-
-We propose generating more constraints from existing constraints and the bound. The original example is solved by this proposal and a few more beneficial examples are discussed afterwards.
-
-In the motivating example, adding the best-effort bound approximation didn't affect the result since the set of constraints for `X` already contained a lower-bound constraint for `X` (`C <# X`), and that constraint had the priority over the upper-bound "best-effort" approximation constraint, since type `C` is fully known (i.e. doesn't contain `_`). In the current proposal ***we aim to derive a lower-bound constraint by combining the already existing lower-bound constraint with the actual bound***.
-
-In general, if we have two type constraints of the form `E <: Y` and `Y <: F`, where `Y` is a type variable and `E` and `F` are type schemas, it follows that `E <: F` holds if the `E <: Y` and `Y <: F` hold. So, what if instead of adding the constraint `X <: B'` in step 5 of CSSTV, where `B'` is the best-effort bound approximation, we generate a new set of constraints, running the subtype constraint generation algorithm described in [Subtype constraint generation][subtype-constraint-generation] for `P = C`, `Q = B`, `L = {..., X, ...}`.
-
-`C` doesn't contain type variables from `L` by construction, and `B` may contain type variables from `L` (confidently, `X` in case X is F-bounded, but also any type variables from the same declaration, regardless of F-boundness of `X`), which makes `C <# B` a valid input for [Subtype constraint generation][subtype-constraint-generation] and a good source of additional type information.
-
-The new constraints, generated by [Subtype constraint generation][subtype-constraint-generation] from `C <# B` are then added to the overall set of constraints for the current phase of type inference. Then, the solution for type variable `X` is computed from the new constraint set, at the end of the updated step 5 of CSSTV. 
-Note that when `X` isn't F-bounded and its bound doesn't refer to other type variables from the same declaration, the suggested changes for step 5 of CSSTV work exactly as the unmodified step 5 of the same algorithm.
-
-## Re-evaluating the motivating example
-Let's see how type inference, updated as proposed, works in the motivating example.
-
-The downwards phase isn't affected, since it doesn't provide any contextual type information in this specific example. In the upwards phase, before step 5 of CSSTV we have the partial solution `X = _`, the constraint set `{C <: X}`, and the solution of the constraint set for `X` is `C`, which is known (that is, it doesn't contain `_`).
-
-At step 5 of the modified CSSTV, `C <# X` is a lower-bound constraint of `X`, so we run [Subtype constraint generation][subtype-constraint-generation] with `P = C`, `Q = A<X>` (where `A<X>` is the bound of `X`), `L = {X}`. The next steps are as follows: `C <# A<X>` → `A<B> <# A<X>` → `B <# X`, which is the new constraint to add.
-
-We add `B <: X` to the constraint set for `X` (or, equivalently, merge it with the already merged constraint set for `X`, depending on the implementation) — it gives us `{C <# X, B <# X}`, and the solution for `X` becomes `X = B` at the end of step 5 of CSSTV.
-
-`X = B` is "frozen" since B is known, and the overall solution for `X` is `B`, making the motivating example compile and run without errors.
-
-The picture below shows the details of the updated type inference process for the example.
-
-```mermaid
-block-beta
-  columns 10
-  space downwards["Downwards phase"]:4 upwards["Upwards phase"]:4 space
-
-  space:5
-  newConstraint["B <: X"]
-  oldConstraint["C <: X"]
-  space:3
-
-  overallInput["Input"]
-  space
-  csstvDownwards["CSSTV"]
-  space:4
-  csstvUpwards["CSSTV"]
-  space
-  overallOutput["Output"]
-
-  space:10
-
-  space:5
-  constraintGeneration["C <# A&lt;X&gt; (A&lt;B&gt; <# A&lt;X&gt;)"]
-  space:4
-
-  space:2
-  boundsDownwards["X extends A<X>"]
-  space:4
-  boundsUpwards["X extends A <X>"]
-  space:2
-
-  downwards -- "∅" --> csstvDownwards
-  upwards -- "C <: X" --> csstvUpwards
-
-  overallInput -- "{X = _}" --> csstvDownwards
-  csstvDownwards -- "{X = _}" --> csstvUpwards
-  csstvUpwards -- "{X = B}" --> overallOutput
-
-  oldConstraint --> constraintGeneration
   constraintGeneration --> newConstraint
   boundsUpwards --> constraintGeneration
 
