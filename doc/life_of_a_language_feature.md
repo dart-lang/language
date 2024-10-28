@@ -2,7 +2,7 @@
 
 This document describes the process from creation to the shipping and release of
 a language feature. This document serves as a walkthrough for what's needed to
-build a language feature if you're the one driving it.
+build a language feature.
 
 1. [User Issues and Feature Requests](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#user-issues-and-feature-requests)
 2. [Design, Feedback, and Iteration](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#design-feedback-and-iteration)
@@ -191,7 +191,7 @@ feature flag serves several purposes:
 > more work that implementing it without a feature flag, since the compiler and
 > analyzer must faithfully implement both the old and new behaviors.
 > Occasionally the language team may decide that the benefits of using a feature
-> flag don't justify this extra work. But this is a rare senario. If you are
+> flag don't justify this extra work. But this is a rare scenario. If you are
 > working on a feature and believe you don't need to use a feature flag, please
 > consult with the language team to be sure.
 
