@@ -59,7 +59,7 @@ best-effort approximation is added as an upper-bound constraint.***
 
 It is notable that even though the example program contains all the
 type information needed to infer `B` as the type parameter, the front
-ends following the specification infers `C`, resulting in a
+ends following the specification infer `C`, resulting in a
 compile-time error during the type checks of the type arguments
 against the bounds.
 
@@ -495,7 +495,7 @@ block-beta
 ## More examples enabled by the current proposal
 
 In addition to the motivating examples, both the original and the more
-complex, being unbroken by the current proposal, some cases of non
+complex, being handled by the current proposal, some cases of non
 F-bounded type variables are enabled by it as well.
 
 The following example demonstrates a tempting assumption that doesn't
