@@ -322,45 +322,76 @@ The picture below shows the details of the updated type inference process for th
 
 ```mermaid
 block-beta
-  columns 8
-  space downwards["Downwards phase"]:3 upwards["Upwards phase"]:3 space
+  columns 5
 
-  space:4
-  newConstraint["X <: A<_>"]
-  space:3
-
+  space:2
   overallInput["Input"]
-  space
-  csstvDownwards["CSSTV"]
   space:2
-  csstvUpwards["CSSTV"]
+
+  space:5
+
+  block:downwards:5
+    columns 5
+
+    commentDownwardsConstraints(["Downwards constraints:"])
+    space:3
+    commentDownwardsBounds(["Bounds:"])
+
+    constraintsDownwards["∅"]
+    space
+    csstvDownwards["CSSTV"]
+    space
+    boundsDownwards["X extends A&lt;X&gt;"]
+  end
+
+  space:5
+
+  block:upwards:5
+    columns 5
+
+    commentUpwardsConstraints(["Upwards constraints:"])
+    space:3
+    commentUpwardsBounds(["Bounds:"])
+
+    constraintsUpwards["C <: X"]
+    space
+    csstvUpwards["CSSTV"]
+    space
+    boundsUpwards["X extends A&lt;X&gt;"]
+  end
+
+  space:5
+
   space
+  block:constraintsUpwardsUpdated:1
+    columns 1
+    constraintUpwards2["C <: X"]
+    constraintUpwards1["B <: X"]
+  end
+  space
+  constraintGeneration["C <# A&lt;X&gt; ==> B <# X"]
+  space
+
+  space:2
   overallOutput["Output"]
-
-  space:8
-
-  space:4
-  constraintGeneration["X <: A<_>"]
-  space:3
-
-  space:2
-  boundsDownwards["X extends A<X>"]
-  space:2
-  boundsUpwards["X extends A <X>"]
   space:2
 
-  downwards -- "∅" --> csstvDownwards
-  upwards -- "C <: X" --> csstvUpwards
+  overallInput -- "{X = _}"--> csstvDownwards
 
-  overallInput -- "{X = _}" --> csstvDownwards
-  csstvDownwards -- "{X = _}" --> csstvUpwards
-  csstvUpwards -- "{X = C}" --> overallOutput
-
-  constraintGeneration --> newConstraint
-  boundsUpwards --> constraintGeneration
-
+  constraintsDownwards --> csstvDownwards
   boundsDownwards --> csstvDownwards
+  csstvDownwards -- "{X = _}" --> csstvUpwards
+
+  constraintGeneration --> constraintUpwards1
+  constraintUpwards2 --> constraintGeneration
+
+  constraintsUpwards --> constraintUpwards2
+  constraintsUpwards --> csstvUpwards
   boundsUpwards --> csstvUpwards
+  boundsUpwards -- "updated: constraint generation from bound" --> constraintGeneration
+  constraintsUpwardsUpdated --> csstvUpwards
+
+  csstvUpwards -- "{X = B}" --> overallOutput
 ```
 
 ## More examples enabled by the current proposal
