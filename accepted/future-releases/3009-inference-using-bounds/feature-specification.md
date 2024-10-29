@@ -354,13 +354,14 @@ the bound. The original example is solved by this proposal and a few
 more beneficial examples are discussed afterwards.
 
 In the motivating example, adding the best-effort bound approximation
-didn't affect the result since the set of constraints for `X` already
+didn't affect the result. The set of constraints for `X` already
 contained a lower-bound constraint for `X` (`C <# X`), and that
-constraint had the priority over the upper-bound "best-effort"
+constraint has the priority over the upper-bound "best-effort"
 approximation constraint, since type `C` is fully known (i.e. doesn't
-contain `_`). In the current proposal ***we aim to derive a
-lower-bound constraint by combining the already existing lower-bound
-constraint with the actual bound***.
+contain `_`).
+
+With this feature, we derive a lower-bound constraint by combining the
+already existing lower-bound constraint with the actual bound.
 
 In general, if we have two type constraints of the form `E <: Y` and
 `Y <: F`, where `Y` is a type variable and `E` and `F` are type
