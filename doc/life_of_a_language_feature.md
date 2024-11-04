@@ -1,18 +1,18 @@
-# Lifecycle of a Dart Language Feature
+# Lifecycle of a language feature
 
 This document describes the process from creation to the shipping and release of
 a language feature. This document serves as a walkthrough for what's needed to
 build a language feature.
 
-1. [User Issues and Feature Requests](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#user-issues-and-feature-requests)
-2. [Design, Feedback, and Iteration](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#design-feedback-and-iteration)
+1. [User issues and feature requests](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#user-issues-and-feature-requests)
+2. [Design, feedback, and iteration](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#design-feedback-and-iteration)
 3. [Acceptance](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#acceptance)
-4. [Team Communication](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#team-communication) (eg. kick-off meetings) 
-5. [Implementation and Testing](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#implementation-and-testing)
+4. [Team communication](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#team-communication) (eg. kick-off meetings) 
+5. [Implementation and testing](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#implementation-and-testing)
 6. [Migrations](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#migrations)
 7. [Shipping](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#shipping)
 
-## User Issues and Feature Requests
+## User issues and feature requests
 
 Features arise from perceived user issues or feature requests. These issues are
 documentation of the user issue to be solved.
@@ -31,7 +31,7 @@ There are many factors that determine why we might choose to do one feature over
 another, such as feasibility, difficulty, or popularity. Often, we will take a
 look through the most 👍-reacted issues to see what our users are interested in.
 
-## Design, Feedback, and Iteration
+## Design, feedback, and iteration
 
 Interested parties may propose several (competing) language features to a
 single request/problem. 
@@ -41,7 +41,7 @@ A "language feature" issue (labelled
 will be created for tracking the solution to the user issue/problem or feature
 under consideration. 
 
-### Proposal Checklist
+### Proposal checklist
 
 - [ ] An issue labelled `feature` for discussion of a proposed solution.
   - [ ] Links to and from the `request` issue they are trying to address.
@@ -60,7 +60,7 @@ Proposals may be iterated on in-place.
 For smaller and non-controversial features, we will sometimes skip this step and
 proceed directly to the [Acceptance](#acceptance) phase.
 
-### External (outside of the language team) Feedback
+### External (outside of the language team) feedback
 
 We use the Github issue tracker as the primary place for accepting feedback on
 proposals, solicited or unsolicited. 
@@ -80,10 +80,10 @@ The implementation will be tracked via two artifacts:
   - The feature specification document
   - The feature project
 
-### Feature Specification
+### Feature specification
 
 The 'feature specification' is **a single canonical writeup of the language
-feature** which is to serve as the implementation reference. The feature
+feature** which serves as the implementation reference. The feature
 specification should follow the [Proposal Checklist](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#proposal-checklist).
 
 Once we've chosen a specification, we'll update it throughout the implementation
@@ -91,7 +91,7 @@ process. For example, we could add new information to the specification if we
 encounter edge-cases we didn't think of initially or remove parts of it if a
 certain behavior isn't feasible to implement.
 
-### Feature Project
+### Feature project
 
 We'll [create a project](https://github.com/orgs/dart-lang/projects) in
 dart-lang with the title `[Language] <feature-name>`. This project will link to
@@ -106,7 +106,7 @@ feature.
 > project. If there are any issues or implementation areas that are unnecessary,
 > you can close them out immediately, but each issue is worth thinking through.
 
-#### Meta Implementation Issue
+#### Meta implementation issue
 
 The meta implementation issue (labelled `implementation`) will be filed in the
 language repository for tracking the implementation process. 
@@ -117,12 +117,12 @@ This issue must contain links to:
   - [ ] A link to the feature specification
   - [ ] All implementation issues
 
-## Team Communication
+## Team communication
 
 One of the most important parts of the language feature process is communicating
 with all the implementation teams and any other stakeholders.
 
-### Channels for Communication
+### Channels for communication
 
 We'll send out an announcement email to the entire team, letting them know that
 work for the feature is beginning.
@@ -130,7 +130,7 @@ work for the feature is beginning.
 We may create a mailing list or a Google chat group to organize communication
 between the different teams working on the language feature.
 
-### Kick-off Meetings
+### Kick-off meetings
 
 We need to get sign-off from all of the relevant implementation teams indicating
 that they understand the proposal, believe that it can reasonably be
@@ -168,9 +168,9 @@ Get sign-off from the following teams:
 To avoid missing things, we prefer to err on the side of asking teams whether
 they're affected, rather than assuming they won't be.
 
-## Implementation and Testing
+## Implementation and testing
 
-### Feature Flag
+### Feature flag
 
 Most new language features should be implemented using a feature flag. The
 feature flag serves several purposes:
@@ -188,7 +188,7 @@ feature flag serves several purposes:
 
 > [!NOTE]
 > Implementing a language feature using a feature flag is frequently
-> more work that implementing it without a feature flag, since the compiler and
+> more work than implementing it without a feature flag, since the compiler and
 > analyzer must faithfully implement both the old and new behaviors.
 > Occasionally the language team may decide that the benefits of using a feature
 > flag don't justify this extra work. But this is a rare scenario. If you are
@@ -218,7 +218,7 @@ Example CL: https://dart-review.googlesource.com/c/sdk/+/365545
 > the SDK and other dependencies. This is very helpful for getting insight on
 > what migrations and breaking changes you'll be making.
 
-### Language Testing
+### Language testing
 
 The language team will generally write a preliminary set of language tests for a
 feature, in the SDK's `tests/language` subdirectory.  These tests are not
@@ -262,14 +262,14 @@ switched on.
 Details of how to do this will be described in a separate (Google internal)
 document.
 
-### Implementation Work
+### Implementation work
 
 This is the bulk of creating a new language feature and this stage will take the
 most time.
 
 Here are some tips for the implementation stage:
 
-- All implementation works should be under the experiment flag.
+- All implementation code should be under the experiment flag.
 - Use the language tests as a pseudo-checklist for what's left to
 implement.
 - Some teams may have their own checklist for what needs to be considered in a
@@ -319,7 +319,7 @@ After a feature has been shipped, the documents pertaining to the feature should
 be moved into subfolders carrying the name of the release in which they were
 shipped (e.g. `2.1`).
 
-#### Sample file layout
+For example, moving `super-mixins` to `2.1` after shipping:
 
 ```
 /language
