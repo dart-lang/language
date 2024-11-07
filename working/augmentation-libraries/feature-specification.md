@@ -855,8 +855,9 @@ It is a compile-time error if:
     replace a declared super constructor._ **(TODO: Why not? We allow
     "replacing implementation", and this is *something* like that.)**
 
-*   The resulting constructor is not valid (has a redirection as well as
-    some initializer list elements, multiple `super` initializers, etc).
+*   The resulting constructor is not valid *(it has a redirection as well as
+    some initializer list elements, or it has multiple `super` initializers,
+    etc)*.
 
 *   A non-redirecting constructor augments a constructor which is not
     potentially non-redirecting.
