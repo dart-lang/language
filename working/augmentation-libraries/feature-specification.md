@@ -946,8 +946,7 @@ constructor.
 
 It is a compile-time error if:
 
-*   The augmented constructor is not potentially redirecting *(that is, if it
-    has a body or one or more initializer list elements)*.
+*   The augmented constructor has a body.
 
 #### Extension types
 
@@ -1202,8 +1201,6 @@ declaration ::= 'external'? factoryConstructorSignature
   | constantConstructorSignature (redirection | initializers)?
   | constructorSignature (redirection | initializers)?
 ```
-
-**TODO: Define the grammar for the various `augmented` expressions.**
 
 It is a compile-time error if:
 
