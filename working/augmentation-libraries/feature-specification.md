@@ -936,8 +936,7 @@ It is a compile-time error if:
 #### Redirecting factory constructors
 
 A redirecting factory constructor marked `augment` adds its factory redirection
-*(that is `=` and a constructor designation, e.g., `= C<int>.name`)*
-to the augmented constructor.
+*(e.g., `= C<int>.name`)* to the augmented constructor.
 
 The result of applying the augmenting constructor is a redirecting factory
 constructor with the same target constructor designation as the augmenting
@@ -946,7 +945,7 @@ constructor.
 
 It is a compile-time error if:
 
-*   The augmented constructor has a body.
+*   The augmented factory constructor has a body.
 
 #### Extension types
 
