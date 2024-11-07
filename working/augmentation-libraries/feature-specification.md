@@ -932,7 +932,8 @@ potentially non-redirecting property of the constructor.
 
 It is a compile-time error if:
 
-*   The augmented constructor has any initializers or a body.
+*   The augmented constructor has an initializer list or a body, or it has a
+    redirection.
 
 #### Redirecting factory constructors
 
