@@ -947,7 +947,7 @@ constructor.
 
 It is a compile-time error if:
 
-*   The augmented factory constructor has a body, or it is already redirecting.
+*   The augmented factory constructor has a body, or it is redirecting.
 
 #### Extension types
 
