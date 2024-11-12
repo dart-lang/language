@@ -610,17 +610,15 @@ class Point {
 class final Point(int x, int y); // Not supported!
 ```
 
-Most likely, there is an easy workaround: Make the constructor `const`. It
-is very often possible to make the constructor `const`, even in the case
-where the class isn't necessarily intended to be used in constant
-expressions: There is no initializer list, no superinitialization, no
-body. The only way it can be an error to use `const` on a primary
-constructor is if the superclass doesn't have a constant constructor, or if
-the class has a mutable or late instance variable, or it has some
-non-constant expressions in instance variable declarations. (Those issues
-can only be created by instance variables that are declared explicitly in
-the class body whereas the ones that are created by primary constructor
-parameters will necessarily satisfy the `const` requirements).
+There is an easy partial workaround: Make the constructor `const`. It is
+very often possible to make the constructor `const`, even in the case where
+the class isn't necessarily intended to be used in constant expressions:
+There is no body. The only ways it can be an error to use `const` on a
+primary constructor is if the superclass doesn't have a constant
+constructor, or if the class has a mutable or late instance variable, or it
+has some non-constant expressions in instance variable declarations or in
+the initializer list. Using `const` is not a complete solution, but
+probably OK in practice.
 
 Finally, we could allow a primary constructor to be declared in the body of
 a class or similar declaration, possibly using a modifier like `primary`,
@@ -643,11 +641,10 @@ class D<TypeVariable extends Bound> extends A with M implements B, C {
 ```
 
 This approach offers more flexibility in that a primary constructor in the
-body of the declaration can have initializers and a body, just like other
-constructors. In other words, `primary` on a constructor has one effect
-only, which is to introduce instance variables for formal parameters in the
-same way as a primary constructor in the header of the declaration. For
-example:
+body of the declaration can have a body, just like other constructors. In
+other words, `primary` on a constructor has one effect only, which is to
+introduce instance variables for formal parameters in the same way as a
+primary constructor in the header of the declaration. For example:
 
 ```dart
 // Current syntax.
