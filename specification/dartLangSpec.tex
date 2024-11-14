@@ -25397,19 +25397,22 @@ if none of the following criteria is satisfied:
 \begin{itemize}
 \item $T$ is \VOID{} (\ref{typeVoid}).
 \item $T$ is \DYNAMIC{} (\ref{typeDynamic}).
-\item $T$ is \code{FutureOr<$S$>} for some type $S$ (\ref{typeFutureOr}).
 \item
-  % TODO(eernst): If we introduce sealed classes we will have an item
-  % for those, and we may wish to rephrase this.
   $T$ is \code{Never}, \code{Null}, \code{num}, \code{int}, \code{double},
   \code{bool}, or \code{String}.
+\item $T$ is an enumerated type (\ref{enums}).
+% TODO(eernst): Come newer versions, add these:
+% \item $T$ is a record type (\ref{???}) or the type \RECORD.
+% \item $T$ is a sealed class.
+\item $T$ is a function type (\ref{functionTypes}) or the type \FUNCTION.
 \item $T$ is \code{$S$?} for some type $S$.
+\item $T$ is \code{FutureOr<$S$>} for some type $S$ (\ref{typeFutureOr}).
+% \item $T$ is an extension type (\ref{???}).
 \item $T$ is a type variable (\ref{generics}).
-\item $T$ is a function type (\ref{functionTypes}).
+\item $T$ is an intersection type (\ref{intersectionTypes}).
+\item $T$ is a deferred type (\ref{staticTypes}).
 \item $T$ is a type alias whose transitive alias expansion
   (\ref{typedef}) does not denote a class building type.
-\item $T$ is an enumerated type (\ref{enums}).
-\item $T$ is a deferred type (\ref{staticTypes}).
 \end{itemize}
 
 
