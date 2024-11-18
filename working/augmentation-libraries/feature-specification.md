@@ -865,8 +865,9 @@ It is a compile-time error if:
     replace a declared super constructor._ **(TODO: Why not? We allow
     "replacing implementation", and this is *something* like that.)**
 
-*   The resulting constructor is not valid (has a redirecting initializer and
-    other initializers, multiple `super` initializers, etc).
+*   The resulting constructor is not valid *(it has a redirection as well as
+    some initializer list elements, or it has multiple `super` initializers,
+    etc)*.
 
 *   A non-redirecting constructor augments a constructor which is not
     potentially non-redirecting.
@@ -1073,8 +1074,8 @@ present), and it may invoke the augmented body by calling
 
 #### Redirecting generative constructors
 
-A redirecting generative constructor marked `augment` adds its redirecting
-initializer to the augmented constructors initializer list.
+A redirecting generative constructor marked `augment` adds its redirection
+to the augmented constructor.
 
 This converts it into a redirecting generative constructor, removing the
 potentially non-redirecting property of the constructor.
@@ -1084,6 +1085,7 @@ It is a compile-time error if:
 *   The augmented constructor has any initializers (including a redirecting
     initializer).
 *   The augmented constructor has a body.
+*   The augmented constructor has a redirection.
 
 The new redirecting generative constructor now behaves exactly like any other
 redirecting generative constructor when it is invoked.
@@ -1091,7 +1093,7 @@ redirecting generative constructor when it is invoked.
 #### Redirecting factory constructors
 
 A redirecting factory constructor marked `augment` adds its factory redirection
-to the augmented constructor.
+*(e.g., `= C<int>.name`)* to the augmented constructor.
 
 The result of applying the augmenting constructor is a redirecting factory
 constructor with the same target constructor designation as the augmenting
@@ -1100,7 +1102,7 @@ constructor.
 
 It is a compile-time error if:
 
-*   The augmented constructor has a body.
+*   The augmented factory constructor has a body, or it is redirecting.
 
 #### Extension types
 
@@ -1355,8 +1357,6 @@ declaration ::= 'external'? factoryConstructorSignature
   | constantConstructorSignature (redirection | initializers)?
   | constructorSignature (redirection | initializers)?
 ```
-
-**TODO: Define the grammar for the various `augmented` expressions.**
 
 It is a compile-time error if:
 
