@@ -4,7 +4,7 @@ Author: Chloe Stefantsova
 
 Status: Accepted
 
-Version 0.1 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.0 (see [CHANGELOG](#CHANGELOG) at end)
 
 Experiment flag: inference-using-bounds
 
@@ -526,6 +526,6 @@ test() {
 
 ## Changelog
 
-### 0.1
+### 1.0
 
--   Initial draft.
+- Final design document.
