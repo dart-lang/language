@@ -345,7 +345,7 @@ augmented, but it generally follows the same rules as any normal identifier:
 
 *   **Augmenting functions**: Inside an augmenting function body (including
     factory constructors but not generative constructors) `augmented` refers to
-    the augmented function. Tear offs are not allowed, and this function must
+    the augmented function. Tear-offs are not allowed, and this function must
     immediately be invoked.
 
 *   **Augmenting non-redirecting generative constructors**: Unlike other
@@ -938,7 +938,7 @@ completes immediately):
     *   If the argument list *L* has a value for the corresponding positional
         position or named argument name, let *v* be that value.
 
-    *   Otherwise, the parameter must be optional.
+    *   Otherwise, the parameter is guaranteed to be optional.
 
         *   If the parameter has a default value expression, let *v* be the
             value of that expression.
@@ -956,7 +956,7 @@ completes immediately):
 
         *   Bind the name *n* to *v* in the initializer-list scope.
 
-    *   Otherwise, if the parameter is a super-parameter.
+    *   Otherwise, if the parameter is a super-parameter,
 
         *   It is an error if *d* has a *augmentedDefinition* *d’* in which the
             same parameter is anything other than a normal parameter.
@@ -1081,12 +1081,11 @@ potentially non-redirecting property of the constructor.
 
 It is a compile-time error if:
 
-*   The augmented constructor has any initializers (including a redirecting
-    initializer).
+*   The augmented constructor has any initializers.
 *   The augmented constructor has a body.
 *   The augmented constructor has a redirection.
 
-The new redirecting generative constructor now behaves exactly like any other
+This redirecting generative constructor now behaves exactly like any other
 redirecting generative constructor when it is invoked.
 
 #### Redirecting factory constructors
