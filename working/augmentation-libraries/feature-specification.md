@@ -239,13 +239,14 @@ An augmentation that replaces the body of a function may also want to
 preserve and run the code of the augmented declaration (hence the name
 "augmentation").  It may want to run its own code before the augmented
 code, after it, or both.  To support that, we allow a new expression syntax
-inside the "bodies" of certain augmenting declarations. Inside an expression in
-an augmenting member declaration, the identifier `augmented` can be used to
-refer to the augmented function, getter, or setter body, or variable
-initializer. This is a contextual reserved word within `augment`
-declarations, and has no special meaning outside of that context. See the
-[augmented expression](#augmented-expression) section for a full specification
-of what `augmented` means, and how it must be used, in the various contexts.
+inside the "bodies" of certain augmenting declarations (some function bodies and
+variable initializers). Inside an expression in an augmenting member
+declaration, the identifier `augmented` can be used to refer to the augmented
+function, getter, or setter body, or variable initializer. This is a contextual
+reserved word within `augment` declarations, and has no special meaning outside
+of that context. See the [augmented expression](#augmented-expression) section
+for a full specification of what `augmented` means, and how it must be used, in
+the various contexts.
 
 *Note that within an augmenting member declaration, a reference to a member
 by the same name refers to the final version of the member (and not the one
@@ -349,8 +350,8 @@ augmented, but it generally follows the same rules as any normal identifier:
 
 *   **Augmenting non-redirecting generative constructors**: Unlike other
     functions, `augmented` has no special meaning in non-redirecting generative
-    constructors, and is not a reserved word inside the body of these
-    constructors.
+    constructors. It is still a reserved word inside the body of these
+    constructors, since they are within the scope of an augmenting declaration.
 
     There is instead an implicit order in which these augmented constructors are
     invoked, and they all receive the same arguments. See
@@ -901,10 +902,11 @@ implement *C*\<*T1*,..,*Tn*\>):
 
 *   Let *d* be the constructor definition named *g* of *C*.
 
-*   For each *instance variable definition* of *C* in *base declaration order*
-    (the order of the *base* declaration in the total traversal ordering of a
-    library), where the variable definition *has an initializer expression*, and
-    is not declared `late`:
+*   For each *instance variable definition* of *C* in
+    *introductory declaration order* (the order of the *introductory*
+    declaration in the total traversal ordering of a library), where the
+    variable definition *has an initializer expression*, and is not declared
+    `late`:
 
     *   Evaluate the initializer expression of that definition to a value *v*
         (taking any augmentations of it into account).
@@ -917,8 +919,8 @@ implement *C*\<*T1*,..,*Tn*\>):
     all explicit arguments and super parameters).
 
 *   Invoke the constructor definition *d* of *C*\<*T1*,…,*Tn*> with argument
-    list *L*, super parameters *S*, and uninitialized super constructor
-    invocation *s* to initialize the value *o*.
+    list *L*, super parameters *S*, and uninitialized super initializer *s* to
+    initialize the value *o*.
 
 We then define the invocation of a *constructor definition* as follows, allowing
 an augmenting constructor’s definition to delegate to the definition it
@@ -926,9 +928,9 @@ augments.
 
 An invocation of a non-redirecting generative constructor definition *d* on an
 instantiated class definition *C*\<*T1*,…,*Tn*\> with argument list *L*, super
-parameters *S*, and uninitialized super constructor invocation *s* to initialize
-an object *o* proceeds as follows (at least for any class other than `Object`,
-which just completes immediately):
+parameters *S*, and uninitialized super initializer *s* to initialize an object
+*o* proceeds as follows (at least for any class other than `Object`, which just
+completes immediately):
 
 *   Bind actual arguments to formal parameters. For each parameter in the
     *parameterList* of *d* (in sequence order):
@@ -938,28 +940,30 @@ which just completes immediately):
 
     *   Otherwise, the parameter must be optional.
 
-        *   If the parameter has a default value expression, let *v* be the value
-            of that expression.
+        *   If the parameter has a default value expression, let *v* be the
+            value of that expression.
 
         *   Otherwise let *v* be the `null` value.
 
     *   If the parameter is an initializing formal with name *n*,
 
-        *   It is an error if *d* has a *superDefinition* *d’* in which the same
-            parameter is anything other than a normal parameter.
+        *   It is an error if *d* has an *augmentedDefinition* *d’* in which the
+            same parameter is anything other than a normal parameter.
 
         *   Initialize the variable of *o* corresponding to the instance
-            variable named *n* of *C* to the value *v*.
+            variable named *n* of *C* to the value *v*. It is an error if this
+            variable is already initialized.
 
         *   Bind the name *n* to *v* in the initializer-list scope.
 
     *   Otherwise, if the parameter is a super-parameter.
 
-        *   It is an error if *d* has a *superDefinition* *d’* in which the same
-            parameter is anything other than a normal parameter.
+        *   It is an error if *d* has a *augmentedDefinition* *d’* in which the
+            same parameter is anything other than a normal parameter.
 
-        *   It is an error if *d* has a *superDefinition* *d’*, which has any
-            super parameters. Only one declaration may contain super parameters.
+        *   It is an error if *d* has a *augmentedDefinition* *d’*, which has
+            any super parameters. Only one declaration may contain super
+            parameters.
 
         *   It is an error if *s* is initialized. Super parameters must appear
             before any super constructor invocations.
@@ -972,9 +976,8 @@ which just completes immediately):
             *   Let *i* be one plus the number of prior positional super
                 parameters in the parameter list of *d*.
 
-            *   Otherwise if *d* has a *superConstructorInvocation*, add the
-                number of positional arguments in the argument list of that
-                invocation.
+            *   Otherwise if *d* has a *superInitializer*, add the number of
+                positional arguments in the argument list of that invocation.
 
             *   Set the positional argument value with position *i* in *S* to
                 *v*.
@@ -995,11 +998,11 @@ which just completes immediately):
         scope to value *v*. Initialize the variable of *o* corresponding to
         variable with the initializer entry name in *C* to the value *v*.
 
-*   If *d* has a *superConstructorInvocation*.
+*   If *d* has a *superInitializer*.
 
     * It is an error if *s* is already initialized.
 
-    * Initialize *s* to the *superConstructorInvocation* of *d*.
+    * Initialize *s* to the *superInitializer* of *d*.
 
 *   If *d* has an *augmentedDefinition* *d’*
 
@@ -1013,10 +1016,6 @@ which just completes immediately):
     *   Let *U* be be the instantiated *superclass definition* of
         *C*\<*T1*,…,*Tn*\>.
 
-    *   This may be a synthetic definition (for an anonymous mixin application)
-        computed from the declared superclass and declared mixins of *C*. _(Or
-        we can do the short-circuiting here since mixin applications can only)
-
     *   If *s* is initialized:
 
         *   Evaluate each argument of the argument list of the super-constructor
@@ -1024,14 +1023,14 @@ which just completes immediately):
             the entry of *S* with the same position or name to the resulting
             value.
 
-        *   Let *g* be the name of superclass constructor of *U* targeted by the
-            *superConstructorInvocation* (class-name of *U* plus `.id` if
-            referenced as  `super.id`).
+        *   Let *g1* be the name of the superclass constructor of *U* targeted
+            by the *superInitializer* (class-name of *U* plus `.id` if
+            referenced as `super.id`).
 
-    *   Otherwise let *g* be the name of the unnamed constructor of *U*.
+    *   Otherwise let *g1* be the name of the unnamed constructor of *U*.
 
-    *   Invoke the constructor named *g* on *U* with arguments *S* to initialize
-        *o*.
+    *   Invoke the constructor named *g1* on *U* with arguments *S* to
+        initialize *o*.
 
     *   *This recurses on the superclass constructor.*
 
@@ -1043,20 +1042,20 @@ which just completes immediately):
 The consequence of this definition is an execution order for initialization of
 an instance of a class of:
 
-*   Field initializers of class, from all augmentations, in “base declaration
-    source order”.
+*   Field initializers of class, from all augmentations, in “introductory
+    declaration source order”.
 
 *   Augmenting declaration parameter lists and initializer lists, for
     augmentations in last-to-first order.
 
 *   Base declaration parameter list, initializer list
 
-*   Base declaration super-constructor invocation, recurses to this entire list
-    on superclass.
+*   Base declaration super initializer, recurses to this entire list on
+    superclass.
 
-*   Body of base declaration.
+*   Body of the introductory declaration.
 
-*   Bodies of augmenting declarations in first-to-last order.
+*   Bodies of any augmenting declarations in first-to-last order.
 
 It ensures that we only recurse in *one* place, keeping a stack discipline. The
 parameter scope of the invocation can be stack-allocated, and be on top of the
