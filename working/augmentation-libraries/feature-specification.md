@@ -1048,9 +1048,9 @@ an instance of a class of:
 *   Augmenting declaration parameter lists and initializer lists, for
     augmentations in last-to-first order.
 
-*   Base declaration parameter list, initializer list
+*   Introductory declaration parameter list, initializer list
 
-*   Base declaration super initializer, recurses to this entire list on
+*   Introductory declaration super initializer, recurses to this entire list on
     superclass.
 
 *   Body of the introductory declaration.
