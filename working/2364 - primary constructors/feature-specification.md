@@ -410,318 +410,8 @@ instance variable names and types) even in the case where some parameters
 should not introduce any instance variables (so they are just "normal"
 parameters).
 
-## Specification
-
-### Syntax
-
-The grammar is modified as follows. Note that the changes include support
-for extension type declarations, because they're intended to use primary
-constructors as well.
-
-```
-<classDeclaration> ::= // First alternative modified.
-     (<classModifiers> | <mixinClassModifiers>)
-     'class' <classNamePart> <superclass>? <interfaces>? <classBody>
-   | ...;
-
-<primaryConstructorNoConst> ::= // New rule.
-     <typeIdentifier> <typeParameters>?
-     ('.' <identifierOrNew>)? <formalParameterList>
-     <initializers>?
-
-<classNamePartNoConst> ::= // New rule.
-     <primaryConstructorNoConst>
-   | <typeWithParameters>;
-
-<classNamePart> ::= // New rule.
-     'const'? <primaryConstructorNoConst>
-   | <typeWithParameters>;
-
-<typeWithParameters> ::= <typeIdentifier> <typeParameters>?
-
-<classBody> ::= // New rule.
-     '{' (<metadata> <classMemberDeclaration>)* '}'
-   | ';';
-
-<extensionTypeDeclaration> ::= // Modified rule.
-     'extension' 'type' <classNamePart> <interfaces>?
-     <extensionTypeBody>;
-
-<extensionTypeMemberDeclaration> ::= <classMemberDeclaration>;
-
-<extensionTypeBody> ::=
-     '{' (<metadata> <extensionTypeMemberDeclaration>)* '}'
-   | ';';
-
-<enumType> ::= // Modified rule.
-     'enum' <classNamePartNoConst> <mixins>? <interfaces>? '{'
-        <enumEntry> (',' <enumEntry>)* (',')?
-        (';' (<metadata> <classMemberDeclaration>)*)?
-     '}';
-```
-
-A class declaration whose class body is `;` is treated as a class declaration
-whose class body is `{}`.
-
-*The meaning of a primary constructor is defined in terms of rewriting it to a
-body constructor and zero or more instance variable declarations. This implies
-that there is a class body when there is a primary constructor. We do not wish
-to define primary constructors such that the absence or presence of a primary
-constructor can change the length of the superclass chain, and hence `class C;`
-has a class body just like `class C(int i);` and just like `class C extends
-Object {}`, and all three of them have `Object` as their direct superclass.*
-
-### Static processing
-
-Consider a class declaration or an extension type declaration with a
-primary constructor *(note that it cannot be a `<mixinApplicationClass>`,
-because that kind of declaration does not support primary constructors,
-it's just a syntax error)*. This declaration is desugared to a class or
-extension type declaration without a primary constructor. An enum
-declaration with a primary constructor is desugared using the same
-steps. This determines the dynamic semantics of a primary constructor.
-
-The following errors apply to formal parameters of a primary constructor.
-Let _p_ be a formal parameter of a primary constructor in a class `C`:
-
-A compile-time error occurs if _p_ contains a term of the form `this.v`, or
-`super.v` where `v` is an identifier, and _p_ has the modifier
-`covariant`. *For example, `required covariant int this.v` is an error.*
-
-A compile-time error occurs if _p_ has both of the modifiers `covariant`
-and `final`. *A final instance variable cannot be covariant, because being
-covariant is a property of the setter.*
-
-Conversely, it is not an error for the modifier `covariant` to occur on
-another formal parameter _p_ of a primary constructor (this extends the
-existing allowlist of places where `covariant` can occur), unless _p_
-occurs in an initializer element of the primary constructor which is not
-an assertion. *For example, `class C(covariant int p): super(p + 1);` is an
-error.*
-
-The desugaring consists of the following steps, where _D_ is the class,
-extension type, or enum declaration in the program that includes a primary
-constructor in the header, and _D2_ is the result of desugaring. The
-desugaring step will delete elements that amount to the primary
-constructor; it will add a new constructor _k_; it will add zero or more
-instance variable declarations; and it will add zero or more top-level
-constants *(holding parameter default values)*.
-
-Where no processing is mentioned below, _D2_ is identical to _D_. Changes
-occur as follows:
-
-Assume that `p` is an optional formal parameter in _D_ which is not an
-initializing formal, and not a super parameter. Assume that `p` does not
-occur in the initializer list of _D_, except possibly in some assertions.
-Assume that `p` does not have a declared type, but it does have a default
-value whose static type in the empty context is a type (not a type schema)
-`T` which is not `Null`. In that case `p` is considered to have the
-declared type `T`. When `T` is `Null`, `p` is considered to have the
-declared type `Object?`. If `p` does not have a declared type nor a default
-value then `p` is considered to have the declared type `Object?`.
-
-*Dart has traditionally assumed the type `dynamic` in such situations. We
-have chosen the more strictly checked type `Object?` instead, in order to
-avoid introducing run-time type checking implicitly.*
-
-The current scope of the formal parameter list and initializer list (if
-any) of the primary constructor in _D_ is the body scope of the class.
-
-*We need to ensure that the meaning of default value expressions is
-well-defined, taking into account that the primary constructor is
-physically located in a different scope than normal non-primary
-constructors. We do this by specifying the current scope explicitly as the
-body scope, in spite of the fact that the primary constructor is actually
-placed outside the braces that delimit the class body.*
-
-Next, _k_ has the modifier `const` iff the keyword `const` occurs just
-before the name of _D_, or _D_ is an `enum` declaration.
-
-If the name `C` in _D_ and the type parameter list, if any, is followed by
-`.id` where `id` is an identifier then _k_ has the name `C.id`. If it is
-followed by `.new` then _k_ has the name `C`. If it is not followed by `.`
-then _k_ has the name `C`.
-
-If it exists, _D2_ omits the part derived from `'.' <identifierOrNew>` that
-follows the name and type parameter list, if any, in _D_.
-
-Moreover, _D2_ omits the formal parameter list _L_ that follows the name,
-type parameter list, if any, and `.id`, if any.
-
-The formal parameter list _L2_ of _k_ is identical to _L_, except that each
-formal parameter is processed as follows.
-
-The formal parameters in _L_ and _L2_ occur in the same order, and
-mandatory positional parameters remain mandatory, and named parameters
-preserve the name and the modifier `required`, if any.  An optional
-positional or named parameter remains optional; if it has a default value
-`d` in _L_ then it has the default value `d` in _L2_ as well.
-
-- An initializing formal parameter *(e.g., `this.x`)* is copied from _L_ to
-  _L2_, along with the default value, if any, and is otherwise unchanged.
-- A super parameter is copied from _L_ to _L2_ along with the default
-  value, if any, and is otherwise unchanged.
-- Assume that _p_ is a formal parameter (named or positional) of the form
-  `T p` or `final T p` where `T` is a type and `p` is an identifier.
-  Assume that _p_ occurs in the initializer list of _D_, in an element
-  which is not an assertion. In this case, _p_ occurs without changes in
-  _L2_. *Note that the parameter cannot be covariant in this case, that is
-  an error.*
-- Otherwise, a formal parameter (named or positional) of the form `T p` or
-  `final T p` where `T` is a type and `p` is an identifier is replaced in
-  _L2_ by `this.p`, along with its default value, if any.
-  Next, an instance variable declaration of the form `T p;` or `final T p;`
-  is added to _D2_. The instance variable has the modifier `final` if the
-  parameter in _L_ is `final`, or _D_ is an `extension type` declaration,
-  or _D_ is an `enum` declaration, or the modifier `const` occurs just
-  before the class name in _D_.
-  In all cases, if `p` has the modifier `covariant` then this modifier is
-  removed from the parameter in _L2_, and it is added to the instance
-  variable declaration named `p`.
-
-If there is an initializer list following the formal parameter list _L_ then
-_k_ has an initializer list with the same elements in the same order.
-
-*The current scope of the initializer list in _D_ is the body scope
-of the enclosing declaration, which means that they preserve their
-semantics when moved into the body.*
-
-Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
-
-### Discussion
-
-It could be argued that primary constructors should not support
-superinitializers because the resulting declaration is too complex to be
-conveniently readable, and developers could just write a regular primary
-constructor instead.
-
-We expect that primary constructors will in practice be small and simple,
-but they may use different subsets of the expressive power of the
-mechanism. For example, 
-
-
-```dart
-// Use super parameters.
-
-class const Point2D(int x, int y);
-
-class const Point3D(super.x, super.y, int z) extends Point2D;
-
-// Use a named constructor and a computed super argument.
-
-class A._(int x);
-
-class B(int y): assert(y > 2), super._(y - 1)
-    extends A with Mixin1, Mixin2;
-```
-
-Like many other language mechanisms, primary constructors need developers
-to use their human judgment to create declarations that are both readable,
-useful, and maintainable.
-
-There was a [proposal from Bob][] that the primary constructor should be
-expressed at the end of the class header, in order to avoid readability
-issues in the case where the superinterfaces contain a lot of text. It
-would then use the keyword `new` or `const`, optionally followed by `'.'
-<identifier>`, just before the `(` of the primary constructor parameter
-list:
-
-[proposal from Bob]: https://github.com/dart-lang/language/issues/2364#issuecomment-1203071697
-
-```dart
-class D<TypeVariable extends Bound> extends A with M implements B, C
-    const.named(
-  LongTypeExpression x1,
-  LongTypeExpression x2,
-  LongTypeExpression x3,
-  LongTypeExpression x4,
-  LongTypeExpression x5,
-) {
-  ... // Lots of stuff.
-}
-```
-
-That proposal may certainly be helpful in the case where the primary
-constructor receives a large number of arguments with long types, etc.
-However, the proposal has not been included in this proposal. One reason is
-that it could be better to use a body constructor whenever there is so much
-text. Also, it could be helpful to be able to search for the named
-constructor using `D.named`, and that would fail if we use the approach
-where it occurs as `new.named` or `const.named` because that particular
-constructor has been expressed as a primary constructor.
-
-It has been argued that a primary constructor parameter should be able to
-introduce an instance variable (which is already true in this proposal),
-and also to be a regular parameter (that doesn't introduce anything extra,
-which is not supported by this proposal). The point would be that this
-makes primary constructors more expressive. In particular, if we also
-generalize the proposal to allow a full initializer list with a
-superinitialization then we could allow the primary constructor to invoke
-any superconstructor, with any actual argument list.
-
-This would provide a considerable enhancement of the expressive power of
-primary constructors. At the same time, it would make primary constructors
-considerably more verbose, which seems to lessen a crucial motivating
-factor for primary constructors in the first place.
-
-A proposal which was mentioned during the discussions about primary
-constructors was that the keyword `final` could be used in order to specify
-that all instance variables introduced by the primary constructor are
-`final` (but the constructor wouldn't be constant, and hence there's more
-freedom in the declaration of the rest of the class). However, that
-proposal is not included here, because it may be a source of confusion that
-`final` may also occur as a modifier on the class itself, and also because
-the resulting class header does not contain syntax which is already similar
-to a body constructor declaration.
-
-For example, `class final Point(int x, int y);` cannot use the similarity
-to a body constructor declaration to justify the keyword `final`.
-
-```dart
-class Point {
-  final int x;
-  final int y;
-  Point(this.x, this.y);
-}
-
-class final Point(int x, int y); // Not supported!
-```
-
-There is an easy partial workaround: Make the constructor `const`. It is
-very often possible to make the constructor `const`, even in the case where
-the class isn't necessarily intended to be used in constant expressions:
-There is no body. The only ways it can be an error to use `const` on a
-primary constructor is if the superclass doesn't have a constant
-constructor, or if the class has a mutable or late instance variable, or it
-has some non-constant expressions in instance variable declarations or in
-the initializer list. Using `const` is not a complete solution, but
-probably OK in practice.
-
-Finally, we could allow a primary constructor to be declared in the body of
-a class or similar declaration, possibly using a modifier like `primary`,
-in which case it could have an initializer list and a body, and it would
-still have the ability to introduce instance variable declarations
-implicitly:
-
-```dart
-// Current syntax.
-class D<TypeVariable extends Bound> extends A with M implements B, C {
-  final int x;
-  final int y;
-  const D.named(this.x, [this.y = 0]);
-}
-
-// Using a primary constructor in the class body.
-class D<TypeVariable extends Bound> extends A with M implements B, C {
-  primary const D.named(int x, [int y = 0]);
-}
-```
-
-This approach offers more flexibility in that a primary constructor in the
-body of the declaration can have a body, just like other constructors. In
-other words, `primary` on a constructor has one effect only, which is to
-introduce instance variables for formal parameters in the same way as a
-primary constructor in the header of the declaration. For example:
+Finally, here is an example that illustrates how much verbosity this
+feature tends to eliminate:
 
 ```dart
 // Current syntax.
@@ -759,7 +449,9 @@ class E extends A {
   }
 }
 
-// Using a primary constructor in the class body.
+// Using a primary body constructor.
+class A(novar String _);
+
 class E extends A {
   external int y;
   int z;
@@ -783,11 +475,211 @@ class E extends A {
 }
 ```
 
-We may get rid of all those occurrences of `required` in the situation
-where it is a compile-time error to not have them, but that is a
+Moreover, we may get rid of all those occurrences of `required` in the
+situation where it is a compile-time error to not have them, but that is a
 [separate proposal][inferred-required].
 
 [inferred-required]: https://github.com/dart-lang/language/blob/main/working/0015-infer-required/feature-specification.md
+
+## Specification
+
+### Syntax
+
+The grammar is modified as follows. Note that the changes include support
+for extension type declarations, because they're intended to use primary
+constructors as well.
+
+```
+<classDeclaration> ::= // First alternative modified.
+     (<classModifiers> | <mixinClassModifiers>)
+     'class' <classNamePart> <superclass>? <interfaces>? <classBody>
+   | ...;
+
+<primaryHeaderConstructorNoConst> ::= // New rule.
+     <typeIdentifier> <typeParameters>?
+     ('.' <identifierOrNew>)? <formalParameterList>
+     <initializers>?
+
+<classNamePartNoConst> ::= // New rule.
+     <primaryHeaderConstructorNoConst>
+   | <typeWithParameters>;
+
+<classNamePart> ::= // New rule.
+     'const'? <primaryHeaderConstructorNoConst>
+   | <typeWithParameters>;
+
+<typeWithParameters> ::= <typeIdentifier> <typeParameters>?
+
+<classBody> ::= // New rule.
+     '{' (<metadata> <classMemberDeclaration>)* '}'
+   | ';';
+
+<extensionTypeDeclaration> ::= // Modified rule.
+     'extension' 'type' <classNamePart> <interfaces>?
+     <extensionTypeBody>;
+
+<extensionTypeMemberDeclaration> ::= <classMemberDeclaration>;
+
+<extensionTypeBody> ::=
+     '{' (<metadata> <extensionTypeMemberDeclaration>)* '}'
+   | ';';
+
+<enumType> ::= // Modified rule.
+     'enum' <classNamePartNoConst> <mixins>? <interfaces>? '{'
+        <enumEntry> (',' <enumEntry>)* (',')?
+        (';' (<metadata> <classMemberDeclaration>)*)?
+     '}';
+     
+<constructorName> ::= // Modified rule.
+     (<typeIdentifier> | 'this') ('.' <identifierOrNew>)?
+
+<identifierOrNew> ::=
+     <identifier>
+   | 'new'
+
+<normalFormalParameterNoMetadata> ::= // Modified 
+     'novar'? <functionFormalParameter
+   | 'novar'? <simpleFormalParameter
+   | <fieldFormalParameter>
+   | <superFormalParameter>
+```
+
+A class declaration whose class body is `;` is treated as a class declaration
+whose class body is `{}`.
+
+*The meaning of a primary constructor is defined in terms of rewriting it to a
+body constructor and zero or more instance variable declarations. This implies
+that there is a class body when there is a primary constructor. We do not wish
+to define primary constructors such that the absence or presence of a primary
+constructor can change the length of the superclass chain, and hence `class C;`
+has a class body just like `class C(int i);` and just like `class C extends
+Object {}`, and all three of them have `Object` as their direct superclass.*
+
+### Static processing
+
+Consider a class declaration or an extension type declaration with a
+primary header constructor *(note that it cannot be a
+`<mixinApplicationClass>`, because that kind of declaration does not
+support primary constructors, it's just a syntax error)*. This declaration
+is desugared to a class or extension type declaration without a primary
+constructor. An enum declaration with a primary header constructor is
+desugared using the same steps. This determines the dynamic semantics of a
+primary constructor.
+
+The following errors apply to formal parameters of a primary constructor.
+Let _p_ be a formal parameter of a primary constructor in a class `C`:
+
+A compile-time error occurs if _p_ contains a term of the form `this.v`, or
+`super.v` where `v` is an identifier, and _p_ has the modifier
+`covariant`. *For example, `required covariant int this.v` is an error.*
+
+A compile-time error occurs if _p_ has both of the modifiers `covariant`
+and `final`. *A final instance variable cannot be covariant, because being
+covariant is a property of the setter.*
+
+A compile-time error occurs if _p_ has both of the modifiers `covariant`
+and `novar`. *A parameter with the modifier `novar` does not induce an
+instance variable, so there is no variable and hence no setter.*
+
+Conversely, it is not an error for the modifier `covariant` to occur on
+another formal parameter _p_ of a primary constructor (this extends the
+existing allowlist of places where `covariant` can occur).
+
+The semantics of the primary constructor is found in the following steps,
+where _D_ is the class, extension type, or enum declaration in the program
+that includes a primary constructor, and _D2_ is the result of the
+derivation of the semantics of _D_. The derivation step will delete
+elements that amount to the primary constructor; it will add a new
+constructor _k_; it will add zero or more instance variable declarations;
+and it will add zero or more top-level constants *(holding parameter
+default values)*.
+
+Where no processing is mentioned below, _D2_ is identical to _D_. Changes
+occur as follows:
+
+Assume that `p` is an optional formal parameter in _D_ which is not an
+initializing formal, and not a super parameter, and does not have the
+modifier `novar`. 
+
+Assume that `p` does not have a declared type, but it does have a default
+value whose static type in the empty context is a type (not a type schema)
+`T` which is not `Null`. In that case `p` is considered to have the
+declared type `T`. When `T` is `Null`, `p` is considered to have the
+declared type `Object?`. If `p` does not have a declared type nor a default
+value then `p` is considered to have the declared type `Object?`.
+
+*Dart has traditionally assumed the type `dynamic` in such situations. We
+have chosen the more strictly checked type `Object?` instead, in order to
+avoid introducing run-time type checking implicitly.*
+
+The current scope of the formal parameter list and initializer list (if
+any) of the primary constructor in _D_ is the body scope of the class.
+
+*We need to ensure that the meaning of default value expressions is
+well-defined, taking into account that a primary header constructor is
+physically located in a different scope than in-body constructors. We do
+this by specifying the current scope explicitly as the body scope, in spite
+of the fact that the primary constructor is actually placed outside the
+braces that delimit the class body.*
+
+Next, _k_ has the modifier `const` iff the keyword `const` occurs just
+before the name of _D_ or before `this`, or _D_ is an `enum` declaration.
+
+Consider the case where _D_ is a primary header constructor. If the name
+`C` in _D_ and the type parameter list, if any, is followed by `.id` where
+`id` is an identifier then _k_ has the name `C.id`. If it is followed by
+`.new` then _k_ has the name `C`. If it is not followed by `.`  then _k_
+has the name `C`. If it exists, _D2_ omits the part derived from
+`'.' <identifierOrNew>` that follows the name and type parameter list, if
+any, in _D_. Moreover, _D2_ omits the formal parameter list _L_ that
+follows the name, type parameter list, if any, and `.id`, if any.
+
+Otherwise, _D_ is a primary body constructor. If the reserved word `this`
+is followed by `.id` where `id` is an identifier then _k_ has the name
+`C.id`. If it is followed by `.new` then _k_ has the name `C`. If it is not
+followed by `.`  then _k_ has the name `C`.
+
+The formal parameter list _L2_ of _k_ is identical to _L_, except that each
+formal parameter is processed as follows.
+
+The formal parameters in _L_ and _L2_ occur in the same order, and
+mandatory positional parameters remain mandatory, and named parameters
+preserve the name and the modifier `required`, if any.  An optional
+positional or named parameter remains optional; if it has a default value
+`d` in _L_ then it has the default value `d` in _L2_ as well.
+
+- An initializing formal parameter *(e.g., `T this.x`)* is copied from _L_
+  to _L2_, along with the default value, if any, and is otherwise unchanged.
+- A super parameter is copied from _L_ to _L2_ along with the default
+  value, if any, and is otherwise unchanged.
+- A formal parameter with the modifier `novar` is copied unchanged from
+  _L_ to _L2_.
+- Otherwise, a formal parameter (named or positional) of the form `T p` or
+  `final T p` where `T` is a type and `p` is an identifier is replaced in
+  _L2_ by `this.p`, along with its default value, if any.
+  Next, an instance variable declaration of the form `T p;` or `final T p;`
+  is added to _D2_. The instance variable has the modifier `final` if the
+  parameter in _L_ is `final`, or _D_ is an `extension type` declaration,
+  or _D_ is an `enum` declaration, or the modifier `const` occurs just
+  before the class name in _D_.
+  In all cases, if `p` has the modifier `covariant` then this modifier is
+  removed from the parameter in _L2_, and it is added to the instance
+  variable declaration named `p`.
+
+In every case, any DartDoc comments are copied along with the formal
+parameter, and in the case where an instance variable is implicitly induced
+the DartDoc comment is also added to that instance variable.
+
+If there is an initializer list following the formal parameter list _L_ then
+_k_ has an initializer list with the same elements in the same order.
+
+*The current scope of the initializer list in _D_ is the body scope of the
+enclosing declaration even when _D_ is a primary header constructor, which
+means that they preserve their semantics when moved into the body.*
+
+Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
+
+### Discussion
 
 ### Changelog
 
