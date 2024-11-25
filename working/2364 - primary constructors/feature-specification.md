@@ -22,11 +22,16 @@ specification [here][scala primary constructors] and some examples
 feature have taken place in github issues marked with the
 [primary-constructors label][].
 
+Recently, [Bob proposed][] that primary body constructors should use the syntax
+`this.name(...)` rather than `primary C.name(...)`. This proposal includes
+that choice.
+
 [struct proposal]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
 [kotlin primary constructors]: https://kotlinlang.org/docs/classes.html#constructors
 [scala primary constructors]: https://www.scala-lang.org/files/archive/spec/2.11/05-classes-and-objects.html#constructor-definitions
 [scala primary constructor examples]: https://www.geeksforgeeks.org/scala-primary-constructor/
 [primary-constructors label]: https://github.com/dart-lang/language/issues?q=is%3Aissue+is%3Aopen+primary+constructor+label%3Aprimary-constructors
+[Bob proposed]: https://github.com/dart-lang/language/blob/main/working/declaring-constructors/feature-specification.md
 
 ## Introduction
 
