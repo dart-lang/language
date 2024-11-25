@@ -4,14 +4,15 @@ Author: Erik Ernst
 
 Status: Draft
 
-Version: 1.4
+Version: 1.5
 
 Experiment flag: primary-constructors
 
-This document specifies _primary constructors_. This is a feature that allows
-one constructor and a set of instance variables to be specified in a concise
-form in the header of the declaration. In order to use this feature, the given
-constructor must satisfy certain constraints, e.g., it cannot have a body.
+This document specifies _primary constructors_. This is a feature that
+allows one constructor and a set of instance variables to be specified in a
+concise form in the header of the declaration, or in the body. In order to
+use this feature, the given constructor must satisfy certain constraints.
+For example, a primary constructor in the header cannot have a body.
 
 One variant of this feature has been proposed in the [struct proposal][],
 several other proposals have appeared elsewhere, and prior art exists in
@@ -43,12 +44,23 @@ class Point {
 }
 ```
 
-A primary constructor allows us to define the same class much more
-concisely:
+A primary constructor in the header allows us to define the same class much
+more concisely:
 
 ```dart
-// A declaration with the same meaning, using a primary constructor.
+// A declaration with the same meaning, using a primary header constructor.
 class Point(int x, int y);
+```
+
+A primary body constructor is slightly less concise, but it allows for
+an initializer list and a superinitializer and a body. The previous
+example would look as follows using a primary body constructor:
+
+```dart
+// A declaration with the same meaning, using a primary body constructor.
+class Point {
+  this(int x, int y);
+}
 ```
 
 In the examples below we show the current syntax directly followed by a
@@ -66,8 +78,13 @@ class Point {
   Point(this.x, this.y);
 }
 
-// Using a primary constructor.
+// Using a primary header constructor.
 class Point(int x, int y);
+
+// Using a primary body constructor.
+class Point {
+  this(int x, int y);
+}
 ```
 
 These examples will serve as an illustration of the proposed syntax, but
@@ -77,30 +94,45 @@ declarations using the current syntax.
 
 Note that an empty class body, `{}`, can be replaced by `;`.
 
-The basic idea is that a parameter list that occurs just after the class
-name specifies both a constructor declaration and a declaration of one
-instance variable for each formal parameter in said parameter list.
+The basic idea with the header form is that a parameter list that occurs
+just after the class name specifies both a constructor declaration and a
+declaration of one instance variable for each formal parameter in said
+parameter list.
 
-A primary constructor cannot have a body. However, it can have assertions,
-it can have initializing formals (`this.p`), it can have super parameters
-(`super.p`), and it can have an initializer list.
+A primary header constructor cannot have a body, and it cannot have an normal
+initializer list (and hence, it cannot have a superinitializer, e.g.,
+`super.name(...)`). However, it can have assertions, it can have
+initializing formals (`this.p`) and it can have super parameters
+(`super.p`).
 
-The motivation for the missing support for a body is that a primary
-constructor is intended to be small and easy to read at a glance. If more
-machinery is needed then it is always possible to express the same thing as
-a body constructor (i.e., any constructor which isn't a primary
-constructor).
+The motivation for these restrictions is that a primary constructor is
+intended to be small and easy to read at a glance. If more machinery is
+needed then it is always possible to express the same thing as a body
+constructor.
 
-The parameter list uses the same syntax as constructors and other functions
-(specified in the grammar by the non-terminal `<formalParameterList>`).
+The parameter list of a primary header constructor uses the same syntax as
+constructors and other functions (specified in the grammar by the
+non-terminal `<formalParameterList>`).
 
-This implies that there is no way to indicate that the instance variable
-declarations should have the modifiers `late` or `external` (because formal
-parameters cannot have those modifiers). This omission is not seen as a problem
-in this proposal: It is always possible to use a normal constructor declaration
-and normal instance variable declarations, and it is probably a useful property
-that the primary constructor uses a formal parameter syntax which is completely
-like that of any other formal parameter list.
+A primary body constructor can have a body and an initializer list as well
+as initializing formals and super parameters, just like other constructors
+in the body. It only differs from those other constructors in that a
+parameter which is not an initializing formal and not a super parameter
+serves to declare the formal parameter and the corresponding instance
+variable.
+
+The parameter list of a primary body constructor uses the same syntax as
+constructors and other functions, except that it also supports a new
+modifier, `novar`, indicating that the given parameter does not introduce
+an instance variable (that is, this is just a regular parameter).
+
+There is no way to indicate that the instance variable declarations should
+have the modifiers `late` or `external` (because formal parameters cannot
+have those modifiers). This omission is not seen as a problem in this
+proposal: It is always possible to use a normal constructor declaration and
+normal instance variable declarations, and it is probably a useful property
+that the primary constructor uses a formal parameter syntax which is
+completely like that of any other formal parameter list.
 
 An `external` instance variable amounts to an `external` getter and an
 `external` setter. Such "variables" cannot be initialized by an
@@ -115,15 +147,23 @@ class ModifierClass {
   ModifierClass(this.x);
 }
 
-// Using a primary constructor.
+// Using a primary header constructor.
 class ModifierClass(this.x) {
   late int x;
   external double d;
 }
+
+// Using a primary body constructor.
+class ModifierClass {
+  late int x;
+  external double d;
+  this(this.x);
+}
 ```
 
-`ModifierClass` as written does not make sense (`x` does not have to be
-`late`), but there could be other constructors that do not initialize `x`.
+`ModifierClass` as written does not really make sense (`x` does not have to
+be `late`), but there could be other constructors that do not initialize
+`x`.
 
 Super parameters can be declared in the same way as in a body constructor:
 
@@ -138,9 +178,18 @@ class B extends A {
   B(super.a);
 }
 
-// Using a primary constructor.
+// Using a primary header constructor.
 class A(final int a);
 class B(super.a) extends A;
+
+// Using a primary body constructor.
+class A {
+  this(final int a);
+}
+
+class B extends A {
+  this(super.a);
+}
 ```
 
 Next, the constructor can be named, and it can be constant:
@@ -155,29 +204,32 @@ class Point {
 
 // Using a primary constructor.
 class const Point._(final int x, final int y);
+
+// Using a primary constructor.
+class Point {
+  const this._(final int x, final int y);
+}
 ```
 
 Note that the class header contains syntax that resembles the constructor
 declaration, which may be helpful when reading the code.
 
-The modifier `const` could have been placed on the class (`const class`)
-rather than on the class name. This proposal puts it on the class name
-because the notion of a "constant class" conflicts with with actual
-semantics: It is the constructor which is constant because it is able to be
-invoked during constant expression evaluation; it can also be invoked at
-run time, and there could be other (non-constant) constructors. This means
-that it is at least potentially confusing to say that it is a "constant
-class", but it is consistent with the rest of the language to say that this
-particular primary constructor is a "constant constructor". Hence `class
-const Name` rather than `const class Name`.
+With the primray header constructor, the modifier `const` could have been
+placed on the class (`const class`) rather than on the class name. This
+proposal puts it on the class name because the notion of a "constant class"
+conflicts with with actual semantics: It is the constructor which is
+constant because it is able to be invoked during constant expression
+evaluation; it can also be invoked at run time, and there could be other
+(non-constant) constructors. This means that it is at least potentially
+confusing to say that it is a "constant class", but it is consistent with
+the rest of the language to say that this particular primary constructor is
+a "constant constructor". Hence `class const Name` rather than `const class
+Name`.
 
 The modifier `final` on a parameter in a primary constructor has the usual
-effect that the parameter itself cannot be modified. The only location
-where such modifications can occur is in an assertion, and they "should"
-not have side effects, so we can basically ignore this. However, much more
-importantly, this modifier is also used to specify that the instance
-variable declaration which is induced by this primary constructor parameter
-is `final`.
+effect that the parameter itself cannot be modified. However, this modifier
+is also used to specify that the instance variable declaration which is
+induced by this primary constructor parameter is `final`.
 
 In the case where the constructor is constant, and in the case where the
 declaration is an `extension type` or an `enum` declaration, the modifier
@@ -188,7 +240,6 @@ any case:
 
 ```dart
 // Current syntax.
-
 class Point {
   final int x;
   final int y;
@@ -203,21 +254,30 @@ enum E {
   const E(this.s);
 }
 
-// Using a primary constructor.
-
+// Using a primary header constructor.
 class const Point(int x, int y);
-
 enum E(String s) { one('a'), two('b') }
+
+// Using a primary body constructor.
+class Point {
+  const this(int x, int y);
+}
+
+enum E { 
+  one('a'), 
+  two('b');
+
+  const this(String s);
+}
 ```
 
-Note that an extension type declaration is specified to use a
-primary constructor (in that case there is no other choice,
-it is in the grammar rules):
+Note that an extension type declaration is specified to use a primary
+header constructor (in that case there is no other choice, it is in the
+grammar rules):
 
 ```dart
-// Using a primary constructor.
-
-extension type I.name(int x); // Must use a primary constructor.
+// Using a primary header constructor.
+extension type I.name(int x);
 ```
 
 Optional parameters can be declared as usual in a primary constructor, with
@@ -231,16 +291,26 @@ class Point {
   Point(this.x, [this.y = 0]);
 }
 
-// Using a primary constructor.
+// Using a primary header constructor.
 class Point(int x, [int y = 0]);
+
+// Using a primary body constructor.
+class Point {
+  this(int x, [int y = 0]);
+}
 ```
 
 We can omit the type of an optional parameter with a default value,
 in which case the type is inferred from the default value:
 
 ```dart
-// Infer the type of `y` from the default value.
+// Infer type from default value, in header.
 class Point(int x, [y = 0]);
+
+// Infer type from default value, in body.
+class Point {
+  this(int x, [y = 0]);
+}
 ```
 
 Similarly for named parameters, required or not:
@@ -253,8 +323,13 @@ class Point {
   Point(this.x, {required this.y});
 }
 
-// Using a primary constructor.
+// Using a primary header constructor.
 class Point(int x, {required int y});
+
+// Using a primary body constructor.
+class Point
+  this(int x, {required int y});
+}
 ```
 
 The class header can have additional elements, just like class headers
@@ -268,16 +343,19 @@ class D<TypeVariable extends Bound> extends A with M implements B, C {
   const D.named(this.x, [this.y = 0]);
 }
 
-// Using a primary constructor.
-class const D<TypeVariable extends Bound>.named(
-  int x, [
-  int y = 0
-]) extends A with M implements B, C;
+// Using a primary header constructor.
+class const D<TypeVariable extends Bound>.named(int x, [int y = 0])
+    extends A with M implements B, C;
+
+// Using a primary body constructor.
+class D<TypeVariable extends Bound> extends A with M implements B, C {
+  const this.named(int x, [int y = 0]);
+}
 ```
 
-It is possible to specify assertions on a primary constructor,
-just like the ones that we can specify in the initializer list of a
-regular (not primary) constructor:
+It is possible to specify assertions on a primary constructor, just like
+the ones that we can specify in the initializer list of a regular
+constructor:
 
 ```dart
 // Current syntax.
@@ -287,17 +365,21 @@ class Point {
   Point(this.x, this.y): assert(0 <= x && x <= y * y);
 }
 
-// Using a primary constructor.
+// Using a primary header constructor.
 class Point(int x, int y): assert(0 <= x && x <= y * y);
+
+// Using a primary body constructor.
+class Point {
+  this(int x, int y): assert(0 <= x && x <= y * y);
+}
 ```
 
-Finally, it is possible to use an initializer list in order to
-invoke a superconstructor and/or initialize some explicitly
-declared instance variables with a computed value.
+Finally, when using a primary body constructor it is possible to use an
+initializer list in order to invoke a superconstructor and/or initialize
+some explicitly declared instance variables with a computed value.
 
 ```dart
 // Current syntax.
-
 class A {
   final int x;
   const A.someName(this.x);
@@ -312,26 +394,21 @@ class B extends A {
 }
 
 // Using primary constructors.
-
 class const A.someName(int x);
 
-class const B(int x, int y, {required String s2})
-    : s1 = y.toString(), assert(s2.isNotEmpty), super.someName(x + 1)
-    extends A {
+class B extends A {
   final String s1;
+  const this(novar int x, novar int y, {required String s2})
+      : s1 = y.toString(), assert(s2.isNotEmpty), super.someName(x + 1);
 }
 ```
 
-A formal parameter of a primary constructor which is used in a variable
-initialization or in a superinitializer does not implicitly induce an
-instance variable.
-
-In particular, `int x` does not give rise to an instance variable in the
-class `B` because `x` is used in the superinitializer. Similarly, `int y`
-does not give rise to an instance variable because it is used in the
-initializer list element `s1 = y.toString()`. However, `s2` _does_ give
-rise to an instance variable (it is used in the assertion, but that does
-not prevent the instance variable from being induced).
+A formal parameter of a primary body constructor which has the modifier
+`novar` does not implicitly induce an instance variable. This makes it
+possible to use a primary constructor (thus avoiding the duplication of
+instance variable names and types) even in the case where some parameters
+should not introduce any instance variables (so they are just "normal"
+parameters).
 
 ## Specification
 
@@ -713,6 +790,10 @@ where it is a compile-time error to not have them, but that is a
 [inferred-required]: https://github.com/dart-lang/language/blob/main/working/0015-infer-required/feature-specification.md
 
 ### Changelog
+
+1.5 - November 25, 2024
+
+* Reintroduce in-body primary constructors with syntax `this(...)`.
 
 1.4 - November 12, 2024
 
