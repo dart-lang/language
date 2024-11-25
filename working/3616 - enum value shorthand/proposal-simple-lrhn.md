@@ -42,7 +42,7 @@ We introduce grammar productions of the form:
     | 'const' '.' (<identifier> | 'new') <arguments>  -- shorthand object creation
 ```
 
-We also add `.` to the tokens that an expression statement cannot start with.
+We also add `.` to the tokens that an expression statement cannot start with. *Note that the number `.123` does not start with the token `.` because all four characters are recognized as a single token. So we can still have expression statements starting with such a number.*
 
 That means you can write things like the following (with the intended meaning as
 comments, specification to achieve that below):
