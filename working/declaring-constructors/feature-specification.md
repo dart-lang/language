@@ -1,10 +1,10 @@
 # Declaring Constructors
 
-Author: Bob Nystrom (based on ideas by Lasse, Nate, et al)
+Author: Bob Nystrom (based on ideas by Erik, Lasse, Nate, et al)
 
 Status: In-progress
 
-Version 0.1 (see [CHANGELOG](#CHANGELOG) at end)
+Version 0.2 (see [CHANGELOG](#CHANGELOG) at end)
 
 Experiment flag: declaring-constructors
 
@@ -222,9 +222,9 @@ But for the 1/3 of fields that are mutable, primary constructors avoid the `var`
 that this proposal requires.
 
 There are real brevity advantages to primary constructors. But that brevity
-comes with trade-offs. A primary constructor can't have a body, initializer
-list, of explicit superclass constructor call. If you need any of those, you're
-back to needing a regular in-body constructor.
+comes with trade-offs. A primary constructor can't have a body and some versions
+of the proposal prohibit initializer lists, or explicit superclass constructor
+calls. If you need those, you're back to needing a regular in-body constructor.
 
 A declaring constructor like in this proposal *is* an in-body constructor, so
 it has none of those limitations. A class author can *always* make one of a
@@ -236,10 +236,16 @@ proposal because they have a body, explicit initializer list, etc. (On the other
 hand, the fact that ~77% of constructors could still be primary constructors and
 be even *more* terse than this proposal is a point in favor of that proposal.)
 
-I like to think of this feature as syntactic sugar for *instance fields*, not
-constructors. A class whose constructor initializes 80 fields will find either
-of these proposals 80 times more useful than a class with just one field. If
-you look at a corpus and count fields, the numbers are a little different.
+I like to think of this feature as more about *instance fields and parameters*
+than constructors themselves (beyond the tiny sweetness of `this` instead of a
+class name). By that I mean that the brevity scales with the number of *fields*
+that use it, not the number of constructors. A class whose constructor
+initializes 80 fields will find either of these proposals 80 times more useful
+than a class with just one field.
+
+So when analyzing a corpus, it makes sense to look at *fields* that will use the
+feature instead of *constructors*. If you look at a corpus and count fields, the
+numbers are a little different.
 
 In the same corpus, a little more than half (~53%) of all instance fields could
 be implicitly declared using a primary constructor. Around ~65% could be
@@ -253,11 +259,79 @@ with factory constructors, redirecting constructors, initializing formals, and
 super parameters, the amount of constructor-related syntactic sugar is getting a
 little silly.
 
+### Private field parameters and initializing formals
+
+While we're touching constructors, we have the opportunity to fix a
+long-standing annoyance. Initializing formals are common and well-loved, but
+they fail when you want to initialize a *private* field using a *named*
+parameter. The field's name starts with `_`, which isn't allowed for a named
+parameter. Instead, you are forced to write explicit initializers like:
+
+```dart
+class House {
+  int? _windows;
+  int? _bedrooms;
+  int? _swimmingPools;
+
+  House({
+    int? windows,
+    int? bedrooms,
+    int? swimmingPools,
+  })  : _windows = windows,
+        _bedrooms = bedrooms,
+        _swimmingPools = swimmingPools;
+}
+```
+
+Note also that the author is forced to type annotate the parameters as well
+since they are no longer inferred from the initialized field.
+
+When I last [analyzed a corpus][corpus private], 17% of all field initializers
+in initializer lists were doing nothing but shaving off a `_`. There is an
+obvious intended semantics here: simply remove the `_` from the named parameter
+but keep it for the initialized field. Likewise, for declaring constructors,
+the induced field keeps the `_` while the parameter name loses it. That turns
+the above example into:
+
+[corpus private]: https://github.com/dart-lang/language/blob/db9f63185707c4c89a69118e842e4cc6e0e59cc3/resources/instance-initialization-analysis.md
+
+```dart
+class House {
+  int? _windows;
+  int? _bedrooms;
+  int? _swimmingPools;
+
+  House({this._windows, this._bedrooms, this._swimmingPools});
+}
+```
+
+And when combined with a declaring constructor:
+
+```dart
+class House {
+  this({
+    var int? _windows,
+    var int? _bedrooms,
+    var int? _swimmingPools,
+  });
+}
+```
+
+While this is a tiny sprinkle of syntactic sugar, it has a deeper value.
+Initializing formals and declaring constructors are so much more concise that
+users will want to use them whenever they can. But if they don't support private
+fields and named parameters, then we are incentivizing users to make instance
+fields public that they might otherwise prefer to keep private.
+
+It's a well-established software engineering principle to minimize public state,
+so we don't want the language to discourage users from encapsulating fields.
+
 ## Syntax
 
 The syntax changes are small—just using `this` instead of the class name in a
-constructor. But weaving it into the grammar is a little complicated because
-some kinds of constructors can't be declaring:
+constructor and allowing `var` on a parameter along with a type. But weaving it
+into the grammar is a little complicated because some kinds of constructors
+can't be declaring:
 
 ```
 classMemberDeclaration ::=
@@ -278,11 +352,44 @@ the parameter. A declaring constructor can be `const` or not. It can't be
 redirecting. It also can't be `external` since an external constructor has no
 implicit initializer list or body where the fields could be initialized.*
 
+We also need to allow `var` before a simple formal parameter while also allowing
+a type annotation. (Today, `var` is allowed, but only in place of a type, like
+how variables are declared.) We redefine `simpleFormalParameter` to:
+
+```
+simpleFormalParameter ::=
+    'covariant'? ('final' | 'var')? type? identifier
+```
+
+*The `simpleFormalParameter` rule was previously defined in terms of the same
+rules used for variable declarations. That meant that the grammar for parameters
+allowed `late` and `const`. Those are then disallowed by the specification
+outside of the grammar. Here, we eliminate the need for that extra-grammatical
+restriction by defining a grammar specifically for simple formal parameters that
+only includes what they allow.*
+
+*We could allow `late` on field parameters and have that apply to the instance
+field (but not the parameter since parameters are always initialized). That
+could be useful in theory if there are other generative constructors that don't
+initialize the field. But to avoid confusion, we simply don't allow it. If a
+user wants a `late` instance field, they can always declare it outside of the
+declaring constructor.*
+
+It is a compile-time error for a `simpleFormalParameter` to have both `var`
+and a type outside of a declaring constructor.
+
+*This keeps the normal parameter list grammar consistent with other variable
+declarations. We could allow `var int x` as a parameter outside of a declaring
+constructor, but doing so would be confusing because it looks like a field
+parameter but isn't. Ideally, we would also disallow `final` on parameters
+outside of declaring constructors, but doing so is a breaking change.*
+
 ## Static semantics
 
 This feature is just syntactic sugar for things the user can already express,
 so there are no interesting new semantics.
 
+### Declaring constructors
 
 Given a `declaringConstructor` D in class C:
 
@@ -291,16 +398,28 @@ Given a `declaringConstructor` D in class C:
     *   If P has a `final` or `var` modifier, it is a **field parameter**:
 
         *   Implicitly declare an instance field F on the surrounding class with
-            the same name and type as P. *If P has no type, it implicitly has
-            type `dynamic`, as does F.*
+            the same name and type as P. *If P has no type annotation, it
+            implicitly has type `dynamic`, as does F.*
 
         *   If P is `final`, then the instance field is also `final`.
 
-        *   Any doc comments and metadata annotations on P are also copied to F.
-            *For example, a user could mark the parameter `@override` if the
-            the implicitly declared field overrides an inherited getter.*
+        *   Any doc comments and metadata annotations on P are also applied to
+            F. *For example, a user could mark the parameter `@override` if the
+            the implicitly declared field overrides an inherited getter. If a
+            user wants to document the instance field induced by a field
+            parameter, they can do so by putting a doc comment on the
+            parameter.*
 
-        *   P comes an initializing formal that initializes F.
+        *P now behaves like an initializing formal that initializes F.
+        Concretely:*
+
+        *   A final local variable with the same name and type as P is
+            introduced into the formal parameter initializer scope *(the scope
+            that the initializer list has access to but the constructor body
+            does not)*.
+
+        *   Parameter P is *not* bound in the formal parameter scope of D.
+            *Inside the body, references to P's name refer to F, not P.*
 
     *Note that a declaring constructor doesn't have to have any field
     parameters. A user still may want to use the feature just to use `this`
@@ -320,7 +439,7 @@ It is a compile-time error if:
 *   The implicitly declared fields would lead to an erroneous class. *For
     example if the class has a `const` constructor but one of the field
     parameters induces a non-`final` field, or an induced field collides with
-    another member of the same name.
+    another member of the same name.*
 
 *   An implicitly declared field is also explicitly initialized in the declaring
     constructor's initializer list. *This is really just a restatement of the
@@ -329,11 +448,78 @@ It is a compile-time error if:
 
 *   A field parameter is named `_`. *We could allow this but... why?*
 
+### Private field parameters and initializing formals
+
+An identifier is a *private name* if it starts with an underscore (`_`),
+otherwise it's a *public name*.
+
+A private name may have a *corresponding public name*. If the characters of the
+identifier with the leading underscore removed form a valid identifier and a
+public name, then that is the private name's corresponding public name. *For
+example, the corresponding public name of `_foo` is `foo`.* If removing the
+underscore does not leave something which is is a valid identifier *(as in `_`
+or `_2x`)* or leaves another private name *(as in `__x`)*, then the private name
+has no corresponding public name.
+
+The private declared name, *p*, of an initializing formal or field parameter in
+constructor C has a corresponding *non-conflicting public name* if it has a
+corresponding public name, *n*, and no other parameter of the same constructor
+declaration has either of the names *p* or *n* as declared name. *In other
+words, if removing the `_` leads to a collision with another parameter, then
+there is a conflict.*
+
+Given an initializing formal or field parameter with private name *p*:
+
+*   If *p* has a non-conflicting public name *n*, then:
+
+    *   The name of the parameter in C is *n*. *If the parameter is named, this
+        then avoids the compile-time error that would otherwise be reported for
+        a private named parameter.*
+
+    *   The local variable in the initializer list scope of C is *p*. *Inside
+        the body of the constructor, uses of *p* refer to the field, not the
+        parameter.*
+
+    *   If the parameter is an initializing formal, then it initializes a
+        corresponding field with name *p*.
+
+    *   Else the field parameter induces an instance field with name *p*.
+
+    *Any generated API documentation for the parameter should also use *n*.*
+
+*   Else (there is no non-conflicting public name), the name of the parameter is
+    left alone and also used for the initialized or induced field. *If the
+    parameter is named, this is a compile-time error.*
+
+*For example:*
+
+```dart
+class Id {
+  late final int _region = 0;
+
+  this({this._region, final int _value}) : assert(_region > 0 && _value > 0);
+
+  @override
+  String toString() => 'Id($_region, $_value)';
+}
+
+main() {
+  print(Id(region: 1, value: 2)); // Prints "Id(1, 2)".
+}
+```
+
 ## Runtime semantics
 
-There are no runtime semantics for this feature.
+The runtime semantics for field parameters inside a declaring constructor are
+the same as for initializing formals:
+
+Executing a field parameter with name *id* causes the instance variable *id*
+of the immediately surrounding class to be assigned the value of the
+corresponding actual argument.
 
 ## Compatibility
+
+### Declaring constructors
 
 The identifier `this` is already a reserved word that can't appear at this
 point in the grammar, so this is a non-breaking change that doesn't affect any
@@ -363,10 +549,19 @@ a *very* small number of authors use.)
 So while the potential for confusion is there, I think it's unlikely to be a
 problem in practice.
 
+### Private field parameters and initializing formals
+
+Any existing initializing formals with private names must be positional since
+it's a compile-time error to have a private named parameter. Since those
+arguments are passed positionally, the change to give the parameter a public
+name has no effect on any callsites.
+
+Generated documentation may change, but that should be harmless.
+
 ### Language versioning
 
-Even this change it's non-breaking, it is language versioned and can only be
-used in libraries whose language version is at or later than the version this
+Even though this change is non-breaking, it is language versioned and can only
+be used in libraries whose language version is at or later than the version this
 feature ships in. This is mainly to ensure that users don't inadvertently try to
 use this feature in packages whose SDK constraint allows older Dart SDK versions
 that don't support the feature.
@@ -409,7 +604,31 @@ become a declaring one:
     declaring? Probably the one with the most initializing formals, but what do
     you do in case there's a tie?
 
+### Lint for `final` parameters
+
+This proposal retcons the `final` modifier on parameters to mean something
+specific in a declaring constructor. Outside of a declaring constructor the
+modifier is allowed but has a different effect: it simply makes the parameter
+itself non-assignable.
+
+If declaring constructors become popular, then users will likely start to see
+`final` before a parameter and read it as a field parameter. They will then be
+confused if the parameter isn't actually in a declaring constructor and isn't
+a field parameter.
+
+Given that non-assignable parameters aren't actually that *useful*, it may be
+worth discouraging users from marking a parameter with `final` unless it is a
+field parameter. This seems like a good candidate for a lint.
+
 ## Changelog
+
+### 0.2
+
+-   Apply review feedback from Lasse.
+-   Add section for inferring public parameter names from private ones.
+-   Update `simpleFormalParameter` grammar to allow `var` followed by a type.
+-   Add lint for using `final` on parameters.
+-   Specify the semantics not in terms of field parameters.
 
 ### 0.1
 
