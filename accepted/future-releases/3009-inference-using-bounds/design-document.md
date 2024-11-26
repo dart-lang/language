@@ -8,7 +8,43 @@ Version 1.0 (see [CHANGELOG](#CHANGELOG) at end)
 
 Experiment flag: inference-using-bounds
 
-##  Motivating example
+## Changes in inference.md
+
+This document discusses the effect and the motivation of the following
+changes in [inference.md][]. A new step is added to those described in
+section [Subtype constraint generation][].
+
+```diff
+ #### Constraint solution for a set of type variables
+
+ The constraint solution for a set of type variables `{X0, ..., Xn}` with respect
+ to a constraint set `C` and partial solution `{T0, ..., Tn}`, is defined to be
+ the set of type schemas `{U0, ..., Un}` such that:
+   - If `Ti` is known (that is, does not contain `_`), then `Ui = Ti`.  _(Note
+     that the upcoming "variance" feature will relax this rule so that it only
+     applies to type variables without an explicitly declared variance.)_
+   - Otherwise, let `Vi` be the constraint solution for the type variable `Xi`
+     with respect to the constraint set `C`.
+   - If `Vi` is not known (that is, it contains `_`), then `Ui = Vi`.
+   - Otherwise, if `Xi` does not have an explicit bound, then `Ui = Vi`.
++  - Otherwise, let `Mb <: Xi <: Mt` be the merge of `C` with respect to `Xi`. If
++    `Mb` is not `_`, let `C1` be the constraint set produced by the subtype
++    constraint generation algorithm for `P = Mb`, `Q = B`, `L = {X0, ..., Xn}`.
++    Then `Ui` is the constraint solution for the type variable `Xi` with respect
++    to the constraint set `C + C1`. *Note that `X` is in `L` and that `Mb`
++    doesn't contain any of `X0, ..., Xn`.*
+   - Otherwise, let `Bi` be the bound of `Xi`.  Then, let `Bi'` be the type
+     schema formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in
+     place of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we
+     substitute `Uj` for `Xj` when `j < i` and `Tj` for `Xj` when `j >= i`)._
+     Then `Ui` is the constraint solution for the type variable `Xi` with respect
+     to the constraint set `C + (X <: Bi')`.
+```
+
+[inference.md]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md
+[Subtype constraint generation]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#subtype-constraint-generation
+
+## Motivating example
 
 The motivating example is discovered and discussed in [#3009][] (Type
 inference does not solve some constraints involving
