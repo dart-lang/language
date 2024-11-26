@@ -398,8 +398,8 @@ Given a `declaringConstructor` D in class C:
     *   If P has a `final` or `var` modifier, it is a **field parameter**:
 
         *   Implicitly declare an instance field F on the surrounding class with
-            the same name and type as P. *If P has no type, it implicitly has
-            type `dynamic`, as does F.*
+            the same name and type as P. *If P has no type annotation, it
+            implicitly has type `dynamic`, as does F.*
 
         *   If P is `final`, then the instance field is also `final`.
 
@@ -410,7 +410,16 @@ Given a `declaringConstructor` D in class C:
             parameter, they can do so by putting a doc comment on the
             parameter.*
 
-        *   P now behaves like an initializing formal that initializes F.
+        *P now behaves like an initializing formal that initializes F.
+        Concretely:*
+
+        *   A final local variable with the same name and type as P is
+            introduced into the formal parameter initializer scope *(the scope
+            that the initializer list has access to but the constructor body
+            does not)*.
+
+        *   Parameter P is *not* bound in the formal parameter scope of D.
+            *Inside the body, references to P's name refer to F, not P.*
 
     *Note that a declaring constructor doesn't have to have any field
     parameters. A user still may want to use the feature just to use `this`
@@ -474,7 +483,7 @@ Given an initializing formal or field parameter with private name *p*:
     *   If the parameter is an initializing formal, then it initializes a
         corresponding field with name *p*.
 
-    *   Else the field parameter induces an instance field with name *n*.
+    *   Else the field parameter induces an instance field with name *p*.
 
     *Any generated API documentation for the parameter should also use *n*.*
 
@@ -488,7 +497,7 @@ Given an initializing formal or field parameter with private name *p*:
 class Id {
   late final int _region = 0;
 
-  this({this._region, final int _value});
+  this({this._region, final int _value}) : assert(_region > 0 && _value > 0);
 
   @override
   String toString() => 'Id($_region, $_value)';
@@ -619,6 +628,7 @@ field parameter. This seems like a good candidate for a lint.
 -   Add section for inferring public parameter names from private ones.
 -   Update `simpleFormalParameter` grammar to allow `var` followed by a type.
 -   Add lint for using `final` on parameters.
+-   Specify the semantics not in terms of field parameters.
 
 ### 0.1
 
