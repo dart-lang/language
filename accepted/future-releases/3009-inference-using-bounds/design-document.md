@@ -307,8 +307,12 @@ CSSTV. Effectively, once a known type is produced at the end of any
 phase, it becomes "frozen" through the rest of the inference process
 and becomes a part of the overall inference result.
 
-The picture below shows the details of the type inference process for
-the motivating example using the schematic representation.
+The picture below shows the details of the type inference process for the
+motivating example using the schematic representation. In it, a new constraint
+(1) is generated from the bound of the type variable after completing the first
+four steps of the CSSTV algorithm. The new constraint is then added to the set
+of existing constraints (2) from the upwards inference phase. Then the solution
+for the type variable is computed form the updated constraint set (3).
 
 ```mermaid
 block-beta
@@ -374,11 +378,11 @@ block-beta
 
   constraintGeneration --> constraintUpwards1
 
-  constraintsUpwards --> constraintUpwards2
+  constraintsUpwards -- "(2) Existing constraints\nfrom the\nupwards phase" --> constraintUpwards2
   constraintsUpwards --> csstvUpwards
   boundsUpwards --> csstvUpwards
-  boundsUpwards -- "best-effort approximation of the bound" --> constraintGeneration
-  constraintsUpwardsUpdated --> csstvUpwards
+  boundsUpwards -- "(1) Constraint from the best-effort\napproximation of the bound" --> constraintGeneration
+  constraintsUpwardsUpdated -- "(3) Recompute CSSTV using\nthe updated constraint set" --> csstvUpwards
 
   csstvUpwards -- "{X = C}" --> overallOutput
 ```
