@@ -1,6 +1,6 @@
 # Declaring Constructors
 
-Author: Bob Nystrom (based on ideas by Lasse, Nate, et al)
+Author: Bob Nystrom (based on ideas by Erik, Lasse, Nate, et al)
 
 Status: In-progress
 
@@ -222,9 +222,9 @@ But for the 1/3 of fields that are mutable, primary constructors avoid the `var`
 that this proposal requires.
 
 There are real brevity advantages to primary constructors. But that brevity
-comes with trade-offs. A primary constructor can't have a body, initializer
-list, of explicit superclass constructor call. If you need any of those, you're
-back to needing a regular in-body constructor.
+comes with trade-offs. A primary constructor can't have a body and some versions
+of the proposal prohibit initializer lists, or explicit superclass constructor
+calls. If you need those, you're back to needing a regular in-body constructor.
 
 A declaring constructor like in this proposal *is* an in-body constructor, so
 it has none of those limitations. A class author can *always* make one of a
@@ -236,10 +236,16 @@ proposal because they have a body, explicit initializer list, etc. (On the other
 hand, the fact that ~77% of constructors could still be primary constructors and
 be even *more* terse than this proposal is a point in favor of that proposal.)
 
-I like to think of this feature as syntactic sugar for *instance fields*, not
-constructors. A class whose constructor initializes 80 fields will find either
-of these proposals 80 times more useful than a class with just one field. If
-you look at a corpus and count fields, the numbers are a little different.
+I like to think of this feature as more about *instance fields and parameters*
+than constructors themselves (beyond the tiny sweetness of `this` instead of a
+class name). By that I mean that the brevity scales with the number of *fields*
+that use it, not the number of constructors. A class whose constructor
+initializes 80 fields will find either of these proposals 80 times more useful
+than a class with just one field.
+
+So when analyzing a corpus, it makes sense to look at *fields* that will use the
+feature instead of *constructors*. If you look at a corpus and count fields, the
+numbers are a little different.
 
 In the same corpus, a little more than half (~53%) of all instance fields could
 be implicitly declared using a primary constructor. Around ~65% could be
@@ -397,14 +403,14 @@ Given a `declaringConstructor` D in class C:
 
         *   If P is `final`, then the instance field is also `final`.
 
-        *   Any doc comments and metadata annotations on P are also copied to F.
-            *For example, a user could mark the parameter `@override` if the
+        *   Any doc comments and metadata annotations on P are also applied to
+            F. *For example, a user could mark the parameter `@override` if the
             the implicitly declared field overrides an inherited getter. If a
             user wants to document the instance field induced by a field
             parameter, they can do so by putting a doc comment on the
             parameter.*
 
-        *   P comes an initializing formal that initializes F.
+        *   P now behaves like an initializing formal that initializes F.
 
     *Note that a declaring constructor doesn't have to have any field
     parameters. A user still may want to use the feature just to use `this`
