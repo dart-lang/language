@@ -306,9 +306,9 @@
 % - Specify that it is an error for a concrete class with no non-trivial
 %   \code{noSuchMethod} to not have a concrete declaration for some member
 %   in its interface, or to have one which is not a correct override.
-% - Use \ref{bindingActualsToFormals} in 3 locations, eliminating 2 extra
+% - Use \ref{bindingFormalsToActuals} in 3 locations, eliminating 2 extra
 %   copies of nearly the same text.
-% - Add figure in \ref{bindingActualsToFormals} for improved readability.
+% - Add figure in \ref{bindingFormalsToActuals} for improved readability.
 % - Introduce a notion of lookup which is needed for superinvocations.
 % - Use new lookup concept to simplify specification of getter, setter, method
 %   lookup.
@@ -316,7 +316,7 @@
 %   readability.
 % - Reorganize several sections to specify static analysis first and then
 %   dynamic semantics; clarify many details along the way. The sections are:
-%   \ref{variables}, \ref{new}, \ref{const}, \ref{bindingActualsToFormals},
+%   \ref{variables}, \ref{new}, \ref{const}, \ref{bindingFormalsToActuals},
 %   \ref{unqualifiedInvocation}, \ref{functionExpressionInvocation},
 %   \ref{superInvocations}, \ref{assignment}, \ref{compoundAssignment},
 %   \ref{localVariableDeclaration}, and \ref{return}.
@@ -1756,7 +1756,7 @@ and the variable \id{} is bound to $o$.
   and in which environment
   (p.\,\pageref{executionOfGenerativeConstructors},
   \ref{localVariableDeclaration},
-  \ref{bindingActualsToFormals}).%
+  \ref{bindingFormalsToActuals}).%
 }
 
 \commentary{%
@@ -3497,7 +3497,7 @@ which is distinct from the one declared in the built-in class \code{Object}.
   because the actual argument fails to satisfy a type check,
   but that situation will give rise to a dynamic type error
   rather than a repeated attempt to invoke \code{noSuchMethod}
-  (\ref{bindingActualsToFormals}).
+  (\ref{bindingFormalsToActuals}).
   Here is an example where a dynamic type error occurs because
   an attempt is made to pass an \code{Invocation},
   and the type of the parameter is \code{Never}:%
@@ -4492,7 +4492,7 @@ Let $S$ be the superclass of the enclosing class of $s$.
 It is a \Error{compile-time error} if class $S$ does not declare
 a generative constructor named $S$ (respectively \code{$S$.\id}).
 Otherwise, the static analysis of $s$ is performed
-as specified in Section~\ref{bindingActualsToFormals},
+as specified in Section~\ref{bindingFormalsToActuals},
 as if \code{\SUPER} respectively \code{\SUPER.\id}
 had had the function type of the denoted constructor,
 %% TODO(eernst): The following is very imprecise, it just serves to remember
@@ -6756,8 +6756,8 @@ and whose corresponding member name is $n$.
 Let $m$ be the member of $E$ that has the name $n$.
 Evaluation of $i$ proceeds by evaluating
 $e$ to an object $o$,
-evaluating and binding the actual arguments to the formal parameters
-(\ref{bindingActualsToFormals}),
+evaluating the actual arguments and binding the formal parameters to them
+(\ref{bindingFormalsToActuals}),
 and finally executing $m$
 in a binding environment where \List{X}{1}{k} are bound to \List{t}{1}{k},
 \THIS{} is bound to $o$,
@@ -13440,8 +13440,8 @@ producing objects $o_1, \ldots, o_{m+l}$.
 }
 
 
-\subsubsection{Binding Actuals to Formals}
-\LMLabel{bindingActualsToFormals}
+\subsubsection{Binding Formals to Actuals}
+\LMLabel{bindingFormalsToActuals}
 
 \commentary{%
   In the following, the non-generic case is covered implicitly:
@@ -13660,7 +13660,7 @@ let $p_1, \ldots, p_n$ be the positional parameters of $f$;
 and let $p_{h+1}, \ldots, p_{h+k}$ be the optional parameters declared by $f$.
 
 \LMHash{}%
-An evaluated actual argument part
+With a given evaluated actual argument part
 
 \noindent
 \code{<\List{t}{1}{r}>(\ArgumentList{o}{m}{q}{l})}
@@ -13672,7 +13672,7 @@ derived from an actual argument part of the form
 \code{<\TypeArgumentListStd>(\ArgumentList{a}{m}{q}{l})}
 
 \noindent
-is bound to the formal type parameters and formal parameters of $f$ as follows:
+the formal type parameters and formal parameters of $f$ are bound as follows:
 
 \LMHash{}%
 % Passing a wrong number of actual type arguments.
@@ -13929,7 +13929,7 @@ the ordinary invocation
 
 \LMHash{}%
 Otherwise, the static analysis of $i$ is performed as specified
-in Section~\ref{bindingActualsToFormals},
+in Section~\ref{bindingFormalsToActuals},
 using $F$ as the static type of the invoked function,
 and the static type of $i$ is as specified there.
 
@@ -13948,8 +13948,8 @@ If $o$ is a function object then the function invocation
 \code{$f$<\TypeArgumentListStd>(\ArgumentListStd)}
 
 \noindent
-is evaluated by binding actuals to formals
-as specified in Section~\ref{bindingActualsToFormals},
+is evaluated by binding formals to actuals
+as specified in Section~\ref{bindingFormalsToActuals},
 and executing the body of $f$ with those bindings;
 the returned result is then the result of evaluating $i$.
 
@@ -14052,9 +14052,9 @@ such that $C$ is a subtype of $F'$.
 }
 
 \LMHash{}%
-An invocation of $o$ with a given argument list will bind actuals to formals
+An invocation of $o$ with a given argument list will bind formals to actuals
 in the same way as an invocation of $f$
-(\ref{bindingActualsToFormals}),
+(\ref{bindingFormalsToActuals}),
 and then execute the body of $f$
 in the captured scope amended with the bound parameter scope,
 yielding the same completion
@@ -14149,7 +14149,7 @@ In this situation a compile-time error occurs
 \ref{initializerLists},
 \ref{new},
 \ref{const},
-\ref{bindingActualsToFormals},
+\ref{bindingFormalsToActuals},
 \ref{assignment},
 \ref{localVariableDeclaration},
 \ref{switch},
@@ -14771,7 +14771,7 @@ when the denoted member is neither, a \Error{compile-time error} occurs.
 
 \LMHash{}%
 The static analysis of $i$ is then performed
-as specified in Section~\ref{bindingActualsToFormals},
+as specified in Section~\ref{bindingFormalsToActuals},
 considering $F$ to be the static type of the function to call.
 The static type of $i$ is as specified there.
 
@@ -14789,8 +14789,8 @@ proceeds as follows:
 \LMHash{}%
 If the denoted member of $i$ is a static method,
 let $f$ be the function declared by that member.
-The binding of actual arguments to formal parameters is performed
-as specified in Section~\ref{bindingActualsToFormals}.
+The binding of formal parameters to actual arguments is performed
+as specified in Section~\ref{bindingFormalsToActuals}.
 The body of $f$ is then executed with respect to the bindings
 that resulted from the evaluation of the argument part.
 The value of $i$ is the object returned by the execution of $f$'s body.
@@ -14922,7 +14922,7 @@ which determines any further static analysis.
 
 \LMHash{}%
 Otherwise, the static analysis of $i$ is performed
-as specified in Section~\ref{bindingActualsToFormals},
+as specified in Section~\ref{bindingFormalsToActuals},
 considering $F$ to be the static type of the function to call,
 and the static type of $i$ is as specified there,
 except that invocations of methods named \code{remainder}
@@ -15045,8 +15045,8 @@ method $m$ in $o$ with respect to the current library $L$.
 
 \LMHash{}%
 If the method lookup succeeded,
-the binding of actual arguments to formal parameters is performed
-as specified in Section~\ref{bindingActualsToFormals}.
+the binding of formal parameters to actual arguments is performed
+as specified in Section~\ref{bindingFormalsToActuals}.
 The body of $f$ is then executed with respect to the bindings
 that resulted from the evaluation of the argument list,
 and with \THIS{} bound to $o$.
@@ -15285,7 +15285,7 @@ If both lookups failed, a \Error{compile-time error} occurs.
 Otherwise
 \commentary{(when one of the lookups succeeded)},
 the static analysis of $i$ is performed
-as specified in Section~\ref{bindingActualsToFormals},
+as specified in Section~\ref{bindingFormalsToActuals},
 considering the function to have static type $F$,
 and the static type of $i$ is as specified there.
 
@@ -15343,9 +15343,9 @@ and let $f$ denote the returned object.
 }
 
 \LMHash{}%
-Otherwise perform the binding of actual arguments to formal parameters for
+Otherwise perform the binding of formal parameters to actual arguments for
 \code{$f$<\TypeArgumentListStd>(\ArgumentListStd)}
-as specified in Section~\ref{bindingActualsToFormals},
+as specified in Section~\ref{bindingFormalsToActuals},
 and execute the body of $f$ with said bindings
 plus a binding of \THIS{} to $o$.
 The result returned by $f$ is then the result of evaluating $i$.
@@ -16082,7 +16082,7 @@ In this situation a compile-time error occurs
 \ref{initializerLists},
 \ref{new},
 \ref{const},
-\ref{bindingActualsToFormals},
+\ref{bindingFormalsToActuals},
 \ref{assignment},
 \ref{localVariableDeclaration},
 \ref{switch},
@@ -22537,7 +22537,7 @@ the static types with regard to subtyping.
   \ref{redirectingFactoryConstructors},
   \ref{lists},
   \ref{new},
-  \ref{bindingActualsToFormals},
+  \ref{bindingFormalsToActuals},
   \ref{ordinaryInvocation},
   \ref{assignment},
   \ref{typeCast},
