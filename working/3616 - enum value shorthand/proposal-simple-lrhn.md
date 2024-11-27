@@ -1,6 +1,6 @@
 # Dart static access shorthand
 
-Author: lrn@google.com<br>Version: 1.1
+Author: lrn@google.com<br>Version: 1.2
 
 You can write `.foo` instead of `ContextType.foo` when it makes sense. The rules
 are fairly simple and easy to explain.
@@ -31,20 +31,25 @@ We also special-case the `==` and `!=` operators, but nothing else.
 We introduce grammar productions of the form:
 
 ```ebnf
-<primary> ::= ...                      -- all current productions
+<postfixExpression> ::= ...                      -- all current productions
     | <staticMemberShorthand>
 
 <constantPattern> ::=  ...             -- all current productions
     | <staticMemberShorthand>
 
-<staticMemberShorthand> ::=
+<staticMemberShorthand> ::= <staticMemberShorthandHead> <selector*>
+
+<staticMemberShorthandHead> ::=
       '.' (<identifier> | 'new')                      -- shorthand qualified name
     | 'const' '.' (<identifier> | 'new') <arguments>  -- shorthand object creation
 ```
 
-We also add `.` to the tokens that an expression statement cannot start with.
+We also add `.` to the tokens that an expression statement cannot start with. This doesn't
+affect starting with a double literal like `.42`, since that's a different token than a single `.`.
+_(Not sure this is *necessary*, but it will possibly make parser recovery easier._
+_So mainly disallow this as an abundance of caution.)_
 
-That means you can write things like the following (with the intended meaning as
+That means you can write things like the following (with the intended meaning as 
 comments, specification to achieve that below):
 
 ```dart
@@ -77,13 +82,20 @@ Future<String> futures = .wait([lazyString(), lazyString()]).then((list) => list
 ```
 
 This is a simple grammatical change. It allows new constructs in any place where
-we currently allow primary expressions, which can be followed by selector chains
-through the `<postfixExpression>` production `<primary> <selector>*`.
+we currently allow primary expressions followed by selector chains
+through the `<postfixExpression>` production `<primary> <selector>*`,
+and now also `<staticMemberShorthandHead> <selector*>`.
+
+The new grammar is added as a separate production, rather than making
+ `<staticMemberShorthandHead>` a `<primary>`, and sharing the `<selector>*`
+between all `<primary>`s, because the context type of the entire
+ `<staticMemberShorthand>` is relevant and will be captured when processing
+that production.
 
 #### Non-ambiguity
 
-A `<primary>` cannot immediately follow any other complete expression. We trust
-that because a primary expression already contains the production
+A `<postfixExpression>` cannot immediately follow any other complete expression.
+We trust that because a primary expression already contains the production
 `'(' <expression> ')'` which would cause an ambiguity for `e1(e2)` since `(e2)`
 can also be parsed as a `<primary>`. The existing places where a `.` token
 occurs in the grammar are all in positions where they follow another expression
@@ -98,12 +110,13 @@ new rules are needed.
 Therefore the new productions introduces no new grammatical ambiguities.
 
 We prevent expression statements from starting with `.` mainly out of caution.
-_(It’s very unlikely that an expression statement starting with static member
-shorthand can compile at all. If we ever allow metadata on statements, we don’t
-want `@foo . bar(4) ;` to be ambiguous. If we ever allow metadata on
-expressions, we have bigger issues.)_
+_(It's an unlikely expression that can start with a static member, it requires something
+that adds a context type on the left, `.parse(userInput) || (throw "Not true!")`
+or similar, which isn't particularly *useful*._
+_If we ever allow metadata on statements, we don’t want `@foo . bar(4);`
+to be ambiguous. If we ever allow metadata on expressions, we have bigger issues.)_
 
-A primary expression *can* follow a `?` in a conditional expression, as in
+A postfix expression expression *can* follow a `?` in a conditional expression, as in
 `{e1 ? . id : e2}`. This is not ambiguous with `e1?.id` since we parse `?.` as a
 single token, and will keep doing so. It does mean that `{e1?.id:e2}` and
 `{e1? .id:e2}` will now both be valid and have different meanings, where the
@@ -133,41 +146,47 @@ which is not generic. We do not want this to be treated as
 constructor.)_
 
 The *general rule* is that any of the expression forms above, starting with
-<code>.id</code>, are treated exactly *as if* they were prefixed by a fresh
-identifier <code>*X*</code> which denotes an accessible type alias for the
-greatest closure of the context type scheme of the following primary and
-selector chain.
+<code>.id</code>, are treated exactly *as if* they were preceded by a fresh
+prefixed identifier <code>*_p.C*</code> which denotes the declaration of the type of the
+context type scheme of the entire `<staticMemberShorthand>`.
 
 #### Type inference
 
 First, when inferring types for a `<postfixExpression>` of the form
-`<staticMemberShorthand> <selector>*` with context type scheme *C*, then, if the
-`<staticMemberShorthand>` has not yet been assigned a *shorthand context*,
-assign *C* as its shorthand context. Then continue as normal. _This assigns the
+`<staticMemberShorthand>` with context type scheme *C*, then assign *C* as
+the shorthand context of the leading `<staticMemberShorthandHead>`.
+Then continue inferring a type for the entire `<staticMemberShorthand>`
+recursively on the chain of selectors of the `<selector*>`,
+in the same way as for a `<primary> <selector>*`. _This assigns the
 context type scheme of the entire, maximal selector chain to the static member
-shorthand, and does not change that when recursing on shorter prefixes._
+shorthand head, moving it past any intermediate `<selector>`s._
 
-_The effect will be that `.id…` will behave exactly like `T.id…` where `T`
+_The intended effect will be that `.id…` will behave exactly like `T.id…` where `T`
 denotes the declaration of the context type._
 
-**Definition:** If a shorthand context type schema has the form `C` or `C<...>`,
+**Definition (Declaration denoted by a context type scheme):** 
+If a shorthand context type schema has the form `C` or `C<...>`,
 and `C` is a type introduced by the type declaration *D*, then the shorthand
 context *denotes the type declaration* *D*. If a shorthand context `S` denotes a
-type declaration *D*, then so does a shorthand context `S?`. Otherwise, a
-shorthand context does not denote any declaration.
+type declaration *D*, then so does a shorthand context of `S?` and `FutureOr<S>`.
+Otherwise, a shorthand context does not denote any declaration.
 
-_This effectively derives a *declaration* from the context type scheme of the
+_This effectively derives a single declaration from the context type scheme of the
 surrounding `<postfixExpression>`. It allows a nullable context type to denote
 the same as its non-`Null` type, so that you can use a static member shorthand
 as an argument for optional parameters, or in other contexts where we change a
-type to nullable just to allow omitting things ._
+type to nullable just to allow omitting things , and it allows a `FutureOr<T>` to_
+_denoted the same declarations as `T` mainly to allow shorthands in returns_
+_of `async` function_._
 
 **Constant shorthand**: When inferring types for a `const .id(arguments)` or
 `const .new(arguments)` with context type schema *C*, let *D* be the declaration
 denoted by the shorthand context assigned to the `<staticMemberShorthand>`. Then
-proceed with type inference as if `.id`/`.new` was preceded by an identifier
+proceed with type inference as if `.id`/`.new` was preceded by an identifier `D`
 denoting the declaration *D*. It’s a compile-time error if the shorthand context
-does not denote a class, mixin, enum or extension type declaration.
+does not denote a class, mixin, enum or extension type declaration, or if 
+`D.id`/`D.new` does not denote a constant constructor. _(And since `mixin`s cannot
+have constructors, it won't be a `mixin` declaration.)_
 
 **Non-constant shorthand**: When inferring types for constructs containing the
 non-`const` production, in every place where the current specification specifies
@@ -182,6 +201,11 @@ identifier denoting the declaration that is denoted by the shorthand context
 assigned to the leading `<staticMemberShorthand>`. It’s a compile-time error if
 the shorthand context does not denote a class, mixin, enum or extension type
 declaration.
+
+_If no selectors were recursed past getting to this point, or only `!` selectors, then
+this expression may have an actual context type. If it was followed by "real" selectors,_
+_like `.parse(input).abs()`, then the recognized expression, `.parse(input)`_
+_here, likely has no context type._
 
 Expression forms `.new<typeArgs>` or `.new<typeArgs>(args)` will always be
 compile-time errors. (The grammar allows them, because it allows any selector to
@@ -205,8 +229,9 @@ be inferred as `List<int>`. In most normal use cases it doesn’t matter, becaus
 the context type will fill in the missing type variables, but if the
 construction is followed by more selectors, it loses that context type. _It also
 means that the meaning of `.id`/`.new` is *always* the same, it doesn’t matter
-whether it’s a constructor or a static member, it’s always preceded by the name
-of the declaration denoted by the context.
+whether it’s a constructor or a static member, it’s always implicitly preceded by
+the raw name of the declaration denoted by the context, and any instantiation
+in the context is ignored.
 
 The following uses are *not* allowed because they have no shorthand context that
 denotes an allowed type declaration:
@@ -219,33 +244,27 @@ dynamic v3 = .parse("42"); // Context `_`.
 FutureOr<int> v4 = .parse("42"); // Context `FutureOr<int>` is structural type.
 ```
 
+Since `!` does propagate a context, `int x = (.tryParse(input))!;` does work,
+with a context type scheme of `int?`, which is enough to allow `.tryParse`.
+
 #### Special case for `==`
 
-For `==`, we special-case when the right operand is a static member shorthand.
+For `==`, we special-case when the right operand is (precisely!) a static 
+member shorthand.
 
 If an expression has the form `e1 == e2` or `e1 != e2`, or a pattern has the
-form `== e2`, where the static type of `e1` is *S1* and the function signature
-of `operator ==` of `S1` is <code>*R* Function(*T*)</code>, *then* before doing
-type inference of `e2` as part of that expression or pattern:
-
-*   If `e2` has the form `<staticMemberShorthand> <selector>*` and
-    <code>*T*</code> is a supertype of `Object`,
-
-*   Then assign *T* as the shorthand context of `e2`.
-
-_If the parameter type of the `==` operator of the type of `e1` is,
-unexpectedly, a proper subtype of `Object` (so it's declared `covariant`), it's
-assumed that that is the kind of object it should be compared to. Otherwise we
-assume the right-hand side should have the same type as the left-hand side, most
-likely an enum value._
+form `== e2`, where the static type of `e1` is *S1* , and *e2* is precisely a
+`<staticMemberShorthand>` expression, then assign the type *S1* as the 
+shorthand context of the `<staticMemberShorthandHead>` of *e2* before inferring
+its static type the same way as above.
 
 This special-casing is only against an immediate static member shorthand.
 It does not change the *context type* of the second operand, so it would not
 work with, for example, `Endian.host == wantBig ? .big : .little`.
-Here the second operand is not a `<staticMemberShorthand> <selector>*`,
-so it won't have a shorthand context set, and the parameter type of
-`Endian.operator==` is `Object`, so that is the context type of the
-second operand.
+Here the second operand is not a `<staticMemberShorthand>`,
+so it won't have a shorthand context set, and the context type of the
+second operand of `==` is the empty context. (It's neither the static type of
+the first operand, or the parameter type of the first operand's `operator==`.)
 
 Examples of allowed comparisons:
 
@@ -260,11 +279,19 @@ Not allowed:
 // NOT ALLOWED, ALL `.id`S ARE ERRORS
 if (.host == Endian.host) notOk!; // Dart `==` is not symmetric.
 if (Endian.host == preferLittle ? .little : .big) notOk!; // RHS not shorthand.
-if ((Endian.host as Object) == .little) notOk!; // Context type `Object`.
+if ((Endian.host as Object) == .little) notOk!; // Assigned shorthand context type `Object`.
 ```
 _We could consider generally changing the context type of the second operand to
 the static type of the LHS, an aspirational context type, if the parameter type
-is not useful._
+is not useful. For now, that's kept as a possible future improvement._
+
+If a pattern has the form `'==' <staticMemberShorthand>`, then the matched value type
+is assigned as the shorthand context of the leading `<staticMemberShorthandHead>`,
+and the type is inferred in the same way. It's also a compile-time error if the resulting
+expression is not constant, which limits the possible forms.
+
+If a `<staticMemberShorthand>` occurs in a constant context for any other reason,
+it must also be a constant expression. 
 
 #### Runtime semantics
 
@@ -275,9 +302,8 @@ to constructors, and use those as runtime type arguments to the class, we infer
 the entire target of the member access and use that at runtime._
 
 In every case where we inserted a type inference clause, we resolved the
-reference to a static member in order to use its type for static type inference.
-The runtime semantics then say that it invokes the member found before, and it
-works for the `.id…` variant too.
+reference to a static member or constructor in order to use its type for static type inference.
+The runtime semantics then say that it invokes the member found before.
 
 #### Patterns
 
@@ -310,7 +336,7 @@ constant getter or constant constructor invocation. _(There is no chance of a
 method or constructor tear-off having the correct type for the context, but if
 the context type is not enforced for some reason, like being lost in an **Up**
 computation, it’s technically possible to tear off a static method as a constant
-expression. It’s unlikely to succeed dynamic type tests at runtime.)_
+expression. It’s unlikely to succeed at dynamic type tests at runtime.)_
 
 An expression without a leading `const` is a potential constant and constant
 expression if the corresponding explicit static access would be one. Being a
@@ -322,6 +348,10 @@ constructor invocation or method invocation is not potentially constant.
 Symbol symbol = const .new("orange"); // => const Symbol.new("Orange")
 Endian endian = .big; // => Endian.big.
 ```
+
+The only selector which can follow a constant  `.id`/`.new` or
+ `const .id(args)`/`const .new(args) ` `<staticMemberAccessHead>` and
+still be a constant expression is the `!` selector.
 
 ## New complications and concerns
 
@@ -508,9 +538,26 @@ probably to `FutureOr<Foo>` too. But it is annoying because of the implicit
 while still allowing a `FutureOr<F>` to be returned, as an aspirational
 context type.)
 
+We've decided to allow members of `X` to be accessed on `FutureOr<X>`, but
+not members of `Future`. Primarily to allow people to return values from
+`async` functions, where we don't *want* to encourage returning `Future`s.
+
 ## Versions
 
+1.2: "Final" decisions:
+
+* `==` only special-cases second operand, and only if it's precisely a
+  shorthand expression. There is no change to the actual context type,
+  and no recognition of nested shorthands. You can do `e == .foo`,
+  and that's it. Does not depend on parameter type of LHS's `operator==`.
+* The static namespace denoted by `S` is also the namespace denoted
+  by `S?` and `FutureOr<S>`, nothing more and nothing less.
+* Made grammar be `<postfixExpression>` and not share `<selector>*`
+  with `<primary>`s. Shouldn't change anything, but makes it clear at which
+  grammar production the context type is captured.
+
 1.1: Makes `==` only special-case second operand.
+
 *   Keeps context type for second operand, set its shorthand context instead.
 *   Remember to mention `== e` pattern.
 *   Clean-up and reflow.
