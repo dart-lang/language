@@ -53,7 +53,10 @@ That means you can write things like the following (with the intended meaning as
 comments, specification to achieve that below):
 
 ```dart
-Endian littleEndian = .little; // -> Endian.little (enum value)
+// -> HttpClientResponseCompressionState.compressed (enum value)
+HttpClientResponseCompressionState state = .compressed;
+
+Endian littleEndian = .little; // -> Endian.little (constant)
 Endian hostEndian = .host; // -> Endian.host (getter)
 // -> Endian.little, Endian.big, Endian.host
 Endian endian = firstWord == 0xFEFF ? .little : firstWord = 0xFFFE ? .big : .host;
