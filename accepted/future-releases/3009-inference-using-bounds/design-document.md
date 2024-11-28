@@ -387,11 +387,13 @@ block-beta
   csstvUpwards -- "{X = C}" --> overallOutput
 ```
 
-## Proposed changes
+## Rules
 
-We propose generating more constraints from existing constraints and
-the bound. The original example is solved by this proposal and a few
-more beneficial examples are discussed afterwards.
+The unsatisfactory outcome described in the motivating example is
+solved by generating more constraints from the existing ones and from
+the bounds of the type parameters being constrained. The current
+section describes the application of that solution to the motivating
+example and concludes with more examples of improvements.
 
 In the motivating example, adding the best-effort bound approximation
 didn't affect the result. The set of constraints for `X` already
@@ -400,16 +402,16 @@ constraint has the priority over the upper-bound "best-effort"
 approximation constraint, since type `C` is fully known (i.e. doesn't
 contain `_`).
 
-With this feature, we derive a lower-bound constraint by combining the
-already existing lower-bound constraint with the actual bound.
+We derive a new lower-bound constraint by combining the already existing
+lower-bound constraint with the actual bound.
 
 In general, if we have two type constraints of the form `E <: Y` and
 `Y <: F`, where `Y` is a type variable and `E` and `F` are type
 schemas, it follows that `E <: F` holds if the `E <: Y` and `Y <: F`
-hold. So, what if instead of adding the constraint `X <: B'` in step 5
-of CSSTV, where `B'` is the best-effort bound approximation, we
-generate a new set of constraints, running the subtype constraint
-generation algorithm described in [Subtype constraint
+hold. So, instead of adding the constraint `X <: B'` in step 5 of
+CSSTV, where `B'` is the best-effort bound approximation, we generate
+a new set of constraints, running the subtype constraint generation
+algorithm described in [Subtype constraint
 generation][subtype-constraint-generation] for `P = C`, `Q = B`, `L =
 {..., X, ...}`.
 
