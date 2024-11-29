@@ -1,6 +1,6 @@
 # Dart static access shorthand
 
-Author: lrn@google.com<br>Version: 1.2
+Author: lrn@google.com<br>Version: 1.3 (2024-11-29)
 
 You can write `.foo` instead of `ContextType.foo` when it makes sense. The rules
 are fairly simple and easy to explain.
@@ -31,23 +31,27 @@ We also special-case the `==` and `!=` operators, but nothing else.
 We introduce grammar productions of the form:
 
 ```ebnf
-<postfixExpression> ::= ...                      -- all current productions
-    | <staticMemberShorthand>
+<postfixExpression> ::= ...            -- all current productions
+    | <staticMemberShorthand>          -- added production
 
 <constantPattern> ::=  ...             -- all current productions
-    | <staticMemberShorthand>
+    | <staticMemberShorthandValue>     -- No selectors, no `.new`.
 
 <staticMemberShorthand> ::= <staticMemberShorthandHead> <selector*>
 
 <staticMemberShorthandHead> ::=
-      '.' (<identifier> | 'new')                      -- shorthand qualified name
-    | 'const' '.' (<identifier> | 'new') <arguments>  -- shorthand object creation
+      <staticMemberShorthandValue>
+    | '.' 'new'                                       -- shorthand unnamed constructor
+
+<staticMemberShorthandValue> ::=                      -- something that can potentially create a value.
+    | '.' <identifier>                                -- shorthand for qualified name
+    | 'const' '.' (<identifier> | 'new') <arguments>  -- shorthand for constant object creation
 ```
 
 We also add `.` to the tokens that an expression statement cannot start with. This doesn't
 affect starting with a double literal like `.42`, since that's a different token than a single `.`.
-_(Not sure this is *necessary*, but it will possibly make parser recovery easier._
-_So mainly disallow this as an abundance of caution.)_
+_(Not sure this is *necessary*, but it will possibly make parser recovery easier/
+So mainly disallow this as an abundance of caution.)_
 
 That means you can write things like the following (with the intended meaning as 
 comments, specification to achieve that below):
@@ -162,55 +166,111 @@ context type scheme of the entire, maximal selector chain to the static member
 shorthand head, moving it past any intermediate `<selector>`s._
 
 _The intended effect will be that `.id…` will behave exactly like `T.id…` where `T`
-denotes the declaration of the context type._
+is an identifier (or qualified identifier) which denotes the declaration of the
+context type._
 
-**Definition (Declaration denoted by a context type scheme):** 
-If a shorthand context type schema has the form `C` or `C<...>`,
-and `C` is a type introduced by the type declaration *D*, then the shorthand
-context *denotes the type declaration* *D*. If a shorthand context `S` denotes a
-type declaration *D*, then so does a shorthand context of `S?` and `FutureOr<S>`.
-Otherwise, a shorthand context does not denote any declaration.
+A context type scheme is a semantic type (plus `_`). That means that it will
+not refer to any type aliases that may have been used to denote that type
+in the source code. Type aliases are expanded no later than when a type *term*
+of the source program is interpreted to find the type or type scheme that
+it denotes.
 
-_This effectively derives a single declaration from the context type scheme of the
-surrounding `<postfixExpression>`. It allows a nullable context type to denote
-the same as its non-`Null` type, so that you can use a static member shorthand
-as an argument for optional parameters, or in other contexts where we change a
-type to nullable just to allow omitting things , and it allows a `FutureOr<T>` to_
-_denoted the same declarations as `T` mainly to allow shorthands in returns_
-_of `async` function_._
+**Definition: Declaration denoted by a type scheme** 
+A context type scheme is said to _denote a declaration_ in some cases.
+Not all context type schemes denote a declaration.
+
+If a type scheme *S*:
+* has the form `C` or `C<typeArgs>` where `C` is a type introduced by a
+  declaration *D* _which must therefore be a type-introducing declaration,
+  which currently means a `class`, `mixin`, `enum` or `extension type` declaration_,
+  then *S* denotes the declaration *D*.
+* has the form `S?` or `FutureOr<S>`, and the type scheme `S` denotes
+  a declaration *D*, then so does `S?`/`FutureOr<S>`.
+  _Only the "base type" of the union type is considered, ensuring that
+  a type scheme denotes at most one declaration or static namespace._
+* has *any other* form, including type variables, promoted type variables and `_`,
+  then the type scheme does not denote any declaration or namespace.
+
+_Platform library declared types can be exempt from rules that apply to user
+declarations. For example the `Object` and `Null` classes appear to be `class`
+declarations in the library source code, but their types do not have a superclass,
+which any user-written `class` declaration myst have.
+That makes it unclear/under-specified whether these types are actually `class`
+declarations, or if they merely count as such in some ways, and if so,
+what they really are._
+_Rather than try to answer that question here, this specification will just
+ensure that any platform type that currently allow accessing static members
+as `TypeName.id` will also work with static member shorthands. And rather
+than enumerating the declarations that are special, yet class-like, it instead
+enumerates the types that do not denote a declaration with a static scope:_
+Any named type exported by the platform libraries, which is not `dynamic`, `void`,
+`Never`, a record type, a function type or a union type (of the form `T?` or
+`FutureOr<T>`), is _considered as being introduced by a type declaration_,
+which static members can be looked up in, independently of how it's represented
+in the public platform library source code.
+_For example, the `Function` type has a declaration with a static function
+declaration, and should be treated as having that declaration,
+and the same for `Null` which has no static members at all,
+whereas `FutureOr` is (currently) represented in the source code by a `class`
+declaration mainly as a way to carry documentation, and does not actually have
+a declaration, or any scope for static members._
+
+With this definition, the semantics of a `<staticMemberShorthand>` can derive
+a single declaration, with possible static declarations, from its 
+context type scheme.
+A nullable context type denotes the same as its non-`Null` type,
+so that you can use a static member shorthand as an argument for optional parameters,
+or in other contexts where we change a type to nullable just to allow omitting things,
+and a `FutureOr<T>` denotes the same declarations as `T`
+_mainly to allow static shorthands in return statements of `async` functions_.
 
 **Constant shorthand**: When inferring types for a `const .id(arguments)` or
-`const .new(arguments)` with context type schema *C*, let *D* be the declaration
-denoted by the shorthand context assigned to the `<staticMemberShorthand>`. Then
-proceed with type inference as if `.id`/`.new` was preceded by an identifier `D`
-denoting the declaration *D*. It’s a compile-time error if the shorthand context
-does not denote a class, mixin, enum or extension type declaration, or if 
-`D.id`/`D.new` does not denote a constant constructor. _(And since `mixin`s cannot
-have constructors, it won't be a `mixin` declaration.)_
+`const .new(arguments)` with context type scheme *C*, let *D* be the declaration
+denoted by the _shorthand context_ assigned to the `<staticMemberShorthand>`,
+which may differ from *C*. Then proceed with type inference in the same way as
+if `.id`/`.new` was preceded by an identifier `D` denoting the declaration *D*.
+It’s a compile-time error if the shorthand context does not denote a declaration.
+It's a compile-time error if a static member lookup with base name `id`/`new` on
+this declaration does not find a constant constructor.
+_If the shorthand is preceded by `const`, it must be a constant constructor invocation._
 
 **Non-constant shorthand**: When inferring types for constructs containing the
 non-`const` production, in every place where the current specification specifies
 type inference for one of the forms <Code>*T*.*id*</code>,
 <code>*T*.*id*\<*typeArgs*\></code>, <code>*T*.*id*(*args*)</code>,
-<code>*T*.*id*\<*typeArgs*\>(*args*)</code>, <code>*T*.new</code>,
-<code>*T*.new(*args*)</code>, <code>*T*.new\<*typeArgs*\></code> or
-<code>*T*.new\<*typeArgs*\></code>, where *T* is a type literal, we introduce a
+<code>*T*.*id*\<*typeArgs*\>(*args*)</code>, <code>*T*.new</code>, or
+<code>*T*.new(*args*)</code>, where *T* is a type literal, we introduce a
 parallel “or <code>.id…</code>” clause for a similarly shaped
-`<staticMemberShorthand>`, proceeding as if `.id`/`.new` was preceded by an
-identifier denoting the declaration that is denoted by the shorthand context
-assigned to the leading `<staticMemberShorthand>`. It’s a compile-time error if
-the shorthand context does not denote a class, mixin, enum or extension type
-declaration.
+`<staticMemberShorthand>`, proceeding to look up `id`/unnamed constructor in
+the class denoted by the shorthand context assigned to the leading 
+`<staticMemberShorthandHead`>, just as we would have if `.id`/`.new` was preceded by
+an identifier (or qualified identifier) denoting that declaration.
+It's a compile-time error if the shorthand context does not denote a declaration
+and static namespace.
+It's a compile-time error if a static member lookup with base name `id`/`new`
+on that declartion does not find a static member. 
+It's a compile-time error if that declaration does not have a static member
+with base name `id`, or an unnamed constructor for `.new`.
+Otherwise the `.id`/`.new` is treated as denoting that member and works just like
+a `T.id`/`T.new` would when `T` denotes the type declaration.
+_(If/when Dart gets a static extensions feature, the declaration found by static
+member lookup on a type declaration need not be a declaration of that type declaration
+itself, it could be a static extension declaration.)_
 
 _If no selectors were recursed past getting to this point, or only `!` selectors, then
-this expression may have an actual context type. If it was followed by "real" selectors,_
-_like `.parse(input).abs()`, then the recognized expression, `.parse(input)`_
-_here, likely has no context type._
+this expression may have an actual context type. If it was followed by "real" selectors,
+like `.parse(input).abs()`, then the recognized expression, `.parse(input)`
+in this example, likely has no context type._
 
-Expression forms `.new<typeArgs>` or `.new<typeArgs>(args)` will always be
-compile-time errors. (The grammar allows them, because it allows any selector to
-follow a static member shorthand, but that static member shorthand must denote a
-constructor invocation, and constructors cannot, currently, be generic.)
+Expressions of the forms <code>.new\<*typeArgs*\></code> or 
+<code>.new\<*typeArgs*\></code> (as a prefix of a `<staticMemberShorthand> <selector>*`
+production, or the entire chain) are compile-time errors, just like
+the corresponding <code>*T*.new\<*typeArgs*\></code>
+and <code>*T*.new\<*typeArgs*\></code> already are, whether used as instantiated
+tear-off or invoked.
+_(The grammar allows them, because `C.new` is a `<primary>` expression, but
+a `C.new`, or a `C.id` denoting a constructor, followed by type arguments is 
+recognized and made an error to avoid it being interpreted as `(C.new)<int>`.)
 
 **Notice**: The invocation of a constructor is *not* using an instantiated type,
 it’s behaving as if the constructor was preceded by a *raw type*, which type
@@ -231,7 +291,7 @@ construction is followed by more selectors, it loses that context type. _It also
 means that the meaning of `.id`/`.new` is *always* the same, it doesn’t matter
 whether it’s a constructor or a static member, it’s always implicitly preceded by
 the raw name of the declaration denoted by the context, and any instantiation
-in the context is ignored.
+in the context is ignored._
 
 The following uses are *not* allowed because they have no shorthand context that
 denotes an allowed type declaration:
@@ -241,11 +301,12 @@ denotes an allowed type declaration:
 int v1 = .parse("42") + 1; // Context `_`.
 int v2 = (.parse("42")).abs(); // Context `_`.
 dynamic v3 = .parse("42"); // Context `_`.
-FutureOr<int> v4 = .parse("42"); // Context `FutureOr<int>` is structural type.
 ```
 
 Since `!` does propagate a context, `int x = (.tryParse(input))!;` does work,
 with a context type scheme of `int?`, which is enough to allow `.tryParse`.
+Same for `int x = .tryParse(input) ?? 0;` which gives the first operand
+the context type `int?`.
 
 #### Special case for `==`
 
@@ -253,18 +314,18 @@ For `==`, we special-case when the right operand is (precisely!) a static
 member shorthand.
 
 If an expression has the form `e1 == e2` or `e1 != e2`, or a pattern has the
-form `== e2`, where the static type of `e1` is *S1* , and *e2* is precisely a
-`<staticMemberShorthand>` expression, then assign the type *S1* as the 
-shorthand context of the `<staticMemberShorthandHead>` of *e2* before inferring
-its static type the same way as above.
+form `== e2`, where the static type of `e1`, or the matched value type of the
+pattern, is *S1*, and *e2* is precisely a `<staticMemberShorthand>` expression,
+then assign the type *S1* as the shorthand context of the `<staticMemberShorthandHead>`
+of *e2* before inferring its static type the same way as above.
 
 This special-casing is only against an immediate static member shorthand.
 It does not change the *context type* of the second operand, so it would not
 work with, for example, `Endian.host == wantBig ? .big : .little`.
 Here the second operand is not a `<staticMemberShorthand>`,
 so it won't have a shorthand context set, and the context type of the
-second operand of `==` is the empty context. (It's neither the static type of
-the first operand, or the parameter type of the first operand's `operator==`.)
+second operand of `==` is the empty context `_`. (It's neither the static type of
+the first operand, nor the parameter type of the first operand's `operator==`.)
 
 Examples of allowed comparisons:
 
@@ -281,36 +342,133 @@ if (.host == Endian.host) notOk!; // Dart `==` is not symmetric.
 if (Endian.host == preferLittle ? .little : .big) notOk!; // RHS not shorthand.
 if ((Endian.host as Object) == .little) notOk!; // Assigned shorthand context type `Object`.
 ```
-_We could consider generally changing the context type of the second operand to
-the static type of the LHS, an aspirational context type, if the parameter type
-is not useful. For now, that's kept as a possible future improvement._
-
-If a pattern has the form `'==' <staticMemberShorthand>`, then the matched value type
-is assigned as the shorthand context of the leading `<staticMemberShorthandHead>`,
-and the type is inferred in the same way. It's also a compile-time error if the resulting
-expression is not constant, which limits the possible forms.
-
-If a `<staticMemberShorthand>` occurs in a constant context for any other reason,
-it must also be a constant expression. 
+_We can consider generally changing the context type of the second operand to
+the static type of the LHS, as an aspirational context type, if the parameter type
+is not useful, or use the parameter type. For now, that's kept as a possible
+future improvement._
 
 #### Runtime semantics
 
 In every place in type inference where we used the assigned shorthand context to
-decide which static namespace to look in, we remember the result of that lookup,
-and at runtime we invoke that static member. _Like we may infer type arguments
-to constructors, and use those as runtime type arguments to the class, we infer
-the entire target of the member access and use that at runtime._
+decide which static namespace to look-up the name in, we remember the result of
+that lookup, and at runtime we invoke that static member/constructor. 
+_Like we may infer type arguments to constructors, and use those as runtime
+type arguments to the class, we infer the entire target of the member access
+and use that at runtime._
 
-In every case where we inserted a type inference clause, we resolved the
-reference to a static member or constructor in order to use its type for static type inference.
-The runtime semantics then say that it invokes the member found before.
+In every case where type inference succeeded for a static member shorthand
+it resolved the reference to a static member or constructor declaration
+in order to use that declaration's signature for static type inference
+of the static member access.
+The runtime semantics then that member found, ensuring that static analysis
+is a valid approximation of runtime behavior.
+
+#### Constant expressions
+
+A static member access expression is a constant expression if the equivalent
+explicit static member access expression would have been. 
+
+For each of the cases where this feature added a case to type inference,
+it also a adds a case to the rules for being constant. 
+
+Given an expression that is a prefix of `<staticMemberShorthandHead> <selector>*`,
+whose assigned shorthand context denotes a declaration *D*, and where
+the identifier or `new` of the `<staticMemberShorthandHead>` denotes
+a static declaration or constructor declaration *S* when looked up on *D*.
+
+* An expression of the form `const .id(arguments)` or `const .new(arguments)`
+  is a constant expression. It's a compile-time error if *S* does not
+  declare a constant constructor, and if any expression in `arguments`,
+  which are all in a constant context, is not a constant expression.
+* An expression of the form `.<identifier>` is a constant expression if
+  *S* declares a constant getter.
+* An expression of the form `.<identifier>` that is not followed by an
+  `<argumentPart>`, is a constant expression if `*S* declares
+  a static method or constructor, and either type inference has not
+  added type arguments as a generic function instantiation coercion,
+  or the added type arguments are constant types.
+  _Static tear-offs are constant. Instantiated static tear-offs
+  are constant if the inferred type arguments are._
+  that is not a constant expression.)_
+* An expression of the form `.new` which is not followed by the
+  selectors of an `<argumentPart>`, is a constant expression if
+  *S* declares a constant (unnamed) constructor, and either type
+  inference has not added type arguments as a generic function
+  instantiation coercion, or the added type arguments are constant types.
+* An expression of the form `.id<typeArguments>` not followed by
+  and `<arguments>` selector is a constant expression if the type
+  argument clauses are all constant type expressions.
+* (An expression of the form `.new` followed by a `<typeArguments>` is
+  still a compile-time error.)
+* An expression of `.id(arguments)` or `.new(arguments)` is a
+  constant expression if (and only if) it occurs in a constant context,
+  *S* declares a constant constructor, every expression
+  in `arguments` (which then occurs in a constant context too)
+  is a constant expression, and inferred type arguments, if any,
+  are all constant types.
+* An expression of `.id(arguments)` or `.id<typeArguments>(arguments)`
+  where *S* declares a getter or static function is never a constant
+  expression. _There are no `static` functions whose invocation is
+  constant, the only non-instance function which can be invoked as
+  a constant expression is `identical`, which is not inside a static
+  namespace._
+
+Whether such an expression followed by more selectors is a constant
+expression depends on the concrete selectors and types, but can use
+the current rules which recursively asks about the receiver being 
+a constant function.
+
+_The only `.id` selector which can come after a constant expression
+and still be constant is `String.length`, and it's very hard to
+make that integer satisfy a context type of `String`. The only other
+selector which can follow complete constant expression and still be
+constant is the not-null check `!`, which is rarerly useful in
+constant expressions._
+
+A static member shorthand expression should be a _potentially constant_
+expression if the corresponding explicit static member plus 
+selectors expression would be, which currently means that 
+it's a potentially constant expression if and only if
+it's a constant expression.
+_There is no current way for an explicit static member access 
+followed by zero or more selectorsto be a potentially constant expression
+if it contains a constructor parameter anywhere. That "anywhere"
+is necessarily in a parameter expression, and the only invocation with
+parameters that are allowed in a potentially constant expression is 
+a *constant* constructor invocation, and that requires constant parameters._
+
+```dart
+Symbol symbol = const .new("orange"); // => const Symbol.new("Orange")
+const Endian endian = .big; // => Endian.big.
+```
 
 #### Patterns
 
-A *constant pattern* is treated the same as any other constant expression,
-with the matched value type used as the context type schema
-that is assigned as shorthand context. Since a constant pattern cannot occur
-in a declaration pattern, there is no need to assign an initial type scheme
+A *constant pattern* `<staticMemberShorthandValue>` is treated the same
+as that static member shorthand as an expression that has no following selectors,
+except with the _matched value type_ is set as the shorthand context
+of the `<staticIdentifierShorthandHead>`.
+
+The restriction to `<staticMemberShorthandValue>` is intended to match
+the existing allowed constant patterns, `<qualifiedIdentifier>` and
+`<constObjectExpression>`, and nothing more, which is why it omits the
+`.new` which is *guaranteed* to be a constructor tear-off.
+The shorthand constant pattern `'.' <identifier>` must satisfy the same
+restrictions as the `<qualifiedIdentifier>` constant pattern, mainly 
+that it must denote a constant getter.
+
+If a static member shorthand expression occurs elsewhere in a pattern
+where a constant expression is generally allowed, 
+like `const (big ? .big : .little)` or `< .one`, except for the 
+relational pattern `== e`, it's treated as a normal constant expression,
+using the context type it's given. 
+The expression of `const (...)` will have the matched value type
+as context type. The relational pattern expressions, other than
+for `==` and `!=`, will have the parameter type of the corresponding
+operator of the matched value type as context type.
+
+Since a constant pattern cannot occur in a declaration pattern,
+there is no need to assign an initial type scheme
 to the pattern in the first phase of the three-step inference.
 _If there were, the type scheme would be `_`._
 
@@ -323,35 +481,20 @@ switch (Endian.host) {
 }
 ```
 
-#### Constant expressions
+If a relational pattern has the form `'==' <staticMemberShorthand>`, 
+then the matched value type is assigned as the shorthand context
+of the leading `<staticMemberShorthandHead>`, and then type is inferred
+for the `<staticMemberShorthand>` expression as normal.
 
-The form starting with `const` is inferred in the same way, and then the
-identifier *must* denote a constant constructor, and the expression is then a
-constant constructor invocation of that constructor, which is a constant
-expression.
-
-An expression in a `const` context is inferred as normal, then it’s a
-compile-time error if it is not a constant expression, which it is if is a
-constant getter or constant constructor invocation. _(There is no chance of a
-method or constructor tear-off having the correct type for the context, but if
-the context type is not enforced for some reason, like being lost in an **Up**
-computation, it’s technically possible to tear off a static method as a constant
-expression. It’s unlikely to succeed at dynamic type tests at runtime.)_
-
-An expression without a leading `const` is a potential constant and constant
-expression if the corresponding explicit static access would be one. Being a
-potentially constant expression only really works for static constant getters.
-A method or constructor tear-off won’t have the context type, a non-`const`
-constructor invocation or method invocation is not potentially constant.
-
-```dart
-Symbol symbol = const .new("orange"); // => const Symbol.new("Orange")
-Endian endian = .big; // => Endian.big.
-```
-
-The only selector which can follow a constant  `.id`/`.new` or
- `const .id(args)`/`const .new(args) ` `<staticMemberAccessHead>` and
-still be a constant expression is the `!` selector.
+**Notice** that the patterns specification uses the parameter type of
+the `==` operator of the matched value type, made nullable, as 
+context type for the expression of the `== e` pattern, where the
+`e1 == e2` expression uses `_` as context type. That means that it's
+*technically possible* for the matched value type to have an equality
+parameter type that is *relevant*, while not being equal to itself.
+Actually declaring a non-`Object` parameter type for `operator==`
+is so rare that this feature chooses to ignore it, and treat
+the pattern check `e1 case == e2` the same as the expression `e1 == e2`.
 
 ## New complications and concerns
 
@@ -376,24 +519,32 @@ static declarations are possible targets.
 
 ### Declaration kinds
 
-The restriction “It’s a compile-time error if the shorthand context does not
-denote a class, mixin, enum or extension type declaration” makes it a visible
+A restriction of “It’s a compile-time error if the shorthand context does not
+denote a class, mixin, enum or extension type declaration” would make it a visible
 property of a declaration whether it is one of these.
 
 Prior to this feature, there are types where it’s *unspecified* whether they are
 introduced by class declarations or not. These are all types that you cannot
 extend, implement or mix in, so there is nothing you can *use* them for that
 would be enabled or prevented by being or not being, for example, a class.
+Some do have static members, like `Function`.
 
-This may require the language to *specify* which platform types are considered
-introduced by which kind of declaration, because it now matters.
+We could require the language to *specify* which platform types are considered
+introduced by which kind of declaration, if it would matter.
 Or we can do nothing, and pretend there is no issue.
-Structural types (nullable, `FutureOr`, function types), `dynamic`, `void` and
-`Never` do not have any static members, so it doesn’t matter whether you allow
-a static member shorthand access on them, it’ll just fail to find anything.
+Structural types (nullable, `FutureOr`, function types, record types), 
+`dynamic`, `void` and `Never` do not have any static members, so it doesn’t
+matter whether you allow a static member shorthand access on them, 
+it’ll just fail to find anything.
 
-Basically, we need a term for “a type (schema) which denotes a static
-namespace”. That is what the shorthand context type schema must do.
+Basically, we could use a term for “a type (scheme) which denotes a static
+namespace”. That is what the shorthand context type scheme must do.
+
+For now, the specification falls back on "do a static lookup for a base name
+on a declaration", and if that makes sense, it's allowed. 
+Any type from the platform libraries, other than those mentioned above,
+are said to denote a declaration (that you can then do static member lookup
+on).
 
 ## Possible variations and future features
 
@@ -407,6 +558,10 @@ been written explicitly, including static extension member access.
 This should “just work”, and having static extensions would significantly
 increase the value of this feature, by allowing users to introduce their own
 shorthands for any interface type.
+
+The specification has tried to say "do a static member lookup on the denoted
+declaration" to abstract over what that does, so that a later language version
+could have a second for that lookup that checked static extensions.
 
 #### Nullable types and `Null`
 
@@ -544,7 +699,18 @@ not members of `Future`. Primarily to allow people to return values from
 
 ## Versions
 
-1.2: "Final" decisions:
+1.3 (2024-11-29): Fix constant pattern, clean-up, and expansion 
+  of the constant section.
+
+* Changes grammar for constant pattern to not allow full selector chain,
+  only shorthands for `T.id` and `const T.(id|new)(args)`.
+  so the shorthand doesn't accept more than the existing limited productions.
+* No other grammatical or semantic changes intended.
+* Expand the "Constants" section.
+* Mention explicitly that a context type scheme is a semantic type,
+  so it cannot refer to a type alias.
+
+1.2 (2024-11-27): "Final" decisions:
 
 * `==` only special-cases second operand, and only if it's precisely a
   shorthand expression. There is no change to the actual context type,
