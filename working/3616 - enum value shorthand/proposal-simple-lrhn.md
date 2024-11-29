@@ -135,16 +135,18 @@ constructor.)_
 The *general rule* is that any of the expression forms above, starting with
 <code>.id</code>, are treated exactly *as if* they were prefixed by a fresh
 identifier <code>*X*</code> which denotes an accessible type alias for the
-greatest closure of the context type scheme of the following primary and
+greatest closure of the context type schema of the following primary and
 selector chain.
 
 #### Type inference
 
-First, when inferring types for a `<postfixExpression>` of the form
-`<staticMemberShorthand> <selector>*` with context type scheme *C*, then, if the
+In this section, type aliases are implicitly assumed to have been fully expanded at every step.
+
+When inferring types for a `<postfixExpression>` of the form
+`<staticMemberShorthand> <selector>*` with context type schema *C*, then, if the
 `<staticMemberShorthand>` has not yet been assigned a *shorthand context*,
 assign *C* as its shorthand context. Then continue as normal. _This assigns the
-context type scheme of the entire, maximal selector chain to the static member
+context type schema of the entire, maximal selector chain to the static member
 shorthand, and does not change that when recursing on shorter prefixes._
 
 _The effect will be that `.id…` will behave exactly like `T.id…` where `T`
@@ -156,7 +158,7 @@ context *denotes the type declaration* *D*. If a shorthand context `S` denotes a
 type declaration *D*, then so does a shorthand context `S?`. Otherwise, a
 shorthand context does not denote any declaration.
 
-_This effectively derives a *declaration* from the context type scheme of the
+_This effectively derives a *declaration* from the context type schema of the
 surrounding `<postfixExpression>`. It allows a nullable context type to denote
 the same as its non-`Null` type, so that you can use a static member shorthand
 as an argument for optional parameters, or in other contexts where we change a
@@ -284,9 +286,9 @@ works for the `.id…` variant too.
 A *constant pattern* is treated the same as any other constant expression,
 with the matched value type used as the context type schema
 that is assigned as shorthand context. Since a constant pattern cannot occur
-in a declaration pattern, there is no need to assign an initial type scheme
+in a declaration pattern, there is no need to assign an initial type schema
 to the pattern in the first phase of the three-step inference.
-_If there were, the type scheme would be `_`._
+_If there were, the type schema would be `_`._
 
 Example:
 
