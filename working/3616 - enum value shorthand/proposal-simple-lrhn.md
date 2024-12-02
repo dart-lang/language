@@ -57,7 +57,10 @@ That means you can write things like the following (with the intended meaning as
 comments, specification to achieve that below):
 
 ```dart
-Endian littleEndian = .little; // -> Endian.little (enum value)
+// -> HttpClientResponseCompressionState.compressed (enum value)
+HttpClientResponseCompressionState state = .compressed;
+
+Endian littleEndian = .little; // -> Endian.little (static constant)
 Endian hostEndian = .host; // -> Endian.host (getter)
 // -> Endian.little, Endian.big, Endian.host
 Endian endian = firstWord == 0xFEFF ? .little : firstWord = 0xFFFE ? .big : .host;
@@ -270,7 +273,7 @@ and <code>*T*.new\<*typeArgs*\></code> already are, whether used as instantiated
 tear-off or invoked.
 _(The grammar allows them, because `C.new` is a `<primary>` expression, but
 a `C.new`, or a `C.id` denoting a constructor, followed by type arguments is 
-recognized and made an error to avoid it being interpreted as `(C.new)<int>`.)
+recognized and made an error to avoid it being interpreted as `(C.new)<int>`.)_
 
 **Notice**: The invocation of a constructor is *not* using an instantiated type,
 it’s behaving as if the constructor was preceded by a *raw type*, which type
