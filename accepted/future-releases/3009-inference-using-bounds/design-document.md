@@ -11,9 +11,9 @@ Experiment flag: inference-using-bounds
 ## Changes in inference.md
 
 This document discusses the effect and the motivation of the following changes
-in [inference.md][]. Steps are added to those described in sections [Constraint
-solution for a set of type variables][] and [Grounded constraint solution for a
-set of type variables][].
+in [inference.md][]. Steps are added to the algorithms described in sections
+[Constraint solution for a set of type variables][] and [Grounded constraint
+solution for a set of type variables][].
 
 ```diff
 @@ -714,24 +714,30 @@ occurences of the unknown type.
@@ -83,9 +83,9 @@ set of type variables][].
 
 ## Motivating example
 
-The motivating example is discovered and discussed in [#3009][] (Type
-inference does not solve some constraints involving
-F-bounds). Consider the following code:
+The motivating example is discovered and discussed in [#3009][] (Type inference
+does not solve some constraints involving F-bounds). Consider the following
+code:
 
 ```dart
 class A<X extends A<X>> {}
@@ -126,9 +126,9 @@ A<_>}`), and tries to solve the updated constraint set for `X`
 yielding the same result `X = C`.
 
 Note that adding the best-effort approximation of the bound and
-solving the constraint set once again didn't change the outcome. ***In
+solving the constraint set once again didn't change the outcome. In
 general, lower bounds are preferred by the type inference, and the
-best-effort approximation is added as an upper-bound constraint.***
+best-effort approximation is added as an upper-bound constraint.
 
 It is notable that even though the example program contains all the
 type information needed to infer `B` as the type parameter, the front
