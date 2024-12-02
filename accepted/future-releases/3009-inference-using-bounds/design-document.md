@@ -127,7 +127,7 @@ yielding the same result `X = C`.
 
 Note that adding the best-effort approximation of the bound and
 solving the constraint set once again didn't change the outcome. In
-general, lower bounds are preferred by the type inference, and the
+general, lower bounds are preferred by the type inference, but the
 best-effort approximation is added as an upper-bound constraint.
 
 It is notable that even though the example program contains all the
@@ -189,9 +189,8 @@ is limited in two ways:
 
 - it is invoked in-between the phases of type inference and doesn't
   collect new type constraints from the context, and
-- instead of the actual bound, it uses its "best-effort"
-  approximation, eliminating the recursive properties of F-bounded
-  type variables.
+- instead of the actual bound, it uses its best-effort approximation,
+  eliminating the recursive properties of F-bounded type variables.
 
 A convenient way to graphically represent CSSTV is by a square, where
 three sides of it take the three inputs relevant to this proposal, and
@@ -385,7 +384,7 @@ block-beta
     space:3
     commentUpwardsBounds(["Bounds:"])
 
-    constraintsUpwards["C <: X"]
+    constraintsUpwards["C <# X"]
     space
     csstvUpwards["CSSTV"]
     space
@@ -397,11 +396,11 @@ block-beta
   space
   block:constraintsUpwardsUpdated:1
     columns 1
-    constraintUpwards2["C <: X"]
-    constraintUpwards1["X <: A&lt;_&gt;"]
+    constraintUpwards2["C <# X"]
+    constraintUpwards1["X <# A&lt;_&gt;"]
   end
   space
-  constraintGeneration["X <: A&lt;_&gt;"]
+  constraintGeneration["X <# A&lt;_&gt;"]
   space
 
   space:2
@@ -435,7 +434,7 @@ example and concludes with more examples of improvements.
 
 In the motivating example, adding the best-effort bound approximation
 didn't affect the result. The set of constraints for `X` already
-contained a lower-bound constraint for `X` (`C <: X`), and that
+contained a lower-bound constraint for `X` (`C <# X`), and that
 constraint has the priority over the upper-bound best-effort
 approximation constraint, since type `C` is fully known (i.e. doesn't
 contain `_`).
@@ -443,15 +442,14 @@ contain `_`).
 We derive a new lower-bound constraint by combining the already existing
 lower-bound constraint with the actual bound.
 
-In general, if we have two type constraints of the form `E <: Y` and
-`Y <: F`, where `Y` is a type variable and `E` and `F` are type
-schemas, it follows that `E <: F` holds if the `E <: Y` and `Y <: F`
-hold. So, instead of adding the constraint `X <: B'` in step 5 of
-CSSTV, where `B'` is the best-effort bound approximation, we generate
-a new set of constraints, running the subtype constraint generation
-algorithm described in [Subtype constraint
-generation][subtype-constraint-generation] for `P = C`, `Q = B`, `L =
-{..., X, ...}`.
+In general, if we have a type constraint `E <# Y` and a subtype relation `Y <:
+F`, where `Y` is a type variable, `E` is a type schema, and `F` is a type,
+possibly containing `Y`, it follows that `E <# F` holds if the `E <# Y` and `Y
+<: F` hold. So, instead of adding the constraint `X <# B'` in step 5 of CSSTV,
+where `B'` is the best-effort bound approximation, we generate a new set of
+constraints, running the subtype constraint generation algorithm described in
+[Subtype constraint generation][subtype-constraint-generation] for `P = C`, `Q
+= B`, `L = {..., X, ...}`.
 
 By construction, `C` doesn't contain type variables from `L`. `B` may
 contain type variables from `L` (surely, in contains `X` in case where
@@ -479,7 +477,7 @@ motivating example.
 The downwards phase isn't affected, since it doesn't provide any
 contextual type information in this specific example. In the upwards
 phase, before step 5 of CSSTV we have the partial solution `X = _`,
-the constraint set `{C <: X}`, and the solution of the constraint set
+the constraint set `{C <# X}`, and the solution of the constraint set
 for `X` is `C`, which is known (that is, it doesn't contain `_`).
 
 At step 5 of the modified CSSTV, `C <# X` is a lower-bound constraint
@@ -489,7 +487,7 @@ generation][subtype-constraint-generation] with `P = C`, `Q = A<X>`
 follows: `C <# A<X>` → `A<B> <# A<X>` → `B <# X`, which is the new
 constraint to add.
 
-We add `B <: X` to the constraint set for `X` (or, equivalently, merge
+We add `B <# X` to the constraint set for `X` (or, equivalently, merge
 it with the already merged constraint set for `X`, depending on the
 implementation) — it gives us `{C <# X, B <# X}`, and the solution for
 `X` becomes `X = B` at the end of step 5 of CSSTV.
@@ -539,7 +537,7 @@ block-beta
     space:3
     commentUpwardsBounds(["Bounds:"])
 
-    constraintsUpwards["C <: X"]
+    constraintsUpwards["C <# X"]
     space
     csstvUpwards["CSSTV"]
     space
@@ -551,9 +549,9 @@ block-beta
   space
   block:constraintsUpwardsUpdated:1
     columns 1
-    constraintUpwards2["C <: X"]
+    constraintUpwards2["C <# X"]
     space
-    constraintUpwards1["B <: X"]
+    constraintUpwards1["B <# X"]
   end
   space
   constraintGeneration["C <# A&lt;X&gt; ==> B <# X"]
@@ -570,7 +568,7 @@ block-beta
   csstvDownwards -- "{X = _}" --> csstvUpwards
 
   constraintGeneration -- "(2c) New constraints" --> constraintUpwards1
-  constraintUpwards2 -- "(2a) Contribute\nC <: X to C <# A&lt;X&gt;" --> constraintGeneration
+  constraintUpwards2 -- "(2a) Contribute\nC <# X to C <# A&lt;X&gt;" --> constraintGeneration
 
   constraintsUpwards -- "(1) Existing constraints\nfrom the\nupwards phase" --> constraintUpwards2
   constraintsUpwards --> csstvUpwards
