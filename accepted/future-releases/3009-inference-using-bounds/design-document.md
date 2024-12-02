@@ -192,14 +192,14 @@ is limited in two ways:
 - instead of the actual bound, it uses its best-effort approximation,
   eliminating the recursive properties of F-bounded type variables.
 
-A convenient way to graphically represent CSSTV is by a square, where
-three sides of it take the three inputs relevant to this proposal, and
-the fourth side produces the output. The relevant inputs are (1) the
-preliminary solution found by the previous phase of the inference, (2)
-the constraints collected during the current phase of the inference,
-and (3) the bounds of the type variables. The output of the algorithm
-is the solution for the current phase, which becomes the preliminary
-solution for the next phase.
+A convenient way to graphically represent CSSTV is by a rectangle,
+where three sides of it take the three inputs relevant to this
+proposal, and the fourth side produces the output. The relevant inputs
+are (1) the preliminary solution found by the previous phase of the
+inference, (2) the constraints collected during the current phase of
+the inference, and (3) the bounds of the type variables. The output of
+the algorithm is the solution for the current phase, which becomes the
+preliminary solution for the next phase.
 
 ```mermaid
 block-beta
@@ -336,6 +336,9 @@ block-beta
   csstvUpwards -- "Overall solution" --> overallOutput
 ```
 
+_(*) These are all the same type variable bounds, since we infer for the same
+type variables._
+
 An important property of CSSTV is the following: if an element of the
 preliminary solution from the previous phase is known (that is, it
 doesn't contain `_`), it is not changed by the current run of
@@ -466,13 +469,12 @@ inference. Then, the solution for type variable `X` is computed from
 the new constraint set, at the end of the updated step 5 of CSSTV.
 Note that when `X` isn't F-bounded and its bound doesn't refer to
 other type variables from the same declaration, the suggested changes
-for step 5 of CSSTV work exactly as the unmodified step 5 of the same
-algorithm.
+for CSSTV work exactly as the unmodified version of that algorithm.
 
 ## Re-evaluating the motivating example
 
-Let's see how type inference, updated as proposed, works in the
-motivating example.
+Let's see how the updated type inference works in the motivating
+example.
 
 The downwards phase isn't affected, since it doesn't provide any
 contextual type information in this specific example. In the upwards
@@ -493,16 +495,18 @@ implementation) — it gives us `{C <# X, B <# X}`, and the solution for
 `X` becomes `X = B` at the end of step 5 of CSSTV.
 
 `X = B` is "frozen" since B is known, and the overall solution for `X`
-is `B`, making the motivating example compile and run without errors.
+is `B`, allowing the motivating example compile and run without
+errors.
 
-The picture below shows the details of the updated type inference process for
-the example. The constraints collected during the upwards phase (1) contribute
-the lower bound `C` (2a) as the input `P` to [Subtype constraint
-generation][subtype-constraint-generation], and the type parameter bound
-contributes the upper bound `A<X>` (2b) as the input `Q` to the same algorithm.
-The newly generated constraint (2c) is then added to the set of existing
-constraints (1). Then the solution for the type variable is computed form the
-updated constraint set (3).
+The picture below shows the details of the updated type inference
+process in the motivating example. The constraints collected during
+the upwards phase (1) contribute the lower bound `C` (2a) as the input
+`P` to [Subtype constraint generation][subtype-constraint-generation],
+and the type parameter bound contributes the upper bound `A<X>` (2b)
+as the input `Q` to the same algorithm.  The newly generated
+constraint (2c) is then added to the set of existing constraints (1).
+Then the solution for the type variable is computed form the updated
+constraint set (3).
 
 ```mermaid
 block-beta
