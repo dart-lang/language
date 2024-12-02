@@ -742,8 +742,9 @@ consequences it has on type inference:_
     is, a type that does not contain `_`), that choice is frozen and is not
     affected by later type inference steps.  (Type inference accomplishes this
     by passing in any frozen choices as part of the partial solution)._
-  - _The bound of a type variable is only included as a constraint when the
-    choice of type for that type variable is about to be frozen._
+  - _The bound of a type variable participates in additional constraint
+    generation when the choice of type for that type variable is about to be
+    frozen._
   - _During each round of type inference, type variables are inferred left to
     right.  If the bound of one type variable refers to one or more type
     variables, then at the time the bound is included as a constraint, the type
