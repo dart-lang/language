@@ -192,9 +192,9 @@ If a type scheme *S*:
   then the type scheme does not denote any declaration or namespace.
 
 _Platform library declared types can be exempt from rules that apply to user
-declarations. For example the `Object` and `Null` classes appear to be `class`
+declarations. For example, the `Object` and `Null` classes appear to be `class`
 declarations in the library source code, but their types do not have a superclass,
-which any user-written `class` declaration myst have.
+which any user-written `class` declaration must have.
 That makes it unclear/under-specified whether these types are actually `class`
 declarations, or if they merely count as such in some ways, and if so,
 what they really are._
@@ -248,7 +248,7 @@ an identifier (or qualified identifier) denoting that declaration.
 It's a compile-time error if the shorthand context does not denote a declaration
 and static namespace.
 It's a compile-time error if a static member lookup with base name `id`/`new`
-on that declartion does not find a static member. 
+on that declaration does not find a static member. 
 It's a compile-time error if that declaration does not have a static member
 with base name `id`, or an unnamed constructor for `.new`.
 Otherwise the `.id`/`.new` is treated as denoting that member and works just like
@@ -422,7 +422,7 @@ _The only `.id` selector which can come after a constant expression
 and still be constant is `String.length`, and it's very hard to
 make that integer satisfy a context type of `String`. The only other
 selector which can follow complete constant expression and still be
-constant is the not-null check `!`, which is rarerly useful in
+constant is the not-null check `!`, which is rarely useful in
 constant expressions._
 
 A static member shorthand expression should be a _potentially constant_
@@ -431,7 +431,7 @@ selectors expression would be, which currently means that
 it's a potentially constant expression if and only if
 it's a constant expression.
 _There is no current way for an explicit static member access 
-followed by zero or more selectorsto be a potentially constant expression
+followed by zero or more selectors to be a potentially constant expression
 if it contains a constructor parameter anywhere. That "anywhere"
 is necessarily in a parameter expression, and the only invocation with
 parameters that are allowed in a potentially constant expression is 
