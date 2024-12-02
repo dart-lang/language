@@ -308,11 +308,12 @@ phase, it becomes "frozen" through the rest of the inference process
 and becomes a part of the overall inference result.
 
 The picture below shows the details of the type inference process for the
-motivating example using the schematic representation. In it, a new constraint
-(1) is generated from the bound of the type variable after completing the first
-four steps of the CSSTV algorithm. The new constraint is then added to the set
-of existing constraints (2) from the upwards inference phase. Then the solution
-for the type variable is computed form the updated constraint set (3).
+motivating example using the schematic representation. In addition to the
+constraints collected during the upwards phase (1), a new constraint (2) is
+generated from the bound of the type variable after completing the first four
+steps of the CSSTV algorithm. The new constraint is then added to the set of
+existing constraints (1). Then the solution for the type variable is computed
+form the updated constraint set (3).
 
 ```mermaid
 block-beta
@@ -378,10 +379,10 @@ block-beta
 
   constraintGeneration --> constraintUpwards1
 
-  constraintsUpwards -- "(2) Existing constraints\nfrom the\nupwards phase" --> constraintUpwards2
+  constraintsUpwards -- "(1) Existing constraints\nfrom the\nupwards phase" --> constraintUpwards2
   constraintsUpwards --> csstvUpwards
   boundsUpwards --> csstvUpwards
-  boundsUpwards -- "(1) Constraint from the best-effort\napproximation of the bound" --> constraintGeneration
+  boundsUpwards -- "(2) Constraint from the best-effort\napproximation of the bound" --> constraintGeneration
   constraintsUpwardsUpdated -- "(3) Recompute CSSTV using\nthe updated constraint set" --> csstvUpwards
 
   csstvUpwards -- "{X = C}" --> overallOutput
@@ -397,8 +398,8 @@ example and concludes with more examples of improvements.
 
 In the motivating example, adding the best-effort bound approximation
 didn't affect the result. The set of constraints for `X` already
-contained a lower-bound constraint for `X` (`C <# X`), and that
-constraint has the priority over the upper-bound "best-effort"
+contained a lower-bound constraint for `X` (`C <: X`), and that
+constraint has the priority over the upper-bound best-effort
 approximation constraint, since type `C` is fully known (i.e. doesn't
 contain `_`).
 
@@ -459,8 +460,14 @@ implementation) — it gives us `{C <# X, B <# X}`, and the solution for
 `X = B` is "frozen" since B is known, and the overall solution for `X`
 is `B`, making the motivating example compile and run without errors.
 
-The picture below shows the details of the updated type inference
-process for the example.
+The picture below shows the details of the updated type inference process for
+the example. The constraints collected during the upwards phase (1) contribute
+the lower bound `C` (2a) as the input `P` to [Subtype constraint
+generation][subtype-constraint-generation], and the type parameter bound
+contributes the upper bound `A<X>` (2b) as the input `Q` to the same algorithm.
+The newly generated constraint (2c) is then added to the set of existing
+constraints (1). Then the solution for the type variable is computed form the
+updated constraint set (3).
 
 ```mermaid
 block-beta
@@ -502,12 +509,13 @@ block-beta
     boundsUpwards["X extends A&lt;X&gt;"]
   end
 
-  space:5
+  space:10
 
   space
   block:constraintsUpwardsUpdated:1
     columns 1
     constraintUpwards2["C <: X"]
+    space
     constraintUpwards1["B <: X"]
   end
   space
@@ -524,14 +532,14 @@ block-beta
   boundsDownwards --> csstvDownwards
   csstvDownwards -- "{X = _}" --> csstvUpwards
 
-  constraintGeneration --> constraintUpwards1
-  constraintUpwards2 --> constraintGeneration
+  constraintGeneration -- "(2c) New constraints" --> constraintUpwards1
+  constraintUpwards2 -- "(2a) Contribute\nC <: X to C <# A&lt;X&gt;" --> constraintGeneration
 
-  constraintsUpwards --> constraintUpwards2
+  constraintsUpwards -- "(1) Existing constraints\nfrom the\nupwards phase" --> constraintUpwards2
   constraintsUpwards --> csstvUpwards
   boundsUpwards --> csstvUpwards
-  boundsUpwards -- "updated: constraint generation from bound" --> constraintGeneration
-  constraintsUpwardsUpdated --> csstvUpwards
+  boundsUpwards -- "(2b) Contribute A&lt;X&gt; to C <# A&lt;X&gt;\n" --> constraintGeneration
+  constraintsUpwardsUpdated -- "(3) Recompute CSSTV using\nthe updated constraint set" --> csstvUpwards
 
   csstvUpwards -- "{X = B}" --> overallOutput
 ```
