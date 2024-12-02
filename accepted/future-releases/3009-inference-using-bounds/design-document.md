@@ -15,6 +15,7 @@ changes in [inference.md][]. A new step is added to those described in
 section [Subtype constraint generation][].
 
 ```diff
+@@ -714,24 +714,30 @@ occurences of the unknown type.
  #### Constraint solution for a set of type variables
 
  The constraint solution for a set of type variables `{X0, ..., Xn}` with respect
@@ -39,6 +40,40 @@ section [Subtype constraint generation][].
      substitute `Uj` for `Xj` when `j < i` and `Tj` for `Xj` when `j >= i`)._
      Then `Ui` is the constraint solution for the type variable `Xi` with respect
      to the constraint set `C + (X <: Bi')`.
+
+ _This definition can perhaps be better understood in terms of the practical
+ consequences it has on type inference:_
+   - _Once type inference has determined a known type for a type variable (that
+     is, a type that does not contain `_`), that choice is frozen and is not
+     affected by later type inference steps.  (Type inference accomplishes this
+@@ -762,24 +768,30 @@ occurences of the unknown type.
+
+ #### Grounded constraint solution for a set of type variables
+
+ The grounded constraint solution for a set of type variables `{X0, ..., Xn}`
+ with respect to a constraint set `C`, with partial solution `{T0, ..., Tn}`, is
+ defined to be the set of types `{U0, ..., Un}` such that:
+   - If `Ti` is known (that is, does not contain `_`), then `Ui = Ti`.  _(Note
+     that the upcoming "variance" feature will relax this rule so that it only
+     applies to type variables without an explicitly declared variance.)_
+   - Otherwise, if `Xi` does not have an explicit bound, then `Ui` is the
+     grounded constraint solution for the type variable `Xi` with respect to the
+     constraint set `C`.
++  - Otherwise, let `Mb <: Xi <: Mt` be the merge of `C` with respect to `Xi`.
++    If `Mb` is not `_`, let `C1` be the constraint set produced by the subtype
++    constraint generation algorithm for `P = Mb`, `Q = B`, `L = {X0, ..., Xn}`.
++    Then `Ui` is the grounded constraint solution for the type variable `Xi`
++    with respect to the constraint set `C + C1`. *Note that `X` is in `L` and
++    that `Mb` doesn't contain any of `X0, ..., Xn`.*
+   - Otherwise, let `Bi` be the bound of `Xi`.  Then, let `Bi'` be the type
+     schema formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in
+     place of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we
+     substitute `Uj` for `Xj` when `j < i` and `Tj` for `Xj` when `j >= i`)._
+     Then `Ui` is the grounded constraint solution for the type variable `Xi`
+     with respect to the constraint set `C + (X <: Bi')`.
+
+ _This definition parallels the definition of the (non-grounded) constraint
+ solution for a set of type variables._
 ```
 
 [inference.md]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md
@@ -383,7 +418,7 @@ block-beta
   constraintsUpwards --> csstvUpwards
   boundsUpwards --> csstvUpwards
   boundsUpwards -- "(2) Constraint from the best-effort\napproximation of the bound" --> constraintGeneration
-  constraintsUpwardsUpdated -- "(3) Recompute CSSTV using\nthe updated constraint set" --> csstvUpwards
+  constraintsUpwardsUpdated -- "(3) Proceed with CSSTV using\nthe updated constraint set" --> csstvUpwards
 
   csstvUpwards -- "{X = C}" --> overallOutput
 ```
@@ -539,7 +574,7 @@ block-beta
   constraintsUpwards --> csstvUpwards
   boundsUpwards --> csstvUpwards
   boundsUpwards -- "(2b) Contribute A&lt;X&gt; to C <# A&lt;X&gt;\n" --> constraintGeneration
-  constraintsUpwardsUpdated -- "(3) Recompute CSSTV using\nthe updated constraint set" --> csstvUpwards
+  constraintsUpwardsUpdated -- "(3) Proceed with CSSTV using\nthe updated constraint set" --> csstvUpwards
 
   csstvUpwards -- "{X = B}" --> overallOutput
 ```
