@@ -10,9 +10,10 @@ Experiment flag: inference-using-bounds
 
 ## Changes in inference.md
 
-This document discusses the effect and the motivation of the following
-changes in [inference.md][]. A new step is added to those described in
-section [Subtype constraint generation][].
+This document discusses the effect and the motivation of the following changes
+in [inference.md][]. Steps are added to those described in sections [Constraint
+solution for a set of type variables][] and [Grounded constraint solution for a
+set of type variables][].
 
 ```diff
 @@ -714,24 +714,30 @@ occurences of the unknown type.
@@ -77,7 +78,8 @@ section [Subtype constraint generation][].
 ```
 
 [inference.md]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md
-[Subtype constraint generation]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#subtype-constraint-generation
+[Constraint solution for a set of type variables]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#constraint-solution-for-a-set-of-type-variables
+[Grounded constraint solution for a set of type variables]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#grounded-constraint-solution-for-a-set-of-type-variables
 
 ## Motivating example
 
