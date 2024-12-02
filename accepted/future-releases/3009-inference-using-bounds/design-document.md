@@ -495,7 +495,7 @@ implementation) — it gives us `{C <# X, B <# X}`, and the solution for
 `X` becomes `X = B` at the end of step 5 of CSSTV.
 
 `X = B` is "frozen" since B is known, and the overall solution for `X`
-is `B`, allowing the motivating example compile and run without
+is `B`, allowing the motivating example to compile and run without
 errors.
 
 The picture below shows the details of the updated type inference
