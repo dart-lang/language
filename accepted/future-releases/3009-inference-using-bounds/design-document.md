@@ -178,7 +178,7 @@ fun main() {
 ```
 
 Let's take a look at the source of the described type inference
-behaviour in Dart.
+behavior in Dart.
 
 ## Constraint solution for a set of type variables
 
@@ -194,7 +194,7 @@ is limited in two ways:
 
 A convenient way to graphically represent CSSTV is by a rectangle,
 where three sides of it take the three inputs relevant to this
-proposal, and the fourth side produces the output. The relevant inputs
+feature, and the fourth side produces the output. The relevant inputs
 are (1) the preliminary solution found by the previous phase of the
 inference, (2) the constraints collected during the current phase of
 the inference, and (3) the bounds of the type variables. The output of
@@ -583,17 +583,20 @@ block-beta
   csstvUpwards -- "{X = B}" --> overallOutput
 ```
 
-## More examples enabled by the current proposal
+## More examples enabled by this feature
 
-In addition to the motivating examples, both the original and the more
-complex, being handled by the current proposal, some cases of non
-F-bounded type variables are enabled by it as well.
+In addition to both motivating examples, this feature also handles
+some cases involving type variables that are not F-bounded.
 
-The following example demonstrates a tempting assumption that doesn't
-hold today, but will hold with the proposed update. The developers
-might think that they will get the extracted type value for `Y` when
-they specify a type value for `X`. We remember similar cases occurring
-in practice.
+With a class like `A` below, and with this feature, the constructor
+invocation in `test` is inferred as `A<List<num>, num>(<num>[])`.
+Without this feature, it is inferred as `A<List<num>, dynamic>(<num>[])`.
+
+Intuitively, this happens because the type inference algorithm without this
+feature is unable to detect that there is a relationship between `X` and `Y`.
+With this feature one could say that the value of `Y` is "extracted" from
+the value of `X`. We have seen cases in practice demonstrating that the
+ability to transfer this information during type inference is useful.
 
 ```dart
 class A<X extends Iterable<Y>, Y> {
@@ -608,9 +611,7 @@ test() {
 ```
 
 [#3009]: https://github.com/dart-lang/language/issues/3009
-
 [CSSTV]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#constraint-solution-for-a-set-of-type-variables
-
 [subtype-constraint-generation]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#subtype-constraint-generation
 
 ## Changelog
