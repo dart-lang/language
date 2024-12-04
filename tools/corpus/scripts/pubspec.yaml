@@ -1,0 +1,8 @@
+name: corpus
+environment:
+  sdk: '^3.0.0'
+dependencies:
+  args: any
+  http: any
+  path: "^1.0.0"
+  pool: any
