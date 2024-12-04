@@ -37,7 +37,7 @@ We introduce grammar productions of the form:
 <constantPattern> ::=  ...             -- all current productions
     | <staticMemberShorthandValue>     -- No selectors, no `.new`.
 
-<staticMemberShorthand> ::= <staticMemberShorthandHead> <selector*>
+<staticMemberShorthand> ::= <staticMemberShorthandHead> <selector>*
 
 <staticMemberShorthandHead> ::=
       <staticMemberShorthandValue>
@@ -91,7 +91,7 @@ Future<String> futures = .wait([lazyString(), lazyString()]).then((list) => list
 This is a simple grammatical change. It allows new constructs in any place where
 we currently allow primary expressions followed by selector chains
 through the `<postfixExpression>` production `<primary> <selector>*`,
-and now also `<staticMemberShorthandHead> <selector*>`.
+and now also `<staticMemberShorthandHead> <selector>*`.
 
 The new grammar is added as a separate production, rather than making
  `<staticMemberShorthandHead>` a `<primary>`, and sharing the `<selector>*`
@@ -163,7 +163,7 @@ First, when inferring types for a `<postfixExpression>` of the form
 `<staticMemberShorthand>` with context type scheme *C*, then assign *C* as
 the shorthand context of the leading `<staticMemberShorthandHead>`.
 Then continue inferring a type for the entire `<staticMemberShorthand>`
-recursively on the chain of selectors of the `<selector*>`,
+recursively on the chain of selectors of the `<selector>*`,
 in the same way as for a `<primary> <selector>*`. _This assigns the
 context type scheme of the entire, maximal selector chain to the static member
 shorthand head, moving it past any intermediate `<selector>`s._
@@ -265,10 +265,10 @@ this expression may have an actual context type. If it was followed by "real" se
 like `.parse(input).abs()`, then the recognized expression, `.parse(input)`
 in this example, likely has no context type._
 
-Expressions of the forms <code>.new\<*typeArgs*\></code> or 
+Expressions of the forms <code>.new\<*typeArgs*\>(*args*)</code> or
 <code>.new\<*typeArgs*\></code> (as a prefix of a `<staticMemberShorthand> <selector>*`
 production, or the entire chain) are compile-time errors, just like
-the corresponding <code>*T*.new\<*typeArgs*\></code>
+the corresponding <code>*T*.new\<*typeArgs*\>(*args*)</code>
 and <code>*T*.new\<*typeArgs*\></code> already are, whether used as instantiated
 tear-off or invoked.
 _(The grammar allows them, because `C.new` is a `<primary>` expression, but
