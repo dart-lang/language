@@ -239,14 +239,14 @@ An augmentation that replaces the body of a function may also want to
 preserve and run the code of the augmented declaration (hence the name
 "augmentation").  It may want to run its own code before the augmented
 code, after it, or both.  To support that, we allow a new expression syntax
-inside the "bodies" of augmenting declarations (function bodies,
-constructor bodies, and variable initializers). Inside an expression in an
-augmenting member declaration, the identifier `augmented` can be used to
-refer to the augmented function, getter, or setter body, or variable
-initializer. This is a contextual reserved word within `augment`
-declarations, and has no special meaning outside of that context. See the
-next section for a full specification of what `augmented` means, and how it
-must be used, in the various contexts.
+inside the "bodies" of augmenting declarations (some function bodies and
+variable initializers). Inside an expression in an augmenting member
+declaration, the identifier `augmented` can be used to refer to the augmented
+function, getter, or setter body, or variable initializer. This is a contextual
+reserved word within `augment` declarations, and has no special meaning outside
+of that context. See the [augmented expression](#augmented-expression) section
+for a full specification of what `augmented` means, and how it must be used, in
+the various contexts.
 
 *Note that within an augmenting member declaration, a reference to a member
 by the same name refers to the final version of the member (and not the one
@@ -343,9 +343,20 @@ augmented, but it generally follows the same rules as any normal identifier:
     variable's initializer if the member being augmented is not a variable
     declaration with an initializing expression.
 
-*   **Augmenting functions**: When augmenting a function, `augmented`
-    refers to the augmented function. Tear offs are not allowed, so this
-    function must immediately be invoked.
+*   **Augmenting functions**: Inside an augmenting function body (including
+    factory constructors but not generative constructors) `augmented` refers to
+    the augmented function. Tear-offs are not allowed, and this function must
+    immediately be invoked.
+
+*   **Augmenting non-redirecting generative constructors**: Unlike other
+    functions, `augmented` has no special meaning in non-redirecting generative
+    constructors. It is still a reserved word inside the body of these
+    constructors, since they are within the scope of an augmenting declaration.
+
+    There is instead an implicit order in which these augmented constructors are
+    invoked, and they all receive the same arguments. See
+    [this section](#non-redirecting-generative-constructors) for more
+    information.
 
 *   **Augmenting operators**: When augmenting an operator, `augmented`
     refers to the augmented operator method, which must be immediately
@@ -867,51 +878,15 @@ It is a compile-time error if:
 
 #### Non-redirecting generative constructors
 
-These are probably the most complex constructor, but also the most common.
+These are probably the most complex constructors, but also the most common.
 
-A non-redirecting generative constructor marked `augment` may:
+At a high level, a non-redirecting generative constructor marked `augment` may:
 
-*   Add or replace the body of the augmented constructor with a new body.
+*   Augment the constructor with an _additional_ constructor body (bodies are
+    invoked in augmentation order, starting at the introductory declaration).
 
-    *   If the augmenting constructor has an explicit block body, then that body
-        replaces any existing constructor body.
-
-    *   In the augmenting constructor's body, an `augmented()` call executes the
-        augmented constructor's body in the same parameter scope that the
-        augmenting body is executing in. The expression has type `void` and
-        evaluates to `null`. **(TODO: This is slightly under-specified. We can
-        use the current bindings of the parameters of the augmenting constructor
-        as the initial binding of parameter variables in the augmented body, or
-        we can execute the body in the current *scope*, using the same variables
-        as the current body. The latter is not what we do with functions
-        elsewhere, and allows the `augmented()` expression to modify local
-        variables, but the former introduces different variables than the ones
-        that existed when evaluating the initializer list. If the initializer
-        list captures variables in closures, that body may not work.)**
-
-    *   Initializer lists _are not_ re-run, they have already executed and
-        shouldn't be executed twice. The same goes for initializing formals and
-        super parameters.
-
-    *   If a parameter variable is overwritten prior to calling `augmented()`,
-        the augmented body will see the updated value, because the parameter
-        scope is identical.
-
-    *   Local variables in scope where `augmented()` is evaluated are not in
-        scope for the execution of the augmented constructor's body.
-
-*   Add initializers to the initializer list. If the augmenting constructor has
-    an initializer list then:
-
-    *   It's a compile-time error if the augmented constructor has
-        super-initializer, and the augmenting constructor's initializer list
-        also contains a super-initializer.
-
-    *   Otherwise the result of applying the augmenting constructor has an
-        initializer list containing first the assertions and field initializers
-        of the augmented constructor, if any, then the assertions and field
-        initializers of the augmenting constructor, and finally any
-        super-initializer of either the augmeted or augmenting constructor.
+*   Add initializers (and/or asserts) to the initializer list, as well as a
+    `super` call at the end of the initializer list.
 
 #### Non-redirecting factory constructors
 
@@ -932,8 +907,12 @@ potentially non-redirecting property of the constructor.
 
 It is a compile-time error if:
 
-*   The augmented constructor has an initializer list or a body, or it has a
-    redirection.
+*   The augmented constructor has any initializers.
+*   The augmented constructor has a body.
+*   The augmented constructor has a redirection.
+
+This redirecting generative constructor now behaves exactly like any other
+redirecting generative constructor when it is invoked.
 
 #### Redirecting factory constructors
 
