@@ -240,7 +240,7 @@ preserve and run the code of the augmented declaration (hence the name
 "augmentation").  It may want to run its own code before the augmented
 code, after it, or both.  To support that, we allow a new expression syntax
 inside the "bodies" of augmenting declarations (some function bodies and
-and variable initializers). Inside an expression in an augmenting member
+variable initializers). Inside an expression in an augmenting member
 declaration, the identifier `augmented` can be used to refer to the augmented
 function, getter, or setter body, or variable initializer. This is a contextual
 reserved word within `augment` declarations, and has no special meaning outside
