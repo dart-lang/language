@@ -317,10 +317,11 @@ For `==`, we special-case when the right operand is (precisely!) a static
 member shorthand.
 
 If an expression has the form `e1 == e2` or `e1 != e2`, or a pattern has the
-form `== e2`, where the static type of `e1`, or the matched value type of the
-pattern, is *S1*, and *e2* is precisely a `<staticMemberShorthand>` expression,
-then assign the type *S1* as the shorthand context of the `<staticMemberShorthandHead>`
-of *e2* before inferring its static type the same way as above.
+form `== e2` or `!= e2`, where the static type of `e1`, or the matched value
+type of the pattern, is *S1*, and *e2* is precisely a `<staticMemberShorthand>`
+expression, then assign the type *S1* as the shorthand context of the
+`<staticMemberShorthandHead>` of *e2* before inferring its static type the same
+way as above.
 
 This special-casing is only against an immediate static member shorthand.
 It does not change the *context type* of the second operand, so it would not
