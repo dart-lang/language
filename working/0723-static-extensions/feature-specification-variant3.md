@@ -143,58 +143,54 @@ The grammar is modified as follows:
     '{' (<metadata> <staticExtensionMemberDeclaration>)* '}'
 
 <staticExtensionMemberDeclaration> ::= // New rule.
-    'static' <staticExtensionMethodSignature> <functionBody> |
-    <staticExtensionConstructor> |
-    'static' <staticExtensionVariableDeclaration> ';'
+    'static'? <staticExtensionVariableDeclaration> ';' |
+    'static'? <staticExtensionCallableSignature> <functionBody> |
+    <staticExtensionConstructor>
 
-<staticExtensionMethodSignature> ::= // New rule.
+<staticExtensionVariableDeclaration> ::= // New rule.
+    ('final' | 'const') <type>? <staticFinalDeclarationList> |
+    'late' 'final' <type>? <initializedIdentifierList> |
+    'late'? <varOrType> <initializedIdentifierList>
+
+<staticExtensionCallableSignature> ::= // New rule.
     <functionSignature> |
     <getterSignature> |
     <setterSignature>
 
 <staticExtensionConstructor> ::= // New rule.
     <factoryConstructorSignature> <functionBody> |
-    <redirectingFactoryConstructorSignature> ';' |
-    <genericFactoryConstructorSignature> <functionBody> | 
-    <genericConstructorSignature> <redirection> ';'
+    <genericFactoryConstructorSignature> <functionBody> |
+    <staticExtensionConstructorDeclaration> ';'
+
+<staticExtensionConstructorDeclaration> ::= // New rule.
+    'external' <factoryConstructorSignature> |
+    'external' <genericFactoryConstructorSignature> |
+    <constructorSignature> <redirection> |
+    <genericConstructorSignature> <redirection> |
+    <redirectingFactoryConstructorSignature>
+
+<genericConstructorSignature> ::= // New rule.
+    <genericConstructorNamePart> <formalParameterList>
 
 <genericFactoryConstructorSignature> ::= // New rule.
     'const'? 'factory' <genericConstructorNamePart> <formalParameterList>
 
-<genericConstructorNamePart> ::=
-    <typeIdentifier> <typeArguments> '.' <identifierOrNew> <typeParameters>
-
-<genericConstructorSignature> ::=
-    
-
-
-<staticExtensionVariableDeclaration> ::= // New rule.
-    ('final' | 'const') <type>? <staticFinalDeclarationList> |
-    'late' 'final' <type>? <initializedIdentifierList> |
-    'late'? <varOrType> <initializedIdentifierList>
+<genericConstructorNamePart> ::= // New rule.
+    <typeName> <typeArguments>? '.' <identifierOrNew> <typeParameters>
 ```
 
 In a static extension of the form `static extension E on C {...}` where `C`
 is an identifier or an identifier with an import prefix, we say that the
-on-declaration of the static extension is `C`.
+_on-declaration_ of the static extension is `C`.
 
-If `C` denotes a non-generic class, mixin, mixin class, or extension
-type then we say that the _constructor return type_ of the static extension
-is `C`.
-
-If `C` denotes a generic declaration then `E` is treated as
-`static extension E on C<T1 .. Tk> {...}`
-where `T1 .. Tk` are obtained by instantiation to bound.
-
-In a static extension of the form `static extension E on C<T1 .. Tk> {...}`
-where `C` is an identifier or prefixed identifier, we say that the
-on-declaration of `E` is `C`, and the _constructor return type_ of `E` is
-`C<T1 .. Tk>`.
-
-In both cases, `E` is an identifer `id` which is optionally followed by a
-term derived from `<typeParameters>`. We say that the identifier `id` is
-the _name_ of the static extension. *Note that `T1 .. Tk` above may contain
-occurrences of those type parameters.*
+*In contrast, an `extension` declaration has an on-type. The difference
+arises because an `extension` declaration enables the invocation of certain
+extra, statically resolved methods, and they are enabled based on the type
+of the syntactic receiver at the call site. A static extension is not
+enabled or disabled based on the type of an expression, they are directly
+looked up by reference to a declaration. This implies that a 
+`static extension` declaration must be unambiguously tied to a specific
+declaration, which is then the one whose static interface is expanded.*
 
 ### Static Analysis
 
@@ -203,24 +199,7 @@ declaration by specifying several errors.
 
 A compile-time error occurs if the on-declaration of a static extension
 does not resolve to an enum declaration or a declaration of a class, a
-mixin, a mixin class, or an extension type.
-
-A compile-time error occurs if a static extension has an on-clause of the
-form `on C` where `C` denotes a generic class and no type arguments are
-passed to `C` *(i.e., it is a raw type)*, and the static extension contains
-one or more constructor declarations.
-
-*In other words, if the static extension ignores the type parameters of the
-on-declaration then it can only contain `static` members. Note that if the
-on-declaration is non-generic then `C` is not a raw type, and the static
-extension can contain constructors.*
-
-A compile-time error occurs if a static extension has an on-clause of the
-form `on C<T1 .. Tk>`, and the actual type parameters passed to `C` do not
-satisfy the bounds declared by `C`.  The static extension may declare one
-or more type parameters `X1 extends B1 .. Xs extends Bs`, and these type
-variables may occur in the types `T1 .. Tk`. During the bounds check, the
-bounds `B1 .. Bs` are assumed to hold for the type variables `X1 .. Xs`.
+mixin, a mixin class, an extension type, or an extension.
 
 Consider a static extension declaration _D_ named `E` which is declared in
 the current library or present in any exported namespace of an import
@@ -257,8 +236,8 @@ A compile-time diagnostic is emitted if a static extension _D_ declares a
 constructor or a static member with the same basename as a constructor or a
 static member in the on-declaration of _D_.
 
-*In other words, a static extension should not have name clashes with its
-on-declaration. The warning above is aimed at static members and
+*In other words, a static extension can, but should not, have name clashes
+with its on-declaration. The warning above is aimed at static members and
 constructors, but a similar warning would probably be useful for name
 clashes with instance members as well.*
 
@@ -267,29 +246,23 @@ clashes with instance members as well.*
 Static extensions introduce several scopes:
 
 The current scope for the on-clause of a static extension declaration _D_
-that does not declare any type parameters is the enclosing scope of _D_,
-that is the library scope of the current library.
-
-A static extension _D_ that declares type variables introduces a type
-parameter scope whose enclosing scope is the library scope. The current
-scope for the on-clause of _D_ is the type parameter scope.
+is the enclosing scope of _D_, that is, the library scope of the current
+library.
 
 A static extension _D_ introduces a body scope, which is the current scope
 for the member declarations. The enclosing scope for the body scope is the
-type parameter scope, if any, and otherwise the library scope.
+the library scope.
 
 Static members in a static extension are subject to the same static
 analysis as static members in other declarations.
 
-A constructor in a static extension introduces scopes in the same way as
-other constructor declarations. The return type of the constructor is the
-constructor return type of the static extension *(that is, the type in the
-`on` clause)*.
+A non-generic constructor in a static extension introduces scopes in the
+same way as other constructor declarations. The return type of the
+constructor is the type corresponding on-declaration of the static
+extension.
 
-Type variables of a static extension `E` are in scope in static member
-declarations in `E`, but any reference to such type variables in a static
-member declaration is a compile-time error. *The same rule applies for
-static members of classes, mixins, etc.*
+It is a compile-time error if a non-generic constructor is declared in a
+static extension whose on-declaration is generic.
 
 #### Static extension accessibility
 
@@ -308,14 +281,15 @@ declared in the current library.*
 the section [Member Invocations][], which is used below. This concept
 includes method invocations like `e.aMethod<int>(24)`, property extractions
 like `e.aGetter` or `e.aMethod` (tear-offs), operator invocations like
-`e1 + e2` or `aListOrNull?[1] = e`, function invocations like `f()`.  Each
-of these expressions has a _syntactic receiver_ and an _associated member
-name_.  With `e.aMethod<int>(24)`, the receiver is `e` and the associated
-member name is `aMethod`, with `e1 + e2` the receiver is `e1` and the
-member name is `+`, and with `f()` the receiver is `f` and the member name
-is `call`. Note that the syntactic receiver is a type literal in the case
-where the member invocation invokes a static member. In the following we
-will specify invocations of static members using this concept.*
+`e1 + e2` or `aListOrNull?[1] = e`, and function invocations like `f()`.
+Each of these expressions has a _syntactic receiver_ and an _associated
+member name_.  With `e.aMethod<int>(24)`, the receiver is `e` and the
+associated member name is `aMethod`, with `e1 + e2` the receiver is `e1`
+and the member name is `+`, and with `f()` the receiver is `f` and the
+member name is `call`. Note that the syntactic receiver is a type literal
+in the case where the member invocation invokes a static member. In the
+following we will specify invocations of static members using this
+concept.*
 
 [Member Invocations]: https://github.com/dart-lang/language/blob/94194cee07d7deadf098b1f1e0475cb424f3d4be/specification/dartLangSpec.tex#L13903
 
@@ -325,7 +299,7 @@ extension and `m` is a static member declared by `E`. We say that `e` is an
 _explicitly resolved invocation_ of said static member of `E`.
 
 *This can be used to invoke a static member of a specific static extension
-in order to manually resolve a name clash.
+in order to manually resolve a name clash.*
 
 Consider an expression `e` which is a member invocation with syntactic
 receiver `C` and an associated member name `m`, where `C` denotes a class
@@ -341,8 +315,9 @@ pre-feature Dart. It's about "near name clashes" involving a setter.*
 In the case where `C` does not declare any static members whose basename is
 the basename of `m`, and `C` does not declare any constructors named `C.m2`
 where `m2` is the basename of `m`, let _M_ be the set containing each
-accessible extension whose on-declaration is `C`, and whose static members
-include one with the name `m`, or which declares a constructor named `C.m`.
+accessible static extension whose on-declaration is `C`, and whose static
+members include one with the name `m`, or which declares a constructor
+named `C.m`.
 
 *If `C` does declare a constructor with such a name `C.m2` then the given
 expression is not a static member invocation. This case is described in a
@@ -375,6 +350,8 @@ enclosing declaration.
 *This invocation will never invoke a static member of a static extension
 which is not the enclosing declaration. In other words, there is nothing
 new in this case.*
+
+# TODO -- major revisions will be made anywhere beyond this point
 
 #### The instantiated constructor return type of a static extension
 
