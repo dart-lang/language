@@ -393,7 +393,6 @@ a static declaration or constructor declaration *S* when looked up on *D*.
   or the added type arguments are constant types.
   _Static tear-offs are constant. Instantiated static tear-offs
   are constant if the inferred type arguments are._
-  that is not a constant expression.)_
 * An expression of the form `.new` which is not followed by the
   selectors of an `<argumentPart>`, is a constant expression if
   *S* declares a constant (unnamed) constructor, and either type
