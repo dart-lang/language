@@ -387,7 +387,7 @@ a static declaration or constructor declaration *S* when looked up on *D*.
 * An expression of the form `.<identifier>` is a constant expression if
   *S* declares a constant getter.
 * An expression of the form `.<identifier>` that is not followed by an
-  `<argumentPart>`, is a constant expression if `*S* declares
+  `<argumentPart>`, is a constant expression if *S* declares
   a static method or constructor, and either type inference has not
   added type arguments as a generic function instantiation coercion,
   or the added type arguments are constant types.
