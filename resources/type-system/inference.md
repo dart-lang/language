@@ -345,6 +345,11 @@ schema.
     `Stream<K>`; let `E` be the type such that `Stream<E>` is a super-interface
     of `S`; and update `T` to be `UP(E, T)`.
 
+In these rules, 'in the block' refers to return and yield statements that
+will complete the execution of the function literal under inference, not
+the ones, if any, that will complete the execution of a nested function
+body.
+
 The **actual returned type** of the function literal is the value of `T` after
 all `return` and `yield` statements in the block body have been considered.
 
