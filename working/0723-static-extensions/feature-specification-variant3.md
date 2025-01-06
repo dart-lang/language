@@ -351,8 +351,6 @@ enclosing declaration.
 which is not the enclosing declaration. In other words, there is nothing
 new in this case.*
 
-# TODO -- major revisions will be made anywhere beyond this point
-
 #### The instantiated constructor return type of a static extension
 
 Assume that _D_ is a generic static extension declaration named `E` with
@@ -391,6 +389,8 @@ void main() {
 and it has a constructor return type of the form `C<S1 .. Sk>`. In this
 case the instantiated constructor return type of _D_ is `C<S1 .. Sk>`,
 which is a ground type, and it is the same for all call sites.*
+
+# TODO -- major revisions will be made anywhere beyond this point
 
 #### Invocation of a constructor in a static extension
 
