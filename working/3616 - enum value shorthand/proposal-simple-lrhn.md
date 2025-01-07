@@ -1,6 +1,6 @@
 # Dart static access shorthand
 
-Author: lrn@google.com<br>Version: 1.3 (2024-11-29)
+Author: lrn@google.com<br>Version: 1.4 (2025-01-08)
 
 You can write `.foo` instead of `ContextType.foo` when it makes sense. The rules
 are fairly simple and easy to explain.
@@ -381,38 +381,48 @@ a static declaration or constructor declaration *S* when looked up on *D*.
 
 * An expression of the form `const .id(arguments)` or `const .new(arguments)`
   is a constant expression. It's a compile-time error if *S* does not
-  declare a constant constructor, and if any expression in `arguments`,
-  which are all in a constant context, is not a constant expression.
+  declare a corresponding constant constructor, and if any expression
+  in `arguments`, which are all in a constant context, 
+  is not a constant expression.
 * An expression of the form `.<identifier>` is a constant expression if
-  *S* declares a constant getter.
+  *S* declares a corresponding static constant getter.
 * An expression of the form `.<identifier>` that is not followed by an
   `<argumentPart>`, is a constant expression if `*S* declares
-  a static method or constructor, and either type inference has not
-  added type arguments as a generic function instantiation coercion,
+  a static method or constructor with base name `<identifier>`,
+  and either type inference has not added type arguments as a
+  generic function instantiation coercion to the method,
+  or to the target class for a constructor,
   or the added type arguments are constant types.
   _Static tear-offs are constant. Instantiated static tear-offs
-  are constant if the inferred type arguments are._
-  that is not a constant expression.)_
+  are constant if the inferred type arguments are. Constructor
+  tear-offs of generic classes are always on instantiated classes._
 * An expression of the form `.new` which is not followed by the
   selectors of an `<argumentPart>`, is a constant expression if
-  *S* declares a constant (unnamed) constructor, and either type
-  inference has not added type arguments as a generic function
-  instantiation coercion, or the added type arguments are constant types.
+  *S* declares an unnamed constructor, and either the target
+  class is not generic, or type inference has inferred
+  constant type arguments for the target class.
+  _It's unlikely that such a tear-off can occur in a constant
+  context and be type-valid for the context type, but
+  `const Object o = .new;` is technically valid._
 * An expression of the form `.id<typeArguments>` not followed by
-  and `<arguments>` selector is a constant expression if the type
-  argument clauses are all constant type expressions.
-* (An expression of the form `.new` followed by a `<typeArguments>` is
-  still a compile-time error.)
+  an `<arguments>` selector is a constant expression if the type
+  argument clauses are all constant type expressions, and
+  *S* declares a corresponding static function. _(It's still a
+  compile-time error if *S* declares a constructor with the base
+  name `id`, constructors are not generic.)_
+* _(An expression of the form `.new` followed by a `<typeArguments>` is
+  still a compile-time error.)_
 * An expression of `.id(arguments)` or `.new(arguments)` is a
   constant expression if (and only if) it occurs in a constant context,
-  *S* declares a constant constructor, every expression
+  *S* declares a corresponding constant constructor, every expression
   in `arguments` (which then occurs in a constant context too)
-  is a constant expression, and inferred type arguments, if any,
-  are all constant types.
+  is a constant expression, and inferred type arguments to the
+  target class, if any, are all constant types.
 * An expression of `.id(arguments)` or `.id<typeArguments>(arguments)`
-  where *S* declares a getter or static function is never a constant
-  expression. _There are no `static` functions whose invocation is
-  constant, the only non-instance function which can be invoked as
+  where *S* declares a corresponding getter or static function is
+  never a constant expression.
+  _There are no `static` functions whose invocation is constant,
+  the only non-instance function which can be invoked as
   a constant expression is `identical`, which is not inside a static
   namespace._
 
@@ -424,7 +434,7 @@ a constant function.
 _The only `.id` selector which can come after a constant expression
 and still be constant is `String.length`, and it's very hard to
 make that integer satisfy a context type of `String`. The only other
-selector which can follow complete constant expression and still be
+selector which can follow a complete constant expression and still be
 constant is the not-null check `!`, which is rarely useful in
 constant expressions._
 
@@ -701,6 +711,12 @@ not members of `Future`. Primarily to allow people to return values from
 `async` functions, where we don't *want* to encourage returning `Future`s.
 
 ## Versions
+
+1.4 (2025-01-08): Update constant rules.
+
+* Doesn't require a constant `.new` tear-off to be a constant constructor.
+  That was a typo and was never intended.
+* Adds more words to constant section.
 
 1.3 (2024-11-29): Fix constant pattern, clean-up, and expansion 
   of the constant section.
