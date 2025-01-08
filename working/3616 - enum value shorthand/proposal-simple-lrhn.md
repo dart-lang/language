@@ -433,10 +433,7 @@ a constant function.
 
 _The only `.id` selector which can come after a constant expression
 and still be constant is `String.length`, and it's very hard to
-make that integer satisfy a context type of `String`. The only other
-selector which can follow a complete constant expression and still be
-constant is the not-null check `!`, which is rarely useful in
-constant expressions._
+make that integer satisfy a context type of `String`._
 
 A static member shorthand expression should be a _potentially constant_
 expression if the corresponding explicit static member plus 
