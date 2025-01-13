@@ -37,7 +37,7 @@ We introduce grammar productions of the form:
 <constantPattern> ::=  ...             -- all current productions
     | <staticMemberShorthandValue>     -- No selectors, no `.new`.
 
-<staticMemberShorthand> ::= <staticMemberShorthandHead> <selector*>
+<staticMemberShorthand> ::= <staticMemberShorthandHead> <selector>*
 
 <staticMemberShorthandHead> ::=
       <staticMemberShorthandValue>
@@ -91,7 +91,7 @@ Future<String> futures = .wait([lazyString(), lazyString()]).then((list) => list
 This is a simple grammatical change. It allows new constructs in any place where
 we currently allow primary expressions followed by selector chains
 through the `<postfixExpression>` production `<primary> <selector>*`,
-and now also `<staticMemberShorthandHead> <selector*>`.
+and now also `<staticMemberShorthandHead> <selector>*`.
 
 The new grammar is added as a separate production, rather than making
  `<staticMemberShorthandHead>` a `<primary>`, and sharing the `<selector>*`
@@ -163,7 +163,7 @@ First, when inferring types for a `<postfixExpression>` of the form
 `<staticMemberShorthand>` with context type scheme *C*, then assign *C* as
 the shorthand context of the leading `<staticMemberShorthandHead>`.
 Then continue inferring a type for the entire `<staticMemberShorthand>`
-recursively on the chain of selectors of the `<selector*>`,
+recursively on the chain of selectors of the `<selector>*`,
 in the same way as for a `<primary> <selector>*`. _This assigns the
 context type scheme of the entire, maximal selector chain to the static member
 shorthand head, moving it past any intermediate `<selector>`s._
@@ -266,11 +266,11 @@ like `.parse(input).abs()`, then the recognized expression, `.parse(input)`
 in this example, likely has no context type._
 
 Expressions of the forms <code>.new\<*typeArgs*\></code> or 
-<code>.new\<*typeArgs*\></code> (as a prefix of a `<staticMemberShorthand> <selector>*`
+<code>.new\<*typeArgs*\>(*args*)</code> (as a prefix of a `<staticMemberShorthand> <selector>*`
 production, or the entire chain) are compile-time errors, just like
 the corresponding <code>*T*.new\<*typeArgs*\></code>
-and <code>*T*.new\<*typeArgs*\></code> already are, whether used as instantiated
-tear-off or invoked.
+and <code>*T*.new\<*typeArgs*\>(*args*)</code> already are, whether used as
+instantiated tear-off or invoked.
 _(The grammar allows them, because `C.new` is a `<primary>` expression, but
 a `C.new`, or a `C.id` denoting a constructor, followed by type arguments is 
 recognized and made an error to avoid it being interpreted as `(C.new)<int>`.)_
@@ -317,7 +317,7 @@ For `==`, we special-case when the right operand is (precisely!) a static
 member shorthand.
 
 If an expression has the form `e1 == e2` or `e1 != e2`, or a pattern has the
-form `== e2`, where the static type of `e1`, or the matched value type of the
+form `== e2` or `!= e2`, where the static type of `e1`, or the matched value type of the
 pattern, is *S1*, and *e2* is precisely a `<staticMemberShorthand>` expression,
 then assign the type *S1* as the shorthand context of the `<staticMemberShorthandHead>`
 of *e2* before inferring its static type the same way as above.
@@ -387,7 +387,7 @@ a static declaration or constructor declaration *S* when looked up on *D*.
 * An expression of the form `.<identifier>` is a constant expression if
   *S* declares a corresponding static constant getter.
 * An expression of the form `.<identifier>` that is not followed by an
-  `<argumentPart>`, is a constant expression if `*S* declares
+  `<argumentPart>`, is a constant expression if *S* declares
   a static method or constructor with base name `<identifier>`,
   and either type inference has not added type arguments as a
   generic function instantiation coercion to the method,
