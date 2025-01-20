@@ -457,7 +457,7 @@ const Endian endian = .big; // => Endian.big.
 A *constant pattern* `<staticMemberShorthandValue>` is treated the same
 as that static member shorthand as an expression that has no following selectors,
 except with the _matched value type_ is set as the shorthand context
-of the `<staticIdentifierShorthandHead>`.
+of the `<staticMemberShorthandHead>`.
 
 The restriction to `<staticMemberShorthandValue>` is intended to match
 the existing allowed constant patterns, `<qualifiedIdentifier>` and
