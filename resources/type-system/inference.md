@@ -119,7 +119,7 @@ other declarations.
 Because of the possibility of inference dependency cycles between top-level
 declarations, the inference procedure relies on the set of *available* variables
 (*which are the variables for which a type is known*).  A variable is
-*available* iff:
+*available* if:
   - The variable was explicitly annotated with a type by the programmer.
   - A type for the variable was previously inferred.
 
