@@ -117,6 +117,9 @@ This issue must contain links to:
   - [ ] A link to the feature specification
   - [ ] All implementation issues
 
+> [!NOTE]
+> Once you're done making the implementation issue, copy the link of the issue and add it to the [Dash Feature Tracker board](https://github.com/orgs/flutter/projects/82/views/1).
+
 ## Team communication
 
 One of the most important parts of the language feature process is communicating
