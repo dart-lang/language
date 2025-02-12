@@ -51,8 +51,9 @@ augmentations, a structured and capable way to add new code, including new
 imports and new exports, to a library.
 
 Finally, we take this opportunity to disallow the legacy
-`part of library.name;` notation ([#2358][]). It won’t work some of the added
-features, and the Dart language is moving away from giving libraries names.
+`part of library.name;` notation ([#2358][]). It won’t work with some of
+the added features, and the Dart language is moving away from
+giving libraries names.
 
 [#252]: https://github.com/dart-lang/language/issues/252	"Partial classes and methods"
 [#678]: https://github.com/dart-lang/language/issues/678	"Partial classes"
