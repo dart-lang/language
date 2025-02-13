@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Draft
 
-Version: 1.1
+Version: 1.2
 
 Experiment flag: static-extensions
 
@@ -57,18 +57,24 @@ are only applicable to extensions that have an on-declaration, all other
 extensions will continue to work exactly as they do today. In the example
 above, the on-declaration of `E1` is `Distance`.
 
-For example:
+Here is an example where a static member is added to a class:
 
 ```dart
 // Static members must ignore the type parameters. It may be useful
-// to omit the type parameters in the case where every member is
-// static.
+// to omit the type parameters from the extension in the case where
+// every member is static.
 extension E2 on Map {
   static Map<K2, V> castFromKey<K, V, K2>(Map<K, V> source) =>
       Map.castFrom<K, V, K2, V>(source);
 }
+```
 
-// Type parameters are used by constructors.
+An extension with a generic on-declaration _D_ which is a class or an
+enumerated type can implicitly inject certain kinds of constructors into
+_D_, and they are able to use the type parameters of the extension. For
+example:
+
+```dart
 extension E3<K extends String, V> on Map<K, V> {
   factory Map.fromJson(Map<String, Object?> source) =>
       Map.from(source);
@@ -79,6 +85,22 @@ var typedMap = Map<String, int>.fromJson(jsonMap);
 // `Map<int, int>.fromJson(...)` is an error: It violates the
 // bound of `K`.
 ```
+
+This situation is just an abbreviated notation for a declaration where the
+constructor declares its own handling of genericity:
+
+```dart
+// We could keep the type parameters of the extension, but they are now
+// unused because the constructor declares its own type parameters.
+extension SameAsE3 on Map {
+  factory Map<K, V>.fromJson<K extends String, V>(
+    Map<String, Object?> source
+  ) => Map.from(source);
+}
+```
+
+An extension can declare factories and redirecting generative constructors,
+but it cannot declare a non-redirecting generative constructor.
 
 Another motivation for this mechanism is that it supports constructors of
 generic classes whose invocation is only allowed when the given actual type
@@ -125,6 +147,9 @@ Map<String, List<bool>> map3 = Map.fromString([]);
 
 ## Specification
 
+This specification assumes that generic constructors have already been
+added to Dart.
+
 ### Syntax
 
 The grammar remains unchanged.
@@ -138,11 +163,9 @@ redirecting factory constructor redirects to a constructor that does not
 exist, or there is a redirection cycle.*
 
 In an extension declaration of the form `extension E on C {...}` where `C`
-is an identifier or an identifier with an import prefix that denotes a
+is an identifier (or an identifier with an import prefix) that denotes a
 class, mixin, enum, or extension type declaration, we say that the
-_on-declaration_ of the extension is `C`. If `C` denotes a non-generic
-class, mixin, mixin class, or extension type then we say that the
-_constructor return type_ of the extension is `C`.
+_on-declaration_ of the extension is `C`.
 
 If `C` denotes a generic class then `E` is treated as
 `extension E on C<T1 .. Tk> {...}` where `T1 .. Tk` are obtained by
@@ -151,20 +174,20 @@ instantiation to bound.
 In an extension of the form `extension E on C<T1 .. Tk> {...}`  where `C`
 is an identifier or prefixed identifier that denotes a class, mixin, enum,
 or extension type declaration, we say that the _on-declaration_ of `E` is
-`C`, and the _constructor return type_ of `E` is `C<T1 .. Tk>`.
+`C`.
 
 In an extension of the form `extension E on F<T1 .. Tk> {...}` where `F` is
 a type alias whose transitive alias expansion denotes a class, mixin, enum,
 or extension type `C`, we say that the _on-declaration_ of `E` is `C`, and
-the _constructor return type_ of `E` is the transitive alias expansion of
-`F<T1 .. Tk>`.
+the declaration is treated as if `F<T1 .. Tk>` were replaced by its
+transitive alias expansion.
 
 In all other cases, an extension declaration does not have an
-on-declaration nor a constructor return type.
+on-declaration.
 
-For the purpose of identifying the on-declaration and constructor return
-type of a given extension, the types `void`, `dynamic`, and `Never` are not
-considered to be classes, and neither are record types or function types.
+For the purpose of identifying the on-declaration of a given extension, the
+types `void`, `dynamic`, and `Never` are not considered to be classes, and
+neither are record types or function types.
 
 *Also note that none of the following types are classes:*
 
@@ -174,7 +197,9 @@ considered to be classes, and neither are record types or function types.
 
 *It may well be possible to allow record types and function types to be
 extended with constructors that are declared in an extension, but this is
-left as a potential future enhancement.*
+left as a potential future enhancement. It could be useful to be able to
+denote a set of specific functions of a given type by declaring them as
+static members of an extension on that function type.*
 
 ### Static Analysis
 
@@ -183,9 +208,13 @@ by specifying several errors.
 
 It is a compile-time error to declare a constructor in an extension whose
 on-type is not regular-bounded, assuming that the type parameters declared
-by the extension satisfy their bounds. It is a compile-time error to invoke
-a constructor of an extension whose instantiated on-type is not
-regular-bounded.
+by the extension satisfy their bounds. 
+
+*This is just a restatement of a compile-time error which is reported for
+such invocations of the corresponding generic constructor.*
+
+It is a compile-time error to invoke a constructor of an extension whose
+instantiated on-type is not regular-bounded.
 
 Tools may report diagnostic messages like warnings or lints in certain
 situations. This is not part of the specification, but here is one
@@ -206,14 +235,15 @@ clashes with instance members as well.*
 the section [Member Invocations][], which is used below. This concept
 includes method invocations like `e.aMethod<int>(24)`, property extractions
 like `e.aGetter` or `e.aMethod` (tear-offs), operator invocations like
-`e1 + e2` or `aListOrNull?[1] = e`, function invocations like `f()`.  Each
-of these expressions has a _syntactic receiver_ and an _associated member
-name_.  With `e.aMethod<int>(24)`, the receiver is `e` and the associated
-member name is `aMethod`, with `e1 + e2` the receiver is `e1` and the
-member name is `+`, and with `f()` the receiver is `f` and the member name
-is `call`. Note that the syntactic receiver is a type literal in the case
-where the member invocation invokes a static member. In the following we
-will specify invocations of static members using this concept.*
+`e1 + e2` or `aListOrNull?[1] = e`, and function invocations like `f()`.
+Each of these expressions has a _syntactic receiver_ and an _associated
+member name_.  With `e.aMethod<int>(24)`, the receiver is `e` and the
+associated member name is `aMethod`, with `e1 + e2` the receiver is `e1`
+and the member name is `+`, and with `f()` the receiver is `f` and the
+member name is `call`. Note that the syntactic receiver is a type literal
+in the case where the member invocation invokes a static member. In the
+following we will specify invocations of static members using this
+concept.*
 
 [Member Invocations]: https://github.com/dart-lang/language/blob/94194cee07d7deadf098b1f1e0475cb424f3d4be/specification/dartLangSpec.tex#L13903
 
@@ -226,7 +256,7 @@ _explicitly resolved invocation_ of said static member of `E`.
 order to manually resolve a name clash. At the same time, in Dart without
 the feature which is specified in this document, this is the only way we
 can invoke a static member of an extension (except when it is in scope, see
-below), so it may be useful for backward compatibility.*
+below), so it can also be useful because it avoids breaking existing code.*
 
 Consider an expression `e` which is a member invocation with syntactic
 receiver `C` and an associated member name `m`, where `C` denotes a class
@@ -277,45 +307,6 @@ enclosing declaration.
 not the enclosing declaration. In other words, there is nothing new in this
 case.*
 
-#### The instantiated constructor return type of an extension
-
-Assume that _D_ is a generic extension declaration named `E` with formal
-type parameters `X1 extends B1, ..., Xs extends Bs` and constructor return
-type `C<S1 .. Sk>`. Let `T1, ..., Ts` be a list of types. The
-_instantiated constructor return type_ of _D_ _with actual type arguments_
-`T1 .. Ts` is then the type `[T1/X1 .. Ts/Xs]C<S1 .. Sk>`.
-
-*As a special case, assume that _D_ has an on-type which denotes a
-non-generic class `C`. In this case, the instantiated constructor return
-type is `C`, for any list of actual type arguments.*
-
-*Note that such type arguments can be useful, in spite of the fact that
-they do not occur in the type of the newly created object. For example:*
-
-```dart
-class A {
-  final int i;
-  A(this.i);
-}
-
-extension E<X> on A {
-  A.computed(X x, int Function(X) fun): this(fun(x));
-}
-
-void main() {
-  // We can create an `A` "directly".
-  A a = A(42);
-
-  // We can also use a function to compute the `int`.
-  a = A.computed('Hello!', (s) => s.length);
-}
-```
-
-*As another special case, assume that _D_ has no formal type parameters,
-and it has a constructor return type of the form `C<S1 .. Sk>`. In this
-case the instantiated constructor return type of _D_ is `C<S1 .. Sk>`,
-which is a ground type, and it is the same for all call sites.*
-
 #### Invocation of a constructor in an extension
 
 Explicit constructor invocations are similar to explicitly resolved static
@@ -324,38 +315,18 @@ the formal type parameters declared by an extension.
 
 An _explicitly resolved invocation_ of a constructor named `C.name` in an
 extension declaration _D_ named `E` with `s` type parameters and
-on-declaration `C` can be expressed as `E<S1 .. Ss>.C.name(args)`,
-`E.C<U1 .. Uk>.name(args)`, or `E<S1 .. Ss>.C<U1 .. Uk>.name(args)` (and
-similarly for a constructor named `C` using `E<S1 .. Ss>.C(args)`, etc).
+on-declaration `C` can be expressed as `E.name(args)`, or (if it is a
+generic constructor) `E.name<T1 .. Tk>(args)`. 
 
-*The point is that an explicitly resolved invocation has a static analysis
-and dynamic semantics which is very easy to understand, based on the
-information. In particular, the actual type arguments passed to the
-extension determines the actual type arguments passed to the class, which
-means that the explicitly resolved invocation typically has quite some
-redundancy (but it is very easy to check whether it is consistent, and it
-is an error if it is inconsistent). Every other form is reduced to this
-explicitly resolved form.*
+An explicitly resolved invocation of a constructor named `C` in an
+extension declaration _D_ named `E` with `s` type parameters and
+on-declaration `C` can be expressed as `E.new(args)`, or (if it is a
+generic constructor) `E.new<T1 .. Tk>(args)`.
 
-A compile-time error occurs if the type arguments passed to `E` violate the
-declared bounds. A compile-time error occurs if no type arguments are
-passed to `E`, and type arguments `U1 .. Uk` are passed to `C`, but no list
-of actual type arguments for the type variables of `E` can be found such
-that the instantiated constructor return type of `E` with said type
-arguments is `C<U1 .. Uk>`.
-
-*Note that we must be able to choose the values of the type parameters
-`X1 .. Xs` such that the instantiated constructor return type is
-exactly `C<U1 .. Uk>`, it is not sufficient that it is a subtype thereof,
-or that it differs in any other way.*
-
-A compile-time error occurs if the invocation passes actual type arguments
-to both `E` and `C`, call them `S1 .. Ss` and `U1 .. Uk`, respectively,
-unless the instantiated constructor return type of _D_ with actual type
-arguments `S1 .. Ss` is `C<U1 .. Uk>`. In this type comparison, top types
-like `dynamic` and `Object?` are considered different, and no type
-normalization occurs. *In other words, the types must be equal, not
-just mutual subtypes.*
+*We might be able to allow invocations of the form `E(args)`, but they are
+probably too confusing for a reader who does not know that it is a
+constructor invocation which could have been written as `C(args)` where `C`
+is the on-declaration of `E`.*
 
 *Note that explicitly resolved invocations of constructors declared in
 extensions are a rare exception in real code, usable in the case where a
@@ -384,18 +355,24 @@ If `m` is zero and `E` is an accessible extension with on-declaration `C`
 that declares a static member whose basename is `name` then the invocation
 is a static member invocation *(which is specified in an earlier section)*.
 
-Otherwise, assume that _kj_ is a constructor declared by an extension _D_
-named `E` with type parameters `X1 extends B1 .. Xs extends Bs`,
-on-declaration `C`, and on-type `C<S1 .. Sm>`. Find actual values
-`U1 .. Us` for `X1 .. Xs` satisfying the bounds `B1 .. Bs`, such that
-`([U1/X1 .. Us/Xs]C<S1 .. Sm>) == C<T1 .. Tm>`. This may determine the
-value of some of the actual type arguments `U1 .. Us`, and others may be
-unconstrained (because they do not occur in `C<T1 .. Tm>`). Actual type
-arguments corresponding to unconstrained type parameters are given as `_`
-(and they are subject to inference later on, where the types of the actual
-arguments `args` may influence their value). If this inference fails
-then remove _kj_ from the set of candidate constructors.  Otherwise note
-that _kj_ uses actual type arguments `U1 .. Us`.
+Otherwise, assume that _kj_ is a generic constructor declared by an
+extension _D_ named `E` with type parameters 
+`X1 extends B1 .. Xs extends Bs`, on-declaration `C`, and return type
+`C<S1 .. Sm>` (or _kj_ is a non-generic constructor that gets the same type
+parameters and type arguments from the enclosing extension).
+
+!!!TODO!!!
+
+Find actual values `U1 .. Us` for `X1 .. Xs` satisfying the bounds 
+`B1 .. Bs`, such that `([U1/X1 .. Us/Xs]C<S1 .. Sm>) == C<T1 .. Tm>`. This
+may determine the value of some of the actual type arguments `U1 .. Us`,
+and others may be unconstrained (because they do not occur in 
+`C<T1 .. Tm>`). Actual type arguments corresponding to unconstrained type
+parameters are given as `_` (and they are subject to inference later on,
+where the types of the actual arguments `args` may influence their
+value). If this inference fails then remove _kj_ from the set of candidate
+constructors.  Otherwise note that _kj_ uses actual type arguments 
+`U1 .. Us`.
 
 If all candidate constructors have been removed, or more than one candidate
 remains, a compile-time error occurs. Otherwise, the invocation is
@@ -456,6 +433,12 @@ extension is reduced to an explicitly resolved one during static analysis.
 This fully determines the dynamic semantics of this feature.
 
 ### Changelog
+
+1.2 - Feb 6, 2025
+
+* Change the text to rely on generic constructor declarations, rather
+  than introducing a new mechanism which is only used with extensions.
+* !!!TODO!!!
 
 1.1 - Aug 21, 2024
 
