@@ -1,4 +1,4 @@
-# Extensions with Static Capabilities
+# Generic constructors
 
 Author: Erik Ernst
 
