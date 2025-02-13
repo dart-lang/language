@@ -110,7 +110,6 @@ extends Comparable<X>`. This implies that current Dart constructors can
 only allow for a declaration that resembles `D.ofComparable` if it uses a
 much less precise typing, and relies on some run-time type checks.
 
-
 ```dart
 // What we can do in current Dart.
 
@@ -157,7 +156,7 @@ The extra constraints can be helpful during inference. For instance,
 `Map.keyToList(xs)` above would yield a `Map<int, List<int>>`. In contrast:
 
 ```dart
-// What we can do in current Dart doesn't work...
+// What we may try to do in current Dart doesn't work...
 
 class Map<K, V> {
   Map();
@@ -166,34 +165,31 @@ class Map<K, V> {
 }
 ```
 
-It is possible to create a `Map<K, List<K>>` based on an existing
-`Iterable<K>` using run-time type information. However, Dart does not in
-general support this kind of introspection into the run-time value of type
-arguments (and Dart does not (yet) have an 'existential open' operation),
-so we'd almost always have to use very general types in a way which is
-similar to the example above, which is a very substantial reduction in
-typing precision.
+However, that is a compile-time error because it returns a 
+`Map<Object?, List<Object?>>` where the return type is `Map<K, V>`.
+But we don't know `K` or `V`, and we can't assume that `V` is of the form
+`List<K>` or a supertype thereof. We might try to cast the map literal to
+`Map<K, V>`, and that might work, but an invocation like 
+`Map<int, String>.keyToList(xs)` will then throw at run time because the
+map literal isn't going to have the required type no matter which iterable
+we are passing as `keys`.
 
-However, that won't work because it is a compile-time error to return the
-specified map literal in the declaration of `Map.keyToList`. So we'd need
-to cast it to `Map<K, V>`, and that's going to throw in an invocation like
-`Map<int, String>.keyToList(xs)`.
+With the generic constructor and with an invocation like 
+`Map<int, String>.keyToList(xs)`, the actual type arguments will be used as
+a context type for the constructor invocation. The generic constructor
+`Map.keyToList` fails to infer actual type arguments such that the
+resulting return type is a subtype of `Map<int, String>`, and hence the
+invocation is a compile-time error.
 
-With the generic constructor, the actual type arguments like
-`<int, String>` will be used as a context type for the constructor
-invocation. The generic constructor `Map.keyToList` fails to infer actual
-type arguments such that the resulting return type is a subtype of
-`Map<int, String>`, and hence an invocation of the generic constructor like
-`Map<int, String>.keyToList(xs)` will be a compile-time error.
-
-It should be noted that the type arguments of the class are inaccessible in
+It should be noted that the type parameters of the class are inaccessible in
 a generic constructor declaration. In that sense, the generic constructor
 declaration is similar to a static member declaration, in that it can
 declare and use its own formal type parameters, but it cannot access the
 type parameters from the enclosing class.
 
 The similarity to generic static methods goes further. For example, we
-could express `keyToList` as a static method in current Dart as follows:
+could express `keyToList` as a generic static method in current Dart as
+follows:
 
 ```dart
 // Emulating `keyToList` as a static method in current Dart.
@@ -210,9 +206,11 @@ void main() {
 }
 ```
 
+Works perfectly!
+
 This illustrates that the new expressive power is not new for static
 members (and the invocations can look exactly the same as a constructor
-invocation in many cases). 
+invocation in many cases), it is only new for constructors.
 
 However, it is still useful to generalize constructors in this way because
 certain situations require the use of a constructor rather than a static
@@ -233,23 +231,30 @@ The grammar is adjusted as follows:
   | <typeIdentifier> <typeArguments> '.' <identifierOrNew> 
     <formalParameterList>
 
-<factoryConstructorSignature> ::= 'const'? 'factory' <constructorSignature>
+<factoryConstructorSignature> ::= 
+    'const'? 'factory' <constructorSignature>
 
 <redirectingFactoryConstructorSignature> ::=
-    'const'? 'factory' <constructorSignature> '=' <constructorDesignation>
+    'const'? 'factory' <constructorSignature> '=' 
+    <constructorDesignation>
 
-<constantConstructorSignature> ::= 'const' <constructorSignature>
+<constantConstructorSignature> ::= 
+    'const' <constructorSignature>
 ```
 
+A _type introducing_ declaration is a class declaration, a mixin
+class declaration, a mixin declaration, an enum declaration, or an
+extension type declaration.
+
 A compile-time error occurs if the `<typeIdentifier>` in the constructor
-signature is not the same as the name of the enclosing class, mixin or enum
+signature is not the same as the name of the enclosing type introducing
 declaration, or the name of the on-declaration of the enclosing extension
 declaration.
 
 ### Static Analysis
 
-A generic constructor declaration occurs as a member of a class, mixin,
-mixin class, enum, or extension declaration. Its current scope is the body
+A generic constructor declaration occurs as a member of a type introducing 
+declaration or an extension declaration. Its current scope is the body
 scope of the enclosing declaration. It introduces a type parameter scope
 whose enclosing scope is the current scope of the generic constructor
 declaration, and each type parameter declaration introduces that type
@@ -258,7 +263,7 @@ for the entire generic constructor declaration. Further scopes inside the
 type parameter scope are created in the same way as for non-generic
 constructors.
 
-*In particular, a parameter of the form `this.p` is in scope in the
+*For example, a parameter of the form `this.p` is in scope in the
 initializer list, if any, and other parameters are in scope in the body, as
 usual.*
 
@@ -266,10 +271,10 @@ We establish some coherence conditions for generic constructors:
 
 A compile-time error occurs if any identifier in a generic constructor
 declaration resolves to a type parameter which is declared by the enclosing
-class, mixin, enum, or extension declaration.
+type introducing declaration or extension declaration.
 
 *In other words, a generic constructor cannot access the type parameters of
-the class directly. In this way they are similar to static members.*
+a class etc. directly. In this way they are similar to static members.*
 
 Assume that _D_ is a generic constructor declaration whose constructor
 signature includes a list of actual type arguments which are applied to the
@@ -277,10 +282,10 @@ signature includes a list of actual type arguments which are applied to the
 
 *For example, `C<X>.name<X extends num>()` applies `C` to `<X>`.*
 
-It is a compile-time error if the enclosing class, mixin, or enum
-declaration or the on-declaration of the enclosing extension declaration
-does not declare any type parameters, or if it declares a different number
-of type parameters than the number of type arguments which are passed.
+It is a compile-time error if the enclosing type introducing declaration,
+or the on-declaration of the enclosing extension declaration, does not
+declare any type parameters, or if it declares a different number of type
+parameters than the number of type arguments which are passed.
 
 It is a compile-time error unless these type arguments satisfy the declared
 bounds, assuming that the bounds of the generic constructor declaration
@@ -312,7 +317,12 @@ non-generic class).
 In this case, the super-initializer of the constructor (explicit or
 implicit, and excepting `Object` that does not have a super-initializer)
 will invoke the superconstructor with actual type arguments that correspond
-to the type `C<T1 .. Tk>` of the current constructor invocation.
+to the type `C<T1 .. Tk>` of the current constructor invocation. 
+
+That is, if `C` is declared with `k` type parameters `X1 .. Xk` and
+superclass `B<U1 .. Us>` then the `j`th actual type argument to the super
+constructor invocation is obtained as `[T1/X1 .. Tk/Xk]Uj`, for `j` in 
+`1 .. s`.
 
 Moreover, in the body of _D_, the reserved word `this` has static type
 `C<T1 .. Tk>`.
@@ -360,8 +370,8 @@ whose constructor signature applies a list of actual type arguments to the
 where `k` is zero, which again implies that `C` is a non-generic class).
 
 In this case, the denoted redirectee constructor is invoked with the same
-actual type arguments. It is a compile-time error if the redirectee is a
-generic constructor.
+actual type arguments, that is `T1 .. Tk`. It is a compile-time error if
+the redirectee is a generic constructor.
 
 *This restriction might also be relaxed in the future, if needed.*
 
