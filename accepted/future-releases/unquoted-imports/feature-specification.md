@@ -349,15 +349,75 @@ export some/path // Before the semicolon? Really?
 The syntax that results from the above few sections is simple to tokenize and
 parse while looking like a single opaque "unquoted string" to users and tools.
 
+### Part of directives
+
+In Dart today, `part of` directives can already contain unquoted dotted
+identifiers, like:
+
+```dart
+// some_lib.dart
+library some.lib;
+
+part 'some_part.dart';
+
+// some_part.dart
+part of some.lib;
+```
+
+This is a legacy syntax from when library names were more widely used in Dart.
+Library names in `part of` directives have been deprecated for many years
+because the syntax doesn't work well with many tools. How is a given tool
+supposed to know where to find the library that happens to contain a `library`
+directive with that name? The quoted URI syntax was added later specifically to
+address that point and users are encouraged by documentation and lints to use
+the quoted syntax.
+
+Looking at a corpus of 122,420 files:
+
+```
+-- Directive (443733 total) --
+ 352744 ( 79.495%): import   =========================================
+  55471 ( 12.501%): export   =======
+  17823 (  4.017%): part     ===
+  17695 (  3.988%): part of  ===
+```
+
+So `part of` directives are fairly rare to begin with. Of them, most use the
+recommended URI syntax and would not be affected by this change:
+
+```
+-- Part of (17695 total) --
+  13229 ( 74.761%): uri           ===================================
+   4466 ( 25.239%): library name  ============
+```
+
+If we reinterpreted that existing syntax to refer to another package instead of
+a library within the current package, user breakage is likely and would be very
+confusing.
+
+To avoid potential user confusion and breakage, the new syntax in this proposal
+isn't allowed in `part or` or `part` directives. We disallow it in `part of`
+to avoid confusion with the legacy syntax, and we disallow it in `part` to be
+symmetric with `part of`.
+
+Further, we make a **language-versioned breaking change** and remove support for
+unquoted library identifiers in `part of` directives completely. That way, a
+user never sees syntax in a `part of` file that *looks* like a package path but
+means something else.
+
+*Since part files should realistically always be part of the same package that
+contains the library that owns them, the new unquoted syntax is of limited use
+for part files anyway. Quoted relative URIs are shorter and more idiomatic.*
+
 ## Syntax
 
 The normative stuff starts now. Here is the proposal:
 
-We add a new rule and hang it off the existing `configurableUri` rule already
-used by import and export directives:
+We replace the existing `uri` rule with the following rule along with a couple
+of helper rules:
 
 ```
-configurableUri   ::= ( stringLiteral | packagePath ) configurationUri*
+uri               ::= stringLiteral | packagePath
 packagePath       ::= pathSegment ( '/' pathSegment )*
 pathSegment       ::= segmentComponent ( '.' segmentComponent )*
 segmentComponent  ::= IDENTIFIER
@@ -375,6 +435,29 @@ first `segmentComponent` in the `packagePath` to the last.*
 quoted form (which is what they will do for relative references). But they can
 also use a `packagePath`, which is a slash-separated series of segments, each of
 which is a series of dot-separated components.*
+
+### Disallowing unquoted part and part-of directives.
+
+We change the `partDirective` and `partHeader` rules to:
+
+```
+partDirective ::= metadata 'part' stringLiteral ';'
+partHeader    ::= metadata 'part' 'of' stringLiteral ';'
+```
+
+*As part of [augmentations][], we are also planning to [expand the power of part
+files][enhanced parts]. That includes supporting configurable part directives
+(but not configurable part-of. When/if that happens, this grammar will need to
+be tweaked to something like:*
+
+```
+partDirective          ::= metadata 'part' configurableQuotedUri ';'
+configurableQuotedUri  ::= stringLiteral configurationQuotedUri*
+configurationQuotedUri ::= 'if' '(' uriTest ')' stringLiteral
+```
+
+[augmentations]: https://github.com/dart-lang/language/blob/main/working/augmentation-libraries/feature-specification.md
+[enhanced parts]: https://github.com/dart-lang/language/blob/main/working/augmentation-libraries/parts_with_imports.md
 
 ## Static semantics
 
@@ -461,59 +544,8 @@ migrated to the new style and the old quoted forms will be essentially vestigial
 syntax (similar to names after `library` directives). A future version of Dart
 may make a breaking change and remove support for the old syntax.
 
-### Part of directives
-
-Unquoted package references are only allowed in `import` and `export`
-directives, not `part` or `part of` directives.
-
-A `part of` directive already supports an unquoted series of dotted components
-after the keywords, like:
-
-```dart
-part of some.lib;
-```
-
-This is a legacy syntax from when library names were more widely used in Dart.
-Library names in `part of` directives have been deprecated for many years
-because the syntax doesn't work well with many tools. How is a given tool
-supposed to know where to find the library that happens to contain a `library`
-directive with that name? The quoted URI syntax was added later specifically to
-address that point and users are encouraged by documentation and lints to use
-the quoted syntax.
-
-Looking at a corpus of 122,420 files:
-
-```
--- Directive (443733 total) --
- 352744 ( 79.495%): import   =========================================
-  55471 ( 12.501%): export   =======
-  17823 (  4.017%): part     ===
-  17695 (  3.988%): part of  ===
-```
-
-So `part of` directives are fairly rare to begin with. Of them, most use the
-recommended URI syntax and would not be affected by this change:
-
-```
--- Part of (17695 total) --
-  13229 ( 74.761%): uri           ===================================
-   4466 ( 25.239%): library name  ============
-```
-
-If we reinterpreted that existing syntax to refer to another package instead of
-a library within the current package, user breakage is likely and would be very
-confusing.
-
-To avoid potential user confusion and breakage, the new syntax in this proposal
-isn't allowed in `part` and `part of` directives. Further, we make a
-**language-versioned breaking change** and remove support for unquoted library
-identifiers in `part of` directives completely. That way, a user never sees
-syntax in a `part of` file that *looks* like a package path but means something
-else.
-
-Since part files should always be part of the same package that contains the
-library that owns them, the new unquoted syntax is of limited use for part files
-anyway. Quoted relative URIs are shorter and more idiomatic.
+This proposal makes a **breaking change** to disallow unquoted library names in
+`part of` directives.
 
 ### Language versioning
 
