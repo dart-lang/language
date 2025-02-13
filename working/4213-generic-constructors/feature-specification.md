@@ -33,8 +33,13 @@ class C {
 void main() {
   C(42); // OK.
   C.computed('Hello', (s) => s.length); // OK.
+  C.computed<String>('Hello', (s) => s.length); // OK.
 }
 ```
+
+Note that a constructor named `C` can be designated as `C.new`, which can
+be used to declare and also to pass actual type arguments. So it is not
+required for a generic constructor to have a name of the form `C.name`.
 
 The constructor `C.computed` is generic. This can be detected directly from
 the syntax because it declares a type parameter list after the second part
@@ -81,9 +86,10 @@ class D<X> {
 }
 
 void main() {
-  D.ofComparable(1); // OK, creates a `D<num>` because `num <: Comparable<num>`.
-  D.ofComparable<num>(1); // It is also OK to pass the type argument explicitly.
+  D.ofComparable(1); // OK, type argument `num <: Comparable<num>`.
+  D.ofComparable<num>(1); // Also OK.
   D.ofComparable(C(42), (c1, c2) => c1.i.compareTo(c2.i)); // OK.
+  D.ofComparable(C(42)); // Compile-time error.
 }
 ```
 
@@ -112,12 +118,12 @@ class D<X> {
   final X x;
   final int Function(X, X) _compare;
   D(this.x, this._compare);
-  D.ofComparable(X x):
-      this(x, (dynamic x1, dynamic x2) => x1.compareTo(x2)) { // Unsafe!
-    // It is possible to check at run-time that `X extends Comparable<X>`.
+  D.ofComparable(X x): // Unsafe!
+      this(x, (dynamic x1, dynamic x2) => x1.compareTo(x2)) {
+    // Check at run-time that `X extends Comparable<X>`.
     if (<X>[] is! List<Comparable<X>>) {
-      throw ArgumentError(
-        "The type argument failed to satisfy `X extends Comparable<X>`.");
+      throw ArgumentError("The type argument failed"
+          " to satisfy `X extends Comparable<X>`.");
     }
   }
 }
