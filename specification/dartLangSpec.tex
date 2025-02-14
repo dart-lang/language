@@ -9438,8 +9438,11 @@ The null object is the sole instance of the built-in class \code{Null}.
 Attempting to instantiate \code{Null} causes a compile-time error.
 It is a compile-time error for a class to extend, mix in or implement
 \code{Null}.
-The \code{Null} class extends the \code{Object} class
-and declares no methods except those also declared by \code{Object}.
+%% Deep weasel talk here: The clean model would be to have a sealed top class
+%% `Any`, with `Null` and `Object` as the immediate subtypes. The only
+%% special rule we would then need would be that `Any <: Object?`.
+The \code{Null} class implements the same member signatures
+as the \code{Object} class.
 
 \commentary{%
   The null object has primitive equality
