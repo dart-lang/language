@@ -307,115 +307,124 @@ enclosing declaration.
 not the enclosing declaration. In other words, there is nothing new in this
 case.*
 
+#### Declarations of constructors in extensions
+
+This proposal relies on the [generic constructor proposal][]. In
+particular, this proposal uses concepts and definitions from the generic
+constructor proposal, and it is assumed that generic constructors are
+supported by the underlying Dart language.
+
+[generic constructor proposal]: https://github.com/dart-lang/language/pull/4265
+
+With this proposal, it is also supported to declare a generic constructor
+in an extension, with the same syntax as in a class and in other type
+introducing declarations.
+
+It is a compile-time error if an extension declares a generic constructor
+which is non-redirecting and generative. *These constructors are only
+supported inside the type introducing declaration whose type they are
+creating instances of.*
+
+It is a compile-time error if an extension declaration _D_ declares a
+generic constructor whose name is `C` (which includes declarations using
+`C.new`) or `C.name` for some identifier `name`, if _D_ does not have an
+on-declaration, or the name of the on-declaration is not `C`. Note that `C`
+may be an identifier, or an identifier which is prefixed by an import
+prefix.
+
+An extension can declare a constructor which is not generic, that is, it
+does not declare any formal type parameters, and the constructor return
+type does not receive any actual type arguments.
+
+If an extension declaration _D_ named `E` declares a non-generic
+constructor _D1_ and the on-declaration of _D_ is non-generic then _D1_ is
+treated as a generic constructor that declares zero type parameters and
+passes zero actual type arguments to the constructor return type.
+
+*In other words, these constructors get the same treatment as generic
+constructors, except that all steps involving type parameters are skipped.*
+
+A compile-time error occurs if an extension declaration _D_ named `E`
+declares a constructor and the on-declaration of _D_ is generic,
+and no actual type arguments are passed to the on-declaration in the
+on-type of _D_. *In other words, the constructor return type will never
+have actual type argumenst that are obtained by instantiation to bound.*
+
+If an extension declaration _D_ named `E` declares a non-generic
+constructor _D1_ and the on-declaration of _D_ is generic then _D1_ is
+treated as a generic constructor that declares exactly the same type
+parameters as _D_, and it passes exactly the same actual type arguments to
+the constructor return type as the ones that are passed to the
+on-declaration in the on-type.
+
+*For example:*
+
+```dart
+extension E1<X, Y> on C<X, List<Y>, int> {
+  C.name(X x, Iterable<Y> ys): this(x, ys, 14); 
+  // The previous line has the same meaning as the next line:
+  C<X, List<Y>, int>.name<X, Y>(X x, Iterable<Y> ys): this(x, ys, 14);
+}
+
+extension E2<X, Y> on D { // D is non-generic.
+  D.new(X x, Y y);
+  // Same as:
+  D.new<X, Y>(X x, Y y);
+}
+```
+
 #### Invocation of a constructor in an extension
 
-Explicit constructor invocations are similar to explicitly resolved static
-member invocations, but they need more detailed rules because they can use
-the formal type parameters declared by an extension.
+Assume that `E` denotes an extension declaration _D_ with on-declaration
+_D1_ named `C`, and assume that _D_ declares a constructor whose name is
+`C`.
 
-An _explicitly resolved invocation_ of a constructor named `C.name` in an
-extension declaration _D_ named `E` with `s` type parameters and
-on-declaration `C` can be expressed as `E.name(args)`, or (if it is a
-generic constructor) `E.name<T1 .. Tk>(args)`. 
+In that case an invocation of the form `E.new<TypeArguments>(arguments)` or
+the form `E.new(arguments)` is a fully resolved invocation of said
+constructor declaration.
 
-An explicitly resolved invocation of a constructor named `C` in an
-extension declaration _D_ named `E` with `s` type parameters and
-on-declaration `C` can be expressed as `E.new(args)`, or (if it is a
-generic constructor) `E.new<T1 .. Tk>(args)`.
+Similarly, if _D_ declares a constructor whose name is `C.name` then an
+invocation of the form `E.name<TypeArguments>(arguments)` or
+`E.name(arguments)` is a fully resolved invocation of said constructor
+declaration.
 
-*We might be able to allow invocations of the form `E(args)`, but they are
-probably too confusing for a reader who does not know that it is a
-constructor invocation which could have been written as `C(args)` where `C`
-is the on-declaration of `E`.*
+*This just means that there is no doubt about which constructor declaration
+named `C` respectively `C.name` is denoted by this invocation.*
 
-*Note that explicitly resolved invocations of constructors declared in
-extensions are a rare exception in real code, usable in the case where a
-name clash prevents an implicitly resolved invocation. However, implicitly
-resolved invocations are specified in the rest of this section by reducing
-them to explicitly resolved ones.*
+If this invocation does not include actual type arguments and the denoted
+constructor declares one or more type parameters then the invocation is
+subject to e
 
-A constructor invocation of the form `C<T1 .. Tm>.name(args)` is partially
-resolved by looking up a constructor named `C.name` in the class `C` and in
-every accessible extension with on-declaration `C`. A compile-time error
-occurs if no such constructor is found. Similarly, an invocation of the
-form `C<T1 ... Tm>(args)` uses a lookup for constructors named `C`.
 
-*Note that, as always, a constructor named `C` can also be denoted by
-`C.new` (and it must be denoted as such in a constructor tear-off).*
+Fully resolved invocations of constructors declared in extensions are not
+expected to be common in actual source code. However, such invocations can
+be used in order to resolve name clashes when multiple extensions are
+accessible and two or more of them declare a constructor with the same
+name, or one declares a constructor named `C.name` and another declares a
+static member named `name`. Also, they define the semantics of extension
+declared constructors with other forms, because those other forms are
+reduced to the fully resolved form.
 
-If a constructor in `C` with the requested name was found, the pre-feature
-static analysis and dynamic semantics apply. *That is, the class always
-wins.*
+*If multiple extensions declare static members with the same name and have
+the same on-declaration then 
 
-Otherwise, the invocation is partially resolved to a set _M_ of candidate
-constructors and static members found in extensions. Each of the candidates
-_kj_ is vetted as follows:
+The forms `E<TypeArguments>.name(arguments)` and
+`E<TypeArguments1>.name<TypeArguments2>(arguments)` are compile-time
+errors.
 
-If `m` is zero and `E` is an accessible extension with on-declaration `C`
-that declares a static member whose basename is `name` then the invocation
-is a static member invocation *(which is specified in an earlier section)*.
 
-Otherwise, assume that _kj_ is a generic constructor declared by an
-extension _D_ named `E` with type parameters 
-`X1 extends B1 .. Xs extends Bs`, on-declaration `C`, and return type
-`C<S1 .. Sm>` (or _kj_ is a non-generic constructor that gets the same type
-parameters and type arguments from the enclosing extension).
 
-!!!TODO!!!
 
-Find actual values `U1 .. Us` for `X1 .. Xs` satisfying the bounds 
-`B1 .. Bs`, such that `([U1/X1 .. Us/Xs]C<S1 .. Sm>) == C<T1 .. Tm>`. This
-may determine the value of some of the actual type arguments `U1 .. Us`,
-and others may be unconstrained (because they do not occur in 
-`C<T1 .. Tm>`). Actual type arguments corresponding to unconstrained type
-parameters are given as `_` (and they are subject to inference later on,
-where the types of the actual arguments `args` may influence their
-value). If this inference fails then remove _kj_ from the set of candidate
-constructors.  Otherwise note that _kj_ uses actual type arguments 
-`U1 .. Us`.
+However, other invocations of such constructors are transformed into fully
+resolved ones, which determines their semantics and static analysis.
 
-If all candidate constructors have been removed, or more than one candidate
-remains, a compile-time error occurs. Otherwise, the invocation is
-henceforth treated as `E<U1 .. Us>.C<T1 .. Tm>.name(args)` (respectively
-`E<U1 .. Us>.C<T1 .. Tm>(args)`). *This is an explicitly resolved extension
-constructor invocation, which is specified above.*
+Consider an instance creation expression of the form
+`C<TypeArguments1>.name<TypeArguments2>(arguments)`, where
+`<TypeArguments1>` and `<TypeArguments2>` may be absent. Assume that `C` denotes a class, a
+mixin class, an enumerated type, or an extension type declaration
 
-A constructor invocation of the form `C.name(args)` (respectively
-`C(args)`) where `C` denotes a non-generic class is resolved in the
-same manner, with `m == 0`.
 
-Consider a constructor invocation of the form `C.name(args)` (and similarly
-for `C(args)`) where `C` denotes a generic class. As usual, the
-invocation is treated as in the pre-feature language when it denotes a
-constructor declared by the class `C`.
 
-In the case where the context type schema for this invocation
-determines some actual type arguments of `C`, the expression is changed to
-receive said actual type arguments, `C<T1 .. Tm>.name(args)` (where the
-unconstrained actual type arguments are given as `_` and inferred later).
-The expression is then treated as described above.
-
-Next, we construct a set _M_ containing all accessible extensions with
-on-declaration `C` that declare a constructor named `C.name` (respectively
-`C`).
-
-In the case where _M_ contains exactly one extension `E` that declares a
-constructor named `C.name` (respectively `C`), the invocation is treated as
-`E.C.name(args)` (respectively `E.C(args)`).
-
-Otherwise, when there are two or more candidates from extensions, an error
-occurs. *We do not wish to specify an approach whereby `args` is subject to
-type inference multiple times, and hence we do not support type inference
-for `C.name(args)` in the case where there are multiple distinct
-declarations whose signature could be used during the static analysis of
-that expression. The workaround is to specify the actual type arguments
-explicitly.*
-
-In addition to these rules for invocations of constructors of a class or an
-extension, a corresponding set of rules exist for the following: An
-enumerated declaration *(`enum ...`)*, a mixin class, a mixin, and an
-extension type. They only differ by being concerned with a different kind
-of declaration.
 
 ### Dynamic Semantics
 
@@ -438,7 +447,6 @@ This fully determines the dynamic semantics of this feature.
 
 * Change the text to rely on generic constructor declarations, rather
   than introducing a new mechanism which is only used with extensions.
-* !!!TODO!!!
 
 1.1 - Aug 21, 2024
 
