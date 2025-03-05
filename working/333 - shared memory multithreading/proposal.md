@@ -509,18 +509,23 @@ initialization it complete.
 In the _shared **everything** multithreading_ shared fields can be allowed to
 contain anything - including instances of mutable Dart classes. However,
 initially I propose to limit shared fields by allowing only _trivially shareable
-types_. These types are those which already can pass through
-`SendPort` without copying:
+types_, which include:
 
-- strings;
-- numbers;
-- [deeply immutable][] types;
-- builtin implementations of `SendPort` and `TypedData`;
-- tear-offs of static methods;
-- closures which capture variables which are annotated with `@pragma('vm:shared')`
+- Objects which do not contain mutable state and thus can already pass through
+`SendPort` without copying:
+  - strings;
+  - numbers;
+  - instances of [deeply immutable][] types;
+  - instances of internal implementation of `SendPort`;
+  - tear-offs of static methods;
+  - compile time constants;
+- Objects which contain non-structural (binary) mutable state:
+  - `TypedData`
+  - `Struct` instances
+- Closures which capture variables which are annotated with `@pragma('vm:shared')`
   and are of trivially shareable types;
 
-Sharing of these types don't break isolate boundaries.
+Sharing of these types does not break isolate boundaries.
 
 [deeply immutable]: https://github.com/dart-lang/sdk/blob/bb59b5c72c52369e1b0d21940008c4be7e6d43b3/runtime/docs/deeply_immutable.md
 
