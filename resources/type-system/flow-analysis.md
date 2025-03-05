@@ -558,8 +558,12 @@ then they are all assigned the same value as `after(N)`.
     - Let `false(N) = unreachable(after(E2))`.
   - Otherwise, if `equivalentToNull(T1)` and `T2` is non-nullable, or
     `equivalentToNull(T2)` and `T1` is non-nullable, then:
-    - Let `true(N) = unreachable(after(E2))`.
-    - Let `false(N) = after(E2)`.
+    - Let `after(N) = after(E2)`.
+    - *Note that now that Dart no longer supports unsound null safety mode, it
+      would be sound (and probably preferable) to let `true(N) =
+      unreachable(after(E2))` and `false(N) = after(E2)`. This improvement is
+      being contemplated as part of
+      https://github.com/dart-lang/language/issues/3100.*
   - Otherwise, if `stripParens(E1)` is a `null` literal, then:
     - Let `true(N) = after(E2)`.
     - Let `false(N) = promoteToNonNull(E2, after(E2))`.
