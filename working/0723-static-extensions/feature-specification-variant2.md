@@ -154,9 +154,10 @@ added to Dart.
 
 The grammar remains unchanged.
 
-However, it is no longer an error to declare a factory constructor
-(redirecting or not) or a redirecting generative constructor in an
-extension declaration that has an on-declaration, possibly constant.
+However, it is no longer an error to declare a factory constructor,
+redirecting or not, or a redirecting generative constructor in an extension
+declaration that has an on-declaration (defined later in this section),
+and both kinds can be constant or not.
 
 *Such declarations may of course give rise to errors as usual, e.g., if a
 redirecting factory constructor redirects to a constructor that does not
@@ -206,15 +207,15 @@ static members of an extension on that function type.*
 At first, we establish some sanity requirements for an extension declaration
 by specifying several errors.
 
-It is a compile-time error to declare a constructor in an extension whose
-on-type is not regular-bounded, assuming that the type parameters declared
-by the extension satisfy their bounds. 
+It is a compile-time error to declare a constructor with no type parameters
+in an extension whose on-type is not regular-bounded, assuming that the
+type parameters declared by the extension satisfy their bounds.
 
-*This is just a restatement of a compile-time error which is reported for
-such invocations of the corresponding generic constructor.*
-
-It is a compile-time error to invoke a constructor of an extension whose
-instantiated on-type is not regular-bounded.
+*This constructor is desugared into a generic constructor which is
+guaranteed to have a compile-time error. As a consequence, it is not
+possible to invoke a constructor of an extension passing actual type
+arguments (written or inferred) such that the on-type of the extension
+is not regular-bounded.*
 
 Tools may report diagnostic messages like warnings or lints in certain
 situations. This is not part of the specification, but here is one
@@ -249,7 +250,7 @@ concept.*
 
 Consider an expression `e` which is a member invocation with syntactic
 receiver `E` and associated member name `m`, where `E` denotes an extension
-and `m` is a static member declared by `E`. We say that `e` is an
+in scope and `m` is a static member declared by `E`. We say that `e` is an
 _explicitly resolved invocation_ of said static member of `E`.
 
 *This can be used to invoke a static member of a specific extension in
@@ -258,32 +259,45 @@ the feature which is specified in this document, this is the only way we
 can invoke a static member of an extension (except when it is in scope, see
 below), so it can also be useful because it avoids breaking existing code.*
 
-Consider an expression `e` which is a member invocation with syntactic
-receiver `C` and an associated member name `m`, where `C` denotes a class
-and `m` is a static member declared by `C`. The static analysis and dynamic
-semantics of this expression is the same as in Dart before the introduction
-of this feature.
+In the following, we assume that `C` denotes a type introducing membered
+declaration _D_ (that is, a class, a mixin class, a mixin, an enum, or an
+extension type declaration). `C` may be a type identifier, or it may be of
+the form `prefix.id` where `prefix` and `id` are type identifiers, `prefix`
+denotes an import prefix, and `id` denotes said type introducing membered
+declaration in the namespace of that prefix.
 
-When `C` declares a static member whose basename is the basename of `m`,
-but `C` does not declare a static member named `m` or a constructor named
+Consider an expression `e` which is a member invocation with syntactic
+receiver `C` and an associated member name `m`. Assume that `m` is a static
+member declared by _D_. The static analysis and dynamic semantics of this
+expression is the same as in Dart before the introduction of this feature.
+
+*In other words, existing invocations of static members will continue to
+have the same meaning as they had before this feature was introduced.*
+
+When _D_ declares a static member whose basename is the basename of `m`,
+but _D_ does not declare a static member named `m` or a constructor named
 `C.m`, a compile-time error occurs. *This is the same behavior as in
 pre-feature Dart. It's about "near name clashes" involving a setter.*
 
-In the case where `C` does not declare any static members whose basename is
-the basename of `m`, and `C` does not declare any constructors named `C.m2`
+In the case where _D_ does not declare any static members whose basename is
+the basename of `m`, and _D_ does not declare any constructors named `C.m2`
 where `m2` is the basename of `m`, let _M_ be the set containing each
-accessible extension whose on-declaration is `C`, and whose static members
+accessible extension whose on-declaration is _D_, and whose static members
 include one with the name `m`, or which declares a constructor named `C.m`.
 
-*If `C` does declare a constructor with such a name `C.m2` then the given
+*If _D_ does declare a constructor with such a name `C.m2` then the given
 expression is not a static member invocation. This case is described in a
 section below.*
 
-Otherwise *(when `C` does not declare such a constructor)*, an error occurs
-if _M_ is empty or _M_ contains more than one member.
+Otherwise *(when _D_ does not declare such a constructor)*, an error occurs
+if _M_ is empty, or _M_ contains more than one member.
 
-Otherwise *(when no error occurred)*, assume that _M_ contains exactly one
-element which is an extension `E` that declares a static member named
+*In other words, no attempt is made to disambiguate static member
+invocations based on their signature or the on-type of the enclosing
+extension declaration.*
+
+Otherwise *(when no error occurred)* _M_ contains exactly one element.
+Assume that it is an extension `E` that declares a static member named
 `m`. The invocation is then treated as `E.m()` *(this is an explicitly
 resolved invocation, which is specified above)*.
 
@@ -291,21 +305,13 @@ Otherwise *(when `E` does not declare such a static member)*, _M_ will
 contain exactly one element which is a constructor named `C.m`. This is not
 a static member invocation, and it is specified in a section below.
 
-In addition to these rules for invocations of static members of an
-extension or a class, a corresponding set of rules exist for an extension
-and the following: An enumerated declaration *(`enum ...`)*, a mixin class,
-a mixin, and an extension type. They only differ by being concerned with a
-different kind of on-declaration.
-
 In addition to the member invocations specified above, it is also possible
 to invoke a static member of the enclosing declaration based on lexical
-lookup. This case is applicable when an expression in a class, enum, mixin
-or extension type resolves to an invocation of a static member of the
-enclosing declaration.
+lookup. This case is applicable when an expression in an extension
+declaration resolves to an invocation of a static member of the enclosing
+extension.
 
-*This invocation will never invoke a static member of an extension which is
-not the enclosing declaration. In other words, there is nothing new in this
-case.*
+*There is nothing new in this treatment of lexically resolved invocations.*
 
 #### Declarations of constructors in extensions
 
@@ -318,12 +324,12 @@ supported by the underlying Dart language.
 
 With this proposal, it is also supported to declare a generic constructor
 in an extension, with the same syntax as in a class and in other type
-introducing declarations.
+introducing membered declarations.
 
 It is a compile-time error if an extension declares a generic constructor
 which is non-redirecting and generative. *These constructors are only
-supported inside the type introducing declaration whose type they are
-creating instances of.*
+supported inside the type introducing membered declaration of whose type
+they are creating instances.*
 
 It is a compile-time error if an extension declaration _D_ declares a
 generic constructor whose name is `C` (which includes declarations using
@@ -342,13 +348,7 @@ treated as a generic constructor that declares zero type parameters and
 passes zero actual type arguments to the constructor return type.
 
 *In other words, these constructors get the same treatment as generic
-constructors, except that all steps involving type parameters are skipped.*
-
-A compile-time error occurs if an extension declaration _D_ named `E`
-declares a constructor and the on-declaration of _D_ is generic,
-and no actual type arguments are passed to the on-declaration in the
-on-type of _D_. *In other words, the constructor return type will never
-have actual type argumenst that are obtained by instantiation to bound.*
+constructors, except that the type inference step is a no-op.*
 
 If an extension declaration _D_ named `E` declares a non-generic
 constructor _D1_ and the on-declaration of _D_ is generic then _D1_ is
@@ -361,7 +361,7 @@ on-declaration in the on-type.
 
 ```dart
 extension E1<X, Y> on C<X, List<Y>, int> {
-  C.name(X x, Iterable<Y> ys): this(x, ys, 14); 
+  C.name(X x, Iterable<Y> ys): this(x, ys, 14);
   // The previous line has the same meaning as the next line:
   C<X, List<Y>, int>.name<X, Y>(X x, Iterable<Y> ys): this(x, ys, 14);
 }
@@ -373,7 +373,7 @@ extension E2<X, Y> on D { // D is non-generic.
 }
 ```
 
-#### Invocation of a constructor in an extension
+#### Resolution of a constructor in an extension
 
 Assume that `E` denotes an extension declaration _D_ with on-declaration
 _D1_ named `C`, and assume that _D_ declares a constructor whose name is
@@ -393,8 +393,9 @@ named `C` respectively `C.name` is denoted by this invocation.*
 
 If this invocation does not include actual type arguments and the denoted
 constructor declares one or more type parameters then the invocation is
-subject to e
-
+subject to type inference in the same manner as an invocation of a generic
+constructor which is declared in a type introducing membered declaration
+*(e.g., a class)*.
 
 Fully resolved invocations of constructors declared in extensions are not
 expected to be common in actual source code. However, such invocations can
@@ -405,26 +406,54 @@ static member named `name`. Also, they define the semantics of extension
 declared constructors with other forms, because those other forms are
 reduced to the fully resolved form.
 
-*If multiple extensions declare static members with the same name and have
-the same on-declaration then 
-
 The forms `E<TypeArguments>.name(arguments)` and
 `E<TypeArguments1>.name<TypeArguments2>(arguments)` are compile-time
-errors.
+errors when `E` denotes an extension.
 
+*Consider the case where the extension declares type parameters and has a
+generic on-declaration, and the constructor does not declare any type
+parameters and does not pass any actual type arguments to the class: It
+would be misleading to allow the extension as such to accept actual type
+arguments in the same way as the class name in an invocation of a generic
+constructor: The extension may declare a different number of type
+parameters than the class, and it may not pass them directly (e.g., the
+class might declare `<X, Y>` and the extension could declare `<X extends
+num>` and pass `<X, List<X>>` to the class in its on-type). It would also
+be misleading to allow the extension as such to receive actual type
+arguments matching the declared type parameters of the extension, because
+those type arguments should be passed after the period: they are being
+passed to the constructor.*
 
-
-
-However, other invocations of such constructors are transformed into fully
-resolved ones, which determines their semantics and static analysis.
+*Consider the case where the constructor declares its own type parameters:
+In this case it certainly does not make sense to pass any type parameters
+to the extension as such.*
 
 Consider an instance creation expression of the form
 `C<TypeArguments1>.name<TypeArguments2>(arguments)`, where
-`<TypeArguments1>` and `<TypeArguments2>` may be absent. Assume that `C` denotes a class, a
-mixin class, an enumerated type, or an extension type declaration
+`<TypeArguments1>` and `<TypeArguments2>` may be absent. Assume that `C`
+denotes a type introducing membered declaration _D_ (where `C` may include
+an import prefix). Assume that _D_ does not declare a constructor named
+`C.name`.
 
+Let _M_ be the set of accessible extensions with on-declaration _D_ that
+declare a constructor named `C.name` or a static member named `name`.
 
+A compile-time error occurs if _M_ includes extensions with constructors as
+well as static members.
 
+Otherwise, if _M_ only includes static members then this is not an instance
+creation expression, it is a static member invocation and it is specified
+in an earlier section.
+
+Otherwise, _M_ only includes extensions containing constructors with the
+requested name. A compile-time error occurs if _M_ is empty, or _M_
+contains two or more elements. Otherwise, the invocation denotes an
+invocation of the constructor named `C.name` which is declared by
+the extension declaration that _M_ contains.
+
+*Note that no attempt is made to determine that some constructors are "more
+specific" or "less specific", it is simply a conflict if there are multiple
+constructors with the requested name in the accessible extensions.*
 
 ### Dynamic Semantics
 
@@ -432,18 +461,20 @@ The dynamic semantics of static members of an extension is the same
 as the dynamic semantics of other static functions.
 
 The dynamic semantics of an explicitly resolved invocation of a constructor
-in an extension is determined by the normal semantics of function
-invocation, except that the type parameters of the extension are
-bound to the actual type arguments passed to the extension in the
-invocation.
+in an extension is determined by the normal semantics of generic
+constructor invocations.
 
 An implicitly resolved invocation of a constructor declared by a static
-extension is reduced to an explicitly resolved one during static analysis.
-This fully determines the dynamic semantics of this feature.
+extension is resolved as an invocation of a specific constructor in a
+specific extension as described in the previous section. 
+
+The semantics of the constructor invocation is the same for a generic
+constructor which is declared in the type introducing membered declaration
+*(at "home")* and for a constructor which is declared in an extension.
 
 ### Changelog
 
-1.2 - Feb 6, 2025
+1.2 - Mar 5, 2025
 
 * Change the text to rely on generic constructor declarations, rather
   than introducing a new mechanism which is only used with extensions.
