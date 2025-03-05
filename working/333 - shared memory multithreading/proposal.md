@@ -509,17 +509,23 @@ initialization it complete.
 In the _shared **everything** multithreading_ shared fields can be allowed to
 contain anything - including instances of mutable Dart classes. However,
 initially I propose to limit shared fields by allowing only _trivially shareable
-types_. These types are those which already can pass through
+types_, which include:
+
+- Objects which do not contain mutable state and thus can already pass through
 `SendPort` without copying:
+  - strings;
+  - numbers;
+  - instances of [deeply immutable][] types;
+  - instances of internal implementation of `SendPort`;
+  - tear-offs of static methods;
+  - compile time constants;
+- Objects which contain non-structural (binary) mutable state:
+  - `TypedData`
+  - `Struct` instances
+- Closures which capture variables which are annotated with `@pragma('vm:shared')`
+  and are of trivially shareable types;
 
-- strings;
-- numbers;
-- [deeply immutable][] types;
-- builtin implementations of `SendPort` and `TypedData`;
-- tear-offs of static methods;
-- closures which capture variables of trivially shareable types;
-
-Sharing of these types don't break isolate boundaries.
+Sharing of these types does not break isolate boundaries.
 
 [deeply immutable]: https://github.com/dart-lang/sdk/blob/bb59b5c72c52369e1b0d21940008c4be7e6d43b3/runtime/docs/deeply_immutable.md
 
@@ -552,6 +558,12 @@ Sharing of these types don't break isolate boundaries.
 >
 > Furthermore, shared fields of `int` and `double` types are allowed to exhibit
 > _tearing_ on 32-bit platforms.
+
+> [!NOTE]
+>
+> There is no static type marker for a trivially shareable closure. For convenience
+> reasons we should allow writing `@pragma('vm:shared') void Function() foo;` but
+> will have to check shareability in runtime when such variable is initialized.
 
 ## Shared Isolates
 
@@ -678,16 +690,29 @@ associated with that:
 
 In _shared **everything** multithreading_ world `callback` can be allowed to
 capture arbitrary state, however in _shared **native memory** multithreading_
-this state has to be restricted to trivially shareable types:
+this state has to be restricted to trivially shareable types. To make it
+completely unambigious we impose an additional requirement that all variables
+captured by a closure will need to be annotated with `@pragma('vm:shared')`:
+
 
 ```dart
-// This code is okay because `int` is trivially shareable.
+// This code is okay because the variable is annotated and `int` is
+// trivially shareable.
+@pragma('vm:shared')
+int counter = 0;
+NativeCallable.shared(() {
+  counter++;
+});
+
+// This code causes a runtime error because `counter` is not not
+// annotated with vm:shared pragma.
 int counter = 0;
 NativeCallable.shared(() {
   counter++;
 });
 
 // This code is not okay because `List<T>` is not trivially shareable.
+@pragma('vm:shared')
 List<int> list = [];
 NativeCallable.shared(() {
   list.add(1);
