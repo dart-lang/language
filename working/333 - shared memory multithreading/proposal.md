@@ -698,7 +698,8 @@ captured by a closure will need to be annotated with `@pragma('vm:shared')`:
 ```dart
 // This code is okay because the variable is annotated and `int` is
 // trivially shareable.
-@pragma('vm:shared') int counter = 0;
+@pragma('vm:shared')
+int counter = 0;
 NativeCallable.shared(() {
   counter++;
 });
@@ -711,7 +712,8 @@ NativeCallable.shared(() {
 });
 
 // This code is not okay because `List<T>` is not trivially shareable.
-@pragma('vm:shared') List<int> list = [];
+@pragma('vm:shared')
+List<int> list = [];
 NativeCallable.shared(() {
   list.add(1);
 });
