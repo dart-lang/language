@@ -21,9 +21,6 @@ jobs:
       - name: dart pub get (specification)
         run: dart pub get
         working-directory: specification
-      - name: dart pub get (working/macros/example)
-        run: dart pub get
-        working-directory: working/macros/example
       - name: dart pub get (tools/corpus)
         run: dart pub get
         working-directory: tools/corpus/scripts
