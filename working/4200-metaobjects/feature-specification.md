@@ -425,7 +425,8 @@ class MetaC<X1 extends B1 .. Xk extends Bk> implements Type, T {
   // Implicitly induced member implementations, obtained by
   // deriving forwarding declarations from static members and/or
   // constructors in `C`, including only the ones needed to
-  // implement `T`.
+  // implement `T` plus operator `==` and `hashCode` to support
+  // today's behavior of `Type` instances.
   ...
 }
 ```
@@ -433,7 +434,8 @@ class MetaC<X1 extends B1 .. Xk extends Bk> implements Type, T {
 In the case where the clause is `static extends T` we have the following:
 
 ```dart
-class MetaC<X1 extends B1 .. Xk extends Bk> extends T implements Type {
+class MetaC<X1 extends B1 .. Xk extends Bk> 
+    extends T implements Type {
   // Implicitly induced member implementations, same rules.
   ...
 }
