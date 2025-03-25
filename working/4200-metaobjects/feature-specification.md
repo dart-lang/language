@@ -9,11 +9,11 @@ Version: 1.1
 Experiment flag: metaobjects
 
 This document specifies the metaobjects feature, which is a feature that
-allow a type `T` to be mapped into one or more kinds of objects known as
+allows a type `T` to be mapped into one or more kinds of objects known as
 _metaobjects_ of that type. The main purpose of a metaobject is to serve as
-a vehicle for late-bound invocations of static members and/or constructors
-of the type `T`, but it is also possible to use the mechanism for other
-purposes.
+a vehicle for late-bound invocations of selected static members and/or
+constructors of the type `T`, but it is also possible to use the mechanism
+for other purposes.
 
 ## Introduction
 
@@ -35,8 +35,8 @@ Here is an example:
 ```dart
 // Define the interface that we wish to support.
 abstract class Fooable<X> {
-  const Fooable();
-  String foo(X x);
+  const Fooable(); // A metaobject must be const-able.
+  String foo(X x); // This is a gateway to a static method.
 }
 
 // The `static implements` clause specifies that a
@@ -55,13 +55,13 @@ class B static implements Fooable<B> {
 }
 
 // Does not depend on `A` or `B`, but is still type safe.
-void showFoo<X static extends Fooable<X>>(X x) {
-  X.foo(x);
+String showFoo<X static extends Fooable<X>>(X x) {
+  return X.foo(x);
 }
 
 void main() {
-  showFoo(A("MyA");
-  showFoo(B(42));
+  print(showFoo(A("MyA"));
+  print(showFoo(B(42)));
 }
 ```
 
@@ -115,7 +115,7 @@ be an instance of one of these classes.
 
 These classes implement operator `==` and the getter `hashCode`, such that
 they can behave the same as objects of type `Type` do today, when they are
-obtained by evaluating a type as an expression.
+obtained by evaluating a type literal as an expression.
 
 The static type of the metaobject will be the metaobject class when the
 type literal which is being evaluated as an expression is a compile-time
@@ -128,10 +128,11 @@ type literal is a type variable `X` that has a bound of the form
 As a special case (ensuring that this feature does not break existing
 code), the result of evaluating a type literal that denotes a class, a
 mixin, a mixin class, or an enum declaration that does _not_ have a
-`static implements` clause has static type `Type`, and it works exactly the
-same as today. So does the result of evaluating a type that does not denote
-a declaration (that is, a function type, a record type, special types like
-`dynamic`, union types like `T?`  and `FutureOr<T>`, etc.)
+`static implements` or `static extends` clause has static type `Type`, and
+it works exactly the same as today. So does the result of evaluating a type
+that does not denote a declaration (that is, a function type, a record
+type, special types like `dynamic`, union types like `T?`  and
+`FutureOr<T>`, etc.)
 
 The previous example showed how we can use metaobjects to provide access to
 static members of a set of classes (or mixins, etc.) without depending on
@@ -145,11 +146,13 @@ constructors in a similar way (yielding 'virtual constructors'):
 
 ```dart
 abstract class Creation<X> {
+  const Creation();
   X call();
   X named(int _);
 }
 
 class C<Y> static implements Creation<C<Y>> {
+  C();
   C.named(int _): this();
 }
 
@@ -202,11 +205,13 @@ For example:
 
 ```dart
 abstract class CallWithTypeArguments {
+  const CallWithTypeArguments();
   int get numberOfTypeArguments;
   R callWithTypeArgument<R>(int number, R callback<X>());
 }
 
 class _EStaticHelper<X, Y> implements CallWithTypeArguments {
+  const _EStaticHelper();
   int get numberOfTypeArguments => 2;
   R callWithTypeArgument<R>(int number, R callback<Z>()) {
     return switch (number) {
@@ -400,7 +405,7 @@ class MetaC<X1 extends B1 .. Xk extends Bk>
     extends T implements Type {
   const MetaC();
 
-  // Implicitly induced member implementations, same rules:
+  // Implicitly induced forwarding member implementations, same rules:
   ...
 }
 ```
@@ -432,7 +437,7 @@ Assume that _D_ is a class declaration named `C` which has a clause of the
 form `static implements T` or `static extends T`, and declares the formal
 type parameters `X1 extends B1 .. Xk extends Bk`.
 
-Forwarding members are derived from the static members and as follows:
+Forwarding members are derived from the static members as follows:
 
 If `static R get g ...` is a static member of `C` then the corresponding
 forwarding member is `R get g => C.g;`.
@@ -442,7 +447,7 @@ derived from `<normalFormalParameter>`, then the corresponding forwarding
 setter is `set s(parm) => C.s = arg;`, where `arg` is the identifier which
 is declared as a positional parameter by `parm`.
 
-*Static variable declarations are covered as getters and/or setters.*
+*Static variable declarations are covered as setters and/or getters.*
 
 If `static R m(parms)` is a static method of `C` where `parms` is derived
 from `<formalParameterList>`, then the corresponding forwarding method is
@@ -459,10 +464,11 @@ forwarding method is `R m<typeParms>(parms) => C.m<typeArgs>(args);`, where
 identifiers declared as positional parameters in `parms`, followed by
 actual arguments of the form `id: id` for the named parameters in `parms`.
 
-*Note that the type parameter bounds and optional parameter default values
-are the same for the original declaration and the forwarding declaration.
-This works because the metaobject class is placed in the same scope as the
-original declaration.*
+In the case where a default value resolves to a declaration in `C` and does
+not have the prefix `C.`, this prefix is added when the corresponding
+default value is specified in the metaobject class. *For example, 
+`int i = myDefault` in `C` will be `int i = C.myDefault` in the derived
+forwarding declaration when `myDefault` is declared in `C`.*
 
 If `C(parms) ...` or `factory C(parms) ...` is a constructor declared by `C`
 then the corresponding forwarding declaration is
@@ -479,6 +485,10 @@ declared by `C` then the corresponding forwarding declaration is
 derived from `parms` in the same way as in the previous case.
 
 ### Dynamic Semantics
+
+It is allowed, but not required, for every metaobject to be constant if
+possible. *Hence, programs should not depend on the identity of
+metaobjects.*
 
 When invoked on an object whose run-time type is `C<T1 .. Tk>`, in the case
 where `C` has a `static implements` or `static extends` clause, the
