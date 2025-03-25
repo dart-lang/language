@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Draft
 
-Version: 1.1
+Version: 1.0
 
 Experiment flag: metaobjects
 
