@@ -637,7 +637,6 @@ possible. With respect to canonicalization of metaobjects, the same rules
 apply as the ones that specify canonicalization of reified type objects in
 current Dart.
 
-
 Assume that `o` is an object whose run-time type is `C<T1 .. Tk>`. Assume
 that `C` has static superinterfaces. In this case, the implementation of
 the getter `runtimeType` in `Object` with the receiver `o` returns an
