@@ -371,6 +371,29 @@ member access on the metaobject of the value of that type variable.*
 *Note that this is not a breaking change because every member access on a
 type variable is a compile-time error in current Dart.*
 
+Consider a member access whose receiver is a possibly qualified identifier
+that denotes a class, mixin, mixin class, or enum declaration _D_ (e.g.,
+`C.foo()` or `prefix.C.foo()`). If the accessed member is not declared as a
+static member or constructor in _D_ then the member access is treated as
+the same member access where the receiver is parenthesized
+(`(C).foo()` respectively `(prefix.C).foo()`).
+
+*This implies that a member of the statically implemented or extended
+interface which isn't shadowed by a static member or a constructor can be
+invoked as if it had been a static member or a constructor of D itself. You
+could say that the static member or constructor is added to D in a way that
+resembles the addition of extension instance members to an object.*
+
+A member access whose receiver is a parameterized type (e.g.,
+`prefix.C<T>.foo()`) is treated as the same member access where the
+receiver is parenthesized (`(prefix.C<T>).foo()`).
+
+*This means that members in the interface of the metaobject class can be
+invoked as if they were static members or constructors, but passing actual
+type arguments. Thoese type arguments are available to the members of the
+metaobject, so we could say that this introduces "static members that have
+access to the type parameters or the enclosing class".*
+
 #### Deriving the Metaobject Class
 
 Assume that _D_ is a class declaration named `C` which declares the formal
@@ -466,7 +489,7 @@ actual arguments of the form `id: id` for the named parameters in `parms`.
 
 In the case where a default value resolves to a declaration in `C` and does
 not have the prefix `C.`, this prefix is added when the corresponding
-default value is specified in the metaobject class. *For example, 
+default value is specified in the metaobject class. *For example,
 `int i = myDefault` in `C` will be `int i = C.myDefault` in the derived
 forwarding declaration when `myDefault` is declared in `C`.*
 
