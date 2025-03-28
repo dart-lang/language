@@ -286,16 +286,16 @@ Here is an example where the metaobject is used to provide access to the
 actual type arguments of a given object or type:
 
 ```dart
-abstract class CallWithTypeArguments {
-  const CallWithTypeArguments();
-  int get numberOfTypeArguments;
-  R callWithTypeArgument<R>(int number, R callback<X>());
+abstract class CallWithTypeParameters {
+  const CallWithTypeParameters();
+  int get numberOfTypeParameters;
+  R callWithTypeParameter<R>(int number, R callback<X>());
 }
 
-class _EStaticHelper<X, Y> implements CallWithTypeArguments {
+class _EStaticHelper<X, Y> implements CallWithTypeParameters {
   const _EStaticHelper();
-  int get numberOfTypeArguments => 2;
-  R callWithTypeArgument<R>(int number, R callback<Z>()) {
+  int get numberOfTypeParameters => 2;
+  R callWithTypeParameter<R>(int number, R callback<Z>()) {
     return switch (number) {
       1 => callback<X>(),
       2 => callback<Y>(),
@@ -313,10 +313,10 @@ void main() {
   final E<Object, Object> e = E<String, int>();
 
   // When we don't know the precise type arguments we can't call
-  // `e.foo` safely. But `CallWithTypeArguments` can help!
-  final eType = e.runtimeType;
-  eType.callWithTypeArgument(1, <X>() {
-    eType.callWithTypeArgument(2, <Y>() {
+  // `e.foo` safely. But `CallWithTypeParameters` can help!
+  final Object? eType = e.runtimeType;
+  eType.callWithTypeParameter(1, <X>() {
+    eType.callWithTypeParameter(2, <Y>() {
       var potentialArgument1 = 'Hello';
       var potentialArgument2 = 42;
       if (potentialArgument1 is X && potentialArgument2 is Y) {
@@ -336,9 +336,9 @@ void main() {
   List<Set<Object?>> createSets<X>() {
     final result = <Set<Object?>>[];
     result.add(<X>{});
-    final metaX = X; // Enable promotions.
-    if (metaX is CallWithTypeArguments) {
-      final maxNumber = metaX.numberOfTypeArguments;
+    final Object metaX = X; // Enable promotions.
+    if (metaX is CallWithTypeParameters) {
+      final maxNumber = metaX.numberOfTypeParameters;
       for (int number = 1; number <= maxNumber; ++number) {
         metaX.callWithTypeParameter(number, <Y>() {
           result.addAll(createSets<Y>());
