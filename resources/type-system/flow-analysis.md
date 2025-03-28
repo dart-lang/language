@@ -546,8 +546,6 @@ then they are all assigned the same value as `after(N)`.
   where `x` is a local variable, then:
   - Let `before(E1) = before(N)`.
   - Let `after(N) = assign(x, E1, after(E1))`.
-  - Let `true(N) = assign(x, E1, true(E1))`.
-  - Let `false(N) = assign(x, E1, false(E1))`.
 
 - **operator==** If `N` is an expression of the form `E1 == E2`, where the
   static type of `E1` is `T1` and the static type of `E2` is `T2`, then:
@@ -585,8 +583,25 @@ then they are all assigned the same value as `after(N)`.
 - **instance check** If `N` is an expression of the form `E1 is S` where the
   static type of `E1` is `T` then:
   - Let `before(E1) = before(N)`
-  - Let `true(N) = promote(E1, S, after(E1))`
-  - Let `false(N) = promote(E1, factor(T, S), after(E1))`
+  - If `T` is a bottom type, then:
+    - Let `true(N) = unreachable(after(E1))`.
+    - Let `false(N) = after(E1)`.
+  - Otherwise:
+    - Let `true(N) = promote(E1, S, after(E1))`
+    - Let `false(N) = promote(E1, factor(T, S), after(E1))`
+
+- **negated instance check** If `N` is an expression of the form `E1 is! S`
+  where the static type of `E1` is `T` then:
+  - Let `before(E1) = before(N)`
+  - If `T` is a bottom type, then:
+    - Let `true(N) = after(E1)`.
+    - Let `false(N) = unreachable(after(E1))`.
+  - Otherwise:
+    - Let `true(N) = promote(E1, factor(T, S), after(E1))`
+    - Let `false(N) = promote(E1, S, after(E1))`
+
+  _Note that flow analysis treats `E1 is! S` the same as the equivalent
+  expression `!(E1 is S)`._
 
 - **type cast** If `N` is an expression of the form `E1 as S` where the
   static type of `E1` is `T` then:
