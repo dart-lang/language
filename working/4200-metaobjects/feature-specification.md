@@ -277,11 +277,10 @@ metaobject class.
 
 In general, `static extends` offers developers greater expressive power
 than `static implements` because it is possible for the metaobject to
-inherit code that developers have written to do whatever they want.
-Methods in a metaobject class which was induced by a `static implements`
-clause, on the other hand, will only have methods whose implementation is a
-forwarding invocation of a static member or constructor of the underlying
-type.
+inherit code that developers have written to do whatever they want. A
+metaobject class which was induced by a `static implements` clause, on the
+other hand, will only have methods whose implementation is a forwarding
+invocation of a static member or constructor of the underlying type.
 
 Here is an example where the metaobject is used to provide access to the
 actual type arguments of a given object or type:
