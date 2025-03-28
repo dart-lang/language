@@ -347,7 +347,15 @@ void main() {
     }
   }
   
-  createSets<E<E<E<String, int>, Symbol>, double>>();
+  // Returns a list containing the following sets:
+  //   <E<E<E<String, int>, Symbol>, double>>{}
+  //   <E<E<String, int>, Symbol>>{}
+  //   <double>{}
+  //   <E<String, int>>{}
+  //   <Symbol>{}
+  //   <String>{}
+  //   <int>{}
+  final sets = createSets<E<E<E<String, int>, Symbol>, double>>();
 }
 ```
 
@@ -360,8 +368,8 @@ given arguments have the required types.
 In the first part of `main` this is used to get access to the actual type
 arguments of an existing object. In the last part, it is used to get access
 to the type arguments of a given _type_. The first part can be expressed
-today by adding an instance member to the class, but the last part is not
-expressible in current Dart.
+today if we can add an instance member to the class, but the last part is
+not expressible in current Dart.
 
 Here is the corresponding implicitly induced metaobject class:
 
