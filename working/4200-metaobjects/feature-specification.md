@@ -59,7 +59,7 @@ class A static implements PrettyPrintable<A> {
 class B static implements PrettyPrintable<B> {
   final int size;
   B(this.size);
-  static String foo(B b) => "B of size ${b.size}";
+  static String prettyPrint(B b) => "B of size ${b.size}";
 }
 
 // Does not depend on `A` or `B`, but is still type safe.
@@ -315,15 +315,17 @@ void main() {
   // When we don't know the precise type arguments we can't call
   // `e.foo` safely. But `CallWithTypeParameters` can help!
   final Object? eType = e.runtimeType;
-  eType.callWithTypeParameter(1, <X>() {
-    eType.callWithTypeParameter(2, <Y>() {
-      var potentialArgument1 = 'Hello';
-      var potentialArgument2 = 42;
-      if (potentialArgument1 is X && potentialArgument2 is Y) {
-        a.foo(potentialArgument1, potentialArgument2); // Safe!
-      }
+  if (eType is CallWithTypeParameters) {
+    eType.callWithTypeParameter(1, <X>() {
+      eType.callWithTypeParameter(2, <Y>() {
+        var potentialArgument1 = 'Hello';
+        var potentialArgument2 = 42;
+        if (potentialArgument1 is X && potentialArgument2 is Y) {
+          a.foo(potentialArgument1, potentialArgument2); // Safe!
+        }
+      });
     });
-  });
+  }
 
   // If we didn't have this feature we could only do this:
   try {
