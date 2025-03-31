@@ -314,7 +314,7 @@ void main() {
 
   // When we don't know the precise type arguments we can't call
   // `e.foo` safely. But `CallWithTypeParameters` can help!
-  final Object? eType = e.runtimeType;
+  final Object eType = e.runtimeType; // `Object`: Enable promotion.
   if (eType is CallWithTypeParameters) {
     eType.callWithTypeParameter(1, <X>() {
       eType.callWithTypeParameter(2, <Y>() {
