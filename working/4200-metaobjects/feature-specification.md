@@ -497,8 +497,8 @@ return type `X` is treated as `X.call`.
 can be expressed using the same syntax as statically resolved tear-offs and
 invocations, e.g., `X.new` and `X.new(42)`. Note that these forms may also
 invoke or tear off a method named `call` in situations where this method
-does not forward the invocation to a constructor. For example, it could
-forward to a static method named `call` for some values of `X`.*
+does not forward the invocation to a constructor. For example, it could be
+a method named `call` inherited due to a `static extends` clause.*
 
 Consider a member access whose receiver is a possibly qualified identifier
 that denotes a class, mixin, mixin class, or enum declaration _D_ (e.g.,
