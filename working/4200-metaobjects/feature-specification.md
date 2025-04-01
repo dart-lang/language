@@ -491,7 +491,7 @@ result of evaluating the type literal as an expression.*
 
 A term of the form `X.new` where `X` is a type variable whose static type
 includes a member signature which is a method with the name `call` with
-return type `X` is treated as `X.call`.
+return type `X` or a subtype thereof is treated as `X.call`.
 
 *This implies that tear-offs and invocations of forwarders to constructors
 can be expressed using the same syntax as statically resolved tear-offs and
