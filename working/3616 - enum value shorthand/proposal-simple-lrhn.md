@@ -1,6 +1,6 @@
 # Dart static access shorthand
 
-Author: lrn@google.com<br>Version: 1.4 (2025-01-08)
+Author: lrn@google.com<br>Version: 1.4.1 (2025-04-02)
 
 You can write `.foo` instead of `ContextType.foo` when it makes sense. The rules
 are fairly simple and easy to explain.
@@ -276,8 +276,10 @@ a `C.new`, or a `C.id` denoting a constructor, followed by type arguments is
 recognized and made an error to avoid it being interpreted as `(C.new)<int>`.)_
 
 **Notice**: The invocation of a constructor is *not* using an instantiated type,
-it’s behaving as if the constructor was preceded by a *raw type*, which type
-inference should then infer type arguments for.
+it’s behaving as if the constructor was preceded by an uninstantiated reference
+to the declaration, which type inference should then infer type arguments for
+based on the actual context type of the constructor invocation expression,
+which is not necessarily the shorthand context.
 Doing `List<int> l = .filled(10, 10);` works like doing
 `List<int> l = List.filled(10, 10);`, and it is the following downwards
 inference with context type `List<int>` that makes it into
@@ -709,6 +711,9 @@ not members of `Future`. Primarily to allow people to return values from
 
 ## Versions
 
+1.4.1 (2025-04-02): Fix phrasing to avoid using "raw type" where it means
+  "uninstantiated type declaration reference".
+  
 1.4 (2025-01-08): Update constant rules.
 
 * Doesn't require a constant `.new` tear-off to be a constant constructor.
