@@ -1,6 +1,6 @@
 # Dart enum value shorthand
 
-(This is not the version being implemented. See the [simpler proposal](proposal-simple-lrhn.md).
+(This is not the version being implemented. See the [simpler proposal](proposal-simple-lrhn.md).)
 
 Pitch: Write `.foo` instead of `EnumName.foo` when possible.
 
