@@ -8692,7 +8692,10 @@ are the following:
   \code{\CONST{} <$K$, $V$>\{$k_1$: $v_1$, \ldots, $k_n$: $v_n$\}}, or
   \code{<$K$, $V$>\{$k_1$: $v_1$, \ldots, $k_n$: $v_n$\}}
   that occurs in a constant context,
-  is a potentially constant expression.
+  is a potentially constant expression
+  if $K$ and $V$ are constant type expressions,
+  and $k_1$, \ldots{} , $k_n$ as well as $v_1$, \ldots{} , $v_n$
+  are constant expressions.
   It is further a constant expression
   if the map literal evaluates to an object.
 
@@ -8813,7 +8816,7 @@ are the following:
 \item An expression of the form \code{$e_1$\,?\,$e_2$\,:\,$e_3$}
   is potentially constant if $e_1$, $e_2$, and $e_3$
   are all potentially constant expressions.
-  It is constant if $e_1$ is a constant expression and either
+  It is further constant if $e_1$ is a constant expression and either
   \begin{enumerate}
   \item $e_1$ evaluates to \TRUE{} and $e_2$ is a constant expression, or
   \item $e_1$ evaluates to \FALSE{} and $e_3$ is a constant expression.
