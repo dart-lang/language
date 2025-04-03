@@ -8672,9 +8672,10 @@ are the following:
   \code{<$T$>[$e_1$, \ldots, $e_n$]}
   that occurs in a constant context,
   is a potentially constant expression if $T$ is a constant type expression,
-  and $e_1$, \ldots{} , $e_n$ are constant expressions.
+  and $e_1$, \ldots{} , $e_n$ are potentially constant expressions.
   It is further a constant expression
-  if the list literal evaluates to an object.
+  if $e_1$, \ldots{} , $e_n$ are constant expressions,
+  and the list literal evaluates to an object.
 
 \item
   A constant set literal (\ref{sets}),
@@ -8683,9 +8684,10 @@ are the following:
   that occurs in a constant context,
   is a potentially constant expression
   if $T$ is a constant type expression,
-  and $e_1$, \ldots{} , $e_n$ are constant expressions.
+  and $e_1$, \ldots{} , $e_n$ are potentially constant expressions.
   It is further a constant expression
-  if the set literal evaluates to an object.
+  if $e_1$, \ldots{} , $e_n$ are constant expressions,
+  and the set literal evaluates to an object.
 
 \item
   A constant map literal (\ref{maps}),
@@ -8695,9 +8697,11 @@ are the following:
   is a potentially constant expression
   if $K$ and $V$ are constant type expressions,
   and $k_1$, \ldots{} , $k_n$ as well as $v_1$, \ldots{} , $v_n$
-  are constant expressions.
+  are potentially constant expressions.
   It is further a constant expression
-  if the map literal evaluates to an object.
+  if $k_1$, \ldots{} , $k_n$ as well as $v_1$, \ldots{} , $v_n$
+  are constant expressions,
+  and the map literal evaluates to an object.
 
 \item
   A parenthesized expression \code{($e$)} is
