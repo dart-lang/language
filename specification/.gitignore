@@ -11,3 +11,4 @@ dartLangSpec-terse.tex
 *-list.txt
 .dart_tool/
 .packages
+firebase/
