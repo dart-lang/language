@@ -1,2 +1,3 @@
 steps:
-- name:  'gcr.io/cloud-builders/docker'
+- name: 'bash'
+  args: ['specification/scripts/build_pdf']
