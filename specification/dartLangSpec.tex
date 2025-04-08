@@ -41,6 +41,12 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Apr 2025
+% - Change the rules about constants to be more consistent: Every constant
+%   expression is also a potentially constant expression. Also, eliminate
+%   redundancies in the rules about constant collection literals and constant
+%   object expressions (they are now defined just once, outside 'Constants').
+%
 % Sep 2024
 % - Clarify the extension applicability rule to explicitly state that it
 %   is concerned with an instance member with the same basename, not a
@@ -8653,48 +8659,20 @@ are the following:
   is a potentially constant expression.
 
 \item
-  A constant object expression (\ref{const}),
-  \code{\CONST{} $C$<$T_1,\ \ldots,\ T_k$>(\metavar{arguments})} or
-  \code{\CONST{} $C$<$T_1,\ \ldots,\ T_k$>.\id(\metavar{arguments})},
-  or either expression without the leading \CONST{} that occurs in
-  a constant context,
-  is a potentially constant expression.
-  It is further a constant expression if the invocation evaluates to an object.
-  % \ref{const} requires each actual argument to be a constant expression,
-  % but here we also catch errors during evaluation, e.g., `C(1, 0)` where
-  % `C(double x, double y): z = x / y;`.
-  It is a compile-time error if a constant object expression is
-  not a constant expression (\ref{const}).
+  A constant object expression (\ref{const})
+  is a potentially constant and constant expression.
 
 \item
-  A constant list literal (\ref{lists}),
-  \code{\CONST{} <$T$>[$e_1$, \ldots, $e_n$]}, or
-  \code{<$T$>[$e_1$, \ldots, $e_n$]}
-  that occurs in a constant context,
-  is a potentially constant expression if $T$ is a constant type expression,
-  and $e_1$, \ldots{} , $e_n$ are constant expressions.
-  It is further a constant expression
-  if the list literal evaluates to an object.
+  A constant list literal (\ref{lists})
+  is a potentially constant and constant expression.
 
 \item
-  A constant set literal (\ref{sets}),
-  \code{\CONST{} <$T$>\{$e_1$, \ldots, $e_n$\}}, or
-  \code{<$T$>\{$e_1$, \ldots, $e_n$\}}
-  that occurs in a constant context,
-  is a potentially constant expression
-  if $T$ is a constant type expression,
-  and $e_1$, \ldots{} , $e_n$ are constant expressions.
-  It is further a constant expression
-  if the set literal evaluates to an object.
+  A constant set literal (\ref{sets})
+  is a potentially constant and constant expression.
 
 \item
-  A constant map literal (\ref{maps}),
-  \code{\CONST{} <$K$, $V$>\{$k_1$: $v_1$, \ldots, $k_n$: $v_n$\}}, or
-  \code{<$K$, $V$>\{$k_1$: $v_1$, \ldots, $k_n$: $v_n$\}}
-  that occurs in a constant context,
-  is a potentially constant expression.
-  It is further a constant expression
-  if the map literal evaluates to an object.
+  A constant map literal (\ref{maps})
+  is a potentially constant and constant expression.
 
 \item
   A parenthesized expression \code{($e$)} is
@@ -8813,7 +8791,7 @@ are the following:
 \item An expression of the form \code{$e_1$\,?\,$e_2$\,:\,$e_3$}
   is potentially constant if $e_1$, $e_2$, and $e_3$
   are all potentially constant expressions.
-  It is constant if $e_1$ is a constant expression and either
+  It is further constant if $e_1$ is a constant expression and either
   \begin{enumerate}
   \item $e_1$ evaluates to \TRUE{} and $e_2$ is a constant expression, or
   \item $e_1$ evaluates to \FALSE{} and $e_3$ is a constant expression.
