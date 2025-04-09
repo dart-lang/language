@@ -22,15 +22,44 @@ library;
 import 'dart:io';
 
 const specificationFilename = 'dartLangSpec.tex';
-const simplifiedFilename = 'dartLangSpec-simple.tex';
+const outputFilename = 'dartLangSpec-simple.tex';
 
 void fail(String message) {
   print("simplify_specification error: $message");
   exit(-1);
 }
 
+extension _RemoveCommentsExtension on List<String> {
+  static final commentRegexp = RegExp("[^%]%\|^%");
+
+  List<String> get removeComments {
+    final result = List<String>.from(this);
+    final length = this.length;
+    var inBackMatter = false;
+    for (int index = 0; index < length; ++index) {
+      final line = result[index];
+      final match = commentRegexp.firstMatch(line);
+      if (match != null) {
+        final cutPosition = match.start == 0 ? 0 : match.start + 1;
+        final resultLine = line.substring(0, cutPosition);
+        print('>>> line: "$line", output: "$resultLine"');
+      }
+    }
+    return result;
+  }
+}
+
 void main() {
-  final specificationFile = File(specificationFilename);
-  if (!specificationFile.existsSync()) fail("Specification not found");
-  
+  final inputFile = File(specificationFilename);
+  if (!inputFile.existsSync()) fail("Specification not found");
+  final contents = inputFile.readAsLinesSync();
+  final simplifiedContents = contents.removeComments; /*
+          .removeTrailingWhitespace
+          .removeCommentary
+          .removeRationale
+          .joinLines;*/
+
+  final outputFile = File(outputFilename);
+  final outputSink = outputFile.openWrite();
+  simplifiedContents.forEach(outputSink.writeln);
 }
