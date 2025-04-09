@@ -30,19 +30,22 @@ void fail(String message) {
 }
 
 extension _RemoveCommentsExtension on List<String> {
-  static final commentRegexp = RegExp("[^%]%\|^%");
+  static final commentRegexp = RegExp("[^%\\]%\|^%");
 
   List<String> get removeComments {
     final result = List<String>.from(this);
     final length = this.length;
-    var inBackMatter = false;
     for (int index = 0; index < length; ++index) {
       final line = result[index];
       final match = commentRegexp.firstMatch(line);
       if (match != null) {
         final cutPosition = match.start == 0 ? 0 : match.start + 1;
         final resultLine = line.substring(0, cutPosition);
-        print('>>> line: "$line", output: "$resultLine"');
+        print('>>> line $index: "${line.substring(cutPosition, line.length)}"');
+      } else if (line.startsWith("\\end{document}")) {
+        // All text beyond `\end{document}` is a comment.
+        result.removeRange(index, result.length);
+        break;
       }
     }
     return result;
