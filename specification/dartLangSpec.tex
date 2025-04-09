@@ -25429,10 +25429,11 @@ a specific set of instance members.
 Let $T$ be a type, and let $T'$ be the transitive alias expansion of $T$
 (\ref{typedef}).
 We say that $T$ is an \Index{interface type} if{}f
-$T'$ is of the form \code{$C$<\List{T}{1}{k}>},
+$T'$ is of the form \code{$C$<\List{T}{1}{k}>}
+for some $k \geq 0$,
 where $C$ denotes a class different from \code{Never} and \code{Null},
 % TODO(eernst): Add mixin classes when supported
-or $C$ denotes a mixin 
+or $C$ denotes a mixin
 (\ref{mixins}),
 or an enumerated type
 (\ref{enums}).
