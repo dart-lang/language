@@ -25219,7 +25219,7 @@ The invariant occurrences are treated as described explicitly below.
     where $U$ is the greatest closure of $T$ with respect to $L$.
   \end{itemize}
 \item
-  If $S$ is an interface type of the type \code{$C$<\List{T}{1}{k}>} then
+  If $S$ is an interface type of the form \code{$C$<\List{T}{1}{k}>} then
   \begin{itemize}
   \item
     the least closure of $S$ with respect to $L$ is \code{$C$<\List{U}{1}{k}>},
@@ -25400,6 +25400,7 @@ if none of the following criteria is satisfied:
 \begin{itemize}
 \item $T$ is \VOID{} (\ref{typeVoid}).
 \item $T$ is \DYNAMIC{} (\ref{typeDynamic}).
+% TODO(eernst): Come newer versions, remove all sealed classes from here.
 \item
   $T$ is \code{Never}, \code{Null}, \code{num}, \code{int}, \code{double},
   \code{bool}, or \code{String}.
@@ -25430,7 +25431,12 @@ Let $T$ be a type, and let $T'$ be the transitive alias expansion of $T$
 We say that $T$ is an \Index{interface type} if{}f
 $T'$ is of the form \code{$C$<\List{T}{1}{k}>},
 where $C$ denotes a class different from \code{Never} and \code{Null},
-or $C$ denotes a mixin.
+% TODO(eernst): Add mixin classes when supported
+or $C$ denotes a mixin 
+(\ref{mixins}),
+or an enumerated type
+(\ref{enums}).
+% TODO(eernst): Add extension types when supported
 
 \commentary{%
   Note that \List{T}{1}{k} can be arbitrary types.
