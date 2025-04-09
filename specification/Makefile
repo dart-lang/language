@@ -51,3 +51,7 @@ cleanish:
 
 clean: cleanish
 	rm -f *.dvi *.pdf $(HASH) $(LIST)
+
+simple:
+	dart scripts/simplify_specification.dart
+
