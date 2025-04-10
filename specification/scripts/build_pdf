@@ -1,0 +1,12 @@
+#!/bin/bash --norc
+
+sudo apt-get update -qq
+sudo apt-get install \
+    texlive-latex-base \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    lmodern
+cd specification
+make
+mkdir firebase
+cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
