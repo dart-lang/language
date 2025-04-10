@@ -36,7 +36,7 @@ extension on List<String> {
 extension on List<String?> {
   static final _commentRegexp = RegExp("[^%\\\\]%\|^%");
   static final _commentaryRationaleRegexp = RegExp(
-    "^ *\\\(commentary\|rationale\)\{",
+    r"^\\\(commentary\|rationale\){",
   );
 
   static bool _isWhitespace(String text, int index) {
@@ -84,6 +84,7 @@ extension on List<String?> {
   }
 
   void removeCommentaryAndRationale() {
+    print(_commentaryRationaleRegexp);
     for (int i = 0; i < length; ++i) {
       final line = this[i];
       if (line == null) continue;
