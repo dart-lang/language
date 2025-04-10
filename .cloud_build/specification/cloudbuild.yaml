@@ -3,3 +3,5 @@ steps:
   args: ['specification/scripts/build_pdf']
 - name: 'ubuntu'
   script: pwd
+options:
+  logging: CLOUD_LOGGING_ONLY
