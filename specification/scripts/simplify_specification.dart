@@ -35,6 +35,9 @@ extension on List<String> {
 
 extension on List<String?> {
   static final _commentRegexp = RegExp("[^%\\\\]%\|^%");
+  static final _commentaryRationaleRegexp = RegExp(
+    "^\\\(commentary\|rationale\)\{",
+  );
 
   static bool _isWhitespace(String text, int index) {
     int codeUnit = text.codeUnitAt(index);
@@ -79,6 +82,20 @@ extension on List<String?> {
       }
     }
   }
+
+  void removeCommentaryAndRationale() {
+    for (int i = 0; i < length; ++i) {
+      final line = this[i];
+      if (line == null) continue;
+      final match = _commentaryRationaleRegexp.firstMatch(line);
+      if (line.startsWith(r"\commentary{") || line.startsWith(r"\rationale{")) {
+        print(line);
+        while (i < length && !line.startsWith("}")) {
+          this[i] = null;
+        }
+      }
+    }
+  }
 }
 
 void main() {
@@ -88,10 +105,9 @@ void main() {
   final simplifiedContents =
       contents.setup
         ..removeComments()
-        ..removeTrailingWhitespace(); /*
-          .removeCommentary
-          .removeRationale
-          .joinLines;*/
+        ..removeTrailingWhitespace()
+        ..removeCommentaryAndRationale(); /*
+        ..joinLines;*/
 
   final outputFile = File(outputFilename);
   final outputSink = outputFile.openWrite();
