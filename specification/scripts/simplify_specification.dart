@@ -30,14 +30,16 @@ void fail(String message) {
 }
 
 extension on List<String> {
-    static final commentRegexp = RegExp("[^%\\\\]%\|^%");
-    
-  List<String> get removeComments {
-    final result = List<String>.from(this);
+  static final _commentRegexp = RegExp("[^%\\\\]%\|^%");
+
+  (List<String?>, int) get _setup => (List<String>.from(this, growable: false), length);
+
+  List<String?> get removeComments {
+    final (result = List<String>.from(this);
     final length = this.length;
     for (int index = 0; index < length; ++index) {
       final line = result[index];
-      final match = commentRegexp.firstMatch(line);
+      final match = _commentRegexp.firstMatch(line);
       if (match != null) {
         final cutPosition = match.start == 0 ? 0 : match.start + 1;
         final resultLine = line.substring(0, cutPosition);
