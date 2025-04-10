@@ -53,6 +53,14 @@ extension on List<String?> {
         codeUnit == 0xFEFF; // Zero Width No-Break Space (BOM)
   }
 
+  static String _lineStart(String line) {
+    if (line.startsWith('        ')) return '        }';
+    if (line.startsWith('      ')) return '      }';
+    if (line.startsWith('    ')) return '    }';
+    if (line.startsWith('  ')) return '  }';
+    return '}';
+  }
+
   void removeComments() {
     for (int i = 0; i < length; ++i) {
       final line = this[i];
@@ -80,35 +88,60 @@ extension on List<String?> {
     }
   }
 
-  void removeCommentaryAndRationale() {
+  void removeNonNormative() {
     for (int i = 0; i < length; ++i) {
       final line = this[i];
       if (line == null) continue;
+      if (line.startsWith(r"\LMHash{}") ||
+          line.startsWith(r"\BlindDefineSymbol{")) {
+        this[i] = null;
+        continue;
+      }
       final match = _commentaryRationaleRegExp.firstMatch(line);
       if (match != null) {
         final matchOneliner = _bracesRegExp.firstMatch(line);
         if (matchOneliner != null) {
-          print('>>> oneliner, line: $line'); // DEBUG
           this[i] = null;
         } else {
-          final lineStart;
-          if (line.startsWith('        ')) {
-            lineStart = '        }';
-          } else if (line.startsWith('      ')) {
-            lineStart = '      }';
-          } else if (line.startsWith('    ')) {
-            lineStart = '    }';
-          } else if (line.startsWith('  ')) {
-            lineStart = '  }';
-          } else {
-            lineStart = '}';
-          }
-          print('>>> line: "$line", lineStart: "$lineStart"'); // DEBUG
+          final lineStart = _lineStart(line);
           while (i < length && this[i]?.startsWith(lineStart) == false) {
             this[i] = null;
             ++i;
           }
+          if (i < length) this[i] = null;
         }
+      }
+    }
+  }
+
+  void joinLines() {
+    bool inFrontMatter = true;
+    bool inParagraph = false;
+    for (int i = 0; i < length; ++i) {
+      final line = this[i];
+      if (line == null) continue;
+      if (inFrontMatter) {
+        if (line.startsWith(r"\begin{document}")) inFrontMatter = false;
+        continue;
+      }
+      if (!inParagraph) {
+        if (line.isNotEmpty &&
+            !line.startsWith(r"\newcommand{") &&
+            !line.startsWith(r"\section{") &&
+            !line.startsWith(r"\subsection{") &&
+            !line.startsWith(r"\subsubsection{") &&
+            !line.startsWith(r"\begin{") &&
+            !line.startsWith(r"\end{") &&
+            !line.startsWith(r"\LMLabel{") &&
+            !line.startsWith(r"\Index{") &&
+            !line.startsWith(r"\IndexCustom{") &&
+            !line.startsWith(r"\noindent") &&
+            !line.contains(r"\item")) {
+          inParagraph = true;
+        }
+      }
+      if (inParagraph) {
+        !!!
       }
     }
   }
@@ -118,14 +151,14 @@ void main() {
   final inputFile = File(specificationFilename);
   if (!inputFile.existsSync()) fail("Specification not found");
   final contents = inputFile.readAsLinesSync();
-  final simplifiedContents =
+  final workingContents =
       List<String?>.from(contents, growable: false)
         ..removeComments()
         ..removeTrailingWhitespace()
-        ..removeCommentaryAndRationale(); /*
-        ..joinLines;*/
-
+        ..removeNonNormative()
+        ..joinLines();
+  final simplifiedContents = workingContents.whereType<String>().toList();
   final outputFile = File(outputFilename);
   final outputSink = outputFile.openWrite();
-  simplifiedContents.whereType<String>().forEach(outputSink.writeln);
+  simplifiedContents.forEach(outputSink.writeln);
 }
