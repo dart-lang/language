@@ -6049,8 +6049,9 @@ and let $N$ be a name.
 It is a compile-time error to apply $M$ to $S$ if $S$ does not implement,
 directly or indirectly, all of $T_1$, \ldots, $T_n$.
 It is a compile-time error if any of \metavar{members} contains a
-super-invocation of a member $m$ \commentary{(for example \code{super.foo},
-\code{super + 2}, or \code{super[1] = 2})}, and $S$ does not have a concrete
+super-invocation of a member $m$
+(\commentary{ for example \code{super.foo}, \code{super\,\,+\,\,2}, or \code{super[1]\,=\,2}}),
+and $S$ does not have a concrete
 implementation of $m$ which is a valid override of the member $m$ in
 the interface $M_S$. \rationale{We treat super-invocations in mixins as
 interface invocations on the combined superinterface, so we require the
@@ -6068,9 +6069,11 @@ introduces generative constructors on $C$ as follows:
 
 \LMHash{}%
 Let $L_C$ be the library containing the mixin application.
-\commentary{That is, the library containing the clause \code{$S$ \WITH{} $M$}
-or the clause \code{$S_0$ \WITH{} $M_1$, \ldots,\ $M_k$, $M$} giving rise
-to the mixin application.}
+\commentary{%
+  That is, the library containing the clause \code{$S$ \WITH{} $M$}
+  or the clause \code{$S_0$ \WITH{} $M_1$, \ldots,\ $M_k$, $M$}
+  giving rise to the mixin application.%
+}
 
 Let $S_N$ be the name of $S$.
 
@@ -9568,7 +9571,7 @@ In the rule for \synt{RAW\_MULTI\_LINE\_STRING},
 the two occurrences of \lit{.*?}
 denote a non-greedy token recognition step:
 It terminates as soon as the lookahead is the specified next token
-(\commentary{that is, \lit{\sqsqsq}or \lit{"""}}).
+(\commentary{that is, \lit{\sqsqsq} or \lit{"""}}).
 
 \commentary{%
 Note that multi-line string interpolation relies on
@@ -20807,13 +20810,15 @@ A Dart program will typically be executed by executing a script.%
 \LMHash{}%
 It is a compile-time error if a library's export scope contains a declaration
 named \code{main}, and the library is not a script.
-\commentary{This restriction ensures that all top-level \code{main} declarations
+\commentary{%
+This restriction ensures that all top-level \code{main} declarations
 introduce a script main-function, so there cannot be a top-level getter or field
 named \code{main}, nor can it be a function that requires more than two
 arguments. The restriction allows tools to fail early on invalid \code{main}
 methods, without needing to know whether a library will be used as the entry
 point of a Dart program. It is possible that this restriction will be removed
-in the future.}
+in the future.%
+}
 
 
 \subsection{URIs}
@@ -22329,9 +22334,12 @@ If a mixin application mixes \FUNCTION{} onto a superclass, it follows the
 normal rules for mixin-application, but since the result of that mixin
 application is equivalent to a class with \code{implements Function}, and
 that clause has no effect, the resulting class also does not
-implement \FUNCTION. \commentary{The \FUNCTION{} class declares no
-concrete instance members, so the mixin application creates a sub-class
-of the superclass with no new members and no new interfaces.}
+implement \FUNCTION.
+\commentary{%
+The \FUNCTION{} class declares no concrete instance members,
+so the mixin application creates a sub-class of
+the superclass with no new members and no new interfaces.%
+}
 
 \rationale{%
 Since using \FUNCTION{} in these ways has no effect, it would be
