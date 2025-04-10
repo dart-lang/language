@@ -29,9 +29,9 @@ void fail(String message) {
   exit(-1);
 }
 
-extension _RemoveCommentsExtension on List<String> {
-  static final commentRegexp = RegExp("[^%\\]%\|^%");
-
+extension on List<String> {
+    static final commentRegexp = RegExp("[^%\\\\]%\|^%");
+    
   List<String> get removeComments {
     final result = List<String>.from(this);
     final length = this.length;
@@ -41,14 +41,25 @@ extension _RemoveCommentsExtension on List<String> {
       if (match != null) {
         final cutPosition = match.start == 0 ? 0 : match.start + 1;
         final resultLine = line.substring(0, cutPosition);
-        print('>>> line $index: "${line.substring(cutPosition, line.length)}"');
+        result[index] = resultLine;
       } else if (line.startsWith("\\end{document}")) {
         // All text beyond `\end{document}` is a comment.
-        result.removeRange(index, result.length);
+        result.removeRange(index + 1, result.length);
         break;
       }
     }
     return result;
+  }
+
+  List<String> removeTrailingWhitespace {
+    final result = List<String>.from(this);
+    final length = result.length;
+    for (int index = 0; index < length; ++index) {
+        final line = result[index];
+        if () {
+          
+        }
+    }
   }
 }
 
@@ -56,8 +67,8 @@ void main() {
   final inputFile = File(specificationFilename);
   if (!inputFile.existsSync()) fail("Specification not found");
   final contents = inputFile.readAsLinesSync();
-  final simplifiedContents = contents.removeComments; /*
-          .removeTrailingWhitespace
+  final simplifiedContents = contents.removeComments
+          .removeTrailingWhitespace;/*
           .removeCommentary
           .removeRationale
           .joinLines;*/
