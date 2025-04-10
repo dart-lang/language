@@ -30,37 +30,53 @@ void fail(String message) {
 }
 
 extension on List<String> {
+  List<String?> get setup => List<String?>.from(this, growable: false);
+}
+
+extension on List<String?> {
   static final _commentRegexp = RegExp("[^%\\\\]%\|^%");
 
-  (List<String?>, int) get _setup => (List<String>.from(this, growable: false), length);
+  static bool _isWhitespace(String text, int index) {
+    int codeUnit = text.codeUnitAt(index);
+    return codeUnit == 0x09 || // Tab
+        codeUnit == 0x0A || // Line Feed
+        codeUnit == 0x0B || // Vertical Tab
+        codeUnit == 0x0C || // Form Feed
+        codeUnit == 0x0D || // Carriage Return
+        codeUnit == 0x20 || // Space
+        codeUnit == 0xA0 || // No-Break Space
+        codeUnit == 0x1680 || // Ogham Space Mark
+        (codeUnit >= 0x2000 && codeUnit <= 0x200A) || // En Space to Hair Space
+        codeUnit == 0x202F || // Narrow No-Break Space
+        codeUnit == 0x205F || // Medium Mathematical Space
+        codeUnit == 0x3000 || // Ideographic Space
+        codeUnit == 0xFEFF; // Zero Width No-Break Space (BOM)
+  }
 
-  List<String?> get removeComments {
-    final (result = List<String>.from(this);
-    final length = this.length;
-    for (int index = 0; index < length; ++index) {
-      final line = result[index];
+  void removeComments() {
+    for (int i = 0; i < length; ++i) {
+      final line = this[i];
+      if (line == null) continue; // It isn't, but flow-analysis doesn't know.
       final match = _commentRegexp.firstMatch(line);
       if (match != null) {
         final cutPosition = match.start == 0 ? 0 : match.start + 1;
         final resultLine = line.substring(0, cutPosition);
-        result[index] = resultLine;
+        this[i] = resultLine;
       } else if (line.startsWith("\\end{document}")) {
         // All text beyond `\end{document}` is a comment.
-        result.removeRange(index + 1, result.length);
+        for (int j = i; j < length; ++j) this[j] = null;
         break;
       }
     }
-    return result;
   }
 
-  List<String> removeTrailingWhitespace {
-    final result = List<String>.from(this);
-    final length = result.length;
-    for (int index = 0; index < length; ++index) {
-        final line = result[index];
-        if () {
-          
-        }
+  void removeTrailingWhitespace() {
+    for (int i = 0; i < length; ++i) {
+      final line = this[i];
+      if (line == null) continue;
+      if (line.isNotEmpty && _isWhitespace(line, line.length - 1)) {
+        this[i] = line.trimRight();
+      }
     }
   }
 }
@@ -69,13 +85,15 @@ void main() {
   final inputFile = File(specificationFilename);
   if (!inputFile.existsSync()) fail("Specification not found");
   final contents = inputFile.readAsLinesSync();
-  final simplifiedContents = contents.removeComments
-          .removeTrailingWhitespace;/*
+  final simplifiedContents =
+      contents.setup
+        ..removeComments()
+        ..removeTrailingWhitespace(); /*
           .removeCommentary
           .removeRationale
           .joinLines;*/
 
   final outputFile = File(outputFilename);
   final outputSink = outputFile.openWrite();
-  simplifiedContents.forEach(outputSink.writeln);
+  simplifiedContents.whereType<String>().forEach(outputSink.writeln);
 }
