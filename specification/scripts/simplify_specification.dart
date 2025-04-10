@@ -36,7 +36,7 @@ extension on List<String> {
 extension on List<String?> {
   static final _commentRegexp = RegExp("[^%\\\\]%\|^%");
   static final _commentaryRationaleRegexp = RegExp(
-    "^\\\(commentary\|rationale\)\{",
+    "^ *\\\(commentary\|rationale\)\{",
   );
 
   static bool _isWhitespace(String text, int index) {
@@ -88,9 +88,10 @@ extension on List<String?> {
       final line = this[i];
       if (line == null) continue;
       final match = _commentaryRationaleRegexp.firstMatch(line);
-      if (line.startsWith(r"\commentary{") || line.startsWith(r"\rationale{")) {
-        print(line);
-        while (i < length && !line.startsWith("}")) {
+      if (match != null) {
+        final lineStart = '${line.substring(0, match.start - 1)}}';
+        print('>>> line: $line, lineStart: $lineStart'); // DEBUG
+        while (i < length && !line.startsWith(lineStart)) {
           this[i] = null;
         }
       }
