@@ -29,15 +29,12 @@ void fail(String message) {
   exit(-1);
 }
 
-extension on List<String> {
-  List<String?> get setup => List<String?>.from(this, growable: false);
-}
-
 extension on List<String?> {
-  static final _commentRegexp = RegExp("[^%\\\\]%\|^%");
-  static final _commentaryRationaleRegexp = RegExp(
-    r"^\\\(commentary\|rationale\){",
+  static final _commentRegExp = RegExp(r"^%|[^%\\]%");
+  static final _commentaryRationaleRegExp = RegExp(
+    r"^ *\\(commentary|rationale){",
   );
+  static final _bracesRegExp = RegExp(r"{.*}");
 
   static bool _isWhitespace(String text, int index) {
     int codeUnit = text.codeUnitAt(index);
@@ -60,14 +57,14 @@ extension on List<String?> {
     for (int i = 0; i < length; ++i) {
       final line = this[i];
       if (line == null) continue; // It isn't, but flow-analysis doesn't know.
-      final match = _commentRegexp.firstMatch(line);
+      final match = _commentRegExp.firstMatch(line);
       if (match != null) {
         final cutPosition = match.start == 0 ? 0 : match.start + 1;
         final resultLine = line.substring(0, cutPosition);
         this[i] = resultLine;
       } else if (line.startsWith("\\end{document}")) {
         // All text beyond `\end{document}` is a comment.
-        for (int j = i; j < length; ++j) this[j] = null;
+        for (int j = i + 1; j < length; ++j) this[j] = null;
         break;
       }
     }
@@ -84,16 +81,33 @@ extension on List<String?> {
   }
 
   void removeCommentaryAndRationale() {
-    print(_commentaryRationaleRegexp);
     for (int i = 0; i < length; ++i) {
       final line = this[i];
       if (line == null) continue;
-      final match = _commentaryRationaleRegexp.firstMatch(line);
+      final match = _commentaryRationaleRegExp.firstMatch(line);
       if (match != null) {
-        final lineStart = '${line.substring(0, match.start - 1)}}';
-        print('>>> line: $line, lineStart: $lineStart'); // DEBUG
-        while (i < length && !line.startsWith(lineStart)) {
+        final matchOneliner = _bracesRegExp.firstMatch(line);
+        if (matchOneliner != null) {
+          print('>>> oneliner, line: $line'); // DEBUG
           this[i] = null;
+        } else {
+          final lineStart;
+          if (line.startsWith('        ')) {
+            lineStart = '        }';
+          } else if (line.startsWith('      ')) {
+            lineStart = '      }';
+          } else if (line.startsWith('    ')) {
+            lineStart = '    }';
+          } else if (line.startsWith('  ')) {
+            lineStart = '  }';
+          } else {
+            lineStart = '}';
+          }
+          print('>>> line: "$line", lineStart: "$lineStart"'); // DEBUG
+          while (i < length && this[i]?.startsWith(lineStart) == false) {
+            this[i] = null;
+            ++i;
+          }
         }
       }
     }
@@ -105,7 +119,7 @@ void main() {
   if (!inputFile.existsSync()) fail("Specification not found");
   final contents = inputFile.readAsLinesSync();
   final simplifiedContents =
-      contents.setup
+      List<String?>.from(contents, growable: false)
         ..removeComments()
         ..removeTrailingWhitespace()
         ..removeCommentaryAndRationale(); /*
