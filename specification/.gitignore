@@ -10,3 +10,4 @@ dartLangSpec*.toc
 *-list.txt
 .dart_tool/
 .packages
+firebase/
