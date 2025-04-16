@@ -65,10 +65,6 @@ extension on List<String?> {
 
   static String _lineStart(String line) {
     final indentation = _indentation(line);
-    if (indentation > 0)
-      print(
-        '>>> indentation: $indentation. Returning: ${"${' ' * indentation}}"}',
-      ); // DEBUG
     return "${' ' * indentation}}";
   }
 
