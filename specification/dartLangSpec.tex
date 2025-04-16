@@ -8140,7 +8140,8 @@ be determined by the following iterative process, where $V_m$ denotes
   which is in a contravariant position in $V_m$.
 
 \item[2.]
-  Otherwise (\commentary{when there are no dependency cycles}),
+  Otherwise
+  (\commentary{when there are no dependency cycles}),
   let $j$ be the lowest number such that $X_j$ occurs in $U_{p,m}$ for some $p$
   and $X_j \not\rightarrow_m X_q$ for all $q$ in $1 .. k$
   (\commentary{%
@@ -8155,7 +8156,8 @@ be determined by the following iterative process, where $V_m$ denotes
   which is in a contravariant position in $V_m$.
 
 \item[3.]
-  Otherwise (\commentary{when there are no dependencies at all}),
+  Otherwise
+  (\commentary{when there are no dependencies at all}),
   terminate with the result \code{<$U_{1,m},\ \ldots,\ U_{k,m}$>}.
 \end{itemize}
 
@@ -10807,7 +10809,8 @@ the first applicable entry in the following list:
   When $S$ implements \code{Map} but not \code{Iterable},
   $e$ is a map literal.
 \item
-  When ${\cal L} \not= \emptyset$ (\commentary{that is, $e$ has leaf elements}):
+  When ${\cal L} \not= \emptyset$
+  (\commentary{that is, $e$ has leaf elements}):
   If $\cal L$ contains a \synt{mapElement}
   as well as an \synt{expressionElement},
   a compile-time error occurs.
@@ -14714,7 +14717,8 @@ and let $F$ be the return type of $D$.
 If both lookups failed, a compile-time error occurs.
 
 \LMHash{}%
-Otherwise (\commentary{when one of the lookups succeeded}),
+Otherwise
+(\commentary{when one of the lookups succeeded}),
 the static analysis of $i$ is performed
 as specified in Section~\ref{bindingActualsToFormals},
 considering the function to have static type $F$,
@@ -14760,7 +14764,8 @@ the method $m$ with respect to $L$ in $o$ starting with \SuperClass{}
 If the lookup succeeded,
 let $f$ denote the function associated with $D$.
 %
-Otherwise (\commentary{when method lookup failed}),
+Otherwise
+(\commentary{when method lookup failed}),
 let the declaration $D$ be the result of looking up
 the getter $m$ with respect to $L$ in $o$ starting with \SuperClass{}
 (\ref{lookup}).
@@ -17358,7 +17363,7 @@ proceed as described in the first applicable case from the following list:
   % - a library variable, getter, or setter;
   % - a static method/getter/setter of a class, mixin, enum, or extension;
   % - an instance method of an extension;
-  % - a local variable (\commentary{which may be a formal parameter});
+  % - a local variable (which may be a formal parameter);
   % - a local function.
   Otherwise, the lexical lookup yields $D$.
 \end{itemize}
@@ -17725,7 +17730,8 @@ The is-expression \code{$e$ \IS{}! $T$} is equivalent to
 \code{!($e$ \IS{} $T$)}.
 
 \LMHash{}%
-Let $v$ be a local variable (\commentary{which can be a formal parameter}).
+Let $v$ be a local variable
+(\commentary{which can be a formal parameter}).
 An is-expression of the form \code{$v$ \IS{} $T$}
 shows that $v$ has type $T$
 if $T$ is a subtype of the type of the expression $v$.
