@@ -67,9 +67,13 @@ extension on List<String?> {
       if (line == null) continue; // It isn't, but flow-analysis doesn't know.
       final match = _commentRegExp.firstMatch(line);
       if (match != null) {
-        final cutPosition = match.start == 0 ? 0 : match.start + 1;
-        final resultLine = line.substring(0, cutPosition);
-        this[i] = resultLine;
+        if (match.start == 0) {
+          this[i] = null; // A comment-only line disappears entirely.
+        } else {
+          final cutPosition = match.start + 1;
+          final resultLine = line.substring(0, cutPosition);
+          this[i] = resultLine;
+        }
       } else if (line.startsWith("\\end{document}")) {
         // All text beyond `\end{document}` is a comment.
         for (int j = i + 1; j < length; ++j) this[j] = null;
@@ -92,8 +96,7 @@ extension on List<String?> {
     for (int i = 0; i < length; ++i) {
       final line = this[i];
       if (line == null) continue;
-      if (line.startsWith(r"\LMHash{}") ||
-          line.startsWith(r"\BlindDefineSymbol{")) {
+      if (line.startsWith(r"\BlindDefineSymbol{")) {
         this[i] = null;
         continue;
       }
@@ -141,7 +144,7 @@ extension on List<String?> {
         }
       }
       if (inParagraph) {
-        !!!
+        throw 0; // !!!
       }
     }
   }
@@ -155,8 +158,8 @@ void main() {
       List<String?>.from(contents, growable: false)
         ..removeComments()
         ..removeTrailingWhitespace()
-        ..removeNonNormative()
-        ..joinLines();
+        ..removeNonNormative() /*
+        ..joinLines()*/;
   final simplifiedContents = workingContents.whereType<String>().toList();
   final outputFile = File(outputFilename);
   final outputSink = outputFile.openWrite();
