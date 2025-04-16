@@ -6015,11 +6015,14 @@ where $\metavar{members}'$ are the member declarations of
 the mixin declaration $M$ except that all superinvocations are treated
 as if \SUPER{} was a valid expression with static type $M_S$.
 It is a compile-time error for the mixin $M$ if this $N$ class
-declaration would cause a compile-time error, \commentary{that is, if the
-required superinterfaces, the implemented interfaces and the declarations do not
-define a consistent interface, if any member declaration contains a
-compile-time error other than a super-invocation, or if a super-invocation
-is not valid against the interface $M_S$}.
+declaration would cause a compile-time error,
+\commentary{%
+that is, if the required superinterfaces, the implemented interfaces
+and the declarations do not define a consistent interface,
+if any member declaration contains a compile-time error
+other than a super-invocation,
+or if a super-invocation is not valid against the interface $M_S$.%
+}
 The interface introduced by the mixin declaration $M$ has the same member
 signatures and superinterfaces as $M_I$.
 
