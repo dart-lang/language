@@ -32,10 +32,10 @@ void fail(String message) {
 extension on List<String?> {
   static final _commentRegExp = RegExp(r"^%|[^%\\]%");
   static final _commentaryRationaleRegExp = RegExp(
-    r"^ *\\(commentary|rationale){",
+    r"^ *\(?\\(commentary|rationale){",
   );
   static final _bracesRegExp = RegExp(r"\\[a-zA-Z]*{.*}");
-  static final _parenBracesRexExp = RegExp(r"(\\[a-zA-Z]*{.*})");
+  static final _parenBracesRexExp = RegExp(r"\(\\[a-zA-Z]*{.*}\)");
 
   static bool _isWhitespace(String text, int index) {
     int codeUnit = text.codeUnitAt(index);
@@ -117,35 +117,26 @@ extension on List<String?> {
         final matchParenthesizedOneliner = _parenBracesRexExp.firstMatch(line);
         if (matchParenthesizedOneliner != null) {
           if (matchParenthesizedOneliner.start == 0 &&
-              matchParenthesizedOneliner.end == line.length - 1) {
-            print('>>> matchParenthesizedOneliner, all: "$line"'); // DEBUG
+              matchParenthesizedOneliner.end == line.length) {
             this[i] = null;
           } else {
-            final resultLine = line.replaceRange(
+            this[i] = line.replaceRange(
               matchParenthesizedOneliner.start,
               matchParenthesizedOneliner.end,
               '',
             );
-            this[i] = resultLine;
-            print(
-              '>>> matchParenthesizedOneliner, some: "$line", "$resultLine"',
-            ); // DEBUG
           }
         } else {
           final matchOneliner = _bracesRegExp.firstMatch(line);
           if (matchOneliner != null) {
-            if (matchOneliner.start == 0 &&
-                matchOneliner.end == line.length - 1) {
-              print('>>> matchOneliner, all: "$line"'); // DEBUG
+            if (matchOneliner.start == 0 && matchOneliner.end == line.length) {
               this[i] = null;
             } else {
-              final resultLine = line.replaceRange(
+              this[i] = line.replaceRange(
                 matchOneliner.start,
                 matchOneliner.end,
                 '',
               );
-              this[i] = resultLine;
-              print('>>> matchOneliner, some: "$line", "$resultLine"'); // DEBUG
             }
           } else {
             final lineStart = _lineStart(line);
