@@ -6056,10 +6056,14 @@ super-invocation of a member $m$
 (\commentary{ for example \code{super.foo}, \code{super\,\,+\,\,2}, or \code{super[1]\,=\,2}}),
 and $S$ does not have a concrete
 implementation of $m$ which is a valid override of the member $m$ in
-the interface $M_S$. \rationale{We treat super-invocations in mixins as
-interface invocations on the combined superinterface, so we require the
-superclass of a mixin application to have valid implementations of those
-interface members that are actually super-invoked.}
+the interface $M_S$.
+\rationale{%
+We treat super-invocations in mixins as
+interface invocations on the combined superinterface,
+so we require the superclass of a mixin application to have
+valid implementations of those interface members
+that are actually super-invoked.%
+}
 
 \LMHash{}%
 The mixin application of $M$ to $S$ with name $N$ introduces a new
