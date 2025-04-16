@@ -34,7 +34,8 @@ extension on List<String?> {
   static final _commentaryRationaleRegExp = RegExp(
     r"^ *\\(commentary|rationale){",
   );
-  static final _bracesRegExp = RegExp(r"{.*}");
+  static final _bracesRegExp = RegExp(r"\\[a-zA-Z]*{.*}");
+  static final _parenBracesRexExp = RegExp(r"(\\[a-zA-Z]*{.*})");
 
   static bool _isWhitespace(String text, int index) {
     int codeUnit = text.codeUnitAt(index);
@@ -113,21 +114,53 @@ extension on List<String?> {
       }
       final match = _commentaryRationaleRegExp.firstMatch(line);
       if (match != null) {
-        final matchOneliner = _bracesRegExp.firstMatch(line);
-        if (matchOneliner != null) {
-          this[i] = null;
-        } else {
-          final lineStart = _lineStart(line);
-          while (i < length && this[i]?.startsWith(lineStart) == false) {
+        final matchParenthesizedOneliner = _parenBracesRexExp.firstMatch(line);
+        if (matchParenthesizedOneliner != null) {
+          if (matchParenthesizedOneliner.start == 0 &&
+              matchParenthesizedOneliner.end == line.length - 1) {
+            print('>>> matchParenthesizedOneliner, all: "$line"'); // DEBUG
             this[i] = null;
-            ++i;
+          } else {
+            final resultLine = line.replaceRange(
+              matchParenthesizedOneliner.start,
+              matchParenthesizedOneliner.end,
+              '',
+            );
+            this[i] = resultLine;
+            print(
+              '>>> matchParenthesizedOneliner, some: "$line", "$resultLine"',
+            ); // DEBUG
           }
-          if (i < length) this[i] = null;
+        } else {
+          final matchOneliner = _bracesRegExp.firstMatch(line);
+          if (matchOneliner != null) {
+            if (matchOneliner.start == 0 &&
+                matchOneliner.end == line.length - 1) {
+              print('>>> matchOneliner, all: "$line"'); // DEBUG
+              this[i] = null;
+            } else {
+              final resultLine = line.replaceRange(
+                matchOneliner.start,
+                matchOneliner.end,
+                '',
+              );
+              this[i] = resultLine;
+              print('>>> matchOneliner, some: "$line", "$resultLine"'); // DEBUG
+            }
+          } else {
+            final lineStart = _lineStart(line);
+            while (i < length && this[i]?.startsWith(lineStart) == false) {
+              this[i] = null;
+              ++i;
+            }
+            if (i < length) this[i] = null;
+          }
         }
       }
     }
   }
 
+  /*
   void joinLines() {
     bool inFrontMatter = true;
     bool inParagraph = false;
@@ -158,7 +191,7 @@ extension on List<String?> {
         throw 0; // !!!
       }
     }
-  }
+  }*/
 }
 
 void main() {
