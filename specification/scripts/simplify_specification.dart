@@ -140,7 +140,7 @@ extension on List<String?> {
             }
           } else {
             final lineStart = _lineStart(line);
-            while (i < length && this[i]?.startsWith(lineStart) == false) {
+            while (i < length && this[i]?.startsWith(lineStart) != true) {
               this[i] = null;
               ++i;
             }
@@ -151,10 +151,9 @@ extension on List<String?> {
     }
   }
 
-  /*
+  // TODO!!!
   void joinLines() {
     bool inFrontMatter = true;
-    bool inParagraph = false;
     for (int i = 0; i < length; ++i) {
       final line = this[i];
       if (line == null) continue;
@@ -162,27 +161,29 @@ extension on List<String?> {
         if (line.startsWith(r"\begin{document}")) inFrontMatter = false;
         continue;
       }
-      if (!inParagraph) {
-        if (line.isNotEmpty &&
-            !line.startsWith(r"\newcommand{") &&
-            !line.startsWith(r"\section{") &&
-            !line.startsWith(r"\subsection{") &&
-            !line.startsWith(r"\subsubsection{") &&
-            !line.startsWith(r"\begin{") &&
-            !line.startsWith(r"\end{") &&
-            !line.startsWith(r"\LMLabel{") &&
-            !line.startsWith(r"\Index{") &&
-            !line.startsWith(r"\IndexCustom{") &&
-            !line.startsWith(r"\noindent") &&
-            !line.contains(r"\item")) {
-          inParagraph = true;
+      if (line.startsWith(r"\LMHash{}")) {
+        final longLineIndex = i;
+        final buffer = StringBuffer('');
+        for (
+          int gatherIndex = longLineIndex + 1;
+          gatherIndex < length;
+          ++gatherIndex
+        ) {
+          var gatherLine = this[gatherIndex];
+          if (gatherLine == null) continue;
+          if (gatherLine.isEmpty) {
+            i = gatherIndex;
+            this[longLineIndex] = buffer.toString();
+            continue;
+          }
+          this[gatherIndex] = null;
+          buffer.write(gatherLine);
+          buffer.write(' ');
         }
-      }
-      if (inParagraph) {
-        throw 0; // !!!
+        assert(i < length);
       }
     }
-  }*/
+  }
 }
 
 void main() {
@@ -193,8 +194,8 @@ void main() {
       List<String?>.from(contents, growable: false)
         ..removeComments()
         ..removeTrailingWhitespace()
-        ..removeNonNormative() /*
-        ..joinLines()*/;
+        ..removeNonNormative()
+        ..joinLines();
   final simplifiedContents = workingContents.whereType<String>().toList();
   final outputFile = File(outputFilename);
   final outputSink = outputFile.openWrite();
