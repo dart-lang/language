@@ -53,12 +53,23 @@ extension on List<String?> {
         codeUnit == 0xFEFF; // Zero Width No-Break Space (BOM)
   }
 
+  static int _indentation(String text) {
+    final length = text.length;
+    for (int i = 0; i < length; ++i) {
+      if (!_isWhitespace(text, i)) {
+        return i;
+      }
+    }
+    return length;
+  }
+
   static String _lineStart(String line) {
-    if (line.startsWith('        ')) return '        }';
-    if (line.startsWith('      ')) return '      }';
-    if (line.startsWith('    ')) return '    }';
-    if (line.startsWith('  ')) return '  }';
-    return '}';
+    final indentation = _indentation(line);
+    if (indentation > 0)
+      print(
+        '>>> indentation: $indentation. Returning: ${"${' ' * indentation}}"}',
+      ); // DEBUG
+    return "${' ' * indentation}}";
   }
 
   void removeComments() {
@@ -71,6 +82,10 @@ extension on List<String?> {
           this[i] = null; // A comment-only line disappears entirely.
         } else {
           final cutPosition = match.start + 1;
+          if (line.codeUnitAt(cutPosition) == 37) {
+            // An indented comment-only line disappears entirely.
+            this[i] = null;
+          }
           final resultLine = line.substring(0, cutPosition);
           this[i] = resultLine;
         }
