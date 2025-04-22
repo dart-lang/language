@@ -164,6 +164,7 @@ extension on List<String?> {
       if (line.startsWith(r"\LMHash{}")) {
         final longLineIndex = i;
         final buffer = StringBuffer('');
+        var firstInParagraph = true;
         for (
           int gatherIndex = longLineIndex + 1;
           gatherIndex < length;
@@ -177,8 +178,12 @@ extension on List<String?> {
             continue L;
           }
           this[gatherIndex] = null;
+          if (firstInParagraph) {
+            firstInParagraph = false;
+          } else {
+            buffer.write(' ');
+          }
           buffer.write(gatherLine);
-          buffer.write(' ');
         }
         assert(i < length);
       }
