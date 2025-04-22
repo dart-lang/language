@@ -151,9 +151,9 @@ extension on List<String?> {
     }
   }
 
-  // TODO!!!
   void joinLines() {
     bool inFrontMatter = true;
+    L:
     for (int i = 0; i < length; ++i) {
       final line = this[i];
       if (line == null) continue;
@@ -174,7 +174,7 @@ extension on List<String?> {
           if (gatherLine.isEmpty) {
             i = gatherIndex;
             this[longLineIndex] = buffer.toString();
-            continue;
+            continue L;
           }
           this[gatherIndex] = null;
           buffer.write(gatherLine);
