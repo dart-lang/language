@@ -1,7 +1,5 @@
 steps:
 - name: 'ubuntu'
-  script: 'pwd; ls -l specification/scripts'
-- name: 'bash'
   args: ['specification/scripts/build_pdf']
 options:
   logging: CLOUD_LOGGING_ONLY
