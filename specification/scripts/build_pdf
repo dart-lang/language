@@ -1,4 +1,4 @@
-#!/usr/bin/env bash --norc
+#!/bin/bash --norc
 
 sudo apt-get update -qq
 sudo apt-get install \
