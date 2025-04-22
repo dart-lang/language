@@ -153,39 +153,109 @@ extension on List<String?> {
 
   void joinLines() {
     bool inFrontMatter = true;
-    L:
-    for (int i = 0; i < length; ++i) {
-      final line = this[i];
+    TopLoop:
+    for (var lineIndex = 0; lineIndex < length; ++lineIndex) {
+      final line = this[lineIndex]; // Invariant.
       if (line == null) continue;
       if (inFrontMatter) {
         if (line.startsWith(r"\begin{document}")) inFrontMatter = false;
         continue;
       }
       if (line.startsWith(r"\LMHash{}")) {
-        final longLineIndex = i;
+        final longLineIndex = lineIndex;
         final buffer = StringBuffer('');
         var firstInParagraph = true;
         for (
-          int gatherIndex = longLineIndex + 1;
+          var gatherIndex = longLineIndex + 1;
           gatherIndex < length;
           ++gatherIndex
         ) {
-          var gatherLine = this[gatherIndex];
+          var gatherLine = this[gatherIndex]; // Invariant.
           if (gatherLine == null) continue;
           if (gatherLine.isEmpty) {
-            i = gatherIndex;
             this[longLineIndex] = buffer.toString();
-            continue L;
+            lineIndex = gatherIndex;
+            continue TopLoop; // Restores the `line` invariant.
           }
-          this[gatherIndex] = null;
           if (firstInParagraph) {
             firstInParagraph = false;
           } else {
             buffer.write(' ');
           }
           buffer.write(gatherLine);
+          this[gatherIndex] = gatherLine = null;
         }
-        assert(i < length);
+        assert(lineIndex < length);
+      } else if (line.startsWith(r"\begin{itemize}")) {
+        var itemIndex = lineIndex + 1;
+        InnerLoop:
+        while (true) {
+          var itemLine = this[itemIndex]; // Invariant.
+          while (itemIndex < length &&
+              itemLine?.trimLeft().startsWith(r"\item") != true) {
+            ++itemIndex;
+            itemLine = this[itemIndex];
+          }
+          assert(itemIndex < length);
+          // `itemLine == this[itemIndex]` matches `r"^ *\\item"`.
+          var buffer = StringBuffer(itemLine!);
+          for (
+            var gatherIndex = itemIndex + 1;
+            gatherIndex < length;
+            ++gatherIndex
+          ) {
+            var gatherLine = this[gatherIndex]; // Invariant.
+            if (gatherLine == null) continue;
+            final trimmedGatherLine = gatherLine.trimLeft();
+            if (trimmedGatherLine.startsWith(r"\begin{itemize}")) {
+              // We do not gather a nested itemized list into the current item.
+              this[itemIndex] = buffer.toString();
+              itemIndex = gatherIndex + 1;
+              continue InnerLoop; // Restores the `itemLine` invariant.
+            }
+            if (gatherLine.startsWith(r"\end{itemize}")) {
+              // At the end of the outermost itemized list.
+              lineIndex = gatherIndex + 1;
+              continue TopLoop; // Restores the `line` invariant.
+            }
+            final foundItem = trimmedGatherLine.startsWith(r"\item");
+            final foundEnd = trimmedGatherLine.startsWith(r"\end{itemize}");
+            if (foundItem || foundEnd) {
+              // Current `\item` has ended, transfer the data.
+              this[itemIndex] = buffer.toString();
+              if (foundItem) {
+                buffer = StringBuffer(gatherLine);
+                itemIndex = gatherIndex;
+                itemLine = this[itemIndex]; // Restore the `itemLine` invariant.
+                continue;
+              }
+              if (foundEnd) {
+                // Gather lines after the nested itemized list, if any.
+                itemIndex = gatherIndex + 1;
+                itemLine = this[itemIndex]; // Restore the `itemLine` invariant.
+                while (itemIndex < length &&
+                    (itemLine == null || itemLine.trim().isEmpty)) {
+                  ++itemIndex;
+                  itemLine = this[itemIndex]; // Restore the invariant.
+                }
+                assert(itemIndex < length);
+                // `itemLine` contains some non-whitespace text.
+                if (itemLine!.startsWith(r"\end{itemize}")) {
+                  // No text occurs after the nested itemized list.
+                  lineIndex = itemIndex + 1;
+                  continue TopLoop; // Restores the `line` invariant.
+                }
+                buffer = StringBuffer(itemLine!);
+                gatherIndex = itemIndex + 1;
+                gatherLine = this[gatherIndex]; // Restore the invariant.
+              }
+            }
+            this[gatherIndex] = null;
+            buffer.write(' ');
+            buffer.write(gatherLine);
+          }
+          assert(lineIndex < length);
+        }
       }
     }
   }
