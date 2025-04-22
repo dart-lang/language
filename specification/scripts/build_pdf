@@ -2,7 +2,7 @@
 
 apt-get update -qq
 apt-get install \
-    make \
+    build-essential \
     texlive-latex-base \
     texlive-latex-extra \
     texlive-fonts-recommended \
