@@ -1,6 +1,6 @@
 steps:
 - name: 'ubuntu'
-  script: 'pwd; ls; ls specification; ls specification/scripts'
+  script: 'pwd; ls -l specification/scripts'
 - name: 'bash'
   args: ['specification/scripts/build_pdf']
 options:
