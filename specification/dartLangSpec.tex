@@ -514,6 +514,7 @@ We distinguish between normative and non-normative text.
 Normative text defines the rules of Dart.
 It is given in this font.
 At this time, non-normative text includes:
+
 \begin{itemize}
 \item[Rationale]
   Discussion of the motivation for language design decisions appears in italics.
@@ -655,6 +656,7 @@ The specifications of operators often involve statements such as
 \IndexCustom{\rm\code{$x$.\metavar{op}($y$)}}{%
   x.op(y)@\code{$x$.\metavar{op}($y$)}}.
 Such specifications should be understood as a shorthand for:
+
 \begin{itemize}
 \item
   $x$ $op$ $y$ is equivalent to the method invocation
@@ -1991,6 +1993,7 @@ The formal parameter part optionally specifies
 the formal type parameter list of the function,
 and it always specifies its formal parameter list.
 A function body is either:
+
 \begin{itemize}
 \item
   a block statement (\ref{blocks}) containing
@@ -2038,6 +2041,7 @@ OR
   }
   Let $T$ be the declared return type of the function that has this body.
   It is a compile-time error if one of the following conditions hold:
+
   \begin{itemize}
   \item The function is synchronous, $T$ is not \VOID,
     and it would have been a compile-time error
@@ -2322,6 +2326,7 @@ the corresponding parameter list with a trailing comma.
 
 \LMHash{}%
 A \Index{required formal parameter} may be specified in one of three ways:
+
 \begin{itemize}
 \item
   By means of a function signature that names the parameter and
@@ -2854,6 +2859,7 @@ are its static and instance members.
 
 \LMHash{}%
 A class declaration introduces two scopes:
+
 \begin{itemize}
 \item
   A \IndexCustom{type-parameter scope}{scope!type parameter},
@@ -4230,6 +4236,7 @@ and consists of a comma-separated list of individual \Index{initializers}.
 
 \commentary{%
 There are three kinds of initializers.
+
 \begin{itemize}
 \item[$\bullet$] A \emph{superinitializer} identifies a
   \emph{superconstructor}\,---\,that is,
@@ -4348,6 +4355,7 @@ Let \DefineSymbol{f} be a final instance variable declared in
 the immediately enclosing class or enum.
 A compile-time error occurs unless $f$ is initialized
 by one of the following means:
+
 \begin{itemize}
 \item $f$ is declared by an initializing variable declaration.
 \item $f$ is initialized by means of an initializing formal of $k$.
@@ -4693,6 +4701,7 @@ ordinary factory constructors could simply create
 instances of other classes and return them,
 and that redirecting factories are unnecessary.
 However, redirecting factories have several advantages:
+
 \begin{itemize}
 \item
   An abstract class may provide a constant constructor
@@ -4894,6 +4903,7 @@ The name $S'$ is a fresh identifier.
 If no \WITH{} clause is specified then the \EXTENDS{} clause of
 a class $C$ specifies its superclass.
 If no \EXTENDS{} clause is specified, then either:
+
 \begin{itemize}
 \item $C$ is \code{Object}, which has no superclass. OR
 \item Class $C$ is deemed to have an \EXTENDS{} clause of the form
@@ -4951,6 +4961,7 @@ class G<T> extends T \{\}
 %% TODO(eernst): Consider replacing all occurrences of `a superclass`
 %% by `a direct or indirect superclass`, because it's too confusing.
 A class $S$ is a \Index{superclass} of a class $C$ if{}f either:
+
 \begin{itemize}
 \item $S$ is the superclass of $C$, or
 \item $S$ is a superclass of a class $S'$,
@@ -5708,6 +5719,7 @@ Let $J$ be an interface and $K$ be a library.
 We define $\inherited{J, K}$ to be the set of member signatures
 \DefineSymbol{m}
 such that all of the following hold:
+
 \begin{itemize}
 \item $m$ is accessible to $K$ and
 \item $A$ is a direct superinterface of $J$ and either
@@ -5722,6 +5734,7 @@ such that all of the following hold:
 Furthermore, we define $\overrides{J, K}$ to be
 the set of member signatures \DefineSymbol{m'}
 such that all of the following hold:
+
 \begin{itemize}
 \item $J$ is the interface of a class $C$.
 \item $C$ declares a member signature $m$.
@@ -6264,6 +6277,7 @@ or in order to resolve an invocation explicitly%
 
 \LMHash{}%
 An extension declaration introduces two scopes:
+
 \begin{itemize}
 \item
   A \IndexCustom{type-parameter scope}{scope!type parameter},
@@ -6768,6 +6782,7 @@ if at least one of the following conditions is satisfied:
 \item
   $E_1$ and $E_2$ are both declared in a system library,
   or neither of them is declared in a system library, and
+
   \begin{itemize}
   \item \SubtypeNE{T_1}{T_2}, but not \SubtypeNE{T_2}{T_1}, or
   \item \SubtypeNE{T_1}{T_2}, \SubtypeNE{T_2}{T_1}, and
@@ -6992,6 +7007,7 @@ proceeds as follows:
 Evaluate $e_1$ to an object $o$.
 Let $u$ be a fresh final variable bound to $o$.
 Then $e$ evaluates to a function object which is equivalent to:
+
 \begin{itemize}
 \item
 \begin{normativeDartCode}
@@ -7415,6 +7431,7 @@ This enables typechecking code such as:%
 \commentary{%
 Even where type parameters are in scope
 there are numerous restrictions at this time:
+
 \begin{itemize}
 \item[$\bullet$]
   A type parameter cannot be used to name a constructor in
@@ -7706,6 +7723,7 @@ Any use of a type $T$ which is not well-bounded is a compile-time error.
 \LMHash{}%
 It is a compile-time error if a parameterized type $T$ is super-bounded
 when it is used in any of the following ways:
+
 \begin{itemize}
 \item $T$ is an immediate subterm of a new expression
   (\ref{new})
@@ -8313,6 +8331,7 @@ each of which begin with the character \lit{@},
 followed by a constant expression $e$ derivable from
 \synt{metadatum}.
 It is a compile-time error if $e$ is not one of the following:
+
 \begin{itemize}
 \item A reference to a constant variable.
 \item A call to a constant constructor.
@@ -8503,6 +8522,7 @@ and throws the same exception object and stack trace.
 \LMHash{}%
 The predefined Dart function \code{identical()}
 is defined such that \code{identical($c_1$, $c_2$)} if{}f:
+
 \begin{itemize}
 \item $c_1$ evaluates to either the null object (\ref{null})
   or an instance of \code{bool} and \code{$c_1$ == $c_2$}, OR
@@ -8510,6 +8530,7 @@ is defined such that \code{identical($c_1$, $c_2$)} if{}f:
 \item $c_1$ and $c_2$ are constant strings and \code{$c_1$ == $c_2$}, OR
 \item $c_1$ and $c_2$ are instances of \code{double}
   and one of the following holds:
+
   \begin{itemize}
   \item $c_1$ and $c_2$ are non-zero and \code{$c_1$ == $c_2$}.
   \item Both $c_1$ and $c_2$ are $+0.0$.
@@ -8871,6 +8892,7 @@ are the following:
 A
 \Index{constant type expression}
 is one of:
+
 \begin{itemize}
 \item
   An simple or qualified identifier
@@ -9246,6 +9268,7 @@ The static type of a double literal is \code{double}.
 If $l$ is an integer literal with numeric value $i$ and static type \code{int},
 and $l$ is not the operand of a unary minus operator,
 then evaluation of $l$ proceeds as follows:
+
 \begin{itemize}
   \item{} If $l$ is a hexadecimal integer literal,
   $2^{63} \le i < 2^{64}$ and the \code{int} class is implemented as
@@ -9591,6 +9614,7 @@ just like single-line string interpolation.%
 \LMHash{}%
 Strings support escape sequences for special characters.
 The escapes are:
+
 \begin{itemize}
 \item
   \syntax{`\\n'} for newline, equivalent to \syntax{`\\x0A'}.
@@ -9697,6 +9721,7 @@ which could again be interpolated recursively.%
 An unescaped \lit{\$} character in a string signifies
 the beginning of an interpolated expression.
 The \lit{\$} sign may be followed by either:
+
 \begin{itemize}
 \item A single identifier \id{} that does not contain the \lit{\$} character
   (but it can be a built-in identifier),
@@ -9711,12 +9736,15 @@ An interpolated string, $s$, with content
 (where any of $s_0, \ldots, s_n$ can be empty)
 is evaluated by evaluating each expression $e_i$ ($1 \le i \le n$)
 into a string $r_i$ in the order they occur in the source text, as follows:
+
 \begin{itemize}
 \item Evaluate $e_i$ to an object $o_i$.
 \item Invoke the \code{toString} method on $o_i$ with no arguments,
   and let $r_i$ be the returned object.
 \item If $r_i$ is the null object, a dynamic error occurs.
 \end{itemize}
+
+\LMHash{}%
 Finally, the result of the evaluation of $s$ is
 the concatenation of the strings $s_0$, $r_1$, \ldots, $r_n$, and $s_n$.
 
@@ -10713,6 +10741,7 @@ the result of evaluating a constant expression.%
 A run-time list literal
 \code{<$T$>[\List{\ell}{1}{m}]}
 is evaluated as follows:
+
 \begin{itemize}
 \item
   The elements \List{\ell}{1}{m} are evaluated
@@ -11122,6 +11151,7 @@ In this case $\ell$ is of the form
 The condition $b$ is always inferred with a context type of \code{bool}.
 
 Assume that `\code{\ELSE\,\,$\ell_2$}' is not present. Then:
+
 \begin{itemize}
 \item
   If the inferred element type of $\ell_1$ is $S$,
@@ -11465,6 +11495,7 @@ the result of evaluating a constant expression.%
 \LMHash{}%
 A run-time set literal \code{<$T$>\{\List{\ell}{1}{n}\}}
 is evaluated as follows:
+
 \begin{itemize}
 \item
   The elements \List{\ell}{1}{m} are evaluated
@@ -11660,6 +11691,7 @@ the result of evaluating a constant expression.%
 A run-time map literal
 \code{<$T_1, T_2$>\{\List{\ell}{1}{m}\}}
 is evaluated as follows:
+
 \begin{itemize}
 \item
   The elements \List{\ell}{1}{m} are evaluated
@@ -11862,6 +11894,7 @@ as follows, using the first applicable case:
 \begin{itemize}
 \item If $T$ is \code{$X$\,\&\,$S$}
   for some type variable $X$ and type $S$ then
+
   \begin{itemize}
   \item if $S$ derives a future type $U$
     then \DefEquals{\flatten{T}}{\code{\flatten{U}}}.
@@ -11886,6 +11919,7 @@ structure of $T$:
 
 \begin{itemize}
 \item If $T$ is \code{$X$\,\&\,$S$} then
+
   \begin{itemize}
   \item if $S$ derives a future type $U$,
     then \code{$T <: S$} and \code{$S <: U$}, so \code{$T <: U$}.
@@ -12532,11 +12566,11 @@ let $i$ be the value of
 Which is well-defined for the same reason.%
 }
 
-\LMHash{}%
 \begin{itemize}
 \item If during execution of the program,
   a constant object expression has already evaluated to
   an instance $j$ of class $R$ with type arguments $U_i, 1 \le i \le m$, then:
+
   \begin{itemize}
   \item For each instance variable $f$ of $i$,
     let $v_{if}$ be the value of the instance variable $f$ in $i$, and
@@ -12723,6 +12757,7 @@ When iteration over the iterable is started, by getting
 an iterator $j$ from the iterable and calling \code{moveNext()},
 execution of the body of $f$ will begin.
 When execution of the body of $f$ completes (\ref{statementCompletion}),
+
 \begin{itemize}
 \item If it returns without an object or it completes normally
   (\ref{statementCompletion}),
@@ -12808,12 +12843,14 @@ corresponding to the element type of $f$
 (\ref{functions}).
 When $s$ is listened to, execution of the body of $f$ will begin.
 When execution of the body of $f$ completes:
+
 \begin{itemize}
 \item If it completes normally or returns without an object
   (\ref{statementCompletion}),
   then if $s$ has been canceled
   then its cancellation future is completed with the null object (\ref{null}).
 \item If it throws an exception object $e$ and stack trace $t$:
+
   \begin{itemize}
   \item If $s$ has been canceled then its cancellation future is completed
     with error $e$ and stack trace $t$.
@@ -13542,6 +13579,7 @@ and its result is then the result of evaluating $i$:
 Otherwise $o$ has no method named \CALL.
 A new instance $im$ of the predefined class \code{Invocation} is created,
 such that:
+
 \begin{itemize}
 \item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{\#call}.
@@ -14411,6 +14449,7 @@ Let $i$ be an invocation of the form \code{$e$.remainder($e_2$)}
 and let $C$ be the context type of $i$.
 The context type of $e_2$ is then determined as follows:
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}, then:
+
 \begin{itemize}
   \item{} If \SubtypeNE{\code{int}}{C} and not \SubtypeNE{\code{num}}{C},
       and \SubtypeNE{T}{\code{int}}
@@ -14420,10 +14459,13 @@ If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}, then:
      then the context type of $e_2$ is \code{double}.
   \item{} Otherwise the context type of $e_2$ is \code{num}.
 \end{itemize}
+
+\LMHash{}%
 Let further $S$ be the static type of $e_2$.
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}
 and $S$ is assignable to \code{num},
 then the static type of $i$ is determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{T}{\code{double}}
     then the static type of $i$ is $T$.
@@ -14441,6 +14483,7 @@ Let $i$ be an invocation of the form \code{$e$.clamp($e_2$,\,\,$e_3$)},
 where \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}},
 and let $C$ be the context type of $i$.
 The context type of $e_2$ and $e_3$ is then determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{T}{\code{int}},
     \SubtypeNE{\code{int}}{S} and not \SubtypeNE{\code{num}}{S},
@@ -14450,8 +14493,11 @@ The context type of $e_2$ and $e_3$ is then determined as follows:
     then the context type of $e_2$ and $e_3$ is \code{double}.
   \item{} Otherwise the context type of $e_2$ and $e_3$ is \code{num}.
 \end{itemize}
+
+\LMHash{}%
 Let further $T_2$ be the static type of $e_2$ and $T_3$ be the static type
 of $e_3$.
+
 \begin{itemize}
   \item{} If all of $T$, $T_2$ and $T_3$ are subtypes of \code{int}, but
     not subtypes of \code{Never}, then the static type of $i$ is \code{int}.
@@ -14534,6 +14580,7 @@ Then the value of $i$ is the value of
 If getter lookup has also failed,
 then a new instance $im$ of the predefined class \code{Invocation} is created,
 such that:
+
 \begin{itemize}
 \item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
@@ -15043,6 +15090,7 @@ The value of $i$ is the result returned by the call to the getter function.
 If the getter lookup has failed,
 then a new instance $im$ of the predefined class \code{Invocation} is created,
 such that:
+
 \begin{itemize}
 \item \code{$im$.isGetter} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
@@ -15148,6 +15196,7 @@ Let $o$ be an object, and let $u$ be a fresh final variable bound to $o$.
 The \Index{closurization of method} $f$ on object $o$
 is defined to be equivalent
 (\commentary{except for equality, as noted below}) to:
+
 \begin{itemize}
 %\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$
 %  and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$,
@@ -15303,7 +15352,6 @@ The \Index{closurization of a method} $f$ with respect to the class $S$
 is defined to be equivalent
 (\commentary{except for equality, as noted below}) to:
 
-\LMHash{}%
 \begin{itemize}
 %\item $(a) \{\RETURN{}$ \SUPER{} $op$ $a;$\} if $f$ is named $op$
 %   and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$,
@@ -15859,6 +15907,7 @@ its formal parameter bound to $o_2$ and \THIS{} bound to $o_1$.
 \LMHash{}%
 If the setter lookup has failed, then a new instance $im$ of
 the predefined class \code{Invocation} is created, such that:
+
 \begin{itemize}
 \item \code{$im$.isSetter} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{v=}.
@@ -16228,6 +16277,7 @@ Otherwise the value of $c$ is the result of evaluating the expression $e_3$.
 If $e_1$ shows that a local variable $v$ has type $T$,
 then the type of $v$ is known to be $T$ in $e_2$,
 unless any of the following are true:
+
 \begin{itemize}
 \item $v$ is potentially mutated in $e_2$,
 \item $v$ is potentially mutated within a function other
@@ -16315,6 +16365,7 @@ Otherwise the result of evaluating $b$ is $o_2$.
 A logical boolean expression $b$ of the form $e_1 \&\& e_2$
 shows that a local variable $v$ has type $T$
 if both of the following conditions hold:
+
 \begin{itemize}
 \item Either $e_1$ shows that $v$ has type $T$
   or $e_2$ shows that $v$ has type $T$.
@@ -16326,6 +16377,7 @@ if both of the following conditions hold:
 If $e_1$ shows that a local variable $v$ has type $T$,
 then the type of $v$ is known to be $T$ in $e_2$,
 unless any of the following are true:
+
 \begin{itemize}
 %% The first item here is unnecessary for soundness,
 %% and is retained mainly for backwards compatibility.
@@ -16375,6 +16427,7 @@ or an expression $e_1$, with argument $e_2$.
 \LMHash{}%
 Evaluation of an equality expression $ee$ of the form \code{$e_1$ == $e_2$}
 proceeds as follows:
+
 \begin{itemize}
 \item The expression $e_1$ is evaluated to an object $o_1$.
 \item The expression $e_2$ is evaluated to an object $o_2$.
@@ -16390,6 +16443,7 @@ Otherwise,
 Evaluation of an equality expression $ee$ of the form
 \code{\SUPER{} == $e$}
 proceeds as follows:
+
 \begin{itemize}
 \item The expression $e$ is evaluated to an object $o$.
 \item If either \THIS{} or $o$ is the null object (\ref{null}),
@@ -16585,6 +16639,7 @@ and let $C$ be the context type of $e$.
 
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}, then
 the context type of $e_2$ is determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{\code{int}}{C} and not \SubtypeNE{\code{num}}{C},
       and \SubtypeNE{T}{\code{int}}
@@ -16594,10 +16649,13 @@ the context type of $e_2$ is determined as follows:
      then the context type of $e_2$ is \code{double}.
   \item{} Otherwise the context type of $e_2$ is \code{num}.
 \end{itemize}
+
+\LMHash{}%
 Let further $S$ be the static type of $e_2$.
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}
 and $S$ is assignable to \code{num},
 then the static type of $e$ is determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{T}{\code{double}}
     then the static type of $e$ is $T$.
@@ -16655,6 +16713,7 @@ and let $C$ be the context type of $e$.
 
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}, then
 the context type of $e_2$ is determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{\code{int}}{C} and not \SubtypeNE{\code{num}}{C},
       and \SubtypeNE{T}{\code{int}}
@@ -16664,10 +16723,13 @@ the context type of $e_2$ is determined as follows:
      then the context type of $e_2$ is \code{double}.
   \item{} Otherwise the context type of $e_2$ is \code{num}.
 \end{itemize}
+
+\LMHash{}%
 Let further $S$ be the static type of $e_2$.
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}
 and $S$ is assignable to \code{num},
 then the static type of $e$ is determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{T}{\code{double}}
     then the static type of $e$ is $T$.
@@ -18335,6 +18397,7 @@ may not be assigned to \code{bool}.
 If $b$ shows that a local variable $v$ has type $T$,
 then the type of $v$ is known to be $T$ in $s_1$,
 unless any of the following are true
+
 \begin{itemize}
 \item $v$ is potentially mutated in $s_1$,
 \item $v$ is potentially mutated within a function other
@@ -18727,6 +18790,7 @@ It is a compile-time error unless each expression
 $e_j, j \in 1 .. n$ is constant.
 It is a compile-time error if the value of the expressions
 $e_j, j \in 1 .. n$ are not either:
+
 \begin{itemize}
 \item instances of the same class $C$, for all $j \in 1 .. n$, or
 \item instances of a class that implements \code{int},
@@ -18910,6 +18974,7 @@ and such code can always be refactored.%
 
 \LMHash{}%
 It is a static warning if all of the following conditions hold:
+
 \begin{itemize}
 \item The switch statement does not have a default clause.
 \item The static type of $e$ is an enumerated
@@ -19384,6 +19449,7 @@ Then the return statement returns the object $r$
 
 \LMHash{}%
 Let $U$ be the run-time type of $r$.
+
 \begin{itemize}
 \item
   If the body of $f$ is marked \ASYNC{} (\ref{functions})
@@ -19589,6 +19655,7 @@ The only requirement is that consumers are not blocked indefinitely.%
 
 \LMHash{}%
 If the enclosing function $m$ is marked \code{\SYNC*} (\ref{functions}) then:
+
 \begin{itemize}
 \item
   Execution of the function $m$ immediately enclosing $s$ is suspended
@@ -19674,6 +19741,7 @@ The current call to \code{moveNext()} returns \TRUE.
 
 \LMHash{}%
 If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
+
 \begin{itemize}
 \item
   % This error can occur due to implicit casts.
@@ -19686,6 +19754,7 @@ If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
 \item
   The $o$ stream is listened to, creating a subscription $s$,
   and for each event $x$, or error $e$ with stack trace $t$, of $s$:
+
   \begin{itemize}
   \item
     If the stream $u$ associated with $m$ has been paused,
@@ -20323,6 +20392,7 @@ does not interfere with other imports.%
 
 \LMHash{}%
 The effect of a repeated invocation of \code{$p$.loadLibrary()} is as follows:
+
 \begin{itemize}
 \item
   If another invocation of \code{$p$.loadLibrary()} has already succeeded,
@@ -20330,6 +20400,7 @@ The effect of a repeated invocation of \code{$p$.loadLibrary()} is as follows:
   Otherwise,
 \item
   If another invocation of \code{$p$.loadLibrary()} has failed:
+
   \begin{itemize}
   \item
     If the failure is due to a compilation error,
@@ -20758,6 +20829,7 @@ two part directives with the same URI.
 \LMHash{}%
 We say that a library $L_1$ is \Index{reachable from} a library $L$ if
 any of the following is true (\ref{imports}, \ref{exports}):
+
 \begin{itemize}
 \item $L$ and $L_1$ is the same library.
 \item $L$ imports or exports a library $L_2$, and $L_1$ is reachable from $L_2$.
@@ -20858,6 +20930,7 @@ contains a string interpolation.
 A \Index{configurable URI} $c$ of the form
 \code{\metavar{uri} $\metavar{configurationUri}_1$ \ldots $\metavar{configurationUri}_n$}
 \IndexCustom{specifies a URI}{specify a URI} as follows:
+
 \begin{itemize}
 \item
   Let $u$ be \metavar{uri}.
@@ -20865,6 +20938,7 @@ A \Index{configurable URI} $c$ of the form
   For each of the following configuration URIs of the form
   \code{\IF{} ($\metavar{test}_i$) $\metavar{uri}_i$},
   in source order, do the following.
+
   \begin{itemize}
   \item
     If $\metavar{test}_i$ is \code{\metavar{ids}}
@@ -21067,6 +21141,7 @@ successful compilation and execution of Dart code.%
 
 \LMHash{}%
 A type $T$ is \Index{malformed} if{}f:
+
 \begin{itemize}
 \item
   $T$ has the form \id{} or the form \code{\metavar{prefix}.\id},
@@ -22564,6 +22639,7 @@ which is regular-bounded for all $T$.
 The subtype relations involving \code{FutureOr} are specified elsewhere
 (\ref{subtypeRules}).
 Note, however, that they entail certain useful properties:
+
 \begin{itemize}
 \item[$\bullet$]
   $T <: \code{FutureOr<$T$>}$.
@@ -23123,6 +23199,7 @@ Let $F$ and $G$ be function types.
 If $F$ and $G$ differ in their number of required parameters,
 then the least upper bound of $F$ and $G$ is \FUNCTION.
 Otherwise:
+
 \begin{itemize}
 \item If
 
@@ -23508,6 +23585,7 @@ and the corresponding JavaScript operations,
 except for bit operations as explained below.
 
 This introduces a number of differences:
+
 \begin{itemize}
 \item[$\bullet$]
   Valid values of JavaScript \code{int} are any IEEE-754 64-bit
