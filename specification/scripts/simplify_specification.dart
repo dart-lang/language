@@ -235,6 +235,9 @@ extension on List<String?> {
   /// lines whose text was gathered to null (which means that they are
   /// ignored).
   (bool, int) _gatherItems(final int listIndex) {
+    if (listIndex >= 1995) {
+      print('>>> listIndex: $listIndex'); // DEBUG
+    }
     final length = this.length;
     var itemIndex = _findItem(listIndex + 1);
     var itemLine = this[itemIndex]; // Invariant.
