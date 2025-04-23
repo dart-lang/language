@@ -202,7 +202,7 @@ extension on List<String?> {
       final line = this[searchIndex];
       if (line == null) continue;
       final trimmedLine = line.trimLeft();
-      if (trimmedLine.startsWith(r"\end{itemize}") == true) {
+      if (trimmedLine.startsWith(r"\end{itemize}")) {
         throw "_findItem did not find any items";
       }
       if (trimmedLine.startsWith(r"\item")) {
@@ -306,7 +306,7 @@ extension on List<String?> {
   /// Also handle nested itemized lists (no attempt to balance them, we
   /// just rely on finding `\end{itemize}` at the beginning of a line).
   int _processItemizedList(final int listIndex) {
-    var itemIndex = listIndex + 1;
+    var itemIndex = listIndex;
     var done = false;
     do {
       (done, itemIndex) = _gatherItems(itemIndex);
