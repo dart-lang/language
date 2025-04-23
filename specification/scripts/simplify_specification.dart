@@ -212,6 +212,20 @@ extension on List<String?> {
     throw "_findItem reached end of text";
   }
 
+  /// Return the index of the first non-empty line after [startIndex].
+  int _findText(final int startIndex) {
+    final length = this.length;
+    for (int searchIndex = startIndex; searchIndex < length; ++searchIndex) {
+      final line = this[searchIndex];
+      if (line == null) continue;
+      final trimmedLine = line.trim();
+      if (trimmedLine.isNotEmpty) {
+        return searchIndex;
+      }
+    }
+    throw "_findText reached end of text";
+  }
+
   /// Return a "done" boolean and the index of the first line after
   /// the line at index [listIndex] (which is assumed to contain the
   /// command `\begin{itemize}`).
@@ -239,7 +253,7 @@ extension on List<String?> {
         itemIndex = _findItem(gatherIndex + 1);
         gatherIndex = itemIndex + 1;
         gatherLine = this[gatherIndex]; // Restore the invariant.
-        gatherLine!; // Use the guarantee from `_findItem`.
+        if (gatherLine == null) continue;
       }
       if (gatherLine.startsWith(r"\end{itemize}")) {
         // At the end of the outermost itemized list: Done.
@@ -258,42 +272,46 @@ extension on List<String?> {
           continue;
         } else {
           // `foundEnd` is true.
-          // Gather lines after the nested itemized list, if any.
-          itemIndex = gatherIndex + 1;
+          // Gather lines after the nested itemized list, if any. Note
+          /// that `itemLine` does not contain `\item`, but it's treated
+          /// as if it did contain `\item`.
+          itemIndex = _findText(gatherIndex + 1);
           itemLine = this[itemIndex]; // Restore the `itemLine` invariant.
-          while (itemIndex < length &&
-              (itemLine == null || itemLine.trim().isEmpty)) {
-            ++itemIndex;
-            itemLine = this[itemIndex]; // Restore the invariant.
-          }
-          assert(itemIndex < length);
-          // `itemLine` contains some non-whitespace text.
-          if (itemLine!.startsWith(r"\end{itemize}")) {
-            // No text occurs after the nested itemized list.
-            lineIndex = itemIndex + 1;
-            continue TopLoop; // Restores the `line` invariant.
-          }
-          // The outermost `\item` continues after the nested itemized
-          // list. Gather this text into a single line.
-          buffer = StringBuffer(itemLine);
-          gatherIndex = itemIndex;
-          continue; // Restores the `gatherLine` invariant.
+          gatherIndex = itemIndex + 1;
+          continue;
         }
       }
       // `gatherLine` is text belonging to the current `\item`.
+      if (insertSpace) {
+        buffer.write(' ');
+      }
+      final endsInPercent = gatherLine.endsWith('%');
+      final String addLine;
+      if (endsInPercent) {
+        addLine = gatherLine.substring(0, gatherLine.length - 1);
+        insertSpace = false;
+      } else {
+        addLine = gatherLine;
+        insertSpace = true;
+      }
+      buffer.write(addLine.trimLeft());
       this[gatherIndex] = null;
-      buffer.write(' ');
-      buffer.write(gatherLine);
     }
     throw "_gatherItems reached end of text";
   }
 
-  int _processItemizedList(final int length, final int listIndex) {
+  /// Starting from the line with index [listIndex], which is assumed
+  /// to start with `\begin{itemize}`, search for `\item` commands and
+  /// gather the subsequent lines for each item into a single line.
+  /// Also handle nested itemized lists (no attempt to balance them, we
+  /// just rely on finding `\end{itemize}` at the beginning of a line).
+  int _processItemizedList(final int listIndex) {
     var itemIndex = listIndex + 1;
     var done = false;
     do {
-      (done, itemIndex) = _gatherItems(length, itemIndex);
+      (done, itemIndex) = _gatherItems(itemIndex);
     } while (!done);
+    assert(itemIndex < length - 1);
     return itemIndex + 1;
   }
 
@@ -307,9 +325,9 @@ extension on List<String?> {
         continue;
       }
       if (line.startsWith(r"\LMHash{}")) {
-        lineIndex = _gatherParagraph(length, lineIndex);
+        lineIndex = _gatherParagraph(lineIndex);
       } else if (line.startsWith(r"\begin{itemize}")) {
-        lineIndex = _processItemizedList(length, lineIndex);
+        lineIndex = _processItemizedList(lineIndex);
       }
     }
   }
