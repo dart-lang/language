@@ -257,6 +257,7 @@ extension on List<String?> {
       }
       if (gatherLine.startsWith(r"\end{itemize}")) {
         // At the end of the outermost itemized list: Done.
+        this[itemIndex] = buffer.toString();
         return (true, gatherIndex + 1);
       }
       final foundItem = trimmedGatherLine.startsWith(r"\item");
