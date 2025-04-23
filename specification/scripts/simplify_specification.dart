@@ -69,6 +69,7 @@ extension on List<String?> {
     return "${' ' * indentation}}";
   }
 
+  // Eliminate comment-only lines. Reduce other comments to `%`.
   void removeComments() {
     for (int i = 0; i < length; ++i) {
       final line = this[i];
@@ -78,13 +79,15 @@ extension on List<String?> {
         if (match.start == 0) {
           this[i] = null; // A comment-only line disappears entirely.
         } else {
-          final cutPosition = match.start + 1;
-          if (line.codeUnitAt(cutPosition) == 37) {
+          final cutPosition = match.start + 2; // Include the `%`.
+          if (line.trimLeft().codeUnitAt(0) == 37) {
             // An indented comment-only line disappears entirely.
             this[i] = null;
+          } else {
+            final resultLine = line.substring(0, cutPosition);
+            assert(i < length - 1);
+            this[i] = resultLine;
           }
-          final resultLine = line.substring(0, cutPosition);
-          this[i] = resultLine;
         }
       } else if (line.startsWith("\\end{document}")) {
         // All text beyond `\end{document}` is a comment.
@@ -245,11 +248,14 @@ extension on List<String?> {
                   lineIndex = itemIndex + 1;
                   continue TopLoop; // Restores the `line` invariant.
                 }
-                buffer = StringBuffer(itemLine!);
-                gatherIndex = itemIndex + 1;
-                gatherLine = this[gatherIndex]; // Restore the invariant.
+                // The outermost `\item` continues after the nested itemized
+                // list. Gather this text into a single line.
+                buffer = StringBuffer(itemLine);
+                gatherIndex = itemIndex;
+                continue; // Restores the `gatherLine` invariant.
               }
             }
+            // `gatherLine` is text belonging to the current `\item`.
             this[gatherIndex] = null;
             buffer.write(' ');
             buffer.write(gatherLine);
