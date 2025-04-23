@@ -168,6 +168,7 @@ extension on List<String?> {
         final longLineIndex = lineIndex;
         final buffer = StringBuffer('');
         var firstInParagraph = true;
+        var doTrimLeft = false;
         for (
           var gatherIndex = longLineIndex + 1;
           gatherIndex < length;
@@ -185,7 +186,22 @@ extension on List<String?> {
           } else {
             buffer.write(' ');
           }
-          buffer.write(gatherLine);
+          final endsInPercent =
+              gatherLine.isNotEmpty &&
+              gatherLine.codeUnitAt(gatherLine.length - 1) == 37;
+          final String addLine;
+          if (doTrimLeft && endsInPercent) {
+            addLine = gatherLine.substring(0, gatherLine.length - 1).trimLeft();
+          } else if (doTrimLeft) {
+            addLine = gatherLine.trimLeft();
+            doTrimLeft = false;
+          } else if (endsInPercent) {
+            addLine = gatherLine.substring(0, gatherLine.length - 1);
+            doTrimLeft = true;
+          } else {
+            addLine = gatherLine;
+          }
+          buffer.write(addLine);
           this[gatherIndex] = gatherLine = null;
         }
         assert(lineIndex < length);
