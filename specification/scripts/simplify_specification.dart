@@ -259,6 +259,9 @@ extension on List<String?> {
         this[itemIndex] = buffer.toString();
         return gatherIndex;
       }
+      if (gatherIndex >= 8538) {
+        print('gatherIndex: $gatherIndex'); // DEBUG
+      }
       final foundItem = trimmedGatherLine.startsWith(r"\item");
       final foundEnd = trimmedGatherLine.startsWith(r"\end{itemize}");
       if (foundItem || foundEnd) {
