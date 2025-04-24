@@ -1656,7 +1656,7 @@ either by an initializing formal or an initializer list entry.
   an initializing formal of a constructor $k$
   is also initialized in the initializer list of $k$
   (\ref{initializerLists}).
-  
+
   A non-late static variable declaration $D$ named \id{}
   that has the modifier \FINAL{} or the modifier \CONST{}
   does not induce a setter.
@@ -1664,7 +1664,7 @@ either by an initializing formal or an initializer list entry.
   is not necessarily a compile-time error.
   For example, a setter named \code{\id=} could be found by lexical lookup
   (\ref{lexicalLookup}).
-  
+
   Similarly, a non-late final instance variable \id{} does not induce a setter,
   but an assignment could be an invocation of
   a setter which is provided in some other way.
@@ -3919,7 +3919,7 @@ It is a compile-time error if an instance variable is declared to be constant.
   However, a constant instance variable could not be treated as
   a true compile-time constant,
   as its getter would be subject to overriding.
-  
+
   Given that the value does not depend on the instance,
   it is better to use a static variable.
   An instance getter for it can always be defined manually if desired.%
@@ -4723,7 +4723,7 @@ on the corresponding formal parameter in $k$.
   instances of other classes and return them,
   and that redirecting factories are unnecessary.
   However, redirecting factories have several advantages:
-  
+
   \begin{itemize}
   \item
     An abstract class may provide a constant constructor
@@ -6887,7 +6887,7 @@ if at least one of the following conditions is satisfied:
   This does not necessarily yield the most precise type of the result
   (for instance, \code{BestSpec.best} could have returned \code{Object}),
   but it is also important that the rule is simple.
-  
+
   In practice, we expect unintended extension member name conflicts to be rare.
   If the same author is providing more specialized versions of
   an extension for subtypes,
@@ -8226,7 +8226,7 @@ be determined by the following iterative process, where $V_m$ denotes
   in particular because invariant parameters fail
   to satisfy the expectation that
   a raw type denotes a supertype of all the expressible regular-bounded types.
-  
+
   We could easily have made every instantiation to bound an error
   when applied to a type where invariance occurs anywhere
   during the run of the algorithm.
@@ -17447,7 +17447,7 @@ proceed as described in the first applicable case from the following list:
   In each case where it is determined that there is no error,
   and an instance member is the result of the lookup,
   the lexical lookup yields nothing.
-  
+
   The reason for this is that there may not be a declaration in scope,
   but the interface of the class could have the required member,
   or an extension method could be applicable.
@@ -18494,7 +18494,7 @@ Then:
   (usually after a painful process of debugging and learning)
   that all the created function objects have captured
   the same value---the one current in the last iteration executed.
-  
+
   Instead, each iteration has its own distinct variable.
   The first iteration uses the variable created by the initial declaration.
   The expression executed at the end of each iteration uses
@@ -19370,7 +19370,7 @@ and \code{Future<\flatten{S}>} is not assignable to $T$.
   it corresponds to the treatment of a synchronous function
   with return type \code{Null};
   but tools may choose to give a hint that a downcast is unlikely to succeed.
-  
+
   An error will not be raised if $f$ has no declared return type,
   since the return type would be \DYNAMIC,
   and \code{Future<\flatten{S}>} is assignable to \DYNAMIC{} for all $S$.
@@ -21308,7 +21308,7 @@ if{}f the corresponding types are subtypes of each other.
   and hence \code{dynamic\,==\,Object} must evaluate to \TRUE.
   No constraints are imposed on the built-in function \code{identical},
   so \code{identical(dynamic, Object)} may be \TRUE{} or \FALSE.
-  
+
   Similarly, \code{Type} instances for distinct type alias declarations
   declaring a name for the same function type are equal:%
 }
@@ -22175,7 +22175,7 @@ the set of direct superinterfaces of $C$
   The descriptions use the rule numbers to make the connection explicit,
   and also adds names to the rules that may be helpful in order to understand
   the role played by each rule.
-  
+
   In the following, many rules contain meta-variables
   (\ref{metaVariables})
   like $S$ and $T$,
@@ -22195,7 +22195,7 @@ the set of direct superinterfaces of $C$
   and in one or more premises,
   because the proof of those premises could, directly or indirectly,
   include the application of a rule where the environment is used.
-  
+
   \def\Item#1#2{\item[#1]{\textbf{#2:}}}
   \begin{itemize}
   \Item{\SrnReflexivity}{Reflexivity}
