@@ -246,9 +246,6 @@ extension on List<String?> {
       if (trimmedGatherLine.startsWith(r"\begin{itemize}")) {
         // We do not gather a nested itemized list into the current item.
         // Finalize the current item.
-        if (gatherIndex == 5725) {
-          print('gatherIndex: $gatherIndex'); // DEBUG
-        }
         this[itemIndex] = buffer.toString();
         // Set up the first item of the nested itemized list.
         itemIndex = _findItem(gatherIndex + 1);
@@ -291,7 +288,7 @@ extension on List<String?> {
           } else {
             // Some extra text found, gather it.
             buffer = StringBuffer(itemLine); // Not starting with `\item`.
-            gatherIndex = itemIndex + 1;
+            gatherIndex = itemIndex;
             continue;
           }
         }
