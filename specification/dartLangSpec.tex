@@ -1651,6 +1651,7 @@ is also initialized by a constructor,
 either by an initializing formal or an initializer list entry.
 
 \commentary{%
+<<<<<<< HEAD
   It is a compile-time error if a final instance variable
   that has been initialized by means of
   an initializing formal of a constructor $k$
@@ -1672,6 +1673,51 @@ either by an initializing formal or an initializer list entry.
   and the location of the assignment has access to \THIS,
   and the interface of an enclosing class has a setter named \code{\id=}
   (in this case both the getter and setter are inherited).%
+||||||| parent of c6eade8f (Indent commentary consistently)
+It is a compile-time error if a final instance variable
+that has been initialized by means of
+an initializing formal of a constructor $k$
+is also initialized in the initializer list of $k$
+(\ref{initializerLists}).
+
+A non-late static variable declaration $D$ named \id{}
+that has the modifier \FINAL{} or the modifier \CONST{}
+does not induce a setter.
+However, an assignment to \id{} at a location where $D$ is in scope
+is not necessarily a compile-time error.
+For example, a setter named \code{\id=} could be found by lexical lookup
+(\ref{lexicalLookup}).
+
+Similarly, a non-late final instance variable \id{} does not induce a setter,
+but an assignment could be an invocation of
+a setter which is provided in some other way.
+For example, it could be that lexical lookup yields nothing,
+and the location of the assignment has access to \THIS,
+and the interface of an enclosing class has a setter named \code{\id=}
+(in this case both the getter and setter are inherited).%
+=======
+  It is a compile-time error if a final instance variable
+  that has been initialized by means of
+  an initializing formal of a constructor $k$
+  is also initialized in the initializer list of $k$
+  (\ref{initializerLists}).
+  
+  A non-late static variable declaration $D$ named \id{}
+  that has the modifier \FINAL{} or the modifier \CONST{}
+  does not induce a setter.
+  However, an assignment to \id{} at a location where $D$ is in scope
+  is not necessarily a compile-time error.
+  For example, a setter named \code{\id=} could be found by lexical lookup
+  (\ref{lexicalLookup}).
+  
+  Similarly, a non-late final instance variable \id{} does not induce a setter,
+  but an assignment could be an invocation of
+  a setter which is provided in some other way.
+  For example, it could be that lexical lookup yields nothing,
+  and the location of the assignment has access to \THIS,
+  and the interface of an enclosing class has a setter named \code{\id=}
+  (in this case both the getter and setter are inherited).%
+>>>>>>> c6eade8f (Indent commentary consistently)
 }
 
 \LMHash{}%
@@ -19366,6 +19412,7 @@ It is a compile-time error if $s$ is \code{\RETURN{} $e$;},
 and \code{Future<\flatten{S}>} is not assignable to $T$.
 
 \commentary{%
+<<<<<<< HEAD
   Note that \flatten{T} cannot be \VOID, \DYNAMIC, or \code{Null}
   in the last case,
   because then \code{Future<$U$>} is assignable to $T$ for \emph{all} $U$.
@@ -19387,6 +19434,50 @@ and \code{Future<\flatten{S}>} is not assignable to $T$.
   However, an asynchronous non-generator function
   that declares a return type which is not ``voidy''
   must return an expression explicitly.%
+||||||| parent of c6eade8f (Indent commentary consistently)
+Note that \flatten{T} cannot be \VOID, \DYNAMIC, or \code{Null}
+in the last case,
+because then \code{Future<$U$>} is assignable to $T$ for \emph{all} $U$.
+In particular, when $T$ is \code{FutureOr<Null>}
+(which is equivalent to \code{Future<Null>}),
+\code{Future<\flatten{S}>} is assignable to $T$ for all $S$.
+This means that no compile-time error is raised,
+but \emph{only} the null object (\ref{null})
+or an instance of \code{Future<Null>} can successfully be returned at run time.
+This is not an anomaly,
+it corresponds to the treatment of a synchronous function
+with return type \code{Null};
+but tools may choose to give a hint that a downcast is unlikely to succeed.
+
+An error will not be raised if $f$ has no declared return type,
+since the return type would be \DYNAMIC,
+and \code{Future<\flatten{S}>} is assignable to \DYNAMIC{} for all $S$.
+However, an asynchronous non-generator function
+that declares a return type which is not ``voidy''
+must return an expression explicitly.%
+=======
+  Note that \flatten{T} cannot be \VOID, \DYNAMIC, or \code{Null}
+  in the last case,
+  because then \code{Future<$U$>} is assignable to $T$ for \emph{all} $U$.
+  In particular, when $T$ is \code{FutureOr<Null>}
+  (which is equivalent to \code{Future<Null>}),
+  \code{Future<\flatten{S}>} is assignable to $T$ for all $S$.
+  This means that no compile-time error is raised,
+  but \emph{only} the null object (\ref{null})
+  or an instance of \code{Future<Null>}
+  can successfully be returned at run time.
+  This is not an anomaly,
+  it corresponds to the treatment of a synchronous function
+  with return type \code{Null};
+  but tools may choose to give a hint that a downcast is unlikely to succeed.
+  
+  An error will not be raised if $f$ has no declared return type,
+  since the return type would be \DYNAMIC,
+  and \code{Future<\flatten{S}>} is assignable to \DYNAMIC{} for all $S$.
+  However, an asynchronous non-generator function
+  that declares a return type which is not ``voidy''
+  must return an expression explicitly.%
+>>>>>>> c6eade8f (Indent commentary consistently)
 }
 \rationale{%
   This helps catch situations where users forget
@@ -21313,6 +21404,7 @@ two \code{Type} objects are equal according to operator \lit{==}
 if{}f the corresponding types are subtypes of each other.
 
 \commentary{%
+<<<<<<< HEAD
   For example, the \code{Type} objects for the types
   \DYNAMIC{} and \code{Object} are equal to each other
   and hence \code{dynamic\,==\,Object} must evaluate to \TRUE.
@@ -21321,6 +21413,25 @@ if{}f the corresponding types are subtypes of each other.
 
   Similarly, \code{Type} instances for distinct type alias declarations
   declaring a name for the same function type are equal:%
+||||||| parent of c6eade8f (Indent commentary consistently)
+For example, the \code{Type} objects for the types
+\DYNAMIC{} and \code{Object} are equal to each other
+and hence \code{dynamic\,==\,Object} must evaluate to \TRUE.
+No constraints are imposed on the built-in function \code{identical},
+so \code{identical(dynamic, Object)} may be \TRUE{} or \FALSE.
+
+Similarly, \code{Type} instances for distinct type alias declarations
+declaring a name for the same function type are equal:%
+=======
+  For example, the \code{Type} objects for the types
+  \DYNAMIC{} and \code{Object} are equal to each other
+  and hence \code{dynamic\,==\,Object} must evaluate to \TRUE.
+  No constraints are imposed on the built-in function \code{identical},
+  so \code{identical(dynamic, Object)} may be \TRUE{} or \FALSE.
+  
+  Similarly, \code{Type} instances for distinct type alias declarations
+  declaring a name for the same function type are equal:%
+>>>>>>> c6eade8f (Indent commentary consistently)
 }
 
 \begin{dartCode}
@@ -22182,10 +22293,31 @@ the set of direct superinterfaces of $C$
   This section gives an informal and non-normative natural language description
   of each rule in Figure~\ref{fig:subtypeRules}.
 
+<<<<<<< HEAD
   The descriptions use the rule numbers to make the connection explicit,
   and also adds names to the rules that may be helpful in order to understand
   the role played by each rule.
+||||||| parent of c6eade8f (Indent commentary consistently)
+The descriptions use the rule numbers to make the connection explicit,
+and also adds names to the rules that may be helpful in order to understand
+the role played by each rule.
+=======
+  The descriptions use the rule numbers to make the connection explicit,
+  and also adds names to the rules that may be helpful in order to understand
+  the role played by each rule.
+  
+  In the following, many rules contain meta-variables
+  (\ref{metaVariables})
+  like $S$ and $T$,
+  and it is always the case that they can stand for arbitrary types.
+  For example, rule~\SrnRightFutureOrA{} says that
+  ``The type $S$ is a \ldots{} of \code{FutureOr<$T$>} \ldots'',
+  and this is taken to mean that for any arbitrary types $S$ and $T$,
+  showing that $S$ is a subtype of $T$ is sufficient to show that $S$ is
+  a subtype of \code{FutureOr<$T$>}.
+>>>>>>> c6eade8f (Indent commentary consistently)
 
+<<<<<<< HEAD
   In the following, many rules contain meta-variables
   (\ref{metaVariables})
   like $S$ and $T$,
@@ -22339,6 +22471,304 @@ the set of direct superinterfaces of $C$
     and this means that there may be multiple subtype steps from
     a given class declaration to the class specified in an \EXTENDS{} clause.
   \end{itemize}%
+||||||| parent of c6eade8f (Indent commentary consistently)
+In the following, many rules contain meta-variables
+(\ref{metaVariables})
+like $S$ and $T$,
+and it is always the case that they can stand for arbitrary types.
+For example, rule~\SrnRightFutureOrA{} says that
+``The type $S$ is a \ldots{} of \code{FutureOr<$T$>} \ldots'',
+and this is taken to mean that for any arbitrary types $S$ and $T$,
+showing that $S$ is a subtype of $T$ is sufficient to show that $S$ is
+a subtype of \code{FutureOr<$T$>}.
+
+Another example is the wording in rule~\SrnReflexivity{}:
+``\ldots{} in any environment $\Delta$'',
+which indicates that the rule can be applied no matter which bindings
+of type variables to bounds there exist in the environment.
+It should be noted that the environment matters even with rules
+where it is simply stated as a plain $\Delta$ in the conclusion
+and in one or more premises,
+because the proof of those premises could, directly or indirectly,
+include the application of a rule where the environment is used.
+
+\def\Item#1#2{\item[#1]{\textbf{#2:}}}
+\begin{itemize}
+\Item{\SrnReflexivity}{Reflexivity}
+  Every type is a subtype of itself, in any environment $\Delta$.
+  In the following rules except for a few,
+  the rule is also valid in any environment
+  and the environment is never used explicitly,
+  so we will not repeat that.
+\Item{\SrnTop}{Top}
+  Every type is a subtype of \code{Object},
+  every type is a subtype of \DYNAMIC,
+  and every type is a subtype of \VOID.
+  Note that this implies that these types are equivalent
+  according to the subtype relation.
+  We denote these types,
+  and others with the same property (such as \code{FutureOr<Object>}),
+  as top types
+  (\ref{superBoundedTypes}).
+\Item{\SrnBottom}{Bottom}
+  Every type is a supertype of $\bot$.
+\Item{\SrnNull}{Null}
+  Every type other than $\bot$ is a supertype of \code{Null}.
+\Item{\SrnLeftTypeAlias}{Type Alias Left}
+  An application of a type alias to some actual type arguments is
+  a subtype of another type $T$
+  if the expansion of the type alias to the type that it denotes
+  is a subtype of $T$.
+  Note that a non-generic type alias is handled by letting $s = 0$.
+\Item{\SrnRightTypeAlias}{Type Alias Right}
+  A type $S$ is a subtype of an application of a type alias
+  if $S$ is a subtype of
+  the expansion of the type alias to the type that it denotes.
+  Note that a non-generic type alias is handled by letting $s = 0$.
+\Item{\SrnLeftFutureOr}{Left FutureOr}
+  The type \code{FutureOr<$S$>} is a subtype of a given type $T$
+  if $S$ is a subtype of $T$ and \code{Future<$S$>} is a subtype of $T$,
+  for every type $S$ and $T$.
+\Item{\SrnTypeVariableReflexivityA}{Left Promoted Variable}
+  The type $X \& S$ is a subtype of $X$.
+\Item{\SrnRightPromotedVariable}{Right Promoted Variable A}
+  The type $S$ is a subtype of $X \& T$ if
+  $S$ is a subtype of both $X$ and $T$.
+\Item{\SrnRightFutureOrA}{Right FutureOr A}
+  The type $S$ is a subtype of \code{FutureOr<$T$>} if
+  $S$ is a subtype of \code{Future<$T$>}.
+\Item{\SrnRightFutureOrB}{Right FutureOr B}
+  The type $S$ is a subtype of \code{FutureOr<$T$>} if
+  $S$ is a subtype of $T$.
+\Item{\SrnLeftPromotedVariable}{Left Promoted Variable B}
+  The type $X \& S$ is a subtype of $T$ if
+  $S$ is a subtype of $T$.
+\Item{\SrnLeftVariableBound}{Left Variable Bound}
+  The type variable $X$ is a subtype of a type $T$ if
+  the bound of $X$
+  (as specified in the current environment $\Delta$)
+  is a subtype of $T$.
+\Item{\SrnRightFunction}{Right Function}
+  Every function type is a subtype of the type \FUNCTION.
+\Item{\SrnPositionalFunctionType}{Positional Function Type}
+  A function type $F_1$ with positional optional parameters
+  is a subtype of
+  another function type $F_2$ with positional optional parameters
+  if the former has at most
+  the same number of required parameters as the latter,
+  and the latter has at least
+  the same total number of parameters as the former;
+  the return type of $F_1$ is a subtype of that of $F_2$;
+  and each parameter type of $F_1$ is a \emph{supertype} of
+  the corresponding parameter type of $F_2$, if any.
+  Note that the relationship to function types with no optional parameters,
+  and the relationship between function types with no optional parameters,
+  is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$.
+  For every subtype relation considered in this rule,
+  the formal type parameters of $F_1$ and $F_2$ must be taken into account
+  (as reflected in the use of the extended environment $\Delta'$).
+  We can assume without loss of generality
+  that the names of type variables are pairwise identical,
+  because we consider types of generic functions to be equivalent under
+  consistent renaming
+  (\ref{typeOfAFunction}).
+  In short, ``during the proof, we will rename them as needed''.
+  Finally, note that the relationship between non-generic function types
+  is covered by letting $s = 0$.
+\Item{\SrnNamedFunctionType}{Named Function Type}
+  A function type $F_1$ with named optional parameters is a subtype of
+  another function type $F_2$ with named optional parameters
+  if they have the same number of required parameters,
+  and the set of names of named parameters for the latter is a subset
+  of that for the former;
+  the return type of $F_1$ is a subtype of that of $F_2$;
+  and each parameter type of $F_1$ is a \emph{supertype} of
+  the corresponding parameter type of $F_2$, if any.
+  Note that the relationship to function types with no optional parameters,
+  and the relationship between function types with no optional parameters,
+  is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$,
+  and also that the latter case is identical to the rule obtained from
+  rule~\SrnPositionalFunctionType{}
+  concerning subtyping among function types with no optional parameters.
+  As in rule~\SrnPositionalFunctionType,
+  we can assume without loss of generality
+  that the names of type variables are pairwise identical.
+  Similarly, non-generic functions are covered by letting $s = 0$.
+\Item{\SrnCovariance}{Class Covariance}
+  A parameterized type based on a generic class $C$ is a subtype of
+  a parameterized type based on the same class $C$ if
+  each actual type argument of the former is a subtype of
+  the corresponding actual type argument of the latter.
+  This rule may have $s = 0$ and cover a non-generic class as well,
+  but that is redundant because this is already covered by
+  rule~\SrnReflexivity.
+\Item{\SrnSuperinterface}{Superinterface}
+  Considering the case where $s = 0$ and $m = 0$ first,
+  a parameterized type based on a non-generic class $C$ is a subtype of
+  a parameterized type based on a different non-generic class $D$ if
+  $D$ is a direct superinterface of $C$.
+  When $s > 0$ or $m > 0$, this rule describes a subtype relationship
+  which includes one or more generic classes,
+  in which case we need to give names to the formal type parameters of $C$,
+  and specify how they are used in the specification of the superinterface
+  based on $D$.
+  With those pieces in place, we can specify the subtype relationship
+  that exists between two parameterized types based on $C$ and $D$.
+  %
+  %% TODO(eernst): Note that the specification of how to pass type arguments in
+  %% \ref{mixinApplication} is incorrect, and also that it will need to be
+  %% rewritten completely for the integration of the new mixin construct.
+  The case where the superclass is a mixin application is covered via
+  the equivalence with a declaration of a regular (possibly generic) superclass
+  (\ref{mixinApplication}),
+  and this means that there may be multiple subtype steps from
+  a given class declaration to the class specified in an \EXTENDS{} clause.
+\end{itemize}%
+=======
+  Another example is the wording in rule~\SrnReflexivity{}:
+  ``\ldots{} in any environment $\Delta$'',
+  which indicates that the rule can be applied no matter which bindings
+  of type variables to bounds there exist in the environment.
+  It should be noted that the environment matters even with rules
+  where it is simply stated as a plain $\Delta$ in the conclusion
+  and in one or more premises,
+  because the proof of those premises could, directly or indirectly,
+  include the application of a rule where the environment is used.
+  
+  \def\Item#1#2{\item[#1]{\textbf{#2:}}}
+  \begin{itemize}
+  \Item{\SrnReflexivity}{Reflexivity}
+    Every type is a subtype of itself, in any environment $\Delta$.
+    In the following rules except for a few,
+    the rule is also valid in any environment
+    and the environment is never used explicitly,
+    so we will not repeat that.
+  \Item{\SrnTop}{Top}
+    Every type is a subtype of \code{Object},
+    every type is a subtype of \DYNAMIC,
+    and every type is a subtype of \VOID.
+    Note that this implies that these types are equivalent
+    according to the subtype relation.
+    We denote these types,
+    and others with the same property (such as \code{FutureOr<Object>}),
+    as top types
+    (\ref{superBoundedTypes}).
+  \Item{\SrnBottom}{Bottom}
+    Every type is a supertype of $\bot$.
+  \Item{\SrnNull}{Null}
+    Every type other than $\bot$ is a supertype of \code{Null}.
+  \Item{\SrnLeftTypeAlias}{Type Alias Left}
+    An application of a type alias to some actual type arguments is
+    a subtype of another type $T$
+    if the expansion of the type alias to the type that it denotes
+    is a subtype of $T$.
+    Note that a non-generic type alias is handled by letting $s = 0$.
+  \Item{\SrnRightTypeAlias}{Type Alias Right}
+    A type $S$ is a subtype of an application of a type alias
+    if $S$ is a subtype of
+    the expansion of the type alias to the type that it denotes.
+    Note that a non-generic type alias is handled by letting $s = 0$.
+  \Item{\SrnLeftFutureOr}{Left FutureOr}
+    The type \code{FutureOr<$S$>} is a subtype of a given type $T$
+    if $S$ is a subtype of $T$ and \code{Future<$S$>} is a subtype of $T$,
+    for every type $S$ and $T$.
+  \Item{\SrnTypeVariableReflexivityA}{Left Promoted Variable}
+    The type $X \& S$ is a subtype of $X$.
+  \Item{\SrnRightPromotedVariable}{Right Promoted Variable A}
+    The type $S$ is a subtype of $X \& T$ if
+    $S$ is a subtype of both $X$ and $T$.
+  \Item{\SrnRightFutureOrA}{Right FutureOr A}
+    The type $S$ is a subtype of \code{FutureOr<$T$>} if
+    $S$ is a subtype of \code{Future<$T$>}.
+  \Item{\SrnRightFutureOrB}{Right FutureOr B}
+    The type $S$ is a subtype of \code{FutureOr<$T$>} if
+    $S$ is a subtype of $T$.
+  \Item{\SrnLeftPromotedVariable}{Left Promoted Variable B}
+    The type $X \& S$ is a subtype of $T$ if
+    $S$ is a subtype of $T$.
+  \Item{\SrnLeftVariableBound}{Left Variable Bound}
+    The type variable $X$ is a subtype of a type $T$ if
+    the bound of $X$
+    (as specified in the current environment $\Delta$)
+    is a subtype of $T$.
+  \Item{\SrnRightFunction}{Right Function}
+    Every function type is a subtype of the type \FUNCTION.
+  \Item{\SrnPositionalFunctionType}{Positional Function Type}
+    A function type $F_1$ with positional optional parameters
+    is a subtype of
+    another function type $F_2$ with positional optional parameters
+    if the former has at most
+    the same number of required parameters as the latter,
+    and the latter has at least
+    the same total number of parameters as the former;
+    the return type of $F_1$ is a subtype of that of $F_2$;
+    and each parameter type of $F_1$ is a \emph{supertype} of
+    the corresponding parameter type of $F_2$, if any.
+    Note that the relationship to function types with no optional parameters,
+    and the relationship between function types with no optional parameters,
+    is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$.
+    For every subtype relation considered in this rule,
+    the formal type parameters of $F_1$ and $F_2$ must be taken into account
+    (as reflected in the use of the extended environment $\Delta'$).
+    We can assume without loss of generality
+    that the names of type variables are pairwise identical,
+    because we consider types of generic functions to be equivalent under
+    consistent renaming
+    (\ref{typeOfAFunction}).
+    In short, ``during the proof, we will rename them as needed''.
+    Finally, note that the relationship between non-generic function types
+    is covered by letting $s = 0$.
+  \Item{\SrnNamedFunctionType}{Named Function Type}
+    A function type $F_1$ with named optional parameters is a subtype of
+    another function type $F_2$ with named optional parameters
+    if they have the same number of required parameters,
+    and the set of names of named parameters for the latter is a subset
+    of that for the former;
+    the return type of $F_1$ is a subtype of that of $F_2$;
+    and each parameter type of $F_1$ is a \emph{supertype} of
+    the corresponding parameter type of $F_2$, if any.
+    Note that the relationship to function types with no optional parameters,
+    and the relationship between function types with no optional parameters,
+    is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$,
+    and also that the latter case is identical to the rule obtained from
+    rule~\SrnPositionalFunctionType{}
+    concerning subtyping among function types with no optional parameters.
+    As in rule~\SrnPositionalFunctionType,
+    we can assume without loss of generality
+    that the names of type variables are pairwise identical.
+    Similarly, non-generic functions are covered by letting $s = 0$.
+  \Item{\SrnCovariance}{Class Covariance}
+    A parameterized type based on a generic class $C$ is a subtype of
+    a parameterized type based on the same class $C$ if
+    each actual type argument of the former is a subtype of
+    the corresponding actual type argument of the latter.
+    This rule may have $s = 0$ and cover a non-generic class as well,
+    but that is redundant because this is already covered by
+    rule~\SrnReflexivity.
+  \Item{\SrnSuperinterface}{Superinterface}
+    Considering the case where $s = 0$ and $m = 0$ first,
+    a parameterized type based on a non-generic class $C$ is a subtype of
+    a parameterized type based on a different non-generic class $D$ if
+    $D$ is a direct superinterface of $C$.
+    When $s > 0$ or $m > 0$, this rule describes a subtype relationship
+    which includes one or more generic classes,
+    in which case we need to give names to the formal type parameters of $C$,
+    and specify how they are used in the specification of the superinterface
+    based on $D$.
+    With those pieces in place, we can specify the subtype relationship
+    that exists between two parameterized types based on $C$ and $D$.
+    %
+    %% TODO(eernst): Note that the specification of how to pass type arguments
+    %% in \ref{mixinApplication} is incorrect, and also that it will need to be
+    %% rewritten completely for the integration of the new mixin construct.
+    The case where the superclass is a mixin application is covered via
+    the equivalence with a declaration of
+    a regular (possibly generic) superclass
+    (\ref{mixinApplication}),
+    and this means that there may be multiple subtype steps from
+    a given class declaration to the class specified in an \EXTENDS{} clause.
+  \end{itemize}%
+>>>>>>> c6eade8f (Indent commentary consistently)
 }
 
 
@@ -23621,6 +24051,7 @@ except if $R$ is
 
   This introduces a number of differences:
 
+<<<<<<< HEAD
   \begin{itemize}
   \item[$\bullet$]
     Valid values of JavaScript \code{int} are any IEEE-754 64-bit
@@ -23665,6 +24096,97 @@ except if $R$ is
     to itself. For efficiency, the \code{identical} operation uses the
     JavaScript \code{===} operator.
   \end{itemize}%
+||||||| parent of c6eade8f (Indent commentary consistently)
+\begin{itemize}
+\item[$\bullet$]
+  Valid values of JavaScript \code{int} are any IEEE-754 64-bit
+  floating point number with no fractional part.  This includes
+  positive and negative \Index{infinity}, which can be reached by
+  overflowing (integer division by zero is still a dynamic error).
+  Otherwise valid integer literals (including any leading minus sign)
+  that represent invalid JavaScript \code{int} values are compile-time
+  errors when compiling to JavaScript.  Operations on integers may
+  lose precision, because the operands and the result are represented
+  as 64-bit floating point numbers that are limited to 53 significant
+  bits.
+\item[$\bullet$]
+  JavaScript \code{int} instances also implement \code{double}, and
+  integer-valued \code{double} instances also implement \code{int}.
+  The \code{int} and \code{double} class are still separate subclasses
+  of the class \code{num}, but \emph{instances} of either class that
+  represent an integer act as if they are actually instances of a
+  common subclass implementing both \code{int} and \code{double}.
+  Fractional numbers only implement \code{double}.
+\item[$\bullet$]
+  Bitwise operations on integers (\lit{\&}, \lit{|}, \lit{\^},
+  \lit{\gtilde}, \lit{\ltlt}, and \lit{\gtgt}) all truncate the
+  operands to 32-bit two's complement integers, perform 32-bit
+  operations on those, and the resulting 32 bits are interpreted as a
+  32-bit unsigned integer. For example, \code{-1\,\ltlt\,1} evaluates
+  to 4294967294 (also known as \code{(-2).toUnsigned(32)}). The right
+  shift operator, \lit{\gtgt}, performs a signed right shift on the
+  32 bits when the original number is negative, and an unsigned right
+  shift when the original number is non-negative. Both kinds of shift
+  writes bit $k+1$ into position $k$, $0 \leq k < 31$; but the signed
+  shift leaves bit 31 unchanged, and the unsigned shift writes a 0
+  as bit 31. For example:
+  \code{0x80000002\,\gtgt\,1\ ==\ 0x40000001}, but
+  \code{-0x7FFFFFFE\,\gtgt\,1\ ==\ 0xC0000001}.
+  In this example we note that both \code{0x80000002} and \code{-0x7FFFFFFE}
+  yield the 32-bit two's complement representation \code{0x80000002},
+  but they have different values for the IEEE 754 sign bit.
+\item[$\bullet$]
+  The \code{identical} method cannot distinguish the values $0.0$ and
+  $-0.0$, and it cannot recognize any \Index{NaN} value as identical
+  to itself.  For efficiency, the \code{identical} operation uses the
+  JavaScript \code{===} operator.
+\end{itemize}%
+=======
+  \begin{itemize}
+  \item[$\bullet$]
+    Valid values of JavaScript \code{int} are any IEEE-754 64-bit
+    floating point number with no fractional part.  This includes
+    positive and negative \Index{infinity}, which can be reached by
+    overflowing (integer division by zero is still a dynamic error).
+    Otherwise valid integer literals (including any leading minus sign)
+    that represent invalid JavaScript \code{int} values are compile-time
+    errors when compiling to JavaScript.  Operations on integers may
+    lose precision, because the operands and the result are represented
+    as 64-bit floating point numbers that are limited to 53 significant
+    bits.
+  \item[$\bullet$]
+    JavaScript \code{int} instances also implement \code{double}, and
+    integer-valued \code{double} instances also implement \code{int}.
+    The \code{int} and \code{double} class are still separate subclasses
+    of the class \code{num}, but \emph{instances} of either class that
+    represent an integer act as if they are actually instances of a
+    common subclass implementing both \code{int} and \code{double}.
+    Fractional numbers only implement \code{double}.
+  \item[$\bullet$]
+    Bitwise operations on integers (\lit{\&}, \lit{|}, \lit{\^},
+    \lit{\gtilde}, \lit{\ltlt}, and \lit{\gtgt}) all truncate the
+    operands to 32-bit two's complement integers, perform 32-bit
+    operations on those, and the resulting 32 bits are interpreted as a
+    32-bit unsigned integer. For example, \code{-1\,\ltlt\,1} evaluates
+    to 4294967294 (also known as \code{(-2).toUnsigned(32)}). The right
+    shift operator, \lit{\gtgt}, performs a signed right shift on the
+    32 bits when the original number is negative, and an unsigned right
+    shift when the original number is non-negative. Both kinds of shift
+    writes bit $k+1$ into position $k$, $0 \leq k < 31$; but the signed
+    shift leaves bit 31 unchanged, and the unsigned shift writes a 0
+    as bit 31. For example:
+    \code{0x80000002\,\gtgt\,1\ ==\ 0x40000001}, but
+    \code{-0x7FFFFFFE\,\gtgt\,1\ ==\ 0xC0000001}.
+    In this example we note that both \code{0x80000002} and \code{-0x7FFFFFFE}
+    yield the 32-bit two's complement representation \code{0x80000002},
+    but they have different values for the IEEE 754 sign bit.
+  \item[$\bullet$]
+    The \code{identical} method cannot distinguish the values $0.0$ and
+    $-0.0$, and it cannot recognize any \Index{NaN} value as identical
+    to itself.  For efficiency, the \code{identical} operation uses the
+    JavaScript \code{===} operator.
+  \end{itemize}%
+>>>>>>> c6eade8f (Indent commentary consistently)
 }
 
 \printindex
