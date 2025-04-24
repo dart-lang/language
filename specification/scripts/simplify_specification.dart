@@ -29,6 +29,14 @@ void fail(String message) {
   exit(-1);
 }
 
+extension on String {
+  bool get startsList =>
+      startsWith(r"\begin{itemize}") || startsWith(r"\begin{enumerate}");
+  bool get endsList =>
+      startsWith(r"\end{itemize}") || startsWith(r"\end{enumerate}");
+  bool get isItem => startsWith(r"\item");
+}
+
 extension on List<String?> {
   static final _commentRegExp = RegExp(r"^%|[^%\\]%");
   static final _commentaryRationaleRegExp = RegExp(
@@ -202,12 +210,8 @@ extension on List<String?> {
       final line = this[searchIndex];
       if (line == null) continue;
       final trimmedLine = line.trimLeft();
-      if (trimmedLine.startsWith(r"\end{itemize}")) {
-        throw "_findItem did not find any items";
-      }
-      if (trimmedLine.startsWith(r"\item")) {
-        return searchIndex;
-      }
+      if (trimmedLine.endsList) throw "_findItem did not find any items";
+      if (trimmedLine.isItem) return searchIndex;
     }
     throw "_findItem reached end of text";
   }
@@ -227,11 +231,12 @@ extension on List<String?> {
   }
 
   /// Starting from the line with index [listIndex], which is assumed
-  /// to start with `\begin{itemize}`, search for `\item` commands and
-  /// gather the subsequent lines for each item into a single line.
-  /// Also handle nested itemized lists (no attempt to balance them, we
-  /// just rely on finding `\end{itemize}` at the beginning of a line).
-  /// Return the index of the first line after the itemized list.
+  /// to start with `\begin{itemize}` or `\begin{enumerate}`, search for
+  /// `\item` commands and gather the subsequent lines for each item into a
+  /// single line. Also handle nested itemized lists (no attempt to balance
+  /// them, we just rely on finding `\end{itemize}` or `\end{enumerate}` at
+  /// the beginning of a line). Return the index of the first line after the
+  /// itemized list.
   int _gatherItems(final int listIndex) {
     final length = this.length;
     var itemIndex = _findItem(listIndex + 1);
@@ -243,7 +248,7 @@ extension on List<String?> {
       var gatherLine = this[gatherIndex]; // Invariant.
       if (gatherLine == null) continue;
       final trimmedGatherLine = gatherLine.trimLeft();
-      if (trimmedGatherLine.startsWith(r"\begin{itemize}")) {
+      if (trimmedGatherLine.startsList) {
         // We do not gather a nested itemized list into the current item.
         // Finalize the current item.
         this[itemIndex] = buffer.toString();
@@ -254,16 +259,13 @@ extension on List<String?> {
         gatherIndex = itemIndex;
         continue;
       }
-      if (gatherLine.startsWith(r"\end{itemize}")) {
+      if (gatherLine.endsList) {
         // At the end of the outermost itemized list: Done.
         this[itemIndex] = buffer.toString();
         return gatherIndex;
       }
-      if (gatherIndex >= 8538) {
-        print('gatherIndex: $gatherIndex'); // DEBUG
-      }
-      final foundItem = trimmedGatherLine.startsWith(r"\item");
-      final foundEnd = trimmedGatherLine.startsWith(r"\end{itemize}");
+      final foundItem = trimmedGatherLine.isItem;
+      final foundEnd = trimmedGatherLine.endsList;
       if (foundItem || foundEnd) {
         // Current `\item` has ended, transfer the data.
         this[itemIndex] = buffer.toString();
@@ -280,10 +282,10 @@ extension on List<String?> {
           /// as if it did contain `\item`.
           itemIndex = _findText(gatherIndex + 1);
           itemLine = this[itemIndex]; // Restore the `itemLine` invariant.
-          if (itemLine!.startsWith(r"\end{itemize}")) {
+          if (itemLine!.endsList) {
             // No extra lines, at the end of the outermost itemized list: Done.
             return itemIndex + 1;
-          } else if (itemLine.trimLeft().startsWith(r"\item")) {
+          } else if (itemLine.trimLeft().isItem) {
             // No extra lines, starting a new item.
             buffer = StringBuffer(itemLine);
             gatherIndex = itemIndex;
@@ -326,7 +328,7 @@ extension on List<String?> {
       }
       if (line.startsWith(r"\LMHash{}")) {
         lineIndex = _gatherParagraph(lineIndex);
-      } else if (line.startsWith(r"\begin{itemize}")) {
+      } else if (line.startsList) {
         lineIndex = _gatherItems(lineIndex);
       }
     }
