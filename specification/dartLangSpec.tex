@@ -10283,6 +10283,7 @@ and $\EvaluateElement{\ell} := \LiteralSequence{o_1:o_2}$.
 \Case{Spread element}
 The element $\ell$ is of the form `\code{...$e$}' or `\code{...?$e$}'.
 Evaluate $e$ to an object $o_{\metavar{spread}}$.
+
 \begin{enumerate}
 \item
   When $\ell$ is `\code{...$e$}':
@@ -14862,6 +14863,7 @@ much like the methods that spawn isolates.%
 \IndexCustom{Property extraction}{property extraction}
 allows for a member to be accessed as a property rather than a function.
 A property extraction can be either:
+
 \begin{enumerate}
 \item An instance method closurization,
   which converts a method into a function object
@@ -18448,6 +18450,7 @@ If $c$ is empty then let $c'$ be \TRUE{} otherwise let $c'$ be $c$.
 \LMHash{}%
 First the variable declaration statement \VAR{} $v = e_0$ is executed.
 Then:
+
 \begin{enumerate}
 \item
   \label{beginFor}
@@ -19115,6 +19118,7 @@ in a structured way.
 
 \LMHash{}%
 A try statement consists of a block statement, followed by at least one of:
+
 \begin{enumerate}
 \item
   A set of \ON{}-\CATCH{} clauses, each of which specifies
@@ -19706,6 +19710,7 @@ First, the expression $e$ is evaluated to an object $o$.
 If the immediately enclosing function $m$ is marked \code{\SYNC*}
 (\ref{functions}),
 then:
+
 \begin{enumerate}
 \item
   % This error can occur due to implicit casts.
@@ -20869,12 +20874,15 @@ in the exported namespace of $S$ is invoked (\ref{functionInvocation})
 as follows:
 If \code{main} can be called with with two positional arguments,
 it is invoked with the following two actual arguments:
+
 \begin{enumerate}
 \item An object whose run-time type implements \code{List<String>}.
 \item An object specified when the current isolate $i$ was created,
 for example through the invocation of \code{Isolate.spawnUri} that spawned $i$,
 or the null object (\ref{null}) if no such object was supplied.
 \end{enumerate}
+
+\LMHash{}%
 If \code{main} cannot be called with two positional arguments,
 but it can be called with one positional argument,
 it is invoked with an object whose run-time type implements \code{List<String>}
@@ -22351,6 +22359,7 @@ may support more strict static checks as an option.%
 \LMHash{}%
 \IndexCustom{Function types}{type!function}
 come in two variants:
+
 \begin{enumerate}
 \item
   The types of functions that only have positional parameters.
