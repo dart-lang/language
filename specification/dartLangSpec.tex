@@ -520,6 +520,7 @@ We distinguish between normative and non-normative text.
 Normative text defines the rules of Dart.
 It is given in this font.
 At this time, non-normative text includes:
+
 \begin{itemize}
 \item[Rationale]
   Discussion of the motivation for language design decisions appears in italics.
@@ -661,6 +662,7 @@ The specifications of operators often involve statements such as
 \IndexCustom{\rm\code{$x$.\metavar{op}($y$)}}{%
   x.op(y)@\code{$x$.\metavar{op}($y$)}}.
 Such specifications should be understood as a shorthand for:
+
 \begin{itemize}
 \item
   $x$ $op$ $y$ is equivalent to the method invocation
@@ -732,7 +734,7 @@ When the specification says that one piece of syntax $s$ is
 \Index{treated as}
 another piece of syntax $s'$,
 it means that the static analysis of $s$ is the static analysis of $s'$
-(\commentary{in particular, exactly the same compile-time errors occur}).
+\commentary{(in particular, exactly the same compile-time errors occur)}.
 Moreover, if $s$ has no compile-time errors then
 the behavior of $s$ at run time is exactly the behavior of $s'$.
 
@@ -771,7 +773,7 @@ and others are better described as mere abbreviations of existing constructs.%
 The specification uses one syntactic construct, the
 \IndexCustom{\LET{} expression}{let expression@\LET{} expression},
 which is not derivable in the grammar
-(\commentary{that is, no Dart source code contains such an expression}).
+\commentary{(that is, no Dart source code contains such an expression)}.
 This expression is helpful in specifying certain syntactic forms
 that are treated as other syntactic forms,
 because it allows for introducing and initializing one or more fresh variables,
@@ -840,7 +842,7 @@ The right margin also contains symbols.
 Whenever a symbol
 \BlindDefineSymbol{\textcolor{commentaryColor}{C}}%
 \BlindDefineSymbol{\textcolor{commentaryColor}{x_j}}%
-(\commentary{say, $C$ or $x_j$})
+\commentary{(say, $C$ or $x_j$)}
 is introduced and used in more than a few lines of text,
 it is shown in the margin.
 
@@ -958,7 +960,7 @@ The method used to enable or disable assertions is implementation specific.
 A \IndexCustom{compile-time namespace}{namespace!compile-time}
 is a partial function that maps names to namespace values.
 Compile-time namespaces are used much more frequently than run-time namespaces
-(\commentary{defined later in this section}),
+\commentary{(defined later in this section)},
 so when the word \Index{namespace} is used alone,
 it means compile-time namespace.
 A \Index{name} is a lexical token which is an \synt{IDENTIFIER},
@@ -1617,7 +1619,7 @@ class, mixin, enum, or extension declaration.
 An instance variable introduces an instance getter into
 the body scope of the immediately enclosing
 class, mixin, or enum declaration
-(\commentary{an extension cannot declare instance variables}).
+\commentary{(an extension cannot declare instance variables)}.
 
 \LMHash{}%
 A non-local variable introduces a setter if{}f
@@ -1633,7 +1635,7 @@ class, mixin, enum, or extension declaration.
 An instance variable that introduces a setter will introduce
 an instance setter into the body scope of the immediately enclosing
 class, mixin, or enum declaration
-(\commentary{an extension cannot declare instance variables}).
+\commentary{(an extension cannot declare instance variables)}.
 
 \LMHash{}%
 Let \id{} be a variable declared by a variable declaration
@@ -1997,6 +1999,7 @@ The formal parameter part optionally specifies
 the formal type parameter list of the function,
 and it always specifies its formal parameter list.
 A function body is either:
+
 \begin{itemize}
 \item
   a block statement (\ref{blocks}) containing
@@ -2006,8 +2009,10 @@ A function body is either:
   %
   Unless it is statically known that the body of the function
   cannot complete normally
-  (\commentary{that is, it cannot reach the end and ``fall through''},
-  cf.~\ref{statementCompletion}),
+  \commentary{%
+    (that is, it cannot reach the end and ``fall through''},
+    cf.~\ref{statementCompletion)%
+  },
   it is a compile-time error if
   the addition of \code{\RETURN;} at the end of the body
   would be a compile-time error.
@@ -2044,6 +2049,7 @@ OR
   }
   Let $T$ be the declared return type of the function that has this body.
   It is a compile-time error if one of the following conditions hold:
+
   \begin{itemize}
   \item The function is synchronous, $T$ is not \VOID,
     and it would have been a compile-time error
@@ -2154,7 +2160,7 @@ then the element type of $f$ is $U$.
 %
 Otherwise, if $f$ is a generator (synchronous or asynchronous)
 and $S$ is a supertype of \code{Object}
-(\commentary{which includes \code{Object} itself})
+\commentary{(which includes \code{Object} itself)}
 then the element type of $f$ is \DYNAMIC.
 \commentary{No further cases are possible.}
 
@@ -2328,6 +2334,7 @@ the corresponding parameter list with a trailing comma.
 
 \LMHash{}%
 A \Index{required formal parameter} may be specified in one of three ways:
+
 \begin{itemize}
 \item
   By means of a function signature that names the parameter and
@@ -2860,6 +2867,7 @@ are its static and instance members.
 
 \LMHash{}%
 A class declaration introduces two scopes:
+
 \begin{itemize}
 \item
   A \IndexCustom{type-parameter scope}{scope!type parameter},
@@ -2880,7 +2888,7 @@ the body scope of the class in which it is declared.
 
 \LMHash{}%
 The current instance
-(\commentary{and hence its members})
+\commentary{(and hence its members)}
 can only be accessed at specific locations in a class:
 We say that a location $\ell$
 \IndexCustom{has access to \THIS}{has access to this@has access to \THIS}
@@ -3393,10 +3401,10 @@ one of the following is true:
   the interface of $C$ contains a member signature $S$ named $m$,
   and $C$ has no concrete member named $m$ and accessible to $L$
   that correctly overrides $S$
-  (\commentary{%
-    that is, no member named $m$ is declared or inherited by $C$,
+  \commentary{%
+    (that is, no member named $m$ is declared or inherited by $C$,
     or one is inherited, but it does not have the required signature%
-  }).
+  )}.
   In this case we also say that $S$ is noSuchMethod forwarded.
 \item
   \textbf{Forced by privacy:}
@@ -3533,10 +3541,10 @@ with formal type parameters
 positional formal parameters
 \BlindDefineSymbol{a_j, k, x_j, n}%
 \code{$a_1,\ \ldots,\ a_k$}
-(\commentary{some of which may be optional when $n = 0$}),
+\commentary{(some of which may be optional when $n = 0$)},
 and named formal parameters with names
 \code{$x_1,\ \ldots,\ x_n$}
-(\commentary{with default values as mentioned above}).
+\commentary{(with default values as mentioned above)}.
 
 \commentary{%
 For this purpose we need not distinguish between
@@ -4236,6 +4244,7 @@ and consists of a comma-separated list of individual \Index{initializers}.
 
 \commentary{%
 There are three kinds of initializers.
+
 \begin{itemize}
 \item[$\bullet$] A \emph{superinitializer} identifies a
   \emph{superconstructor}\,---\,that is,
@@ -4354,6 +4363,7 @@ Let \DefineSymbol{f} be a final instance variable declared in
 the immediately enclosing class or enum.
 A compile-time error occurs unless $f$ is initialized
 by one of the following means:
+
 \begin{itemize}
 \item $f$ is declared by an initializing variable declaration.
 \item $f$ is initialized by means of an initializing formal of $k$.
@@ -4699,6 +4709,7 @@ ordinary factory constructors could simply create
 instances of other classes and return them,
 and that redirecting factories are unnecessary.
 However, redirecting factories have several advantages:
+
 \begin{itemize}
 \item
   An abstract class may provide a constant constructor
@@ -4900,6 +4911,7 @@ The name $S'$ is a fresh identifier.
 If no \WITH{} clause is specified then the \EXTENDS{} clause of
 a class $C$ specifies its superclass.
 If no \EXTENDS{} clause is specified, then either:
+
 \begin{itemize}
 \item $C$ is \code{Object}, which has no superclass. OR
 \item Class $C$ is deemed to have an \EXTENDS{} clause of the form
@@ -4957,6 +4969,7 @@ class G<T> extends T \{\}
 %% TODO(eernst): Consider replacing all occurrences of `a superclass`
 %% by `a direct or indirect superclass`, because it's too confusing.
 A class $S$ is a \Index{superclass} of a class $C$ if{}f either:
+
 \begin{itemize}
 \item $S$ is the superclass of $C$, or
 \item $S$ is a superclass of a class $S'$,
@@ -5714,6 +5727,7 @@ Let $J$ be an interface and $K$ be a library.
 We define $\inherited{J, K}$ to be the set of member signatures
 \DefineSymbol{m}
 such that all of the following hold:
+
 \begin{itemize}
 \item $m$ is accessible to $K$ and
 \item $A$ is a direct superinterface of $J$ and either
@@ -5728,6 +5742,7 @@ such that all of the following hold:
 Furthermore, we define $\overrides{J, K}$ to be
 the set of member signatures \DefineSymbol{m'}
 such that all of the following hold:
+
 \begin{itemize}
 \item $J$ is the interface of a class $C$.
 \item $C$ declares a member signature $m$.
@@ -6021,11 +6036,14 @@ where $\metavar{members}'$ are the member declarations of
 the mixin declaration $M$ except that all superinvocations are treated
 as if \SUPER{} was a valid expression with static type $M_S$.
 It is a compile-time error for the mixin $M$ if this $N$ class
-declaration would cause a compile-time error, \commentary{that is, if the
-required superinterfaces, the implemented interfaces and the declarations do not
-define a consistent interface, if any member declaration contains a
-compile-time error other than a super-invocation, or if a super-invocation
-is not valid against the interface $M_S$}.
+declaration would cause a compile-time error,
+\commentary{%
+that is, if the required superinterfaces, the implemented interfaces
+and the declarations do not define a consistent interface,
+if any member declaration contains a compile-time error
+other than a super-invocation,
+or if a super-invocation is not valid against the interface $M_S$.%
+}
 The interface introduced by the mixin declaration $M$ has the same member
 signatures and superinterfaces as $M_I$.
 
@@ -6055,13 +6073,21 @@ and let $N$ be a name.
 It is a compile-time error to apply $M$ to $S$ if $S$ does not implement,
 directly or indirectly, all of $T_1$, \ldots, $T_n$.
 It is a compile-time error if any of \metavar{members} contains a
-super-invocation of a member $m$ \commentary{(for example \code{super.foo},
-\code{super + 2}, or \code{super[1] = 2})}, and $S$ does not have a concrete
+super-invocation of a member $m$
+\commentary{%
+  (for example \code{super.foo}, \code{super\,\,+\,\,2},
+  or \code{super[1]\,=\,2}),%
+}
+and $S$ does not have a concrete
 implementation of $m$ which is a valid override of the member $m$ in
-the interface $M_S$. \rationale{We treat super-invocations in mixins as
-interface invocations on the combined superinterface, so we require the
-superclass of a mixin application to have valid implementations of those
-interface members that are actually super-invoked.}
+the interface $M_S$.
+\rationale{%
+We treat super-invocations in mixins as
+interface invocations on the combined superinterface,
+so we require the superclass of a mixin application to have
+valid implementations of those interface members
+that are actually super-invoked.%
+}
 
 \LMHash{}%
 The mixin application of $M$ to $S$ with name $N$ introduces a new
@@ -6074,9 +6100,11 @@ introduces generative constructors on $C$ as follows:
 
 \LMHash{}%
 Let $L_C$ be the library containing the mixin application.
-\commentary{That is, the library containing the clause \code{$S$ \WITH{} $M$}
-or the clause \code{$S_0$ \WITH{} $M_1$, \ldots,\ $M_k$, $M$} giving rise
-to the mixin application.}
+\commentary{%
+  That is, the library containing the clause \code{$S$ \WITH{} $M$}
+  or the clause \code{$S_0$ \WITH{} $M_1$, \ldots,\ $M_k$, $M$}
+  giving rise to the mixin application.%
+}
 
 Let $S_N$ be the name of $S$.
 
@@ -6165,7 +6193,7 @@ It introduces an
 \Index{extension}
 with the given \synt{identifier}, if present,
 into the namespace of the enclosing library
-(\commentary{and hence into the library scope}),
+\commentary{(and hence into the library scope)},
 and provides a scope for the declaration of
 extension members.
 Additionally, the extension is introduced into the library namespace
@@ -6253,13 +6281,14 @@ in this section and its subsections.%
 \LMHash{}%
 The declared name of an extension does not denote a type,
 but it can be used to denote the extension itself
-(\commentary{%
-e.g., in order to access static members of the extension,
-or in order to resolve an invocation explicitly%
-}).
+\commentary{%
+  (e.g., in order to access static members of the extension,
+  or in order to resolve an invocation explicitly)%
+}.
 
 \LMHash{}%
 An extension declaration introduces two scopes:
+
 \begin{itemize}
 \item
   A \IndexCustom{type-parameter scope}{scope!type parameter},
@@ -6413,7 +6442,7 @@ on the type parameters of $E$
 A compile-time error occurs unless
 \SubtypeNE{T_j}{[T_1/X_1, \ldots, T_s/X_s]B_j},
 $j \in 1 .. s$
-(\commentary{that is, the bounds cannot be violated}).
+\commentary{(that is, the bounds cannot be violated)}.
 %
 A compile-time error occurs unless the static type of $e$ is assignable to
 the instantiated \ON{} type of $a$.
@@ -6454,7 +6483,7 @@ Let $i$ be a simple member invocation
 whose receiver $r$ is an extension application of the form
 \BlindDefineSymbol{E, T_j, k, e}%
 \code{$E$<\List{T}{1}{k}>($e$)}
-(\commentary{which is \code{$E$($e$)} when $k$ is zero})
+\commentary({which is \code{$E$($e$)} when $k$ is zero)}
 whose corresponding member name is \DefineSymbol{n},
 and assume that $r$ has no compile-time errors.
 A compile-time error occurs unless the extension denoted by $E$
@@ -6554,7 +6583,7 @@ which is unlikely to be desirable.%
 
 \LMHash{}%
 Instance members of an extension can be invoked or closurized implicitly
-(\commentary{without mentioning the name of the extension}),
+\commentary{(without mentioning the name of the extension)},
 as if they were instance members of the receiver of
 the given member invocation.
 
@@ -6764,6 +6793,7 @@ if at least one of the following conditions is satisfied:
 \item
   $E_1$ and $E_2$ are both declared in a system library,
   or neither of them is declared in a system library, and
+
   \begin{itemize}
   \item \SubtypeNE{T_1}{T_2}, but not \SubtypeNE{T_2}{T_1}, or
   \item \SubtypeNE{T_1}{T_2}, \SubtypeNE{T_2}{T_1}, and
@@ -6981,13 +7011,14 @@ If \id{} is a method then $e$ is known as an
   extension!instance method closurization}
 of \id{} on $a$,
 and evaluation of $e$
-(\commentary{which is \code{$E$<\List{S}{1}{m}>($e_1$).\id}})
+\commentary{(which is \code{$E$<\List{S}{1}{m}>($e_1$).\id})}
 proceeds as follows:
 
 \LMHash{}%
 Evaluate $e_1$ to an object $o$.
 Let $u$ be a fresh final variable bound to $o$.
 Then $e$ evaluates to a function object which is equivalent to:
+
 \begin{itemize}
 \item
 \begin{normativeDartCode}
@@ -7140,7 +7171,7 @@ and $i$ an expression of the form
 \code{$a$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
 
 \noindent
-(\commentary{where the type argument list is omitted when $r$ is zero}).
+\commentary{(where the type argument list is omitted when $r$ is zero)}.
 $i$ is then treated as
 (\ref{notation})
 
@@ -7163,7 +7194,7 @@ and let $i$ be an expression of the form
 \code{$e$<$A_1, \ldots,\ A_r$>($a_1, \ldots,\ a_n,\ x_{n+1}$:\ $a_{n+1}, \ldots,\ x_{n+k}$:\ $a_{n+k}$)}
 
 \noindent
-(\commentary{where the type argument list is again omitted when $r$ is zero}).
+\commentary{(where the type argument list is again omitted when $r$ is zero)}.
 If $S$ is \DYNAMIC, \FUNCTION, or a function type,
 or the interface of $S$ has a method named \CALL,
 $i$ is specified elsewhere
@@ -7411,6 +7442,7 @@ This enables typechecking code such as:%
 \commentary{%
 Even where type parameters are in scope
 there are numerous restrictions at this time:
+
 \begin{itemize}
 \item[$\bullet$]
   A type parameter cannot be used to name a constructor in
@@ -7702,6 +7734,7 @@ Any use of a type $T$ which is not well-bounded is a compile-time error.
 \LMHash{}%
 It is a compile-time error if a parameterized type $T$ is super-bounded
 when it is used in any of the following ways:
+
 \begin{itemize}
 \item $T$ is an immediate subterm of a new expression
   (\ref{new})
@@ -8047,7 +8080,7 @@ does not have a simple bound.%
 \LMHash{}%
 Let $T$ be a type of the form \synt{typeName}
 which denotes a generic class or a generic type alias
-(\commentary{so $T$ is raw}).
+\commentary{(so $T$ is raw)}.
 Then $T$ is equivalent to the parameterized type which is
 the result obtained by applying instantiation to bound to $T$.
 It is a compile-time error if the instantiation to bound fails.
@@ -8107,7 +8140,7 @@ So each type variable is related to, that is, depends on,
 every type variable in its bound, which might include itself.%
 }
 Let \TransitivelyDepends{} be the transitive
-(\commentary{but not reflexive})
+\commentary{(but not reflexive)}
 closure of \Depends.
 For each $m$, let $U_{i,m+1}$, for $i \in 1 .. k$,
 be determined by the following iterative process, where $V_m$ denotes
@@ -8117,7 +8150,7 @@ be determined by the following iterative process, where $V_m$ denotes
 \item[1.]
   If there exists a $j \in 1 .. k$ such that
   $X_j \TransitivelyDepends X_j$
-  (\commentary{that is, if the dependency graph has a cycle})
+  \commentary{(that is, if the dependency graph has a cycle)}
   let \List{M}{1}{p} be the strongly connected components (SCCs)
   with respect to \Depends.
   \commentary{%
@@ -8129,7 +8162,7 @@ be determined by the following iterative process, where $V_m$ denotes
   and the order does not matter for this algorithm.%
   }
   Let $M$ be the union of \List{M}{1}{p}
-  (\commentary{that is, all variables that participate in a dependency cycle}).
+  \commentary{(that is, all variables that participate in a dependency cycle)}.
   Let $i \in 1 .. k$.
   If $X_i$ does not belong to $M$ then $U_{i,m+1}$ is $U_{i,m}$.
   Otherwise there exists a $q$ such that $X_i \in M_q$;
@@ -8140,13 +8173,14 @@ be determined by the following iterative process, where $V_m$ denotes
   which is in a contravariant position in $V_m$.
 
 \item[2.]
-  Otherwise (\commentary{when there are no dependency cycles}),
+  Otherwise
+  \commentary{(when there are no dependency cycles)},
   let $j$ be the lowest number such that $X_j$ occurs in $U_{p,m}$ for some $p$
   and $X_j \not\rightarrow_m X_q$ for all $q$ in $1 .. k$
-  (\commentary{%
-  that is, the bound of $X_j$ does not contain any type variables,
-  but $X_j$ occurs in the bound of some other type variable%
-  }).
+  \commentary{%
+    (that is, the bound of $X_j$ does not contain any type variables,
+    but $X_j$ occurs in the bound of some other type variable)%
+  }.
   Then, for all $i \in 1 .. k$,
   $U_{i,m+1}$ is obtained from $U_{i,m}$
   by substituting $U_{j,m}$ for every occurrence of $X_j$
@@ -8155,7 +8189,8 @@ be determined by the following iterative process, where $V_m$ denotes
   which is in a contravariant position in $V_m$.
 
 \item[3.]
-  Otherwise (\commentary{when there are no dependencies at all}),
+  Otherwise
+  \commentary{(when there are no dependencies at all)},
   terminate with the result \code{<$U_{1,m},\ \ldots,\ U_{k,m}$>}.
 \end{itemize}
 
@@ -8307,6 +8342,7 @@ each of which begin with the character \lit{@},
 followed by a constant expression $e$ derivable from
 \synt{metadatum}.
 It is a compile-time error if $e$ is not one of the following:
+
 \begin{itemize}
 \item A reference to a constant variable.
 \item A call to a constant constructor.
@@ -8497,6 +8533,7 @@ and throws the same exception object and stack trace.
 \LMHash{}%
 The predefined Dart function \code{identical()}
 is defined such that \code{identical($c_1$, $c_2$)} if{}f:
+
 \begin{itemize}
 \item $c_1$ evaluates to either the null object (\ref{null})
   or an instance of \code{bool} and \code{$c_1$ == $c_2$}, OR
@@ -8504,6 +8541,7 @@ is defined such that \code{identical($c_1$, $c_2$)} if{}f:
 \item $c_1$ and $c_2$ are constant strings and \code{$c_1$ == $c_2$}, OR
 \item $c_1$ and $c_2$ are instances of \code{double}
   and one of the following holds:
+
   \begin{itemize}
   \item $c_1$ and $c_2$ are non-zero and \code{$c_1$ == $c_2$}.
   \item Both $c_1$ and $c_2$ are $+0.0$.
@@ -8837,6 +8875,7 @@ are the following:
 A
 \Index{constant type expression}
 is one of:
+
 \begin{itemize}
 \item
   An simple or qualified identifier
@@ -9212,6 +9251,7 @@ The static type of a double literal is \code{double}.
 If $l$ is an integer literal with numeric value $i$ and static type \code{int},
 and $l$ is not the operand of a unary minus operator,
 then evaluation of $l$ proceeds as follows:
+
 \begin{itemize}
   \item{} If $l$ is a hexadecimal integer literal,
   $2^{63} \le i < 2^{64}$ and the \code{int} class is implemented as
@@ -9546,7 +9586,7 @@ In the rule for \synt{RAW\_MULTI\_LINE\_STRING},
 the two occurrences of \lit{.*?}
 denote a non-greedy token recognition step:
 It terminates as soon as the lookahead is the specified next token
-(\commentary{that is, \lit{\sqsqsq}or \lit{"""}}).
+\commentary{(that is, \lit{\sqsqsq} or \lit{"""})}.
 
 \commentary{%
 Note that multi-line string interpolation relies on
@@ -9557,6 +9597,7 @@ just like single-line string interpolation.%
 \LMHash{}%
 Strings support escape sequences for special characters.
 The escapes are:
+
 \begin{itemize}
 \item
   \syntax{`\\n'} for newline, equivalent to \syntax{`\\x0A'}.
@@ -9663,6 +9704,7 @@ which could again be interpolated recursively.%
 An unescaped \lit{\$} character in a string signifies
 the beginning of an interpolated expression.
 The \lit{\$} sign may be followed by either:
+
 \begin{itemize}
 \item A single identifier \id{} that does not contain the \lit{\$} character
   (but it can be a built-in identifier),
@@ -9677,12 +9719,15 @@ An interpolated string, $s$, with content
 (where any of $s_0, \ldots, s_n$ can be empty)
 is evaluated by evaluating each expression $e_i$ ($1 \le i \le n$)
 into a string $r_i$ in the order they occur in the source text, as follows:
+
 \begin{itemize}
 \item Evaluate $e_i$ to an object $o_i$.
 \item Invoke the \code{toString} method on $o_i$ with no arguments,
   and let $r_i$ be the returned object.
 \item If $r_i$ is the null object, a dynamic error occurs.
 \end{itemize}
+
+\LMHash{}%
 Finally, the result of the evaluation of $s$ is
 the concatenation of the strings $s_0$, $r_1$, \ldots, $r_n$, and $s_n$.
 
@@ -9751,7 +9796,7 @@ of the form
 \code{Symbol($e$)}, \code{\NEW\,\,Symbol($e$)},
 or \code{\CONST\,\,Symbol($e$)},
 where $e$ is an expression
-(\commentary{constant if necessary})
+\commentary{(constant if necessary)}
 that evaluates to a string $s$,
 we say that $o$ is a \NoIndex{non-private symbol based on} $s$.
 
@@ -9769,7 +9814,7 @@ If \code{$s_1$\,==\,$s_2$} then $o_1$ and $o_2$ is the same object.
 
 \LMHash{}%
 If $o_1$ and $o_2$ are non-private symbols
-(\commentary{not necessarily constant})
+\commentary{(not necessarily constant)}
 based on strings $s_1$ and $s_2$
 then $o_1$ and $o_2$ are equal according to operator \lit{==}
 if and only if \code{$s_1$ == $s_2$}
@@ -10017,8 +10062,8 @@ A \synt{forElement} can never occur in a constant collection literal.%
 %%   map or $V$ is not assignable to the value type of the map".
 %%   This is an error, \ref{maps}.
 %%
-%% - "The variable in a \synt{forElement} (\commentary{either a for-in
-%%   element or C-style}) is declared outside of the element to be final or
+%% - "The variable in a \synt{forElement} \commentary{(either a for-in
+%%   element or C-style)} is declared outside of the element to be final or
 %%   to not have a setter".
 %%   This error is specified in \ref{listLiteralInference} and
 %%   \ref{setAndMapLiteralInference}.
@@ -10049,7 +10094,7 @@ A \synt{forElement} can never occur in a constant collection literal.%
 %%   \AWAIT{} can only be used with for-in loops".
 %%   Same text again.
 %%
-%% - "The type of the condition expression (\commentary{the second clause})
+%% - "The type of the condition expression \commentary{(the second clause)}
 %%   in a C-style \FOR{} element may not be assigned to \code{bool}".
 %%   Same text again.
 
@@ -10102,7 +10147,7 @@ We use the notation
   \ensuremath{[\hspace{-0.6mm}[\ldots]\hspace{-0.6mm}]}}
 to denote an object sequence with explicitly listed elements,
 and we use `$+$' to compute the concatenation of object sequences
-(\commentary{as in $s_1 + s_2$}),
+\commentary{(as in $s_1 + s_2$)},
 which is an operation that will succeed and has no side-effects.
 Each element in the sequence is an object $o$ or a pair $o_1: o_2$.
 There is no notion of an element type for an object sequence,
@@ -10221,6 +10266,7 @@ and $\EvaluateElement{\ell} := \LiteralSequence{o_1:o_2}$.
 \Case{Spread element}
 The element $\ell$ is of the form `\code{...$e$}' or `\code{...?$e$}'.
 Evaluate $e$ to an object $o_{\metavar{spread}}$.
+
 \begin{enumerate}
 \item
   When $\ell$ is `\code{...$e$}':
@@ -10242,7 +10288,7 @@ Evaluate $e$ to an object $o_{\metavar{spread}}$.
   If \metavar{target} is a list or a set then
   let $S_{\metavar{spread}}$ be \code{Iterable<\DYNAMIC>};
   otherwise
-  (\commentary{where \metavar{target} is a map}),
+  \commentary{(where \metavar{target} is a map)},
   let $S_{\metavar{spread}}$ be \code{Map<\DYNAMIC,\,\,\DYNAMIC>}.
 
   \begin{itemize}
@@ -10446,7 +10492,7 @@ Let $e$ be the expression of $\ell$.
 If $\ell$ is `\code{...$e$}',
 let $S$ be the inferred type of $e$ in context \code{Iterable<$P$>}.
 Otherwise
-(\commentary{when $\ell$ is `\code{...?$e$}'}),
+\commentary{(when $\ell$ is `\code{...?$e$}')},
 %% TODO(eernst): Come NNBD, add a \ref{} to the specification of
 %% 'the non-nullable type of'.
 let $S$ be the non-nullable type of
@@ -10512,10 +10558,10 @@ then the variable \code{v} is in scope for $\ell$.%
 }
 
 Inference for the parts
-(\commentary{%
-such as the iterable expression of a for-in,
-or the \synt{forInitializerStatement} of a for loop%
-})
+\commentary{%
+  (such as the iterable expression of a for-in,
+  or the \synt{forInitializerStatement} of a for loop)%
+}
 is done as for the corresponding \FOR{} statement,
 including \AWAIT{} if and only if the element includes \AWAIT.
 Then, if the inferred element type of $\ell_1$ is $S$,
@@ -10633,7 +10679,7 @@ which means that \CONST{} modifiers need not be specified explicitly.%
 It is a compile-time error
 if an element of a constant list literal is not constant.
 It is a compile-time error if the type argument of a constant list literal
-(\commentary{no matter whether it is explicit or inferred})
+\commentary{(no matter whether it is explicit or inferred)}
 is not a constant type expression
 (\ref{constants}).
 
@@ -10679,6 +10725,7 @@ the result of evaluating a constant expression.%
 A run-time list literal
 \code{<$T$>[\List{\ell}{1}{m}]}
 is evaluated as follows:
+
 \begin{itemize}
 \item
   The elements \List{\ell}{1}{m} are evaluated
@@ -10779,7 +10826,8 @@ the first applicable entry in the following list:
   When $S$ implements \code{Map} but not \code{Iterable},
   $e$ is a map literal.
 \item
-  When ${\cal L} \not= \emptyset$ (\commentary{that is, $e$ has leaf elements}):
+  When ${\cal L} \not= \emptyset$
+  \commentary{(that is, $e$ has leaf elements)}:
   If $\cal L$ contains a \synt{mapElement}
   as well as an \synt{expressionElement},
   a compile-time error occurs.
@@ -11087,6 +11135,7 @@ In this case $\ell$ is of the form
 The condition $b$ is always inferred with a context type of \code{bool}.
 
 Assume that `\code{\ELSE\,\,$\ell_2$}' is not present. Then:
+
 \begin{itemize}
 \item
   If the inferred element type of $\ell_1$ is $S$,
@@ -11148,10 +11197,10 @@ then the variable \code{v} is in scope for $\ell$.%
 }
 
 Inference for the parts
-(\commentary{%
-such as the iterable expression of a for-in,
-or the \synt{forInitializerStatement} of a for loop%
-})
+\commentary{%
+  (such as the iterable expression of a for-in,
+  or the \synt{forInitializerStatement} of a for loop)%
+}
 is done as for the corresponding \FOR{} statement,
 including \AWAIT{} if and only if the element includes \AWAIT.
 
@@ -11378,7 +11427,7 @@ It is a compile-time error if two elements of a constant set literal are equal
 according to their \lit{==} operator
 (\ref{equality}).
 It is a compile-time error if the type argument of a constant set literal
-(\commentary{no matter whether it is explicit or inferred})
+\commentary{(no matter whether it is explicit or inferred)}
 is not a constant type expression
 (\ref{constants}).
 
@@ -11401,7 +11450,7 @@ evaluation of \List{\ell}{1}{m}
 (\ref{collectionLiteralElementEvaluation}).
 The elements of $o$ occur in the same order as
 the objects in said object sequence
-(\commentary{which can be observed by iteration}).
+\commentary{(which can be observed by iteration)}.
 
 \LMHash{}%
 Let \code{\CONST?\,\,<$T_1$>\{\,$\ell_{11}, \ldots, \ell_{1m_1}$\,\}}
@@ -11430,6 +11479,7 @@ the result of evaluating a constant expression.%
 \LMHash{}%
 A run-time set literal \code{<$T$>\{\List{\ell}{1}{n}\}}
 is evaluated as follows:
+
 \begin{itemize}
 \item
   The elements \List{\ell}{1}{m} are evaluated
@@ -11511,12 +11561,12 @@ and the value for a given key is retrieved from a map using operator \lit{[]}.
 The keys of a map are treated similarly to a set
 (\ref{sets}):
 When binding a key $k_{\metavar{new}}$ to a value $v$ in a map $m$
-(\commentary{as in \code{$m$[$k_{\metavar{new}}$]\,=\,$v$}}),
+\commentary{(as in \code{$m$[$k_{\metavar{new}}$]\,=\,$v$})},
 if $m$ already has a key $k_{\metavar{old}}$ such that
 \code{$k_{\metavar{old}}$ == $k_{\metavar{new}}$} evaluates to \TRUE,
 $m$ will bind $k_{\metavar{old}}$ to $v$;
 otherwise
-(\commentary{when no such key $k_{\metavar{old}}$ exists}),
+\commentary{(when no such key $k_{\metavar{old}}$ exists)},
 a binding from $k_{\metavar{new}}$ to $v$ is added to $m$.
 
 \LMHash{}%
@@ -11574,7 +11624,7 @@ It is a compile-time error if two keys of a constant map literal are equal
 according to their \lit{==} operator
 (\ref{equality}).
 It is a compile-time error if a type argument of a constant map literal
-(\commentary{no matter whether it is explicit or inferred})
+\commentary{(no matter whether it is explicit or inferred)}
 is not a constant type expression
 (\ref{constants}).
 
@@ -11625,6 +11675,7 @@ the result of evaluating a constant expression.%
 A run-time map literal
 \code{<$T_1, T_2$>\{\List{\ell}{1}{m}\}}
 is evaluated as follows:
+
 \begin{itemize}
 \item
   The elements \List{\ell}{1}{m} are evaluated
@@ -11827,6 +11878,7 @@ as follows, using the first applicable case:
 \begin{itemize}
 \item If $T$ is \code{$X$\,\&\,$S$}
   for some type variable $X$ and type $S$ then
+
   \begin{itemize}
   \item if $S$ derives a future type $U$
     then \DefEquals{\flatten{T}}{\code{\flatten{U}}}.
@@ -11851,6 +11903,7 @@ structure of $T$:
 
 \begin{itemize}
 \item If $T$ is \code{$X$\,\&\,$S$} then
+
   \begin{itemize}
   \item if $S$ derives a future type $U$,
     then \code{$T <: S$} and \code{$S <: U$}, so \code{$T <: U$}.
@@ -12497,11 +12550,11 @@ let $i$ be the value of
 Which is well-defined for the same reason.%
 }
 
-\LMHash{}%
 \begin{itemize}
 \item If during execution of the program,
   a constant object expression has already evaluated to
   an instance $j$ of class $R$ with type arguments $U_i, 1 \le i \le m$, then:
+
   \begin{itemize}
   \item For each instance variable $f$ of $i$,
     let $v_{if}$ be the value of the instance variable $f$ in $i$, and
@@ -12688,6 +12741,7 @@ When iteration over the iterable is started, by getting
 an iterator $j$ from the iterable and calling \code{moveNext()},
 execution of the body of $f$ will begin.
 When execution of the body of $f$ completes (\ref{statementCompletion}),
+
 \begin{itemize}
 \item If it returns without an object or it completes normally
   (\ref{statementCompletion}),
@@ -12773,12 +12827,14 @@ corresponding to the element type of $f$
 (\ref{functions}).
 When $s$ is listened to, execution of the body of $f$ will begin.
 When execution of the body of $f$ completes:
+
 \begin{itemize}
 \item If it completes normally or returns without an object
   (\ref{statementCompletion}),
   then if $s$ has been canceled
   then its cancellation future is completed with the null object (\ref{null}).
 \item If it throws an exception object $e$ and stack trace $t$:
+
   \begin{itemize}
   \item If $s$ has been canceled then its cancellation future is completed
     with error $e$ and stack trace $t$.
@@ -12849,7 +12905,7 @@ and let $\parameterList{P}$ be the formal parameter list
 
 \noindent
 where each parameter may be marked \COVARIANT{}
-(\commentary{not shown, but allowed}).
+\commentary{(not shown, but allowed)}.
 
 \LMHash{}%
 We say that $\argumentList{S}$ is
@@ -12875,7 +12931,7 @@ and let $\parameterList{P}$ be the formal parameter list
 
 \noindent
 where each parameter may be marked \COVARIANT{}
-(\commentary{not shown, but allowed}).
+\commentary{(not shown, but allowed)}.
 
 \LMHash{}%
 We say that $\argumentList{S}$ is
@@ -13049,7 +13105,7 @@ which is the unique function type $T_0$ such that $T$ is $T_0$ bounded.
 \LMHash{}%
 If the static type of $f$ is \DYNAMIC{} bounded or \FUNCTION{} bounded,
 no further static checks are performed on the invocation $i$
-(\commentary{apart from separate static checks on subterms like arguments}),
+\commentary{(apart from separate static checks on subterms like arguments)},
 and the static type of $i$ is \DYNAMIC.
 Otherwise, it is a compile-time error if the static type of $f$ is not
 function-type bounded.
@@ -13326,7 +13382,7 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
 \item
   Otherwise, if $D$ is
   a static method or getter
-  (\commentary{which may be implicitly induced by a static variable})
+  \commentary{(which may be implicitly induced by a static variable)}
   in the enclosing class or mixin $C$,
   $i$ is treated as
   (\ref{notation})
@@ -13507,6 +13563,7 @@ and its result is then the result of evaluating $i$:
 Otherwise $o$ has no method named \CALL.
 A new instance $im$ of the predefined class \code{Invocation} is created,
 such that:
+
 \begin{itemize}
 \item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{\#call}.
@@ -13722,7 +13779,7 @@ Evaluate $f$ to an object $o$.
 %% TODO(eernst): Come null-safety, remove the next line.
 A dynamic error occurs if $o$ is the null object.
 Let \RawFunctionType{S_0}{Y}{B'}{s}{$q$} be the dynamic type of $o$
-(\commentary{by soundness, this type is a subtype of $G$}).
+\commentary{(by soundness, this type is a subtype of $G$)}.
 $f$ then evaluates to a function object $o'$ with dynamic type
 $[t_1/Y_1, \ldots, t_s/Y_s](\FunctionTypeSimple{S_0}{$q$})$,
 where $t_j$ is the actual value of $T_j$, for $j \in 1 .. k$.
@@ -13750,7 +13807,7 @@ As a consequence, they are also equal according to operator \lit{==}.%
 
 \LMHash{}%
 Let $g_1$ and $g_2$ be two expressions
-(\commentary{which may or may not be constant})
+\commentary{(which may or may not be constant)}
 that are subject to generic function instantiation.
 Assume that $g_1$ and $g_2$ without a context type evaluate to $o_1$
 respectively $o_2$ such that \code{$o_1$ == $o_2$)} is true.
@@ -14117,7 +14174,7 @@ The meaning of each occurrence of $r'$ is determined as follows:
 When the receiver $r$ is an extension application
 (\ref{explicitExtensionInvocations})
 of the form \code{$E$<\List{T}{1}{k}>($e_r$)}
-(\commentary{where $k = 0$ means that the type argument list is absent}):
+\commentary{(where $k = 0$ means that the type argument list is absent)}:
 Let $v_r$ be a fresh variable bound to the value of $e_r$
 and with the same static type as $e_r$,
 then $r'$ is \code{$E$<\List{T}{1}{k}>($v_r$)} when it occurs
@@ -14291,7 +14348,7 @@ instance member named $m$, unless either:
 \item
   $T$ is \DYNAMIC{} bounded;
   in this case no further static checks are performed on $i$
-  (\commentary{apart from separate static checks on subterms like arguments})
+  \commentary{(apart from separate static checks on subterms like arguments)}
   and the static type of $i$ is \DYNAMIC.
   Or
 \item
@@ -14299,7 +14356,7 @@ instance member named $m$, unless either:
   (\ref{bindingActualsToFormals})
   and $m$ is \CALL;
   in this case no further static checks are performed on $i$
-  (\commentary{apart from separate static checks on subterms like arguments})
+  \commentary{(apart from separate static checks on subterms like arguments)}
   and the static type of $i$ is \DYNAMIC.
 \rationale{%
 This means that for invocations of an instance method named \CALL,
@@ -14317,9 +14374,9 @@ some potential overriding declarations.%
 If $T$ did not have an accessible member named $m$
 the static type of $i$ is \DYNAMIC,
 and no further static checks are performed on $i$
-(\commentary{%
-except that subexpressions of $i$ are subject to their own static analysis%
-}).
+\commentary{%
+  (except that subexpressions of $i$ are subject to their own static analysis)%
+}.
 
 \LMHash{}%
 If $i$ is a dynamic \code{Object} member invocation
@@ -14346,9 +14403,9 @@ and if the method lookup succeeded then let $F$ be the static type of $d$.
 Otherwise, let $d$ be the result of getter lookup
 for $m$ in $T$ with respect to $L$,
 and let $F$ be the return type of $d$.
-(\commentary{%
+\commentary{%
 Since \code{$T$.$m$} exists we cannot have a failure in both lookups.%
-})
+}
 If the getter return type $F$ is an interface type
 that has a method named \CALL,
 $i$ is treated as
@@ -14376,6 +14433,7 @@ Let $i$ be an invocation of the form \code{$e$.remainder($e_2$)}
 and let $C$ be the context type of $i$.
 The context type of $e_2$ is then determined as follows:
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}, then:
+
 \begin{itemize}
   \item{} If \SubtypeNE{\code{int}}{C} and not \SubtypeNE{\code{num}}{C},
       and \SubtypeNE{T}{\code{int}}
@@ -14385,10 +14443,13 @@ If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}, then:
      then the context type of $e_2$ is \code{double}.
   \item{} Otherwise the context type of $e_2$ is \code{num}.
 \end{itemize}
+
+\LMHash{}%
 Let further $S$ be the static type of $e_2$.
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}
 and $S$ is assignable to \code{num},
 then the static type of $i$ is determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{T}{\code{double}}
     then the static type of $i$ is $T$.
@@ -14406,6 +14467,7 @@ Let $i$ be an invocation of the form \code{$e$.clamp($e_2$,\,\,$e_3$)},
 where \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}},
 and let $C$ be the context type of $i$.
 The context type of $e_2$ and $e_3$ is then determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{T}{\code{int}},
     \SubtypeNE{\code{int}}{S} and not \SubtypeNE{\code{num}}{S},
@@ -14415,8 +14477,11 @@ The context type of $e_2$ and $e_3$ is then determined as follows:
     then the context type of $e_2$ and $e_3$ is \code{double}.
   \item{} Otherwise the context type of $e_2$ and $e_3$ is \code{num}.
 \end{itemize}
+
+\LMHash{}%
 Let further $T_2$ be the static type of $e_2$ and $T_3$ be the static type
 of $e_3$.
+
 \begin{itemize}
   \item{} If all of $T$, $T_2$ and $T_3$ are subtypes of \code{int}, but
     not subtypes of \code{Never}, then the static type of $i$ is \code{int}.
@@ -14499,6 +14564,7 @@ Then the value of $i$ is the value of
 If getter lookup has also failed,
 then a new instance $im$ of the predefined class \code{Invocation} is created,
 such that:
+
 \begin{itemize}
 \item \code{$im$.isMethod} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
@@ -14686,7 +14752,8 @@ and let $F$ be the return type of $D$.
 If both lookups failed, a compile-time error occurs.
 
 \LMHash{}%
-Otherwise (\commentary{when one of the lookups succeeded}),
+Otherwise
+\commentary{(when one of the lookups succeeded)},
 the static analysis of $i$ is performed
 as specified in Section~\ref{bindingActualsToFormals},
 considering the function to have static type $F$,
@@ -14732,7 +14799,8 @@ the method $m$ with respect to $L$ in $o$ starting with \SuperClass{}
 If the lookup succeeded,
 let $f$ denote the function associated with $D$.
 %
-Otherwise (\commentary{when method lookup failed}),
+Otherwise
+\commentary{(when method lookup failed)},
 let the declaration $D$ be the result of looking up
 the getter $m$ with respect to $L$ in $o$ starting with \SuperClass{}
 (\ref{lookup}).
@@ -14778,6 +14846,7 @@ much like the methods that spawn isolates.%
 \IndexCustom{Property extraction}{property extraction}
 allows for a member to be accessed as a property rather than a function.
 A property extraction can be either:
+
 \begin{enumerate}
 \item An instance method closurization,
   which converts a method into a function object
@@ -15006,6 +15075,7 @@ The value of $i$ is the result returned by the call to the getter function.
 If the getter lookup has failed,
 then a new instance $im$ of the predefined class \code{Invocation} is created,
 such that:
+
 \begin{itemize}
 \item \code{$im$.isGetter} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{m}.
@@ -15110,7 +15180,9 @@ or a super closurization (\ref{superClosurization}).
 Let $o$ be an object, and let $u$ be a fresh final variable bound to $o$.
 The \Index{closurization of method} $f$ on object $o$
 is defined to be equivalent
-(\commentary{except for equality, as noted below}) to:
+\commentary{(except for equality, as noted below)}
+to:
+
 \begin{itemize}
 %\item $(a) \{\RETURN{}$ $u$ $op$ $a;$\} if $f$ is named $op$
 %  and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$,
@@ -15264,9 +15336,9 @@ A \Index{super closurization}
 is a closurization of a method with respect to a class, as defined next.
 The \Index{closurization of a method} $f$ with respect to the class $S$
 is defined to be equivalent
-(\commentary{except for equality, as noted below}) to:
+\commentary{(except for equality, as noted below)}
+to:
 
-\LMHash{}%
 \begin{itemize}
 %\item $(a) \{\RETURN{}$ \SUPER{} $op$ $a;$\} if $f$ is named $op$
 %   and $op$ is one of \code{<, >, <=, >=, ==, -, +, /, \gtilde/, *, \%, $|$,
@@ -15453,7 +15525,7 @@ and let $G$ be the static type of $i$.
 Consider the situation where $G$ is a function type of the form
 \RawFunctionType{T_0}{X}{B}{s}{\metavar{parameters}}
 with $s > 0$
-(\commentary{that is, $G$ is a generic function type}),
+\commentary{(that is, $G$ is a generic function type)},
 and the context type is a non-generic function type $F$.
 In this situation a compile-time error occurs
 (\ref{variables},
@@ -15658,14 +15730,14 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
 \begin{itemize}
 \item
   When the lexical lookup yields a declaration $D$ of a local variable $v$
-  (\commentary{which may be a formal parameter}),
+  \commentary{(which may be a formal parameter)},
   a compile-time error occurs if $v$ is final
   or if the static type of $e$ is not assignable to the declared type of $v$.
 \item
   When the lexical lookup yields a declaration $D$
   which is not a local variable,
   it is guaranteed to be a setter
-  (\commentary{that may be explicit or induced implicitly by a variable})
+  \commentary{(that may be explicit or induced implicitly by a variable)}
   because other declarations do not have a name
   of the form \code{\id=}.
 
@@ -15705,7 +15777,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
 
 \LMHash{}%
 In all cases
-(\commentary{whether or not \id{} is a local variable, etc.}),
+\commentary{(whether or not \id{} is a local variable, etc.)},
 the static type of $a$ is the static type of $e$.
 
 \LMHash{}%
@@ -15717,7 +15789,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
 \item
   In the case where the lexical lookup yields
   a declaration $D$ of a local variable $v$,
-  (\commentary{which may be a formal parameter}),
+  \commentary{(which may be a formal parameter)},
   the expression $e$ is evaluated to an object $o$,
   and the variable $v$ is bound to $o$.
   Then $a$ evaluates to the object $o$
@@ -15727,7 +15799,7 @@ Perform a lexical lookup of \code{\id=} from the location of \id.
   from the location of \id{}
   yields a declaration $D$,
   $D$ is necessarily a top level setter $s$
-  (\commentary{possibly implicitly induced by a variable}).
+  \commentary{(possibly implicitly induced by a variable)}.
 
   The expression $e$ is evaluated to an object $o$.
   Then the setter $s$ is invoked
@@ -15759,14 +15831,13 @@ where $p$ is an import prefix and \id{} is an identifier.
 \LMHash{}%
 A compile-time error occurs,
 unless $p$ has a member which is a setter $s$ named \code{id=}
-(\commentary{which may be implicitly induced by a variable declaration})
+\commentary{(which may be implicitly induced by a variable declaration)}
 such that the static type of $e$
 is assignable to the parameter type of $s$.
 
 \LMHash{}%
 The static type of $a$ is the static type of $e$.
 
-\LMHash{}%
 \LMHash{}%
 Evaluation of an assignment $a$ of the form \code{$p$.\id{} = $e$}
 proceeds as follows:
@@ -15823,6 +15894,7 @@ its formal parameter bound to $o_2$ and \THIS{} bound to $o_1$.
 \LMHash{}%
 If the setter lookup has failed, then a new instance $im$ of
 the predefined class \code{Invocation} is created, such that:
+
 \begin{itemize}
 \item \code{$im$.isSetter} evaluates to \TRUE.
 \item \code{$im$.memberName} evaluates to the symbol \code{v=}.
@@ -16192,6 +16264,7 @@ Otherwise the value of $c$ is the result of evaluating the expression $e_3$.
 If $e_1$ shows that a local variable $v$ has type $T$,
 then the type of $v$ is known to be $T$ in $e_2$,
 unless any of the following are true:
+
 \begin{itemize}
 \item $v$ is potentially mutated in $e_2$,
 \item $v$ is potentially mutated within a function other
@@ -16279,6 +16352,7 @@ Otherwise the result of evaluating $b$ is $o_2$.
 A logical boolean expression $b$ of the form $e_1 \&\& e_2$
 shows that a local variable $v$ has type $T$
 if both of the following conditions hold:
+
 \begin{itemize}
 \item Either $e_1$ shows that $v$ has type $T$
   or $e_2$ shows that $v$ has type $T$.
@@ -16290,6 +16364,7 @@ if both of the following conditions hold:
 If $e_1$ shows that a local variable $v$ has type $T$,
 then the type of $v$ is known to be $T$ in $e_2$,
 unless any of the following are true:
+
 \begin{itemize}
 %% The first item here is unnecessary for soundness,
 %% and is retained mainly for backwards compatibility.
@@ -16339,6 +16414,7 @@ or an expression $e_1$, with argument $e_2$.
 \LMHash{}%
 Evaluation of an equality expression $ee$ of the form \code{$e_1$ == $e_2$}
 proceeds as follows:
+
 \begin{itemize}
 \item The expression $e_1$ is evaluated to an object $o_1$.
 \item The expression $e_2$ is evaluated to an object $o_2$.
@@ -16354,6 +16430,7 @@ Otherwise,
 Evaluation of an equality expression $ee$ of the form
 \code{\SUPER{} == $e$}
 proceeds as follows:
+
 \begin{itemize}
 \item The expression $e$ is evaluated to an object $o$.
 \item If either \THIS{} or $o$ is the null object (\ref{null}),
@@ -16549,6 +16626,7 @@ and let $C$ be the context type of $e$.
 
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}, then
 the context type of $e_2$ is determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{\code{int}}{C} and not \SubtypeNE{\code{num}}{C},
       and \SubtypeNE{T}{\code{int}}
@@ -16558,10 +16636,13 @@ the context type of $e_2$ is determined as follows:
      then the context type of $e_2$ is \code{double}.
   \item{} Otherwise the context type of $e_2$ is \code{num}.
 \end{itemize}
+
+\LMHash{}%
 Let further $S$ be the static type of $e_2$.
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}
 and $S$ is assignable to \code{num},
 then the static type of $e$ is determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{T}{\code{double}}
     then the static type of $e$ is $T$.
@@ -16619,6 +16700,7 @@ and let $C$ be the context type of $e$.
 
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}, then
 the context type of $e_2$ is determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{\code{int}}{C} and not \SubtypeNE{\code{num}}{C},
       and \SubtypeNE{T}{\code{int}}
@@ -16628,10 +16710,13 @@ the context type of $e_2$ is determined as follows:
      then the context type of $e_2$ is \code{double}.
   \item{} Otherwise the context type of $e_2$ is \code{num}.
 \end{itemize}
+
+\LMHash{}%
 Let further $S$ be the static type of $e_2$.
 If \SubtypeNE{T}{\code{num}} and not \SubtypeNE{T}{\code{Never}}
 and $S$ is assignable to \code{num},
 then the static type of $e$ is determined as follows:
+
 \begin{itemize}
   \item{} If \SubtypeNE{T}{\code{double}}
     then the static type of $e$ is $T$.
@@ -16917,7 +17002,7 @@ Consider a postfix expression $e$ of the form \code{$C$.$v$\,\op},
 where $C$ is a type literal and \op{} is either \lit{++} or \lit{-{}-}.
 A compile-time error occurs unless \code{$C$.$v$} denotes a static getter
 and there is an associated static setter \code{$v$=}
-(\commentary{possibly implicitly induced by a static variable}).
+\commentary{(possibly implicitly induced by a static variable)}.
 Let $T$ be the return type of said getter.
 A compile-time error occurs if $T$ is not \DYNAMIC{}
 and $T$ does not have an operator \lit{+} (when \op{} is \lit{++})
@@ -16945,7 +17030,7 @@ where \op{} is either \lit{++} or \lit{-{}-}.
 Let $S$ be the static type of $e_1$.
 A compile-time error occurs unless $S$ has
 a getter named $v$ and a setter named \code{$v$=}
-(\commentary{possibly implicitly induced by an instance variable}).
+\commentary{(possibly implicitly induced by an instance variable)}.
 Let $T$ be the return type of said getter.
 A compile-time error occurs if $T$ is not \DYNAMIC{}
 and $T$ does not have an operator \lit{+} (when \op{} is \lit{++})
@@ -17074,16 +17159,17 @@ specifies the static analysis and dynamic semantics of
 various forms of assignment.
 Each of those cases is applicable when the specified subterms satisfy
 the given side conditions
-(\commentary{%
-e.g., one case of the form \code{$e_1$.$v$\,\,??=\,\,$e_2$} requires $e_1$
-to be an expression, whereas \code{$C$.$v$\,\,??=\,\,$e$}
-requires $C$ to be a type literal%
-}).
+\commentary{%
+  (e.g., one case of the form \code{$e_1$.$v$\,\,??=\,\,$e_2$} requires $e_1$
+  to be an expression, whereas \code{$C$.$v$\,\,??=\,\,$e$}
+  requires $C$ to be a type literal)%
+}.
 The cases requiring subterms to be expressions are considered least specific,
 that is, they are only used if no other case matches
-(\commentary{%
-so the case containing $C$ is used if the corresponding term is a type literal%
-}).
+\commentary{%
+  (so the case containing $C$ is used
+  if the corresponding term is a type literal)%
+}.
 
 \commentary{%
 Syntactically, these expressions are not derived from \synt{expression},
@@ -17233,7 +17319,7 @@ In this case, at least one declaration with basename \id{}
 is in scope at the location $\ell$.
 It is a compile-time error if the name of $D$ is not $n$,
 unless $D$ is an instance member or a local variable
-(\commentary{which may be a formal parameter}).
+\commentary{(which may be a formal parameter)}.
 
 \commentary{%
 That is, it is an error if we look for a setter and find a getter,
@@ -17330,7 +17416,7 @@ proceed as described in the first applicable case from the following list:
   % - a library variable, getter, or setter;
   % - a static method/getter/setter of a class, mixin, enum, or extension;
   % - an instance method of an extension;
-  % - a local variable (\commentary{which may be a formal parameter});
+  % - a local variable (which may be a formal parameter);
   % - a local function.
   Otherwise, the lexical lookup yields $D$.
 \end{itemize}
@@ -17485,7 +17571,7 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
   the static type of $e$ is \code{Type}.
 \item
   If $D$ is the declaration of a library getter
-  (\commentary{which may be implicitly induced by a library variable}),
+  \commentary{(which may be implicitly induced by a library variable)},
   the static type of $e$ is the static type of the
   library getter invocation \id{}
   (\ref{topLevelGetterInvocation}).
@@ -17500,13 +17586,13 @@ Let $D$ be the declaration yielded by the lexical lookup of \id.
   }
 \item
   If $D$ is the declaration of a static getter
-  (\commentary{which may be implicitly induced by a static variable})
+  \commentary{(which may be implicitly induced by a static variable)}
   and $D$ occurs in the class $C$,
   the static type of $e$ is the return type of the getter
   \code{$C$.\id}.
 \item
   If $D$ is a local variable declaration
-  (\commentary{which can be a formal parameter})
+  \commentary{(which can be a formal parameter)}
   the static type of $e$ is the type of the variable $v$ declared by $D$,
   unless $v$ is known to have some type $T$,
   where $T$ is a subtype of any other type $S$
@@ -17593,7 +17679,7 @@ The evaluation of $e$ proceeds as follows:
   the current binding of \THIS.
 \item
   If $D$ is the declaration of a library getter
-  (\commentary{which may be implicitly induced by a library variable}),
+  \commentary{(which may be implicitly induced by a library variable)},
   evaluation of $e$ is equivalent to evaluation of an invocation of
   the library getter \id{}
   (\ref{topLevelGetterInvocation}).
@@ -17623,7 +17709,7 @@ The evaluation of $e$ proceeds as follows:
   (\ref{extensionMethodClosurization}).
 \item
   If $D$ is a local variable $v$
-  (\commentary{which can be a formal parameter})
+  \commentary{(which can be a formal parameter)}
   then $e$ evaluates to the current binding of $v$.
 \end{itemize}
 
@@ -17645,7 +17731,7 @@ This situation cannot arise,
 because it is a compile-time error
 to evaluate an import prefix as an expression,
 and no constructs involving an import prefix
-(\commentary{e.g., such as a property extraction \code{$p$.$m$}})
+\commentary{(e.g., such as a property extraction \code{$p$.$m$})}
 will evaluate the import prefix.
 \EndCase
 
@@ -17697,7 +17783,8 @@ The is-expression \code{$e$ \IS{}! $T$} is equivalent to
 \code{!($e$ \IS{} $T$)}.
 
 \LMHash{}%
-Let $v$ be a local variable (\commentary{which can be a formal parameter}).
+Let $v$ be a local variable
+\commentary{(which can be a formal parameter)}.
 An is-expression of the form \code{$v$ \IS{} $T$}
 shows that $v$ has type $T$
 if $T$ is a subtype of the type of the expression $v$.
@@ -18151,7 +18238,7 @@ then $v$ is bound to $o$.
 If an object $o$ is assigned to $v$
 in a situation where $v$ is bound to an object $o'$
 then a dynamic error occurs
-(\commentary{it does not matter whether $o$ is the same object as $o'$}).
+\commentary{(it does not matter whether $o$ is the same object as $o'$)}.
 
 
 \subsection{Local Function Declaration}
@@ -18298,6 +18385,7 @@ may not be assigned to \code{bool}.
 If $b$ shows that a local variable $v$ has type $T$,
 then the type of $v$ is known to be $T$ in $s_1$,
 unless any of the following are true
+
 \begin{itemize}
 \item $v$ is potentially mutated in $s_1$,
 \item $v$ is potentially mutated within a function other
@@ -18348,6 +18436,7 @@ If $c$ is empty then let $c'$ be \TRUE{} otherwise let $c'$ be $c$.
 \LMHash{}%
 First the variable declaration statement \VAR{} $v = e_0$ is executed.
 Then:
+
 \begin{enumerate}
 \item
   \label{beginFor}
@@ -18690,6 +18779,7 @@ It is a compile-time error unless each expression
 $e_j, j \in 1 .. n$ is constant.
 It is a compile-time error if the value of the expressions
 $e_j, j \in 1 .. n$ are not either:
+
 \begin{itemize}
 \item instances of the same class $C$, for all $j \in 1 .. n$, or
 \item instances of a class that implements \code{int},
@@ -18873,6 +18963,7 @@ and such code can always be refactored.%
 
 \LMHash{}%
 It is a static warning if all of the following conditions hold:
+
 \begin{itemize}
 \item The switch statement does not have a default clause.
 \item The static type of $e$ is an enumerated
@@ -19013,6 +19104,7 @@ in a structured way.
 
 \LMHash{}%
 A try statement consists of a block statement, followed by at least one of:
+
 \begin{enumerate}
 \item
   A set of \ON{}-\CATCH{} clauses, each of which specifies
@@ -19347,6 +19439,7 @@ Then the return statement returns the object $r$
 
 \LMHash{}%
 Let $U$ be the run-time type of $r$.
+
 \begin{itemize}
 \item
   If the body of $f$ is marked \ASYNC{} (\ref{functions})
@@ -19552,6 +19645,7 @@ The only requirement is that consumers are not blocked indefinitely.%
 
 \LMHash{}%
 If the enclosing function $m$ is marked \code{\SYNC*} (\ref{functions}) then:
+
 \begin{itemize}
 \item
   Execution of the function $m$ immediately enclosing $s$ is suspended
@@ -19602,6 +19696,7 @@ First, the expression $e$ is evaluated to an object $o$.
 If the immediately enclosing function $m$ is marked \code{\SYNC*}
 (\ref{functions}),
 then:
+
 \begin{enumerate}
 \item
   % This error can occur due to implicit casts.
@@ -19637,6 +19732,7 @@ The current call to \code{moveNext()} returns \TRUE.
 
 \LMHash{}%
 If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
+
 \begin{itemize}
 \item
   % This error can occur due to implicit casts.
@@ -19649,6 +19745,7 @@ If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
 \item
   The $o$ stream is listened to, creating a subscription $s$,
   and for each event $x$, or error $e$ with stack trace $t$, of $s$:
+
   \begin{itemize}
   \item
     If the stream $u$ associated with $m$ has been paused,
@@ -20062,10 +20159,10 @@ among names imported with the same prefix.
 When $I_i$ has prefix $p_i$,
 let \List{I'}{1}{k} be the sublist of \List{I}{1}{m} that have prefix $p_i$,
 and let \List{L'}{1}{k} be the corresponding libraries
-(\commentary{which is a sublist of \List{L}{1}{m}}).
+\commentary{(which is a sublist of \List{L}{1}{m})}.
 Let \NamespaceName{\metavar{exported},j}, $j \in 1 .. k$,
 be the namespace provided by the import directive $I'_j$
-(\commentary{which takes \SHOW{} and \HIDE{} into account}).
+\commentary{(which takes \SHOW{} and \HIDE{} into account)}.
 
 \LMHash{}%
 When $I_i$ is a non-deferred import:
@@ -20077,7 +20174,7 @@ conflict merging to
 \LMHash{}%
 When $I_i$ is a deferred import:
 In this case $k$ is 1
-(\commentary{otherwise a compile-time error would occur}),
+\commentary{(otherwise a compile-time error would occur)},
 and \NamespaceName{\metavar{prefix},i} is the namespace obtained by
 adding a binding of the name \code{loadLibrary}
 to an implicitly induced declaration of a function with signature
@@ -20127,12 +20224,12 @@ with the following members:
 An extension declaration $E$ is a member of $\cal E$
 if there is an $i \in 1 .. m$ such that
 $E$ is in the namespace provided by the import directive $I_i$
-(\commentary{%
-note that this takes \SHOW{} and \HIDE{} into account,
-and it includes extensions imported both without and with a prefix%
-}),
+\commentary{%
+  (note that this takes \SHOW{} and \HIDE{} into account,
+  and it includes extensions imported both without and with a prefix)%
+},
 and $E$ is not declared in the current library
-(\commentary{which could be the case if it imports itself}).
+\commentary{(which could be the case if it imports itself)}.
 Let \NamespaceName{\metavar{extensions}} be a namespace that
 for each extension $E$ in $\cal E$ maps a fresh name to $E$.
 
@@ -20286,6 +20383,7 @@ does not interfere with other imports.%
 
 \LMHash{}%
 The effect of a repeated invocation of \code{$p$.loadLibrary()} is as follows:
+
 \begin{itemize}
 \item
   If another invocation of \code{$p$.loadLibrary()} has already succeeded,
@@ -20293,6 +20391,7 @@ The effect of a repeated invocation of \code{$p$.loadLibrary()} is as follows:
   Otherwise,
 \item
   If another invocation of \code{$p$.loadLibrary()} has failed:
+
   \begin{itemize}
   \item
     If the failure is due to a compilation error,
@@ -20585,7 +20684,7 @@ that this name is conflicted.
 
 \LMHash{}%
 Let \List{\metavar{NS}}{1}{m} be a list of namespaces
-(\commentary{the list may or may not contain duplicates}).
+\commentary{(the list may or may not contain duplicates)}.
 The
 \IndexCustom{conflict merging}{namespace!conflict merging}
 of \List{\metavar{NS}}{1}{m} is then
@@ -20721,6 +20820,7 @@ two part directives with the same URI.
 \LMHash{}%
 We say that a library $L_1$ is \Index{reachable from} a library $L$ if
 any of the following is true (\ref{imports}, \ref{exports}):
+
 \begin{itemize}
 \item $L$ and $L_1$ is the same library.
 \item $L$ imports or exports a library $L_2$, and $L_1$ is reachable from $L_2$.
@@ -20760,12 +20860,15 @@ in the exported namespace of $S$ is invoked (\ref{functionInvocation})
 as follows:
 If \code{main} can be called with with two positional arguments,
 it is invoked with the following two actual arguments:
+
 \begin{enumerate}
 \item An object whose run-time type implements \code{List<String>}.
 \item An object specified when the current isolate $i$ was created,
 for example through the invocation of \code{Isolate.spawnUri} that spawned $i$,
 or the null object (\ref{null}) if no such object was supplied.
 \end{enumerate}
+
+\LMHash{}%
 If \code{main} cannot be called with two positional arguments,
 but it can be called with one positional argument,
 it is invoked with an object whose run-time type implements \code{List<String>}
@@ -20785,13 +20888,15 @@ A Dart program will typically be executed by executing a script.%
 \LMHash{}%
 It is a compile-time error if a library's export scope contains a declaration
 named \code{main}, and the library is not a script.
-\commentary{This restriction ensures that all top-level \code{main} declarations
+\commentary{%
+This restriction ensures that all top-level \code{main} declarations
 introduce a script main-function, so there cannot be a top-level getter or field
 named \code{main}, nor can it be a function that requires more than two
 arguments. The restriction allows tools to fail early on invalid \code{main}
 methods, without needing to know whether a library will be used as the entry
 point of a Dart program. It is possible that this restriction will be removed
-in the future.}
+in the future.%
+}
 
 
 \subsection{URIs}
@@ -20819,6 +20924,7 @@ contains a string interpolation.
 A \Index{configurable URI} $c$ of the form
 \code{\metavar{uri} $\metavar{configurationUri}_1$ \ldots $\metavar{configurationUri}_n$}
 \IndexCustom{specifies a URI}{specify a URI} as follows:
+
 \begin{itemize}
 \item
   Let $u$ be \metavar{uri}.
@@ -20826,6 +20932,7 @@ A \Index{configurable URI} $c$ of the form
   For each of the following configuration URIs of the form
   \code{\IF{} ($\metavar{test}_i$) $\metavar{uri}_i$},
   in source order, do the following.
+
   \begin{itemize}
   \item
     If $\metavar{test}_i$ is \code{\metavar{ids}}
@@ -21028,6 +21135,7 @@ successful compilation and execution of Dart code.%
 
 \LMHash{}%
 A type $T$ is \Index{malformed} if{}f:
+
 \begin{itemize}
 \item
   $T$ has the form \id{} or the form \code{\metavar{prefix}.\id},
@@ -21089,7 +21197,7 @@ under the assumption that all deferred libraries have successfully been loaded.
 \LMHash{}%
 The static type system ascribes a static type to every expression.
 In some cases, the type of a local variable
-(\commentary{which can be a formal parameter})
+\commentary{(which can be a formal parameter)}
 may be promoted from the declared type, based on control flow.
 
 \LMHash{}%
@@ -21241,10 +21349,10 @@ Consider a type alias declaration $D$ of the form
 declared in a library $L$.
 The effect of $D$ is to introduce \id{} into the library scope of $L$.
 When $s = 0$
-(\commentary{where the type alias is non-generic})
+\commentary{(where the type alias is non-generic)}
 \id{} is bound to $T$.
 When $s > 0$
-(\commentary{where the type alias is generic})
+\commentary{(where the type alias is generic)}
 \id{} is bound to a mapping from a type argument list
 \List{U}{1}{s}
 to the type
@@ -21413,7 +21521,7 @@ and we are just replacing the type alias name by its body.%
 If $U$ is a type we may repeatedly replace each subterm of $U$
 which is a parameterized type applying a type alias to some type arguments
 by its alias expansion in one step
-(\commentary{including the non-generic case where there are no type arguments}).
+\commentary{(including the non-generic case where there are no type arguments)}.
 When no further steps are possible we say that the resulting type is the
 \IndexCustom{transitive alias expansion}{%
   type alias!transitive alias expansion}
@@ -21444,7 +21552,7 @@ a type of the form $C$ or \code{$q$.$C$},
 optionally followed by \synt{typeArguments},
 where $q$ is an identifier denoting an import prefix,
 and $C$ respectively \code{$q$.$C$} denotes a class or mixin
-(\commentary{in particular, $C$ can not be a type variable}).
+\commentary{(in particular, $C$ can not be a type variable)}.
 Assume that $U$ occurs in an expression $e$ of the form
 `\code{$U$.\id\;\metavar{args}}'
 where \metavar{args} is derived from \syntax{<argumentPart>?},
@@ -21855,7 +21963,7 @@ bounds of type variables.
 $\Delta$ is a partial function that maps type variables to types.
 At a given location where the type variables in scope are
 \TypeParametersStd{}
-(\commentary{as declared by enclosing classes and/or functions}),
+\commentary{(as declared by enclosing classes and/or functions)},
 we define the environment as follows:
 $\Delta = \{\,X_1 \mapsto B_1,\ \ldots\ X_s \mapsto B_s\,\}$.
 \commentary{%
@@ -22237,6 +22345,7 @@ may support more strict static checks as an option.%
 \LMHash{}%
 \IndexCustom{Function types}{type!function}
 come in two variants:
+
 \begin{enumerate}
 \item
   The types of functions that only have positional parameters.
@@ -22307,9 +22416,12 @@ If a mixin application mixes \FUNCTION{} onto a superclass, it follows the
 normal rules for mixin-application, but since the result of that mixin
 application is equivalent to a class with \code{implements Function}, and
 that clause has no effect, the resulting class also does not
-implement \FUNCTION. \commentary{The \FUNCTION{} class declares no
-concrete instance members, so the mixin application creates a sub-class
-of the superclass with no new members and no new interfaces.}
+implement \FUNCTION.
+\commentary{%
+The \FUNCTION{} class declares no concrete instance members,
+so the mixin application creates a sub-class of
+the superclass with no new members and no new interfaces.%
+}
 
 \rationale{%
 Since using \FUNCTION{} in these ways has no effect, it would be
@@ -22404,7 +22516,7 @@ whenever doing so is sound.
   where the static type of $d$ is \DYNAMIC,
   and \id{} is the name of a method declared in \code{Object}
   whose method signature has type $F$
-  (\commentary{which is a function type}).
+  \commentary{(which is a function type)}.
   The static type of $e$ is then $F$.
   \commentary{%
     For instance, \code{$d$.toString} has type \code{String \FUNCTION()}.%
@@ -22522,6 +22634,7 @@ which is regular-bounded for all $T$.
 The subtype relations involving \code{FutureOr} are specified elsewhere
 (\ref{subtypeRules}).
 Note, however, that they entail certain useful properties:
+
 \begin{itemize}
 \item[$\bullet$]
   $T <: \code{FutureOr<$T$>}$.
@@ -23081,6 +23194,7 @@ Let $F$ and $G$ be function types.
 If $F$ and $G$ differ in their number of required parameters,
 then the least upper bound of $F$ and $G$ is \FUNCTION.
 Otherwise:
+
 \begin{itemize}
 \item If
 
@@ -23466,6 +23580,7 @@ and the corresponding JavaScript operations,
 except for bit operations as explained below.
 
 This introduces a number of differences:
+
 \begin{itemize}
 \item[$\bullet$]
   Valid values of JavaScript \code{int} are any IEEE-754 64-bit
