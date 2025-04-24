@@ -276,9 +276,6 @@ extension on List<String?> {
           // Gather lines after the nested itemized list, if any. Note
           /// that `itemLine` does not contain `\item`, but it's treated
           /// as if it did contain `\item`.
-          if (gatherIndex == 2075) {
-            print('>>> gatherIndex: $gatherIndex'); //DEBUG
-          }
           itemIndex = _findText(gatherIndex + 1);
           itemLine = this[itemIndex]; // Restore the `itemLine` invariant.
           if (itemLine!.startsWith(r"\end{itemize}")) {
