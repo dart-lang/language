@@ -281,10 +281,17 @@ extension on List<String?> {
           if (itemLine!.startsWith(r"\end{itemize}")) {
             // No extra lines, at the end of the outermost itemized list: Done.
             return itemIndex + 1;
+          } else if (itemLine.trimLeft().startsWith(r"\item")) {
+            // No extra lines, starting a new item.
+            buffer = StringBuffer(itemLine);
+            gatherIndex = itemIndex;
+            continue;
+          } else {
+            // Some extra text found, gather it.
+            buffer = StringBuffer(itemLine); // Not starting with `\item`.
+            gatherIndex = itemIndex + 1;
+            continue;
           }
-          // Some extra text found, gather it.
-          gatherIndex = itemIndex + 1;
-          continue;
         }
       }
       // `gatherLine` is text belonging to the current `\item`.
