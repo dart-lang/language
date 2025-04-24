@@ -525,8 +525,8 @@ At this time, non-normative text includes:
 \item[Rationale]
   Discussion of the motivation for language design decisions appears in italics.
 \rationale{%
-Distinguishing normative from non-normative helps clarify
-what part of the text is binding and what part is merely expository.%
+  Distinguishing normative from non-normative helps clarify
+  what part of the text is binding and what part is merely expository.%
 }
 \item[Commentary]
   Comments such as
@@ -540,8 +540,8 @@ what part of the text is binding and what part is merely expository.%
   The difference between commentary and rationale can be subtle.%
 }
 \rationale{%
-Commentary is more general than rationale,
-and may include illustrative examples or clarifications.%
+  Commentary is more general than rationale,
+  and may include illustrative examples or clarifications.%
 }
 \end{itemize}
 
@@ -672,10 +672,11 @@ Such specifications should be understood as a shorthand for:
 \end{itemize}
 
 \rationale{%
-This circumlocution is required because
-{\rm\code{$x$.\metavar{op}($y$)}}, where op is an operator, is not legal syntax.
-However, it is painfully verbose, and we prefer to state this rule once here,
-and use a concise and clear notation across the specification.%
+  This circumlocution is required because
+  {\rm\code{$x$.\metavar{op}($y$)}}, where op is an operator,
+  is not legal syntax.
+  However, it is painfully verbose, and we prefer to state this rule once here,
+  and use a concise and clear notation across the specification.%
 }
 
 \LMHash{}%
@@ -739,7 +740,8 @@ Moreover, if $s$ has no compile-time errors then
 the behavior of $s$ at run time is exactly the behavior of $s'$.
 
 \rationale{%
-Error \emph{messages}, if any, should always refer to the original syntax $s$.%
+  Error \emph{messages}, if any,
+  should always refer to the original syntax $s$.%
 }
 
 \commentary{%
@@ -750,23 +752,23 @@ Error \emph{messages}, if any, should always refer to the original syntax $s$.%
 }
 
 \rationale{%
-The notion of being `treated as' is similar to the notion of syntactic sugar:
-``$s$ is treated as $s'$''
-could as well have been worded
-``$s$ is desugared into $s'$''.
-Of course, it should then actually be called ``semantic sugar'',
-because the applicability of the transformation and the construction of $s'$
-may rely on information from static analysis.
+  The notion of being `treated as' is similar to the notion of syntactic sugar:
+  ``$s$ is treated as $s'$''
+  could as well have been worded
+  ``$s$ is desugared into $s'$''.
+  Of course, it should then actually be called ``semantic sugar'',
+  because the applicability of the transformation and the construction of $s'$
+  may rely on information from static analysis.
 
-The point is that we only specify the static analysis and dynamic semantics
-of a core language which is a subset of Dart
-(just slightly smaller than Dart),
-and desugaring transforms any given Dart program to
-a program in that core language.
-This helps keeping the language specification consistent and comprehensible,
-because it shows directly
-that some language features are introducing essential semantics,
-and others are better described as mere abbreviations of existing constructs.%
+  The point is that we only specify the static analysis and dynamic semantics
+  of a core language which is a subset of Dart
+  (just slightly smaller than Dart),
+  and desugaring transforms any given Dart program to
+  a program in that core language.
+  This helps keeping the language specification consistent and comprehensible,
+  because it shows directly
+  that some language features are introducing essential semantics,
+  and others are better described as mere abbreviations of existing constructs.%
 }
 
 \LMHash{}%
@@ -1049,18 +1051,18 @@ Each run-time namespace corresponds to a namespace with the same keys,
 but with values that correspond to the semantics of the namespace values.
 
 \rationale{%
-A namespace typically maps a name to a declaration,
-and it can be used statically to figure out what that name refers to.
-For example,
-a variable is associated with an actual storage location at run time.
-We introduce the notion of a run-time namespace based on a namespace,
-such that the dynamic semantics can access run-time entities
-like that storage location.
-The same code may be executed multiple times with the same run-time namespace,
-or with different run-time namespaces for each execution.
-E.g., local variables declared inside a function
-are specific to each invocation of the function,
-and instance variables are specific to an object.%
+  A namespace typically maps a name to a declaration,
+  and it can be used statically to figure out what that name refers to.
+  For example,
+  a variable is associated with an actual storage location at run time.
+  We introduce the notion of a run-time namespace based on a namespace,
+  such that the dynamic semantics can access run-time entities
+  like that storage location.
+  The same code may be executed multiple times with the same run-time namespace,
+  or with different run-time namespaces for each execution.
+  E.g., local variables declared inside a function
+  are specific to each invocation of the function,
+  and instance variables are specific to an object.%
 }
 
 \LMHash{}%
@@ -1095,16 +1097,16 @@ Names may be introduced into a scope by declarations within the scope
 or by other mechanisms such as imports or inheritance.
 
 \rationale{%
-The interaction of lexical scoping and inheritance is a subtle one.
-Ultimately, the question is whether lexical scoping
-takes precedence over inheritance or vice versa.
-Dart chooses the former.
+  The interaction of lexical scoping and inheritance is a subtle one.
+  Ultimately, the question is whether lexical scoping
+  takes precedence over inheritance or vice versa.
+  Dart chooses the former.
 
-Allowing inherited names to take precedence over locally declared names
-could create unexpected situations as code evolves.
-Specifically, the behavior of code in a subclass could silently change
-if a new name is introduced in a superclass.
-Consider:%
+  Allowing inherited names to take precedence over locally declared names
+  could create unexpected situations as code evolves.
+  Specifically, the behavior of code in a subclass could silently change
+  if a new name is introduced in a superclass.
+  Consider:%
 }
 
 \begin{dartCode}
@@ -1118,7 +1120,7 @@ foo() => 42;
 \end{dartCode}
 
 \rationale{%
-Now assume a method \code{foo()} is added to \code{S}.%
+  Now assume a method \code{foo()} is added to \code{S}.%
 }
 
 \begin{dartCode}
@@ -1127,31 +1129,31 @@ Now assume a method \code{foo()} is added to \code{S}.%
 \end{dartCode}
 
 \rationale{%
-If inheritance took precedence over the lexical scope,
-the behavior of \code{C} would change in an unexpected way.
-Neither the author of \code{S} nor the author of \code{C}
-are necessarily aware of this.
-In Dart, if there is a lexically visible method \code{foo()},
-it will always be called.
+  If inheritance took precedence over the lexical scope,
+  the behavior of \code{C} would change in an unexpected way.
+  Neither the author of \code{S} nor the author of \code{C}
+  are necessarily aware of this.
+  In Dart, if there is a lexically visible method \code{foo()},
+  it will always be called.
 
-Now consider the opposite scenario.
-We start with a version of \code{S} that contains \code{foo()},
-but do not declare \code{foo()} in library \code{L2}.
-Again, there is a change in behavior---but the author of \code{L2}
-is the one who introduced the discrepancy that effects their code,
-and the new code is lexically visible.
-Both these factors make it more likely that the problem will be detected.
+  Now consider the opposite scenario.
+  We start with a version of \code{S} that contains \code{foo()},
+  but do not declare \code{foo()} in library \code{L2}.
+  Again, there is a change in behavior---but the author of \code{L2}
+  is the one who introduced the discrepancy that effects their code,
+  and the new code is lexically visible.
+  Both these factors make it more likely that the problem will be detected.
 
-These considerations become even more important
-if one introduces constructs such as nested classes,
-which might be considered in future versions of the language.
+  These considerations become even more important
+  if one introduces constructs such as nested classes,
+  which might be considered in future versions of the language.
 
-Good tooling should of course endeavor to inform programmers
-of such situations (discreetly).
-For example, an identifier that is both inherited and lexically visible
-could be highlighted (via underlining or colorization).
-Better yet, tight integration of source control with language aware tools
-would detect such changes when they occur.%
+  Good tooling should of course endeavor to inform programmers
+  of such situations (discreetly).
+  For example, an identifier that is both inherited and lexically visible
+  could be highlighted (via underlining or colorization).
+  Better yet, tight integration of source control with language aware tools
+  would detect such changes when they occur.%
 }
 
 
@@ -1180,27 +1182,27 @@ if $m$ is declared in $L$ or if $m$ is public.
 }
 
 \rationale{%
-Privacy applies only to declarations within a library,
-not to the library declaration as a whole.
-This is because libraries do not reference each other by name,
-and so the idea of a private library is meaningless
-(\ref{imports}).
-Thus, if the name of a library begins with an underscore,
-it has no effect on the accessibility of the library or its members.%
+  Privacy applies only to declarations within a library,
+  not to the library declaration as a whole.
+  This is because libraries do not reference each other by name,
+  and so the idea of a private library is meaningless
+  (\ref{imports}).
+  Thus, if the name of a library begins with an underscore,
+  it has no effect on the accessibility of the library or its members.%
 }
 
 \rationale{%
-Privacy is, at this point, a static notion tied to
-a particular piece of code (a library).
-It is designed to support software engineering concerns
-rather than security concerns.
-Untrusted code should always run in an another isolate.
+  Privacy is, at this point, a static notion tied to
+  a particular piece of code (a library).
+  It is designed to support software engineering concerns
+  rather than security concerns.
+  Untrusted code should always run in an another isolate.
 
-Privacy is indicated by the name of a declaration---hence
-privacy and naming are not orthogonal.
-This has the advantage that both humans and machines
-can recognize access to private declarations at the point of use
-without knowledge of the context from which the declaration is derived.%
+  Privacy is indicated by the name of a declaration---hence
+  privacy and naming are not orthogonal.
+  This has the advantage that both humans and machines
+  can recognize access to private declarations at the point of use
+  without knowledge of the context from which the declaration is derived.%
 }
 
 
@@ -1233,34 +1235,34 @@ A compile-time error must be reported by a Dart compiler
 before the erroneous code is executed.
 
 \rationale{%
-A Dart implementation has considerable freedom
-as to when compilation takes place.
-Modern programming language implementations
-often interleave compilation and execution,
-so that compilation of a method may be delayed, e.g.,
-until it is first invoked.
-Consequently, compile-time errors in a method $m$ may be reported
-as late as the time of $m$'s first invocation.
+  A Dart implementation has considerable freedom
+  as to when compilation takes place.
+  Modern programming language implementations
+  often interleave compilation and execution,
+  so that compilation of a method may be delayed, e.g.,
+  until it is first invoked.
+  Consequently, compile-time errors in a method $m$ may be reported
+  as late as the time of $m$'s first invocation.
 
-Dart is often loaded directly from source,
-with no intermediate binary representation.
-In the interests of rapid loading, Dart implementations
-may choose to avoid full parsing of method bodies, for example.
-This can be done by tokenizing the input and
-checking for balanced curly braces on method body entry.
-In such an implementation, even syntax errors will be detected
-only when the method needs to be executed,
-at which time it will be compiled (JITed).
+  Dart is often loaded directly from source,
+  with no intermediate binary representation.
+  In the interests of rapid loading, Dart implementations
+  may choose to avoid full parsing of method bodies, for example.
+  This can be done by tokenizing the input and
+  checking for balanced curly braces on method body entry.
+  In such an implementation, even syntax errors will be detected
+  only when the method needs to be executed,
+  at which time it will be compiled (JITed).
 
-In a development environment a compiler should of course
-report compilation errors eagerly so as to best serve the programmer.
+  In a development environment a compiler should of course
+  report compilation errors eagerly so as to best serve the programmer.
 
-A Dart development environment might choose to support
- error eliminating program transformations, e.g.,
-replacing an erroneous expression by the invocation of a debugger.
-It is outside the scope of this document
-to specify how such transformations work,
-and where they may be applied.%
+  A Dart development environment might choose to support
+   error eliminating program transformations, e.g.,
+  replacing an erroneous expression by the invocation of a debugger.
+  It is outside the scope of this document
+  to specify how such transformations work,
+  and where they may be applied.%
 }
 
 \LMHash{}%
@@ -1270,18 +1272,18 @@ The only circumstance where a compile-time error could be caught would be
 via code run reflectively, where the mirror system can catch it.
 
 \rationale{%
-Typically, once a compile-time error is thrown and $A$ is suspended,
-$A$ will then be terminated.
-However, this depends on the overall environment.
-A Dart engine runs in the context of a \Index{runtime},
-a program that interfaces between the engine and
-the surrounding computing environment.
-The runtime may be, for instance, a C++ program on the server.
-When an isolate fails with a compile-time error as described above,
-control returns to the runtime,
-along with an exception describing the problem.
-This is necessary so that the runtime can clean up resources etc.
-It is then the runtime's decision whether to terminate the isolate or not.%
+  Typically, once a compile-time error is thrown and $A$ is suspended,
+  $A$ will then be terminated.
+  However, this depends on the overall environment.
+  A Dart engine runs in the context of a \Index{runtime},
+  a program that interfaces between the engine and
+  the surrounding computing environment.
+  The runtime may be, for instance, a C++ program on the server.
+  When an isolate fails with a compile-time error as described above,
+  control returns to the runtime,
+  along with an exception describing the problem.
+  This is necessary so that the runtime can clean up resources etc.
+  It is then the runtime's decision whether to terminate the isolate or not.%
 }
 
 \LMHash{}%
@@ -1455,15 +1457,15 @@ or a \Error{compile-time error} occurs.
 }
 
 \rationale{%
-It is grammatically impossible for a constant variable declaration
-to have the modifier \LATE.
-However, even if it had been grammatically possible,
-a \LATE{} constant variable would still have to be a compile-time error,
-because being a compile-time constant is inherently incompatible
-with being computed late.
+  It is grammatically impossible for a constant variable declaration
+  to have the modifier \LATE.
+  However, even if it had been grammatically possible,
+  a \LATE{} constant variable would still have to be a compile-time error,
+  because being a compile-time constant is inherently incompatible
+  with being computed late.
 
-Similarly, an instance variable cannot be constant
-(\ref{instanceVariables}).%
+  Similarly, an instance variable cannot be constant
+  (\ref{instanceVariables}).%
 }
 
 
@@ -1698,11 +1700,11 @@ with an initializing expression is initialized lazily
 (\ref{evaluationOfImplicitVariableGetters}).
 
 \rationale{%
-The lazy semantics are given because we do not want a language
-where one tends to define expensive initialization computations,
-causing long application startup times.
-This is especially crucial for Dart,
-which must support the coding of client applications.%
+  The lazy semantics are given because we do not want a language
+  where one tends to define expensive initialization computations,
+  causing long application startup times.
+  This is especially crucial for Dart,
+  which must support the coding of client applications.%
 }
 
 \commentary{%
@@ -2063,14 +2065,14 @@ OR
       when the return type is \VOID.%
     }
     \rationale{%
-    This enables concise declarations of \VOID{} functions.
-    It is reasonably easy to understand such a function,
-    because the return type is textually near to the returned expression $e$.
-    In contrast, \code{\RETURN{} $e$;} in a block body is only allowed
-    for an $e$ with one of a few specific static types,
-    because it is less likely that the developer understands
-    that the returned object will not be used
-    (\ref{return}).%
+      This enables concise declarations of \VOID{} functions.
+      It is reasonably easy to understand such a function,
+      because the return type is textually near to the returned expression $e$.
+      In contrast, \code{\RETURN{} $e$;} in a block body is only allowed
+      for an $e$ with one of a few specific static types,
+      because it is less likely that the developer understands
+      that the returned object will not be used
+      (\ref{return}).%
     }
   \item The function is asynchronous, \flatten{T} is not \VOID,
     and it would have been a compile-time error
@@ -2082,7 +2084,7 @@ OR
       when the flattened return type is \VOID,%
     }
     \rationale{%
-    and the rationale is similar to the synchronous case.%
+      and the rationale is similar to the synchronous case.%
     }
   \end{itemize}
 \end{itemize}
@@ -2438,16 +2440,17 @@ It is a compile-time error if the name of a named optional parameter
 begins with an `_' character.
 
 \rationale{%
-The need for this restriction is a direct consequence of
-the fact that naming and privacy are not orthogonal.
-If we allowed named parameters to begin with an underscore,
-they would be considered private and inaccessible to
-callers from outside the library where it was defined.
-If a method outside the library overrode a method with a private optional name,
-it would not be a subtype of the original method.
-The static checker would of course flag such situations,
-but the consequence would be that adding a private named formal would break
-clients outside the library in a way they could not easily correct.%
+  The need for this restriction is a direct consequence of
+  the fact that naming and privacy are not orthogonal.
+  If we allowed named parameters to begin with an underscore,
+  they would be considered private and inaccessible to
+  callers from outside the library where it was defined.
+  If a method outside the library overrode
+  a method with a private optional name,
+  it would not be a subtype of the original method.
+  The static checker would of course flag such situations,
+  but the consequence would be that adding a private named formal would break
+  clients outside the library in a way they could not easily correct.%
 }
 
 
@@ -2480,15 +2483,15 @@ which is not an instance method, an instance setter, or an operator.
 }
 
 \rationale{%
-This mechanism allows developers to explicitly request that
-a compile-time guarantee which is otherwise supported
-(namely: that an actual argument whose static type satisfies the requirement
-will also do so at run time)
-is replaced by dynamic type checks.
-In return for accepting these dynamic type checks,
-developers can use covariant parameters to express software designs
-where the dynamic type checks are known (or at least trusted) to succeed,
-based on reasoning that the static type analysis does not capture.%
+  This mechanism allows developers to explicitly request that
+  a compile-time guarantee which is otherwise supported
+  (namely: that an actual argument whose static type satisfies the requirement
+  will also do so at run time)
+  is replaced by dynamic type checks.
+  In return for accepting these dynamic type checks,
+  developers can use covariant parameters to express software designs
+  where the dynamic type checks are known (or at least trusted) to succeed,
+  based on reasoning that the static type analysis does not capture.%
 }
 
 \LMHash{}%
@@ -2733,19 +2736,19 @@ and $u$ is not a subtype of any function type which is a proper subtype of $t$.
 }
 
 \rationale{%
-It is up to the implementation to choose
-an appropriate representation for function objects.
-For example, consider that
-a function object produced via property extraction
-treats equality differently from other function objects,
-and is therefore likely a different class.
-Implementations may also use different classes for function objects
-based on arity and or type.
-Arity may be implicitly affected by whether a function is
-an instance method (with an implicit receiver parameter) or not.
-The variations are manifold and, e.g.,
-one cannot assume that any two distinct function objects
-will necessarily have the same run-time type.%
+  It is up to the implementation to choose
+  an appropriate representation for function objects.
+  For example, consider that
+  a function object produced via property extraction
+  treats equality differently from other function objects,
+  and is therefore likely a different class.
+  Implementations may also use different classes for function objects
+  based on arity and or type.
+  Arity may be implicitly affected by whether a function is
+  an instance method (with an implicit receiver parameter) or not.
+  The variations are manifold and, e.g.,
+  one cannot assume that any two distinct function objects
+  will necessarily have the same run-time type.%
 }
 
 
@@ -2767,8 +2770,8 @@ External functions are introduced via the built-in identifier \EXTERNAL{}
 followed by the function signature.
 
 \rationale{%
-External functions allow us to introduce type information for code
-that is not statically known to the Dart compiler.%
+  External functions allow us to introduce type information for code
+  that is not statically known to the Dart compiler.%
 }
 
 \commentary{%
@@ -2926,13 +2929,13 @@ a \IndexCustom{concrete class}{class!concrete} is a class
 whose declaration is concrete.
 
 \rationale{%
-We want different behavior for concrete classes and abstract classes.
-If $A$ is intended to be abstract,
-we want the static checker to warn about any attempt to instantiate $A$,
-and we do not want the checker to complain about unimplemented methods in $A$.
-In contrast, if $A$ is intended to be concrete,
-the checker should warn about all unimplemented methods,
-but allow clients to instantiate it freely.%
+  We want different behavior for concrete classes and abstract classes.
+  If $A$ is intended to be abstract,
+  we want the static checker to warn about any attempt to instantiate $A$,
+  and we do not want the checker to complain about unimplemented methods in $A$.
+  In contrast, if $A$ is intended to be concrete,
+  the checker should warn about all unimplemented methods,
+  but allow clients to instantiate it freely.%
 }
 
 \commentary{%
@@ -3171,21 +3174,21 @@ unless the type of $p$ is a subtype or a supertype of the type of $p''$.
 }
 
 \rationale{%
-The superinterface may be the statically known type of the receiver,
-so this means that we relax the potential typing relationship
-between the statically known type of a parameter and the
-type which is actually required at run time
-to the subtype-or-supertype relationship,
-rather than the strict supertype relationship
-which applies to a parameter which is not covariant.
-It should be noted that it is not statically known
-at the call site whether any given parameter is covariant,
-because the covariance could be introduced in
-a proper subtype of the statically known type of the receiver.
-We chose to give priority to flexibility rather than safety here,
-because the whole point of covariant parameters is that developers
-can make the choice to increase the flexibility
-in a trade-off where some static type safety is lost.%
+  The superinterface may be the statically known type of the receiver,
+  so this means that we relax the potential typing relationship
+  between the statically known type of a parameter and the
+  type which is actually required at run time
+  to the subtype-or-supertype relationship,
+  rather than the strict supertype relationship
+  which applies to a parameter which is not covariant.
+  It should be noted that it is not statically known
+  at the call site whether any given parameter is covariant,
+  because the covariance could be introduced in
+  a proper subtype of the statically known type of the receiver.
+  We chose to give priority to flexibility rather than safety here,
+  because the whole point of covariant parameters is that developers
+  can make the choice to increase the flexibility
+  in a trade-off where some static type safety is lost.%
 }
 
 
@@ -3281,8 +3284,8 @@ is not 0 or 1.
 The name of the unary operator \lit{-} is \code{unary-}.
 
 \rationale{%
-This device allows the two methods to be distinguished
-for purposes of method lookup, override and reflection.%
+  This device allows the two methods to be distinguished
+  for purposes of method lookup, override and reflection.%
 }
 
 \LMHash{}%
@@ -3304,20 +3307,20 @@ declares a return type other than \VOID.
 }
 
 \rationale{%
-The return type is \VOID{} because
-a return statement in an implementation of operator
-\lit{[]=}
-does not return an object.
-Consider a non-throwing evaluation of an expression $e$ of the form
-\code{$e_1$[$e_2$] = $e_3$},
-and assume that the evaluation of $e_3$ yields an object $o$.
-$e$ will then evaluate to $o$,
-and even if the executed body of operator
-\lit{[]=}
-completes with an object $o'$,
-that is, if $o'$ is returned it is simply ignored.
-The rationale for this behavior is that
-assignments should be guaranteed to evaluate to the assigned object.%
+  The return type is \VOID{} because
+  a return statement in an implementation of operator
+  \lit{[]=}
+  does not return an object.
+  Consider a non-throwing evaluation of an expression $e$ of the form
+  \code{$e_1$[$e_2$] = $e_3$},
+  and assume that the evaluation of $e_3$ yields an object $o$.
+  $e$ will then evaluate to $o$,
+  and even if the executed body of operator
+  \lit{[]=}
+  completes with an object $o'$,
+  that is, if $o'$ is returned it is simply ignored.
+  The rationale for this behavior is that
+  assignments should be guaranteed to evaluate to the assigned object.%
 }
 
 
@@ -3647,17 +3650,17 @@ In order to specify these constraints just once we introduce the notion of
 \Index{primitive equality}.
 
 \rationale{%
-Certain constant expressions are known to have a value
-whose equality is primitive.
-This is useful to know because it allows
-the value of equality expressions
-and the value of invocations of \code{hashCode}
-to be computed at compile-time.
-In particular, this can be used to build
-constant collections at compile-time,
-and it can be used to check that
-all elements in a constant set are distinct,
-and all keys in a constant map are distinct.%
+  Certain constant expressions are known to have a value
+  whose equality is primitive.
+  This is useful to know because it allows
+  the value of equality expressions
+  and the value of invocations of \code{hashCode}
+  to be computed at compile-time.
+  In particular, this can be used to build
+  constant collections at compile-time,
+  and it can be used to check that
+  all elements in a constant set are distinct,
+  and all keys in a constant map are distinct.%
 }
 
 \begin{itemize}
@@ -3793,8 +3796,8 @@ either implicitly or explicitly.
 It is a compile-time error if a setter's formal parameter list
 does not consist of exactly one required formal parameter $p$.
 \rationale{%
-We could enforce this via the grammar,
-but we'd have to specify the evaluation rules in that case.%
+  We could enforce this via the grammar,
+  but we'd have to specify the evaluation rules in that case.%
 }
 
 \LMHash{}%
@@ -3830,16 +3833,16 @@ A \IndexCustom{concrete method}{method!concrete}
 is an instance method, getter or setter that is not abstract.
 
 \rationale{%
-Abstract instance members are useful because of their interplay with classes.
-Every Dart class induces an implicit interface,
-and Dart does not support specifying interfaces explicitly.
-Using an abstract class instead of a traditional interface
-has important advantages.
-An abstract class can provide default implementations.
-It can also provide static methods,
-obviating the need for service classes
-such as \code{Collections} or \code{Lists},
-whose entire purpose is to group utilities related to a given type.%
+  Abstract instance members are useful because of their interplay with classes.
+  Every Dart class induces an implicit interface,
+  and Dart does not support specifying interfaces explicitly.
+  Using an abstract class instead of a traditional interface
+  has important advantages.
+  An abstract class can provide default implementations.
+  It can also provide static methods,
+  obviating the need for service classes
+  such as \code{Collections} or \code{Lists},
+  whose entire purpose is to group utilities related to a given type.%
 }
 
 \commentary{%
@@ -3856,15 +3859,15 @@ whose entire purpose is to group utilities related to a given type.%
 }
 
 \rationale{%
-The purpose of an abstract method is to provide a declaration
-for purposes such as type checking and reflection.
-In mixins, it is often useful to introduce such declarations for methods that
-the mixin expects will be provided by the superclass the mixin is applied to.%
+  The purpose of an abstract method is to provide a declaration
+  for purposes such as type checking and reflection.
+  In mixins, it is often useful to introduce such declarations for methods that
+  the mixin expects will be provided by the superclass the mixin is applied to.%
 }
 
 \rationale{%
-We wish to detect if one declares a concrete class with abstract members.
-However, code like the following should work:%
+  We wish to detect if one declares a concrete class with abstract members.
+  However, code like the following should work:%
 }
 
 \begin{dartCode}
@@ -3881,11 +3884,11 @@ class Base \{
 \end{dartCode}
 
 \rationale{%
-At run time, the concrete method \code{one} declared in \code{Base}
-will be executed,
-and no problem should arise.
-Therefore no error should be raised
-if a corresponding concrete member exists in the hierarchy.%
+  At run time, the concrete method \code{one} declared in \code{Base}
+  will be executed,
+  and no problem should arise.
+  Therefore no error should be raised
+  if a corresponding concrete member exists in the hierarchy.%
 }
 
 
@@ -3905,21 +3908,21 @@ and the instance variables inherited by $C$ from its superclass.
 It is a compile-time error if an instance variable is declared to be constant.
 
 \rationale{%
-The notion of a constant instance variable
-is subtle and confusing to programmers.
-An instance variable is intended to vary per instance.
-A constant instance variable would have the same value for all instances,
-and as such is already a dubious idea.
+  The notion of a constant instance variable
+  is subtle and confusing to programmers.
+  An instance variable is intended to vary per instance.
+  A constant instance variable would have the same value for all instances,
+  and as such is already a dubious idea.
 
-The language could interpret const instance variable declarations as
-instance getters that return a constant.
-However, a constant instance variable could not be treated as
-a true compile-time constant,
-as its getter would be subject to overriding.
-
-Given that the value does not depend on the instance,
-it is better to use a static variable.
-An instance getter for it can always be defined manually if desired.%
+  The language could interpret const instance variable declarations as
+  instance getters that return a constant.
+  However, a constant instance variable could not be treated as
+  a true compile-time constant,
+  as its getter would be subject to overriding.
+  
+  Given that the value does not depend on the instance,
+  it is better to use a static variable.
+  An instance getter for it can always be defined manually if desired.%
 }
 
 \LMHash{}%
@@ -4205,14 +4208,14 @@ is not an assignable match for the formal parameter list of the redirectee.
 }
 
 \rationale{%
-We require an assignable match rather than the stricter subtype match
-because a generative redirecting constructor $k$ invokes its redirectee $k'$
-in a manner which resembles function invocation in general.
-For instance, $k$ could accept an argument \code{x}
-and pass on an expression $e_j$ using \code{x} such as \code{x.f(42)} to $k'$,
-and it would be surprising
-if $e_j$ were subject to more strict constraints than the ones applied to
-actual arguments to function invocations in general.%
+  We require an assignable match rather than the stricter subtype match
+  because a generative redirecting constructor $k$ invokes its redirectee $k'$
+  in a manner which resembles function invocation in general.
+  For instance, $k$ could accept an argument \code{x}
+  and pass on an expression $e_j$ using \code{x} such as \code{x.f(42)} to $k'$,
+  and it would be surprising
+  if $e_j$ were subject to more strict constraints than the ones applied to
+  actual arguments to function invocations in general.%
 }
 
 \LMHash{}%
@@ -4294,21 +4297,21 @@ As a special disambiguation rule,
 an \synt{initializerExpression} can not derive a \synt{functionExpression}.
 
 \rationale{%
-This resolves a near-ambiguity:
-In \code{A()\,:\,\,x\,\,=\,\,()\,\,\{\,\ldots\,\}},
-\code{x} could be initialized to the empty record,
-and the block could be the body of the constructor.
-Alternatively, \code{x} could be initialized to a function object,
-and the constructor would then not have a body.
-It would only be known which case we have when we encounter
-(or do not encounter)
-a semicolon at the very end.
-That was considered unreadable.
-Hence, parsers can commit to not parsing a function expression
-in this situation.
-Note that it is still possible for \synt{initializerExpression} to derive
-a term that contains a function expression as a subterm, e.g.,
-\code{A()\,:\,\,x\,\,=\,\,(()\,\,\{\,\ldots\,\});}.%
+  This resolves a near-ambiguity:
+  In \code{A()\,:\,\,x\,\,=\,\,()\,\,\{\,\ldots\,\}},
+  \code{x} could be initialized to the empty record,
+  and the block could be the body of the constructor.
+  Alternatively, \code{x} could be initialized to a function object,
+  and the constructor would then not have a body.
+  It would only be known which case we have when we encounter
+  (or do not encounter)
+  a semicolon at the very end.
+  That was considered unreadable.
+  Hence, parsers can commit to not parsing a function expression
+  in this situation.
+  Note that it is still possible for \synt{initializerExpression} to derive
+  a term that contains a function expression as a subterm, e.g.,
+  \code{A()\,:\,\,x\,\,=\,\,(()\,\,\{\,\ldots\,\});}.%
 }
 
 \LMHash{}%
@@ -4461,8 +4464,8 @@ in the order they appear in the program, as described below
 (p.\,\pageref{executionOfInitializerLists}).
 
 \rationale{%
-We could observe the order by side effecting external routines called.
-So we need to specify the order.%
+  We could observe the order by side effecting external routines called.
+  So we need to specify the order.%
 }
 
 \LMHash{}%
@@ -4481,13 +4484,14 @@ After the superinitializer has completed, the body of $k$ is executed
 in a scope where \THIS{} is bound to $i$.
 
 \rationale{%
-This process ensures that no uninitialized final instance variable
-is ever seen by code.
-Note that \THIS{} is not in scope on the right hand side of an initializer
-(see \ref{this})
-so no instance method can execute during initialization:
-an instance method cannot be directly invoked,
-nor can \THIS{} be passed into any other code being invoked in the initializer.%
+  This process ensures that no uninitialized final instance variable
+  is ever seen by code.
+  Note that \THIS{} is not in scope on the right hand side of an initializer
+  (see \ref{this})
+  so no instance method can execute during initialization:
+  an instance method cannot be directly invoked,
+  nor can \THIS{} be passed into any other code being invoked
+  in the initializer.%
 }
 
 
@@ -4582,16 +4586,16 @@ whose type is not a subtype of its actual
 return type.
 
 \rationale{%
-It seems useless to allow a factory to return the null object (\ref{null}).
-But it is more uniform to allow it, as the rules currently do.%
+  It seems useless to allow a factory to return the null object (\ref{null}).
+  But it is more uniform to allow it, as the rules currently do.%
 }
 
 \rationale{%
-Factories address classic weaknesses associated with constructors
-in other languages.
-Factories can produce instances that are not freshly allocated:
-they can come from a cache.
-Likewise, factories can return instances of different classes.%
+  Factories address classic weaknesses associated with constructors
+  in other languages.
+  Factories can produce instances that are not freshly allocated:
+  they can come from a cache.
+  Likewise, factories can return instances of different classes.%
 }
 
 
@@ -4672,17 +4676,17 @@ It is a compile-time error if $\argumentList{T}$
 is not a subtype match for the formal parameter list of the redirectee.
 
 \rationale{%
-We require a subtype match
-(rather than the more forgiving assignable match
-which is used with a generative redirecting constructor),
-because a factory redirecting constructor $k$ always invokes
-its redirectee $k'$ with
-exactly the same actual arguments that $k$ received.
-This means that a downcast on an actual argument
-``between'' $k$ and $k'$
-would either be unused because the actual argument has
-the type required by $k'$,
-or it would amount to a dynamic error which is simply delayed a single step.%
+  We require a subtype match
+  (rather than the more forgiving assignable match
+  which is used with a generative redirecting constructor),
+  because a factory redirecting constructor $k$ always invokes
+  its redirectee $k'$ with
+  exactly the same actual arguments that $k$ received.
+  This means that a downcast on an actual argument
+  ``between'' $k$ and $k'$
+  would either be unused because the actual argument has
+  the type required by $k'$,
+  or it would amount to a dynamic error which is simply delayed a single step.%
 }
 
 \commentary{%
@@ -4699,9 +4703,9 @@ It is a compile-time error if $k$ explicitly specifies
 a default value for an optional parameter.
 
 \rationale{%
-Default values specified in $k$ would be ignored,
-since it is the \emph{actual} parameters that are passed to $k'$.
-Hence, default values are disallowed.%
+  Default values specified in $k$ would be ignored,
+  since it is the \emph{actual} parameters that are passed to $k'$.
+  Hence, default values are disallowed.%
 }
 
 \LMHash{}%
@@ -4714,20 +4718,20 @@ on the corresponding formal parameter in $k$.
 }
 
 \rationale{%
-At first glance, one might think that
-ordinary factory constructors could simply create
-instances of other classes and return them,
-and that redirecting factories are unnecessary.
-However, redirecting factories have several advantages:
-
-\begin{itemize}
-\item
-  An abstract class may provide a constant constructor
-  that utilizes the constant constructor of another class.
-\item
-  A redirecting factory constructor avoids the need for forwarders
-  to repeat the formal parameters and their default values.
-\end{itemize}%
+  At first glance, one might think that
+  ordinary factory constructors could simply create
+  instances of other classes and return them,
+  and that redirecting factories are unnecessary.
+  However, redirecting factories have several advantages:
+  
+  \begin{itemize}
+  \item
+    An abstract class may provide a constant constructor
+    that utilizes the constant constructor of another class.
+  \item
+    A redirecting factory constructor avoids the need for forwarders
+    to repeat the formal parameters and their default values.
+  \end{itemize}%
 }
 
 \LMHash{}%
@@ -4881,16 +4885,16 @@ and that are declared \STATIC.
 The static methods of a class $C$ are those static methods declared by $C$.
 
 \rationale{%
-Inheritance of static methods has little utility in Dart.
-Static methods cannot be overridden.
-Any required static method can be obtained from its declaring library,
-and there is no need to bring it into scope via inheritance.
-Experience shows that developers are confused by
-the idea of inherited methods that are not instance methods.
+  Inheritance of static methods has little utility in Dart.
+  Static methods cannot be overridden.
+  Any required static method can be obtained from its declaring library,
+  and there is no need to bring it into scope via inheritance.
+  Experience shows that developers are confused by
+  the idea of inherited methods that are not instance methods.
 
-Of course, the entire notion of static methods is debatable,
-but it is retained here because so many programmers are familiar with it.
-Dart static methods may be seen as functions of the enclosing library.%
+  Of course, the entire notion of static methods is debatable,
+  but it is retained here because so many programmers are familiar with it.
+  Dart static methods may be seen as functions of the enclosing library.%
 }
 
 \commentary{%
@@ -5002,13 +5006,13 @@ that have not been overridden by a concrete declaration in $C$
 or in at least one of $S_1, \ldots, S_k$.
 
 \rationale{%
-It would be more attractive to give a purely local definition of inheritance,
-that depended only on the members of the direct superclass $S$.
-However, a class $C$ can inherit a member $m$ that
-is not a member of its superclass $S$.
-This can occur when the member $m$ is private to the library $L_1$ of $C$,
-whereas $S$ comes from a different library $L_2$,
-but the superclass chain of $S$ includes a class declared in $L_1$.%
+  It would be more attractive to give a purely local definition of inheritance,
+  that depended only on the members of the direct superclass $S$.
+  However, a class $C$ can inherit a member $m$ that
+  is not a member of its superclass $S$.
+  This can occur when the member $m$ is private to the library $L_1$ of $C$,
+  whereas $S$ comes from a different library $L_2$,
+  but the superclass chain of $S$ includes a class declared in $L_1$.%
 }
 
 \LMHash{}%
@@ -5035,8 +5039,8 @@ and neither $m$ nor $m'$ are instance variables.
 }
 
 \rationale{%
-Again, a local definition of overriding would be preferable,
-but fails to account for library privacy.%
+  Again, a local definition of overriding would be preferable,
+  but fails to account for library privacy.%
 }
 
 \commentary{%
@@ -5166,13 +5170,14 @@ It is a compile-time error if the superclass of a class $C$ is
 one of the elements of the type list of the \IMPLEMENTS{} clause of $C$.
 
 \rationale{%
-One might argue that it is harmless to repeat a type in the superinterface list,
-so why make it an error?
-The issue is not so much that the situation is erroneous,
-but that it is pointless.
-As such, it is an indication that the programmer may very well have meant
-to say something else---and that is a mistake that should be
-called to her or his attention.%
+  One might argue that it is harmless
+  to repeat a type in the superinterface list,
+  so why make it an error?
+  The issue is not so much that the situation is erroneous,
+  but that it is pointless.
+  As such, it is an indication that the programmer may very well have meant
+  to say something else---and that is a mistake that should be
+  called to her or his attention.%
 }
 
 \LMHash{}%
@@ -5314,20 +5319,20 @@ The difference is that the names of positional parameters are omitted.
 This syntax is only used for the purposes of specification.
 
 \rationale{%
-Member signatures are synthetic entities, that is,
-they are not supported as concrete syntax in a Dart program,
-they are computed entities used during static analysis.
-However, it is useful to be able to indicate the
-properties of a member signature in this specification
-via a syntactic representation.
-A member signature makes it explicit
-whether a parameter is covariant-by-declaration,
-but it remains implicit whether it is covariant-by-class
-(\ref{covariantParameters}).
-The reason for this is that the rule for determining whether
-a given override relation is correct
-(\ref{correctMemberOverrides})
-depends on the former and not on the latter.%
+  Member signatures are synthetic entities, that is,
+  they are not supported as concrete syntax in a Dart program,
+  they are computed entities used during static analysis.
+  However, it is useful to be able to indicate the
+  properties of a member signature in this specification
+  via a syntactic representation.
+  A member signature makes it explicit
+  whether a parameter is covariant-by-declaration,
+  but it remains implicit whether it is covariant-by-class
+  (\ref{covariantParameters}).
+  The reason for this is that the rule for determining whether
+  a given override relation is correct
+  (\ref{correctMemberOverrides})
+  depends on the former and not on the latter.%
 }
 
 \LMHash{}%
@@ -5453,9 +5458,9 @@ Let $M_0$ be the set of all member signatures declared by \List{I}{1}{k}.
 \end{itemize}
 
 \rationale{%
-Interfaces must be able to contain inaccessible member signatures,
-because they may be accessible from the interfaces associated with
-declarations of subtypes.%
+  Interfaces must be able to contain inaccessible member signatures,
+  because they may be accessible from the interfaces associated with
+  declarations of subtypes.%
 }
 
 \commentary{%
@@ -5486,17 +5491,17 @@ declarations of subtypes.%
 }
 
 \rationale{%
-It may not be possible to satisfy such constraints simultaneously,
-and it will inevitably be a complex semantics,
-so we have chosen to make it an error.
-It is unfortunate that the addition of a private declaration
-in one library may break existing code in a different library.
-But it should be noted that the conflicts can be detected locally
-in the library where the private declarations exist,
-because they only arise for private members with
-the same name and incompatible signatures.
-Renaming that private member to anything not used in that library
-will eliminate the conflict and will not break any clients.%
+  It may not be possible to satisfy such constraints simultaneously,
+  and it will inevitably be a complex semantics,
+  so we have chosen to make it an error.
+  It is unfortunate that the addition of a private declaration
+  in one library may break existing code in a different library.
+  But it should be noted that the conflicts can be detected locally
+  in the library where the private declarations exist,
+  because they only arise for private members with
+  the same name and incompatible signatures.
+  Renaming that private member to anything not used in that library
+  will eliminate the conflict and will not break any clients.%
 }
 
 
@@ -6092,11 +6097,11 @@ and $S$ does not have a concrete
 implementation of $m$ which is a valid override of the member $m$ in
 the interface $M_S$.
 \rationale{%
-We treat super-invocations in mixins as
-interface invocations on the combined superinterface,
-so we require the superclass of a mixin application to have
-valid implementations of those interface members
-that are actually super-invoked.%
+  We treat super-invocations in mixins as
+  interface invocations on the combined superinterface,
+  so we require the superclass of a mixin application to have
+  valid implementations of those interface members
+  that are actually super-invoked.%
 }
 
 \LMHash{}%
@@ -6243,11 +6248,12 @@ of the extension.
 }
 
 \rationale{%
-The fact that an extension can be used implicitly even in the case where
-it does not have a declared name or the declared name is shadowed or conflicted
-reflects the fact that the primary intended usage is implicit invocation.
-Even though a developer cannot know (and hence cannot use) the fresh name
-of a given extension, an implicit invocation can use it.%
+  The fact that an extension can be used implicitly even in the case where
+  it does not have a declared name
+  or the declared name is shadowed or conflicted
+  reflects the fact that the primary intended usage is implicit invocation.
+  Even though a developer cannot know (and hence cannot use) the fresh name
+  of a given extension, an implicit invocation can use it.%
 }
 
 \LMHash{}%
@@ -6262,10 +6268,10 @@ a name denoting an extension.
 }
 
 \rationale{%
-This restriction ensures that no extensions are introduced
-using deferred imports,
-which allows us to introduce a semantics for such extensions in the future
-without affecting existing code.%
+  This restriction ensures that no extensions are introduced
+  using deferred imports,
+  which allows us to introduce a semantics for such extensions in the future
+  without affecting existing code.%
 }
 
 \LMHash{}%
@@ -6351,21 +6357,21 @@ Moreover, a compile-time error occurs in the following situations:
 \end{itemize}
 
 \rationale{%
-Abstract members are not allowed because there is
-no support for providing an implementation.
-%
-Constructors are not allowed since the extension
-does not introduce any type that can be constructed.
-%
-Instance variables are not allowed because no memory is allocated
-for each object accessed as \THIS{} in the members.
-Developers can emulate per-\THIS{} state if needed,
-e.g., using an \code{Expando}.
-%
-Members with the same basename as members of \code{Object}
-are not allowed because they could only be invoked using explicit resolution,
-as in \code{E(e).toString(14)},
-which would be confusing and error-prone.%
+  Abstract members are not allowed because there is
+  no support for providing an implementation.
+  %
+  Constructors are not allowed since the extension
+  does not introduce any type that can be constructed.
+  %
+  Instance variables are not allowed because no memory is allocated
+  for each object accessed as \THIS{} in the members.
+  Developers can emulate per-\THIS{} state if needed,
+  e.g., using an \code{Expando}.
+  %
+  Members with the same basename as members of \code{Object}
+  are not allowed because they could only be invoked using explicit resolution,
+  as in \code{E(e).toString(14)},
+  which would be confusing and error-prone.%
 }
 
 
@@ -6578,12 +6584,12 @@ member invocation desugaring
 (\ref{memberInvocations}).
 
 \rationale{%
-Note that a cascade (\ref{cascades})
-whose receiver is an extension application $a$ is a compile-time error.
-This is so because it implies that $a$ denotes an object, which is not true,
-and also because it would force each \synt{cascadeSection}
-to invoke a member of the same extension,
-which is unlikely to be desirable.%
+  Note that a cascade (\ref{cascades})
+  whose receiver is an extension application $a$ is a compile-time error.
+  This is so because it implies that $a$ denotes an object, which is not true,
+  and also because it would force each \synt{cascadeSection}
+  to invoke a member of the same extension,
+  which is unlikely to be desirable.%
 }
 
 
@@ -6609,11 +6615,11 @@ the given member invocation.
 }
 
 \rationale{%
-Implicit invocation is intended as the primary way to use extensions,
-with explicit invocation as a fallback
-in case the implicit invocation is an error, or
-the implicit invocation resolves to an instance member of
-a different extension than the intended one.%
+  Implicit invocation is intended as the primary way to use extensions,
+  with explicit invocation as a fallback
+  in case the implicit invocation is an error, or
+  the implicit invocation resolves to an instance member of
+  a different extension than the intended one.%
 }
 
 \LMHash{}%
@@ -6876,17 +6882,17 @@ if at least one of the following conditions is satisfied:
 }
 
 \rationale{%
-In general, the definition of specificity aims to select
-the extension which has more precise type information available.
-This does not necessarily yield the most precise type of the result
-(for instance, \code{BestSpec.best} could have returned \code{Object}),
-but it is also important that the rule is simple.
-
-In practice, we expect unintended extension member name conflicts to be rare.
-If the same author is providing more specialized versions of
-an extension for subtypes,
-the choice of an extension which has the most precise types available
-is likely to be a rather unsurprising and useful behavior.%
+  In general, the definition of specificity aims to select
+  the extension which has more precise type information available.
+  This does not necessarily yield the most precise type of the result
+  (for instance, \code{BestSpec.best} could have returned \code{Object}),
+  but it is also important that the rule is simple.
+  
+  In practice, we expect unintended extension member name conflicts to be rare.
+  If the same author is providing more specialized versions of
+  an extension for subtypes,
+  the choice of an extension which has the most precise types available
+  is likely to be a rather unsurprising and useful behavior.%
 }
 
 
@@ -7082,13 +7088,13 @@ for all $j \in 1 .. s$.
 }
 
 \rationale{%
-The reason for this difference is that even if $o_1$ and $o_2$
-are instance method closurizations of the same extension $E$
-applied to the same receiver $o$,
-they may have different actual type arguments passed to $E$,
-because those type arguments are determined by the call site
-(and with inference: by the static type of the expression yielding $o$),
-and not just by the properties of $o$ and the torn-off method.%
+  The reason for this difference is that even if $o_1$ and $o_2$
+  are instance method closurizations of the same extension $E$
+  applied to the same receiver $o$,
+  they may have different actual type arguments passed to $E$,
+  because those type arguments are determined by the call site
+  (and with inference: by the static type of the expression yielding $o$),
+  and not just by the properties of $o$ and the torn-off method.%
 }
 
 \commentary{%
@@ -7164,10 +7170,10 @@ similarly to a function expression invocation
 \end{dartCode}
 
 \rationale{%
-This may look somewhat surprising,
-though similar to an approach using \code{\OPERATOR []}:
-\code{\FOR{} (\VAR{} i \IN{} 1[3])\,\,\{\,...\,\}}.
-We expect developers to use this power responsibly.%
+  This may look somewhat surprising,
+  though similar to an approach using \code{\OPERATOR []}:
+  \code{\FOR{} (\VAR{} i \IN{} 1[3])\,\,\{\,...\,\}}.
+  We expect developers to use this power responsibly.%
 }
 
 \LMHash{}%
@@ -7243,13 +7249,13 @@ Iterable<int> \FUNCTION(int) from2 = 2; // \comment{Error.}
 \end{dartCode}
 
 \rationale{%
-The implicit property extraction could be allowed,
-but it would come at a readability cost.
-A type like \code{int} is well known as being non-callable,
-and an implicit \code{.call} tear-off would have no visible syntax.
-In an implicit \CALL{} invocation, the arguments are visible to a reader,
-but for an implicit tear-off of a \CALL{} function,
-there is no visible syntax at all.%
+  The implicit property extraction could be allowed,
+  but it would come at a readability cost.
+  A type like \code{int} is well known as being non-callable,
+  and an implicit \code{.call} tear-off would have no visible syntax.
+  In an implicit \CALL{} invocation, the arguments are visible to a reader,
+  but for an implicit tear-off of a \CALL{} function,
+  there is no visible syntax at all.%
 }
 
 \commentary{%
@@ -7425,11 +7431,12 @@ and in the body of $G$.
 }
 
 \rationale{%
-The restriction on static members is necessary since
-a type variable has no meaning in the context of a static member,
-because statics are shared among all generic instantiations of a generic class.
-However, a type variable may be referenced from an instance initializer,
-even though \THIS{} is not available.%
+  The restriction on static members is necessary since
+  a type variable has no meaning in the context of a static member,
+  because statics are shared among
+  all generic instantiations of a generic class.
+  However, a type variable may be referenced from an instance initializer,
+  even though \THIS{} is not available.%
 }
 
 \commentary{%
@@ -7642,20 +7649,20 @@ if{}f $X_j$ occurs covariantly in $T$, and $X_j$
 if{}f $X_j$ occurs contravariantly in $T$.
 
 \rationale{%
-Variance gives a characterization of the way a type varies
-as the value of a subterm varies, e.g., a type variable:
-Assume that $T$ is a type where a type variable $X$ occurs,
-and $L$ and $U$ are types such that $L$ is a subtype of $U$.
-If $X$ occurs covariantly in $T$
-then $[L/X]T$ is a subtype of $[U/X]T$.
-Similarly, if $X$ occurs contravariantly in $T$
-then $[U/X]T$ is a subtype of $[L/X]T$.
-If $X$ occurs invariantly
-then $[L/X]T$ and $[U/X]T$ are not guaranteed
-to be subtypes of each other in any direction.
-In short: with covariance, the type covaries;
-with contravariance, the type contravaries;
-with invariance, all bets are off.%
+  Variance gives a characterization of the way a type varies
+  as the value of a subterm varies, e.g., a type variable:
+  Assume that $T$ is a type where a type variable $X$ occurs,
+  and $L$ and $U$ are types such that $L$ is a subtype of $U$.
+  If $X$ occurs covariantly in $T$
+  then $[L/X]T$ is a subtype of $[U/X]T$.
+  Similarly, if $X$ occurs contravariantly in $T$
+  then $[U/X]T$ is a subtype of $[L/X]T$.
+  If $X$ occurs invariantly
+  then $[L/X]T$ and $[U/X]T$ are not guaranteed
+  to be subtypes of each other in any direction.
+  In short: with covariance, the type covaries;
+  with contravariance, the type contravaries;
+  with invariance, all bets are off.%
 }
 
 
@@ -7792,9 +7799,9 @@ A<Object> a;
 }
 
 \rationale{%
-Super-bounded types enable the expression of informative common supertypes
-of some sets of types whose common supertypes
-would otherwise be much less informative.%
+  Super-bounded types enable the expression of informative common supertypes
+  of some sets of types whose common supertypes
+  would otherwise be much less informative.%
 }
 
 \commentary{%
@@ -7821,17 +7828,19 @@ would otherwise be much less informative.%
 }
 
 \rationale{%
-We could introduce a notion of recursive (infinite) types, and express
-the least upper bound of all types of the form \code{C<$S$>} as
-some syntax whose meaning could be approximated by
-\code{C<C<C<C<$\ldots$>$\!$>$\!$>$\!$>}.
-%
-However, we expect that any such concept in Dart would incur a significant cost
-on developers and implementations in terms of added complexity and subtlety,
-so we have chosen not to do that.
-Super-bounded types are finite,
-but they offer a useful developer-controlled approximation
-to such infinite types.%
+  We could introduce a notion of recursive (infinite) types, and express
+  the least upper bound of all types of the form \code{C<$S$>} as
+  some syntax whose meaning could be approximated by
+  \code{C<C<C<C<$\ldots$>$\!$>$\!$>$\!$>}.
+  %
+  However, we expect that any such concept in Dart
+  would incur a significant cost
+  on developers and implementations
+  in terms of added complexity and subtlety,
+  so we have chosen not to do that.
+  Super-bounded types are finite,
+  but they offer a useful developer-controlled approximation
+  to such infinite types.%
 }
 
 \commentary{%
@@ -7905,23 +7914,23 @@ applies to raw type expressions in the obvious manner.
 }
 
 \rationale{%
-We can unambiguously define raw types to denote
-the result of applying the generic type
-to a list of implicitly provided actual type arguments,
-and instantiation to bound is a mechanism which does just that.
-This is because Dart does not, and will not, support higher-kinded types;
-for example, the value of a type variable $X$ will be a type,
-it cannot be the generic class \code{List} as such,
-and it cannot be applied to type arguments, e.g., \code{$X$<int>}.%
+  We can unambiguously define raw types to denote
+  the result of applying the generic type
+  to a list of implicitly provided actual type arguments,
+  and instantiation to bound is a mechanism which does just that.
+  This is because Dart does not, and will not, support higher-kinded types;
+  for example, the value of a type variable $X$ will be a type,
+  it cannot be the generic class \code{List} as such,
+  and it cannot be applied to type arguments, e.g., \code{$X$<int>}.%
 }
 
 \rationale{%
-In the typical case where only covariance is encountered,
-instantiation to bound will yield a \emph{supertype} of
-all the regular-bounded types that can be expressed.
-This allows developers to consider a raw type as a type
-which is used to specify that
-``the actual type arguments do not matter''$\!$.%
+  In the typical case where only covariance is encountered,
+  instantiation to bound will yield a \emph{supertype} of
+  all the regular-bounded types that can be expressed.
+  This allows developers to consider a raw type as a type
+  which is used to specify that
+  ``the actual type arguments do not matter''$\!$.%
 }
 \commentary{%
   For example, assuming the declaration
@@ -7932,16 +7941,16 @@ which is used to specify that
 }
 
 \rationale{%
-Conversely, consider the situation where
-a generic type alias denotes a function type,
-and it has one type parameter which is contravariant.
-Instantiation to bound on that type alias will then yield a \emph{subtype} of
-all the regular-bounded types that can be expressed
-by varying that type argument.
-This allows developers to consider such a type alias used as a raw type
-as a function type which allows the function to be passed to clients
-``where it does not matter which values
-for the type argument the client expects''$\!$.%
+  Conversely, consider the situation where
+  a generic type alias denotes a function type,
+  and it has one type parameter which is contravariant.
+  Instantiation to bound on that type alias will then yield a \emph{subtype} of
+  all the regular-bounded types that can be expressed
+  by varying that type argument.
+  This allows developers to consider such a type alias used as a raw type
+  as a function type which allows the function to be passed to clients
+  ``where it does not matter which values
+  for the type argument the client expects''$\!$.%
 }
 \commentary{%
   E.g., with
@@ -8212,16 +8221,17 @@ be determined by the following iterative process, where $V_m$ denotes
 }
 
 \rationale{%
-It may seem somewhat arbitrary to treat unused and invariant parameters
-in the same way as covariant parameters,
-in particular because invariant parameters fail to satisfy the expectation that
-a raw type denotes a supertype of all the expressible regular-bounded types.
-
-We could easily have made every instantiation to bound an error
-when applied to a type where invariance occurs anywhere
-during the run of the algorithm.
-However, there are a number of cases where this choice produces a usable type,
-and we decided that it is not helpful to outlaw such cases.%
+  It may seem somewhat arbitrary to treat unused and invariant parameters
+  in the same way as covariant parameters,
+  in particular because invariant parameters fail
+  to satisfy the expectation that
+  a raw type denotes a supertype of all the expressible regular-bounded types.
+  
+  We could easily have made every instantiation to bound an error
+  when applied to a type where invariance occurs anywhere
+  during the run of the algorithm.
+  However, there are a number of cases where this choice produces a usable type,
+  and we decided that it is not helpful to outlaw such cases.%
 }
 
 \begin{dartCode}
@@ -8271,9 +8281,9 @@ F f; // \comment{Compile-time error.}
 }
 
 \rationale{%
-The core reason why it makes sense to make such a raw type an error
-is that there is no subtype relationship
-between the relevant parameterized types.%
+  The core reason why it makes sense to make such a raw type an error
+  is that there is no subtype relationship
+  between the relevant parameterized types.%
 }
 \commentary{%
   For instance, \code{F<T1>} and \code{F<T2>} are unrelated,
@@ -8375,18 +8385,18 @@ of the program construct $p$ that immediately follows the metadata
 in the grammar rule.
 
 \rationale{%
-These rules are intended to ensure a minimal level of consistency
-in the association that binds each metadatum to a program construct.
-The structure of the abstract syntax tree is implementation specific,
-and it is not even guaranteed that a tool will use anything
-which is known as an abstract syntax tree.
-In that case the phrase `abstract syntax tree' should be interpreted as
-the program representation entities which are actually used.
+  These rules are intended to ensure a minimal level of consistency
+  in the association that binds each metadatum to a program construct.
+  The structure of the abstract syntax tree is implementation specific,
+  and it is not even guaranteed that a tool will use anything
+  which is known as an abstract syntax tree.
+  In that case the phrase `abstract syntax tree' should be interpreted as
+  the program representation entities which are actually used.
 
-This implies that the fine details of the association between metadata
-and an abstract syntax tree node is also implementation specific.
-In particular, an implementation can choose to associate a given metadatum
-with more than one abstract syntax tree node.%
+  This implies that the fine details of the association between metadata
+  and an abstract syntax tree node is also implementation specific.
+  In particular, an implementation can choose to associate a given metadatum
+  with more than one abstract syntax tree node.%
 }
 
 \LMHash{}%
@@ -8405,12 +8415,13 @@ provided the annotated program construct $p$ is accessible via reflection.
 }
 
 \rationale{%
-It is important that no run-time overhead be incurred by
-the introduction of metadata that is not actually used.
-Because metadata only involves constants,
-the time at which it is computed is irrelevant.
-So implementations may skip the metadata during ordinary parsing and execution,
-and evaluate it lazily.%
+  It is important that no run-time overhead be incurred by
+  the introduction of metadata that is not actually used.
+  Because metadata only involves constants,
+  the time at which it is computed is irrelevant.
+  So implementations may skip the metadata
+  during ordinary parsing and execution,
+  and evaluate it lazily.%
 }
 
 \commentary{%
@@ -8577,16 +8588,16 @@ is defined such that \code{identical($c_1$, $c_2$)} if{}f:
 }
 
 \rationale{%
-The definition of equality for doubles is dictated by the IEEE 754 standard,
-which posits that NaNs do not obey the law of reflexivity.
-Given that hardware implements these rules,
-it is necessary to support them for reasons of efficiency.
+  The definition of equality for doubles is dictated by the IEEE 754 standard,
+  which posits that NaNs do not obey the law of reflexivity.
+  Given that hardware implements these rules,
+  it is necessary to support them for reasons of efficiency.
 
-The definition of identity is not constrained in the same way.
-Instead, it assumes that bit-identical doubles are identical.
+  The definition of identity is not constrained in the same way.
+  Instead, it assumes that bit-identical doubles are identical.
 
-The rules for identity make it impossible for a Dart programmer
-to observe whether a boolean or numerical value is boxed or unboxed.%
+  The rules for identity make it impossible for a Dart programmer
+  to observe whether a boolean or numerical value is boxed or unboxed.%
 }
 
 
@@ -8602,14 +8613,14 @@ to observe whether a boolean or numerical value is boxed or unboxed.%
 }
 
 \rationale{%
-The constant expressions are restricted to expressions that
-perform only simple arithmetic operations, boolean conditions,
-and string and instance creation.
-No user-written function body is executed
-during constant expression evaluation,
-only members of the system classes
-\code{Object}, \code{bool}, \code{int}, \code{double},
-\code{String}, \code{Type}, \code{Symbol}, or \code{Null}.%
+  The constant expressions are restricted to expressions that
+  perform only simple arithmetic operations, boolean conditions,
+  and string and instance creation.
+  No user-written function body is executed
+  during constant expression evaluation,
+  only members of the system classes
+  \code{Object}, \code{bool}, \code{int}, \code{double},
+  \code{String}, \code{Type}, \code{Symbol}, or \code{Null}.%
 }
 
 \LMHash{}%
@@ -8954,14 +8965,14 @@ depends on itself.
 \LMLabel{furtherCommentsOnConstantsAndPotentiallyConstants}
 
 \rationale{%
-There is no requirement that
-every constant expression evaluate correctly.
-Only when a constant expression is required
-(e.g., to initialize a constant variable,
-or as a default value of a formal parameter,
-or as metadata)
-do we insist that a constant expression actually
-be evaluated successfully at compile time.%
+  There is no requirement that
+  every constant expression evaluate correctly.
+  Only when a constant expression is required
+  (e.g., to initialize a constant variable,
+  or as a default value of a formal parameter,
+  or as metadata)
+  do we insist that a constant expression actually
+  be evaluated successfully at compile time.%
 }
 
 \commentary{%
@@ -9017,26 +9028,26 @@ be evaluated successfully at compile time.%
 }
 
 \rationale{%
-The treatment of \code{\NULL} merits some discussion.
-Consider \code{\NULL{} + 2}.
-This expression always causes an error.
-We could have chosen not to treat it as a constant expression
-(and in general, not to allow \code{\NULL} as
-a subexpression of numeric or boolean constant expressions).
-There are two arguments for including it:
-First, it is constant so we \emph{can} evaluate it at compile time.
-Second, it seems more useful to give
-the error stemming from the evaluation explicitly.%
+  The treatment of \code{\NULL} merits some discussion.
+  Consider \code{\NULL{} + 2}.
+  This expression always causes an error.
+  We could have chosen not to treat it as a constant expression
+  (and in general, not to allow \code{\NULL} as
+  a subexpression of numeric or boolean constant expressions).
+  There are two arguments for including it:
+  First, it is constant so we \emph{can} evaluate it at compile time.
+  Second, it seems more useful to give
+  the error stemming from the evaluation explicitly.%
 }
 
 \rationale{%
-One might reasonably ask why
-$e_1$\,?\,\,$e_2$\,:\,$e_3$ and $e_1$\,??\,\,$e_2$
-have constant forms.
-If $e_1$ is known statically, why do we need to test it?
-The answer is that there are contexts where $e_1$ is a variable,
-e.g., in constant constructor initializers such as
-\code{\CONST{} C(foo):\ \THIS.foo = foo ??\ someDefaultValue;}%
+  One might reasonably ask why
+  $e_1$\,?\,\,$e_2$\,:\,$e_3$ and $e_1$\,??\,\,$e_2$
+  have constant forms.
+  If $e_1$ is known statically, why do we need to test it?
+  The answer is that there are contexts where $e_1$ is a variable,
+  e.g., in constant constructor initializers such as
+  \code{\CONST{} C(foo):\ \THIS.foo = foo ??\ someDefaultValue;}%
 }
 
 \commentary{%
@@ -9110,18 +9121,18 @@ e.g., in constant constructor initializers such as
 }
 
 \rationale{%
-All of the illegal constructors of \code{D} above
-could not be sensibly invoked via \NEW,
-because an expression that must be constant cannot depend on
-a formal parameter, which may or may not be constant.
-In contrast, the legal examples make sense regardless of
-whether the constructor is invoked via \CONST{} or via \NEW.
+  All of the illegal constructors of \code{D} above
+  could not be sensibly invoked via \NEW,
+  because an expression that must be constant cannot depend on
+  a formal parameter, which may or may not be constant.
+  In contrast, the legal examples make sense regardless of
+  whether the constructor is invoked via \CONST{} or via \NEW.
 
-Careful readers will of course worry about cases where
-the actual arguments to \code{C()} are constants, but are not numeric.
-This is precluded by the rules on constant constructors
-(\ref{constantConstructors}),
-combined with the rules for evaluating constant objects (\ref{const}).%
+  Careful readers will of course worry about cases where
+  the actual arguments to \code{C()} are constants, but are not numeric.
+  This is precluded by the rules on constant constructors
+  (\ref{constantConstructors}),
+  combined with the rules for evaluating constant objects (\ref{const}).%
 }
 
 
@@ -9160,10 +9171,10 @@ if{}f one of the following applies:
 \end{itemize}
 
 \rationale{%
-A constant context is introduced in situations where
-an expression is required to be constant.
-This is used to allow the \CONST{} modifier to be omitted
-in cases where it does not contribute any new information.%
+  A constant context is introduced in situations where
+  an expression is required to be constant.
+  This is used to allow the \CONST{} modifier to be omitted
+  in cases where it does not contribute any new information.%
 }
 
 
@@ -9360,10 +9371,10 @@ The static type of a boolean literal is \code{bool}.
 A \Index{string} is a sequence of UTF-16 code units.
 
 \rationale{%
-This decision was made for compatibility with web browsers and Javascript.
-Earlier versions of the specification required a string to be
-a sequence of valid Unicode code points.
-Programmers should not depend on this distinction.%
+  This decision was made for compatibility with web browsers and Javascript.
+  Earlier versions of the specification required a string to be
+  a sequence of valid Unicode code points.
+  Programmers should not depend on this distinction.%
 }
 
 \begin{grammar}
@@ -9451,11 +9462,11 @@ print("A string" "and then another"); // \comment{A stringand then another}
 \end{dartCode}
 
 \rationale{%
-Dart also supports the operator + for string concatenation.
+  Dart also supports the operator + for string concatenation.
 
-The + operator on Strings requires a String argument.
-It does not coerce its argument into a string.
-This helps avoid puzzlers such as%
+  The + operator on Strings requires a String argument.
+  It does not coerce its argument into a string.
+  This helps avoid puzzlers such as%
 }
 
 \begin{dartCode}
@@ -9464,10 +9475,10 @@ print("A simple sum: 2 + 2 = " +
 \end{dartCode}
 
 \rationale{%
-which would print `\code{A simple sum: 2 + 2 = 22}' rather than
-`\code{A simple sum: 2 + 2 = 4}'.
-However, for efficiency reasons,
-the recommended Dart idiom is to use string interpolation.%
+  which would print `\code{A simple sum: 2 + 2 = 22}' rather than
+  `\code{A simple sum: 2 + 2 = 4}'.
+  However, for efficiency reasons,
+  the recommended Dart idiom is to use string interpolation.%
 }
 
 \begin{dartCode}
@@ -9475,13 +9486,13 @@ print("A simple sum: 2 + 2 = \$\{2+2\}");
 \end{dartCode}
 
 \rationale{%
-String interpolation works well for most cases.
-The main situation where it is not fully satisfactory
-is for string literals that are too large to fit on a line.
-Multiline strings can be useful, but in some cases,
-we want to visually align the code.
-This can be expressed by writing
-smaller strings separated by whitespace, as shown here:%
+  String interpolation works well for most cases.
+  The main situation where it is not fully satisfactory
+  is for string literals that are too large to fit on a line.
+  Multiline strings can be useful, but in some cases,
+  we want to visually align the code.
+  This can be expressed by writing
+  smaller strings separated by whitespace, as shown here:%
 }
 
 \begin{dartCode}
@@ -9584,12 +9595,12 @@ then that line is ignored,
 including the line break at its end.
 
 \rationale{%
-The idea is to ignore a whitespace-only first line of a multiline string,
-where whitespace is defined as tabs, spaces and the final line break.
-These can be represented directly,
-but since for most characters prefixing by backslash is
-an identity in a non-raw string,
-we allow those forms as well.%
+  The idea is to ignore a whitespace-only first line of a multiline string,
+  where whitespace is defined as tabs, spaces and the final line break.
+  These can be represented directly,
+  but since for most characters prefixing by backslash is
+  an identity in a non-raw string,
+  we allow those forms as well.%
 }
 
 \LMHash{}%
@@ -9843,31 +9854,31 @@ nor to a \code{Symbol} instance that is equal to that object
 according to the \lit{==} operator.
 
 \rationale{%
-One may well ask what is the motivation for introducing literal symbols?
-In some languages, symbols are canonicalized whereas strings are not.
-However literal strings are already canonicalized in Dart.
-Symbols are slightly easier to type compared to strings
-and their use can become strangely addictive,
-but this is not nearly sufficient justification for adding
-a literal form to the language.
-The primary motivation is related to the use of reflection
-and a web specific practice known as minification.
+  One may well ask what is the motivation for introducing literal symbols?
+  In some languages, symbols are canonicalized whereas strings are not.
+  However literal strings are already canonicalized in Dart.
+  Symbols are slightly easier to type compared to strings
+  and their use can become strangely addictive,
+  but this is not nearly sufficient justification for adding
+  a literal form to the language.
+  The primary motivation is related to the use of reflection
+  and a web specific practice known as minification.
 
-Minification compresses identifiers consistently throughout a program
-in order to reduce download size.
-This practice poses difficulties for reflective programs
-that refer to program declarations via strings.
-A string will refer to an identifier in the source,
-but the identifier will no longer be used in the minified code,
-and reflective code using these would fail.
-Therefore, Dart reflection uses objects of type \code{Symbol}
-rather than strings.
-Instances of \code{Symbol} are guaranteed to be stable
-with respect to minification.
-Providing a literal form for symbols makes
-reflective code easier to read and write.
-The fact that symbols are easy to type and can often act as
-convenient substitutes for enums are secondary benefits.%
+  Minification compresses identifiers consistently throughout a program
+  in order to reduce download size.
+  This practice poses difficulties for reflective programs
+  that refer to program declarations via strings.
+  A string will refer to an identifier in the source,
+  but the identifier will no longer be used in the minified code,
+  and reflective code using these would fail.
+  Therefore, Dart reflection uses objects of type \code{Symbol}
+  rather than strings.
+  Instances of \code{Symbol} are guaranteed to be stable
+  with respect to minification.
+  Providing a literal form for symbols makes
+  reflective code easier to read and write.
+  The fact that symbols are easy to type and can often act as
+  convenient substitutes for enums are secondary benefits.%
 }
 
 
@@ -10376,11 +10387,11 @@ $\EvaluateElement{\ell} := s$;
 \end{enumerate}
 
 \rationale{%
-This may not be the most efficient way to traverse the items in a collection,
-and implementations may of course use any other approach
-with the same observable behavior.
-However, in order to give implementations more room to optimize
-we also allow the following.%
+  This may not be the most efficient way to traverse the items in a collection,
+  and implementations may of course use any other approach
+  with the same observable behavior.
+  However, in order to give implementations more room to optimize
+  we also allow the following.%
 }
 
 \LMHash{}%
@@ -10396,14 +10407,14 @@ If it does so, it will only pass indices
 that are non-negative and less than the value returned by \code{length}.
 
 \rationale{%
-This may allow for more efficient code for
-allocating the collection and accessing its parts.
-The given classes are expected to have
-an efficient and side-effect free implementation
-of \code{length} and operator \lit{[]}.
-A Dart implementation may detect whether these options apply
-at compile time based on the static type of $e$,
-or at runtime based on the actual value.%
+  This may allow for more efficient code for
+  allocating the collection and accessing its parts.
+  The given classes are expected to have
+  an efficient and side-effect free implementation
+  of \code{length} and operator \lit{[]}.
+  A Dart implementation may detect whether these options apply
+  at compile time based on the static type of $e$,
+  or at runtime based on the actual value.%
 }
 \EndCase
 
@@ -10654,9 +10665,9 @@ It is a dynamic error to attempt to access a list
 using an index that is not a member of its set of indices.
 
 \rationale{%
-The system libraries define many members for the type \code{List},
-but we specify only the minimal set of requirements
-which are used by the language itself.%
+  The system libraries define many members for the type \code{List},
+  but we specify only the minimal set of requirements
+  which are used by the language itself.%
 }
 
 \LMHash{}%
@@ -10695,9 +10706,9 @@ is not a constant type expression
 (\ref{constants}).
 
 \rationale{%
-The binding of a formal type parameter of an enclosing class or function
-is not known at compile time,
-so we cannot use such type parameters inside constant expressions.%
+  The binding of a formal type parameter of an enclosing class or function
+  is not known at compile time,
+  so we cannot use such type parameters inside constant expressions.%
 }
 
 \LMHash{}%
@@ -11443,9 +11454,9 @@ is not a constant type expression
 (\ref{constants}).
 
 \rationale{%
-The binding of a formal type parameter of an enclosing class or function
-is not known at compile time,
-so we cannot use such type parameters inside constant expressions.%
+  The binding of a formal type parameter of an enclosing class or function
+  is not known at compile time,
+  so we cannot use such type parameters inside constant expressions.%
 }
 
 \LMHash{}%
@@ -11640,9 +11651,9 @@ is not a constant type expression
 (\ref{constants}).
 
 \rationale{%
-The binding of a formal type parameter of an enclosing class or function
-is not known at compile time,
-so we cannot use such type parameters inside constant expressions.%
+  The binding of a formal type parameter of an enclosing class or function
+  is not known at compile time,
+  so we cannot use such type parameters inside constant expressions.%
 }
 
 \LMHash{}%
@@ -11910,46 +11921,46 @@ as follows, using the first applicable case:
 \end{itemize}
 
 \rationale{%
-This definition guarantees that for any type $T$,
-\code{$T <:$ FutureOr<$\flatten{T}$>}. The proof is by induction on the
-structure of $T$:
-
-\begin{itemize}
-\item If $T$ is \code{$X$\,\&\,$S$} then
+  This definition guarantees that for any type $T$,
+  \code{$T <:$ FutureOr<$\flatten{T}$>}. The proof is by induction on the
+  structure of $T$:
 
   \begin{itemize}
-  \item if $S$ derives a future type $U$,
-    then \code{$T <: S$} and \code{$S <: U$}, so \code{$T <: U$}.
-    By the induction hypothesis, \code{$U <:$ FutureOr<$\flatten{U}$>}.
-    Since \code{$\flatten{T} = \flatten{U}$} in this case, it follows that
-    \code{$U <:$ FutureOr<$\flatten{T}$>}, and so
-    \code{$T <:$ FutureOr<$\flatten{T}$>}.
-  \item otherwise, \code{$T <: X$}.
-    By the induction hypothesis, \code{$X <:$ FutureOr<$\flatten{X}$>}.
-    Since \code{$\flatten{T} = \flatten{X}$} in this case, it follows that
-    \code{$U <:$ FutureOr<$\flatten{T}$>}, and so
+  \item If $T$ is \code{$X$\,\&\,$S$} then
+
+    \begin{itemize}
+    \item if $S$ derives a future type $U$,
+      then \code{$T <: S$} and \code{$S <: U$}, so \code{$T <: U$}.
+      By the induction hypothesis, \code{$U <:$ FutureOr<$\flatten{U}$>}.
+      Since \code{$\flatten{T} = \flatten{U}$} in this case, it follows that
+      \code{$U <:$ FutureOr<$\flatten{T}$>}, and so
+      \code{$T <:$ FutureOr<$\flatten{T}$>}.
+    \item otherwise, \code{$T <: X$}.
+      By the induction hypothesis, \code{$X <:$ FutureOr<$\flatten{X}$>}.
+      Since \code{$\flatten{T} = \flatten{X}$} in this case, it follows that
+      \code{$U <:$ FutureOr<$\flatten{T}$>}, and so
+      \code{$T <:$ FutureOr<$\flatten{T}$>}.
+    \end{itemize}
+
+  \item If $T$ derives a future type \code{Future<$S$>}
+    or \code{FutureOr<$S$>}, then, since \code{Future<$S$> $<:$ FutureOr<$S$>},
+    it follows that \code{$T <:$ FutureOr<$S$>}. Since \code{$\flatten{T} = S$}
+    in this case, it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
+
+  \item If $T$ derives a future type \code{Future<$S$>?} or
+    \code{FutureOr<$S$>?}, then, since \code{Future<$S$>? $<:$ FutureOr<$S$>?},
+    it follows that \code{$T <:$ FutureOr<$S$>?}.
+    \code{FutureOr<$S$>? $<:$ FutureOr<$S$?>} for any type $S$
+    (this can be shown using the union type subtype rules and from
+    \code{Future<$S$> $<:$ Future<$S$?>} by covariance), so by transivitity,
+    \code{$T <:$ FutureOr<$S$?>}. Since \code{$\flatten{T} = S$?} in this case,
+    it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
+
+  \item Otherwise, \code{$\flatten{T} = T$}, so
+    \code{FutureOr<$\flatten{T}$> $=$ FutureOr<$T$>}. Since
+    \code{$T <:$ FutureOr<$T$>}, it follows that
     \code{$T <:$ FutureOr<$\flatten{T}$>}.
   \end{itemize}
-
-\item If $T$ derives a future type \code{Future<$S$>}
-  or \code{FutureOr<$S$>}, then, since \code{Future<$S$> $<:$ FutureOr<$S$>},
-  it follows that \code{$T <:$ FutureOr<$S$>}. Since \code{$\flatten{T} = S$}
-  in this case, it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
-
-\item If $T$ derives a future type \code{Future<$S$>?} or
-  \code{FutureOr<$S$>?}, then, since \code{Future<$S$>? $<:$ FutureOr<$S$>?},
-  it follows that \code{$T <:$ FutureOr<$S$>?}.
-  \code{FutureOr<$S$>? $<:$ FutureOr<$S$?>} for any type $S$ (this can be shown
-  using the union type subtype rules and from
-  \code{Future<$S$> $<:$ Future<$S$?>} by covariance), so by transivitity,
-  \code{$T <:$ FutureOr<$S$?>}. Since \code{$\flatten{T} = S$?} in this case,
-  it follows that \code{$T <:$ FutureOr<$\flatten{T}$>}.
-
-\item Otherwise, \code{$\flatten{T} = T$}, so
-  \code{FutureOr<$\flatten{T}$> $=$ FutureOr<$T$>}. Since
-  \code{$T <:$ FutureOr<$T$>}, it follows that
-  \code{$T <:$ FutureOr<$\flatten{T}$>}.
-\end{itemize}
 }
 
 \LMHash{}%
@@ -12426,8 +12437,8 @@ and then evaluation of $e$ also throws $x$ and $t$
 (\ref{expressionEvaluation}).
 
 \rationale{%
-A factory constructor can be declared in an abstract class and used safely,
-as it will either produce a valid instance or throw.%
+  A factory constructor can be declared in an abstract class and used safely,
+  as it will either produce a valid instance or throw.%
 }
 \EndCase
 
@@ -12819,9 +12830,9 @@ $o$ is completed with the error $e$ and stack trace $t$.
 If execution of the body throws before the body suspends the first time,
 completion of $o$ happens at some future time after the invocation has returned.
 \rationale{%
-The caller needs time to set up error handling for the returned future,
-so the future is not completed with an error
-\emph{before} it has been returned.%
+  The caller needs time to set up error handling for the returned future,
+  so the future is not completed with an error
+  \emph{before} it has been returned.%
 }
 
 \LMHash{}%
@@ -12861,10 +12872,10 @@ When execution of the body of $f$ completes:
 }
 
 \rationale{%
-When an asynchronous generator's stream has been canceled,
-cleanup will occur in the \FINALLY{} clauses (\ref{try}) inside the generator.
-We choose to direct any exceptions that occur at this time
-to the cancellation future rather than have them be lost.%
+  When an asynchronous generator's stream has been canceled,
+  cleanup will occur in the \FINALLY{} clauses (\ref{try}) inside the generator.
+  We choose to direct any exceptions that occur at this time
+  to the cancellation future rather than have them be lost.%
 }
 
 
@@ -12998,14 +13009,14 @@ as a generic function invocation.
 }
 
 \rationale{%
-When the intention is to pass
-several relational or shift expressions as actual arguments
-and there is an ambiguity, the source code can easily be adjusted
-to a form which is unambiguous.
-Also, we expect that it will be more common to have
-generic function invocations as actual arguments
-than having relational or shift expressions that happen to match up
-and have parentheses at the end, such that the ambiguity arises.%
+  When the intention is to pass
+  several relational or shift expressions as actual arguments
+  and there is an ambiguity, the source code can easily be adjusted
+  to a form which is unambiguous.
+  Also, we expect that it will be more common to have
+  generic function invocations as actual arguments
+  than having relational or shift expressions that happen to match up
+  and have parentheses at the end, such that the ambiguity arises.%
 }
 
 \LMHash{}%
@@ -13242,20 +13253,20 @@ $S_{q_j}, j \in 1 .. l$.
 }
 
 \rationale{%
-Parameter covariance in an instance method invocation can be introduced by
-a subtype of the statically known receiver type,
-which means that any attempt to flag a given actual argument as dangerous
-due to the dynamic type check that it will be subjected to
-will be incomplete:
-some actual arguments can be subjected to such a dynamic type check
-even though this is not known statically at the call site.
-This is not surprising for a mechanism like parameter covariance which is
-designed for the very purpose of allowing developers to explicitly request
-that this specific kind of compile-time safety is violated.
-The point is that this mechanism postpones the enforcement of
-the underlying invariant to run time,
-and in return allows some useful program designs
-that would otherwise be rejected at compile-time.%
+  Parameter covariance in an instance method invocation can be introduced by
+  a subtype of the statically known receiver type,
+  which means that any attempt to flag a given actual argument as dangerous
+  due to the dynamic type check that it will be subjected to
+  will be incomplete:
+  some actual arguments can be subjected to such a dynamic type check
+  even though this is not known statically at the call site.
+  This is not surprising for a mechanism like parameter covariance which is
+  designed for the very purpose of allowing developers to explicitly request
+  that this specific kind of compile-time safety is violated.
+  The point is that this mechanism postpones the enforcement of
+  the underlying invariant to run time,
+  and in return allows some useful program designs
+  that would otherwise be rejected at compile-time.%
 }
 
 \LMHash{}%
@@ -13695,15 +13706,15 @@ Generic function instantiation is a mechanism that yields
 a non-generic function object based on a given generic function.
 
 \rationale{%
-The essence of generic function instantiation
-is to allow for ``curried'' invocations,
-in the sense that a generic function can receive its actual
-type arguments separately
-(it must then receive \emph{all} type arguments, not just some of them),
-and that yields a non-generic function object.
-The type arguments are passed implicitly, based on type inference;
-%% TODO(eernst): Come constructor-tearoffs, revise this.
-a future version of Dart may allow for passing them explicitly.%
+  The essence of generic function instantiation
+  is to allow for ``curried'' invocations,
+  in the sense that a generic function can receive its actual
+  type arguments separately
+  (it must then receive \emph{all} type arguments, not just some of them),
+  and that yields a non-generic function object.
+  The type arguments are passed implicitly, based on type inference;
+  %% TODO(eernst): Come constructor-tearoffs, revise this.
+  a future version of Dart may allow for passing them explicitly.%
 }
 \commentary{Here is an example:}
 
@@ -13835,12 +13846,12 @@ In this case \code{$o'_1$ == $o'_2$} shall evaluate to true.
 }
 
 \rationale{%
-No notion of equality is appropriate when the type arguments differ,
-even if the resulting function objects
-turn out to have exactly the same type at run time,
-because execution of two function objects that differ in these ways
-can have different side-effects and return different results
-when executed starting from exactly the same state.%
+  No notion of equality is appropriate when the type arguments differ,
+  even if the resulting function objects
+  turn out to have exactly the same type at run time,
+  because execution of two function objects that differ in these ways
+  can have different side-effects and return different results
+  when executed starting from exactly the same state.%
 }
 
 
@@ -13922,8 +13933,8 @@ Let $m$ be an identifier, $o$ an object, and $L$ a library.
 }
 
 \rationale{%
-The motivation for ignoring abstract members during lookup
-is largely to allow smoother mixin composition.%
+  The motivation for ignoring abstract members during lookup
+  is largely to allow smoother mixin composition.%
 }
 
 
@@ -14065,15 +14076,15 @@ is a member invocation which is not conditional.
 }
 
 \rationale{%
-Note that $r$ cannot be \SUPER{}
-even though \code{\SUPER.m()} invokes an instance method.
-This is because the semantics of a superinvocation is different from
-that of other invocations.
-Among the binary operators, \lit{==} is not included.
-This is because evaluation of \code{$e_1$ == $e_2$}
-involves more steps than an instance member invocation.
-Similarly, \lit{\&\&}, and \lit{||} are not included
-because their evaluation does not involve method invocation.%
+  Note that $r$ cannot be \SUPER{}
+  even though \code{\SUPER.m()} invokes an instance method.
+  This is because the semantics of a superinvocation is different from
+  that of other invocations.
+  Among the binary operators, \lit{==} is not included.
+  This is because evaluation of \code{$e_1$ == $e_2$}
+  involves more steps than an instance member invocation.
+  Similarly, \lit{\&\&}, and \lit{||} are not included
+  because their evaluation does not involve method invocation.%
 }
 
 \begin{figure}[t]
@@ -14368,14 +14379,14 @@ instance member named $m$, unless either:
   \commentary{(apart from separate static checks on subterms like arguments)}
   and the static type of $i$ is \DYNAMIC.
 \rationale{%
-This means that for invocations of an instance method named \CALL,
-a receiver of type \FUNCTION{} is treated like a receiver of type \DYNAMIC.
-The expectation is that any concrete subclass of \FUNCTION{}
-will implement \CALL,
-but there is no method signature
-which can be assumed for \CALL{} in \FUNCTION{}
-because every signature will conflict with
-some potential overriding declarations.%
+  This means that for invocations of an instance method named \CALL,
+  a receiver of type \FUNCTION{} is treated like a receiver of type \DYNAMIC.
+  The expectation is that any concrete subclass of \FUNCTION{}
+  will implement \CALL,
+  but there is no method signature
+  which can be assumed for \CALL{} in \FUNCTION{}
+  because every signature will conflict with
+  some potential overriding declarations.%
 }
 \end{itemize}
 
@@ -14505,13 +14516,13 @@ that is immediately followed by the token `.' (a period).
 \commentary{For instance, \code{int.toString()} is an error.}
 
 \rationale{%
-The reason for this rule is that member access on a type literal
-is reserved for invocation of static members.
-Invocation of a static member of a class, mixin, enum, or extension
-uses said entity as a \emph{namespace},
-not as an actual class, mixin, enum, or extension.
-In particular, the syntactic receiver is not evaluated
-to an object---that would not even be possible for an extension.%
+  The reason for this rule is that member access on a type literal
+  is reserved for invocation of static members.
+  Invocation of a static member of a class, mixin, enum, or extension
+  uses said entity as a \emph{namespace},
+  not as an actual class, mixin, enum, or extension.
+  In particular, the syntactic receiver is not evaluated
+  to an object---that would not even be possible for an extension.%
 }
 
 \commentary{%
@@ -14634,10 +14645,10 @@ A \IndexCustom{cascaded member access}{cascaded member access}
 is an expression derived from \synt{cascade}.
 
 \rationale{%
-A \synt{cascadeSection} allows for accessing members, including setters.
-The motivation for having a cascaded member access is that it allows for
-performing a chain of operations based on an object
-while preserving a reference to that object for further processing.%
+  A \synt{cascadeSection} allows for accessing members, including setters.
+  The motivation for having a cascaded member access is that it allows for
+  performing a chain of operations based on an object
+  while preserving a reference to that object for further processing.%
 }
 
 \commentary{%
@@ -14989,12 +15000,12 @@ and $e$ is a type literal.
 }
 
 \rationale{%
-This is a pragmatic trade-off.
-The ability to tear off instance methods on instances of \code{Type}
-was considered less useful,
-and it was considered more useful to insist on the simple rule that
-a method tear-off on a type literal is \emph{always} a tear-off
-of a static method on the denoted class.%
+  This is a pragmatic trade-off.
+  The ability to tear off instance methods on instances of \code{Type}
+  was considered less useful,
+  and it was considered more useful to insist on the simple rule that
+  a method tear-off on a type literal is \emph{always} a tear-off
+  of a static method on the denoted class.%
 }
 
 \LMHash{}%
@@ -15307,10 +15318,10 @@ if and only if $o_1$ and $o_2$ is the same object.
 }
 
 \rationale{%
-The special treatment of equality in this case facilitates
-the use of extracted property functions in APIs where callbacks
-such as event listeners must often be registered and later unregistered.
-A common example is the DOM API in web browsers.%
+  The special treatment of equality in this case facilitates
+  the use of extracted property functions in APIs where callbacks
+  such as event listeners must often be registered and later unregistered.
+  A common example is the DOM API in web browsers.%
 }
 
 
@@ -15468,14 +15479,14 @@ based on a property extraction which denotes an instance method closurization
 }
 
 \rationale{%
-The essence of generic method instantiation
-is to allow for ``curried'' invocations,
-in the sense that a generic instance method can receive its actual
-type arguments separately during closurization
-(it must then receive \emph{all} type arguments, not just some of them),
-and that yields a non-generic function object.
-The type arguments are passed implicitly, based on type inference;
-a future version of Dart may allow for passing them explicitly.%
+  The essence of generic method instantiation
+  is to allow for ``curried'' invocations,
+  in the sense that a generic instance method can receive its actual
+  type arguments separately during closurization
+  (it must then receive \emph{all} type arguments, not just some of them),
+  and that yields a non-generic function object.
+  The type arguments are passed implicitly, based on type inference;
+  a future version of Dart may allow for passing them explicitly.%
 }
 \commentary{Here is an example:}
 
@@ -15510,18 +15521,18 @@ a future version of Dart may allow for passing them explicitly.%
 }
 
 \rationale{%
-In other words, generic method instantiation yields a function
-whose signature matches the context type as far as possible,
-but with respect to its parameter list shape
-(that is, the number of positional parameters and their optionality,
-or the set of names of named parameters),
-it will be determined by the method signature of the actual instance method
-of the given receiver.
-Of course, the difference can only be such that the actual type is
-% This is about the dynamic type, so there is no exception for \COVARIANT.
-a subtype of the given context type,
-otherwise the declaration of that instance method
-would have been a compile-time error.%
+  In other words, generic method instantiation yields a function
+  whose signature matches the context type as far as possible,
+  but with respect to its parameter list shape
+  (that is, the number of positional parameters and their optionality,
+  or the set of names of named parameters),
+  it will be determined by the method signature of the actual instance method
+  of the given receiver.
+  Of course, the difference can only be such that the actual type is
+  % This is about the dynamic type, so there is no exception for \COVARIANT.
+  a subtype of the given context type,
+  otherwise the declaration of that instance method
+  would have been a compile-time error.%
 }
 
 \LMHash{}%
@@ -15696,11 +15707,11 @@ evaluates to \TRUE{} or \FALSE.
 } % End of scope for \gmiName.
 
 \rationale{%
-No notion of equality is appropriate with different receivers,
-nor when different type arguments are provided,
-because execution of two function objects that differ in these ways
-can have different side-effects and return different results
-when executed starting from exactly the same state.%
+  No notion of equality is appropriate with different receivers,
+  nor when different type arguments are provided,
+  because execution of two function objects that differ in these ways
+  can have different side-effects and return different results
+  when executed starting from exactly the same state.%
 }
 
 
@@ -16862,8 +16873,9 @@ $a$ throws $x$ and $t$
 If $f$ completes with an object $v$, $a$ evaluates to $v$.
 
 \rationale{%
-The use of \flattenName{} to find $T$ and hence determine the dynamic type test
-implies that we await a future in every case where this choice is sound.%
+  The use of \flattenName{} to find $T$
+  and hence determine the dynamic type test
+  implies that we await a future in every case where this choice is sound.%
 }
 
 \commentary{%
@@ -16900,9 +16912,9 @@ implies that we await a future in every case where this choice is sound.%
 }
 
 \rationale{%
-An await expression could not meaningfully occur in a synchronous function.
-If such a function were to suspend waiting for a future,
-it would no longer be synchronous.%
+  An await expression could not meaningfully occur in a synchronous function.
+  If such a function were to suspend waiting for a future,
+  it would no longer be synchronous.%
 }
 
 \commentary{%
@@ -16999,9 +17011,9 @@ Evaluate \code{$v$ = $y$ + 1} respectively \code{$v$ = $y$ - 1}.
 Then $e$ evaluates to $r$.
 
 \rationale{%
-The above ensures that if the evaluation involves a getter,
-it gets called exactly once.
-Likewise in the cases below.%
+  The above ensures that if the evaluation involves a getter,
+  it gets called exactly once.
+  Likewise in the cases below.%
 }
 \EndCase
 
@@ -17352,14 +17364,14 @@ It is a compile-time error if $\ell$ does not have access to \THIS{}
 \EndCase
 
 \rationale{%
-We are always looking up \emph{both} \id{} and \code{\id=},
-no matter whether $n$ is \id{} or \code{\id=}.
-This approach creates a tighter connection between a pair of declarations
-where one is a getter named \id{}
-and the other is a setter named \code{\id=}.
-This allows developers to think about
-a getter and setter that are declared together as a single entity,
-rather than two independent declarations.%
+  We are always looking up \emph{both} \id{} and \code{\id=},
+  no matter whether $n$ is \id{} or \code{\id=}.
+  This approach creates a tighter connection between a pair of declarations
+  where one is a getter named \id{}
+  and the other is a setter named \code{\id=}.
+  This allows developers to think about
+  a getter and setter that are declared together as a single entity,
+  rather than two independent declarations.%
 }
 
 \commentary{%
@@ -17430,18 +17442,18 @@ proceed as described in the first applicable case from the following list:
 \end{itemize}
 
 \rationale{%
-Note that a lexical lookup will never yield a declaration of
-an instance member.
-In each case where it is determined that there is no error,
-and an instance member is the result of the lookup,
-the lexical lookup yields nothing.
-
-The reason for this is that there may not be a declaration in scope,
-but the interface of the class could have the required member,
-or an extension method could be applicable.
-So, for uniformity,
-in these situations we always report that nothing was found,
-which implies that \THIS{} should be added.%
+  Note that a lexical lookup will never yield a declaration of
+  an instance member.
+  In each case where it is determined that there is no error,
+  and an instance member is the result of the lookup,
+  the lexical lookup yields nothing.
+  
+  The reason for this is that there may not be a declaration in scope,
+  but the interface of the class could have the required member,
+  or an extension method could be applicable.
+  So, for uniformity,
+  in these situations we always report that nothing was found,
+  which implies that \THIS{} should be added.%
 }
 
 
@@ -17534,12 +17546,12 @@ the identifiers produced by the production \synt{BUILT\_IN\_IDENTIFIER}.
 }
 
 \rationale{%
-Built-in identifiers are identifiers that are used as keywords in Dart,
-but are not reserved words.
-A built-in identifier may not be used to name a class or type.
-In other words, they are treated as reserved words when used as types.
-This eliminates many confusing situations,
-both for human readers and during parsing.%
+  Built-in identifiers are identifiers that are used as keywords in Dart,
+  but are not reserved words.
+  A built-in identifier may not be used to name a class or type.
+  In other words, they are treated as reserved words when used as types.
+  This eliminates many confusing situations,
+  both for human readers and during parsing.%
 }
 
 \LMHash{}%
@@ -17548,11 +17560,11 @@ is used as an \synt{identifier} in a function body
 marked with either \ASYNC, \code{\ASYNC*}, or \code{\SYNC*}.
 
 \rationale{%
-This makes the identifiers \AWAIT{} and \YIELD{} behave like reserved words
-in a limited context.
-This approach was chosen because it was less breaking than it would have been
-to make \AWAIT{} and \YIELD{} reserved words or built-in identifiers,
-at the time where these features were added to the language.%
+  This makes the identifiers \AWAIT{} and \YIELD{} behave like reserved words
+  in a limited context.
+  This approach was chosen because it was less breaking than it would have been
+  to make \AWAIT{} and \YIELD{} reserved words or built-in identifiers,
+  at the time where these features were added to the language.%
 }
 
 \LMHash{}%
@@ -17806,28 +17818,28 @@ then $e$ shows that $v$ has type $X \& T$.
 Otherwise $e$ does not show that $v$ has type $T$ for any $T$.
 
 \rationale{%
-The motivation for the ``shows that v has type T" relation is
-to reduce spurious errors thereby enabling a more natural coding style.
-The rules in the current specification are deliberately kept simple.
-It would be upwardly compatible to refine these rules in the future;
-such a refinement would accept more code without errors,
-but not reject any code now error-free.
+  The motivation for the ``shows that v has type T'' relation is
+  to reduce spurious errors thereby enabling a more natural coding style.
+  The rules in the current specification are deliberately kept simple.
+  It would be upwardly compatible to refine these rules in the future;
+  such a refinement would accept more code without errors,
+  but not reject any code now error-free.
 
-The rule only applies to locals and parameters,
-as non-local variables could be modified
-via side-effecting functions or methods that are not accessible
-to a local analysis.
+  The rule only applies to locals and parameters,
+  as non-local variables could be modified
+  via side-effecting functions or methods that are not accessible
+  to a local analysis.
 
-It is pointless to deduce a weaker type than what is already known.
-Furthermore, this would lead to a situation where multiple types are
-associated with a variable at a given point,
-which complicates the specification.
-Hence the requirement that the promoted type is a subtype of the current type.
+  It is pointless to deduce a weaker type than what is already known.
+  Furthermore, this would lead to a situation where multiple types are
+  associated with a variable at a given point,
+  which complicates the specification.
+  Hence the requirement that the promoted type is a subtype of the current type.
 
-In any case, it is not an error when a type test does not show
-that a given variable does not have a ``better'' type than previously known,
-but tools may choose to give a hint in such cases,
-if suitable heuristics indicate that a promotion is likely to be intended.%
+  In any case, it is not an error when a type test does not show
+  that a given variable does not have a ``better'' type than previously known,
+  but tools may choose to give a hint in such cases,
+  if suitable heuristics indicate that a promotion is likely to be intended.%
 }
 
 \LMHash{}%
@@ -17980,12 +17992,12 @@ to begin with a \lit{\{}.
   when the expression starts with a \lit{\{}.%
 }
 \rationale{%
-The restriction resolves an ambiguity while parsing where a
-\lit{\{} can start either a block (\ref{blocks}) or
-a map literal (\ref{maps}).
-By disallowing the latter from starting an expression statement,
-the parser does not need to look further ahead
-before deciding that it is parsing a block statement.%
+  The restriction resolves an ambiguity while parsing where a
+  \lit{\{} can start either a block (\ref{blocks}) or
+  a map literal (\ref{maps}).
+  By disallowing the latter from starting an expression statement,
+  the parser does not need to look further ahead
+  before deciding that it is parsing a block statement.%
 }
 
 \LMHash{}%
@@ -18310,14 +18322,14 @@ top2() \{ // \comment{a top level function}
 \end{dartCode}
 
 \rationale{%
-The rules for local functions differ slightly from those for local variables
-in that a function can be accessed within its declaration
-but a variable can only be accessed after its declaration.
-This is because recursive functions are useful
-whereas recursively defined variables are almost always errors.
-It therefore makes sense to harmonize the rules for local functions
-with those for functions in general rather than
-with the rules for local variables.%
+  The rules for local functions differ slightly from those for local variables
+  in that a function can be accessed within its declaration
+  but a variable can only be accessed after its declaration.
+  This is because recursive functions are useful
+  whereas recursively defined variables are almost always errors.
+  It therefore makes sense to harmonize the rules for local functions
+  with those for functions in general rather than
+  with the rules for local variables.%
 }
 
 
@@ -18342,7 +18354,7 @@ where $s_2$ is not a block statement is equivalent to the statement
 \code{\IF{} ($e$) $s_1$ \ELSE{} \{$s_2$\}}.
 
 \rationale{%
-The reason for this equivalence is to catch errors such as%
+  The reason for this equivalence is to catch errors such as%
 }
 
 \begin{dartCode}
@@ -18354,23 +18366,23 @@ The reason for this equivalence is to catch errors such as%
 \end{dartCode}
 
 \rationale{%
-Under reasonable scope rules such code is problematic.
-If we assume that \code{v} is declared
-in the scope of the method \code{main()},
-then when \code{somePredicate} is false,
-\code{v} will be uninitialized when accessed.
-The cleanest approach would be to require a block following the test,
-rather than an arbitrary statement.
-However, this goes against long standing custom,
-undermining Dart's goal of familiarity.
-Instead, we choose to insert a block, introducing a scope,
-around the statement following the predicate
-(and similarly for \ELSE{} and loops).
-This will cause a compile-time error in the case above.
-Of course, if there is a declaration of \code{v} in the surrounding scope,
-programmers might still be surprised.
-We expect tools to highlight cases of shadowing
-to help avoid such situations.%
+  Under reasonable scope rules such code is problematic.
+  If we assume that \code{v} is declared
+  in the scope of the method \code{main()},
+  then when \code{somePredicate} is false,
+  \code{v} will be uninitialized when accessed.
+  The cleanest approach would be to require a block following the test,
+  rather than an arbitrary statement.
+  However, this goes against long standing custom,
+  undermining Dart's goal of familiarity.
+  Instead, we choose to insert a block, introducing a scope,
+  around the statement following the predicate
+  (and similarly for \ELSE{} and loops).
+  This will cause a compile-time error in the case above.
+  Of course, if there is a declaration of \code{v} in the surrounding scope,
+  programmers might still be surprised.
+  We expect tools to highlight cases of shadowing
+  to help avoid such situations.%
 }
 
 \LMHash{}%
@@ -18476,19 +18488,19 @@ Then:
 \end{enumerate}
 
 \rationale{%
-The definition above is intended to prevent the common error
-where users create a function object inside a for loop,
-intending to close over the current binding of the loop variable, and find
-(usually after a painful process of debugging and learning)
-that all the created function objects have captured
-the same value---the one current in the last iteration executed.
-
-Instead, each iteration has its own distinct variable.
-The first iteration uses the variable created by the initial declaration.
-The expression executed at the end of each iteration uses
-a fresh variable $v''$,
-bound to the value of the current iteration variable,
-and then modifies $v''$ as required for the next iteration.%
+  The definition above is intended to prevent the common error
+  where users create a function object inside a for loop,
+  intending to close over the current binding of the loop variable, and find
+  (usually after a painful process of debugging and learning)
+  that all the created function objects have captured
+  the same value---the one current in the last iteration executed.
+  
+  Instead, each iteration has its own distinct variable.
+  The first iteration uses the variable created by the initial declaration.
+  The expression executed at the end of each iteration uses
+  a fresh variable $v''$,
+  bound to the value of the current iteration variable,
+  and then modifies $v''$ as required for the next iteration.%
 }
 
 \LMHash{}%
@@ -18653,9 +18665,9 @@ It is a compile-time error if a traditional for loop (\ref{forLoop}) is
 prefixed by the \AWAIT{} keyword.
 
 \rationale{%
-An asynchronous loop would make no sense within a synchronous function,
-for the same reasons that an await expression makes no sense
-in a synchronous function.%
+  An asynchronous loop would make no sense within a synchronous function,
+  for the same reasons that an await expression makes no sense
+  in a synchronous function.%
 }
 
 
@@ -18814,13 +18826,13 @@ do not have primitive equality
 (\ref{theOperatorEqualsEquals}).
 
 \rationale{%
-The prohibition on user defined equality allows us to
-implement the switch efficiently for user defined types.
-We could formulate matching in terms of identity instead,
-with the same efficiency.
-However, if a type defines an equality operator,
-programmers would presumably find it quite surprising
-if equal objects did not match.%
+  The prohibition on user defined equality allows us to
+  implement the switch efficiently for user defined types.
+  We could formulate matching in terms of identity instead,
+  with the same efficiency.
+  However, if a type defines an equality operator,
+  programmers would presumably find it quite surprising
+  if equal objects did not match.%
 }
 
 \commentary{%
@@ -18935,28 +18947,28 @@ a \BREAK, \CONTINUE, \RETHROW, or \RETURN{} statement,
 or an expression statement where the expression is a \THROW{} expression.
 
 \rationale{%
-The behavior of switch cases intentionally differs from the C tradition.
-Implicit fall through is a known cause of programming errors
-and therefore disallowed.
-Why not simply break the flow implicitly at the end of every case,
-rather than requiring explicit code to do so?
-This would indeed be cleaner.
-It would also be cleaner to insist that each case have
-a single (possibly compound) statement.
-We have chosen not to do so in order to
-facilitate porting of switch statements from other languages.
-Implicitly breaking the control flow at the end of a case would silently alter
-the meaning of ported code that relied on fall-through,
-potentially forcing the programmer to deal with subtle bugs.
-Our design ensures that the difference is immediately brought to
-the coder's attention.
-The programmer will be notified at compile time if they forget to end a case
-with a statement that terminates the straight-line control flow.
+  The behavior of switch cases intentionally differs from the C tradition.
+  Implicit fall through is a known cause of programming errors
+  and therefore disallowed.
+  Why not simply break the flow implicitly at the end of every case,
+  rather than requiring explicit code to do so?
+  This would indeed be cleaner.
+  It would also be cleaner to insist that each case have
+  a single (possibly compound) statement.
+  We have chosen not to do so in order to
+  facilitate porting of switch statements from other languages.
+  Implicitly breaking the control flow at the end of a case would silently
+  alter the meaning of ported code that relied on fall-through,
+  potentially forcing the programmer to deal with subtle bugs.
+  Our design ensures that the difference is immediately brought to
+  the coder's attention.
+  The programmer will be notified at compile time if they forget to end a case
+  with a statement that terminates the straight-line control flow.
 
-The sophistication of the analysis of fall-through is another issue.
-For now, we have opted for a very straightforward syntactic requirement.
-There are obviously situations where code does not fall through,
-and yet does not conform to these simple rules, e.g.:%
+  The sophistication of the analysis of fall-through is another issue.
+  For now, we have opted for a very straightforward syntactic requirement.
+  There are obviously situations where code does not fall through,
+  and yet does not conform to these simple rules, e.g.:%
 }
 
 \begin{dartCode}
@@ -18966,8 +18978,8 @@ and yet does not conform to these simple rules, e.g.:%
 \end{dartCode}
 
 \rationale{%
-Very elaborate code in a case clause is probably bad style in any case,
-and such code can always be refactored.%
+  Very elaborate code in a case clause is probably bad style in any case,
+  and such code can always be refactored.%
 }
 
 \LMHash{}%
@@ -19080,11 +19092,11 @@ and let \code{\ON\,\,$T$\,\,\CATCH\,\,($p_1$,\,\,$p_2$)}
 be the immediately enclosing catch clause (\ref{try}).
 
 \rationale{%
-A \RETHROW{} statement always appears inside a \CATCH{} clause,
-and every \CATCH{} clause is treated as some \CATCH{} clause of the form
-\code{\ON\,\,$T$\,\,\CATCH\,\,(p1,\,\,p2)}.
-So we can consider the \RETHROW{} statement to be enclosed in
-a \CATCH{} clause of that form.%
+  A \RETHROW{} statement always appears inside a \CATCH{} clause,
+  and every \CATCH{} clause is treated as some \CATCH{} clause of the form
+  \code{\ON\,\,$T$\,\,\CATCH\,\,(p1,\,\,p2)}.
+  So we can consider the \RETHROW{} statement to be enclosed in
+  a \CATCH{} clause of that form.%
 }
 
 \LMHash{}%
@@ -19126,10 +19138,10 @@ A \FINALLY{} clause, which consists of a block statement.
 \end{enumerate}
 
 \rationale{%
-The syntax is designed to be upward compatible with
-existing Javascript programs.
-The \ON{} clause can be omitted,
-leaving what looks like a Javascript catch clause.%
+  The syntax is designed to be upward compatible with
+  existing Javascript programs.
+  The \ON{} clause can be omitted,
+  leaving what looks like a Javascript catch clause.%
 }
 
 \LMHash{}%
@@ -19305,8 +19317,8 @@ and $S$ is not assignable to $T$.
   must return an expression explicitly.%
 }
 \rationale{%
-This helps catch situations where users forget
-to return an object in a return statement.%
+  This helps catch situations where users forget
+  to return an object in a return statement.%
 }
 \EndCase
 
@@ -19322,10 +19334,10 @@ unless \flatten{T}
 is \VOID, \DYNAMIC, or \code{Null}.
 %
 \rationale{%
-An asynchronous non-generator always returns a future of some sort.
-If no expression is given, the future will be completed with the null object
-(\ref{null})
-which motivates this rule.%
+  An asynchronous non-generator always returns a future of some sort.
+  If no expression is given, the future will be completed with the null object
+  (\ref{null})
+  which motivates this rule.%
 }
 % Returning with an object in an void async function only ok
 % when that value is async-"voidy".
@@ -19367,8 +19379,8 @@ and \code{Future<\flatten{S}>} is not assignable to $T$.
   must return an expression explicitly.%
 }
 \rationale{%
-This helps catch situations where users forget
-to return an object in a return statement of an asynchronous function.%
+  This helps catch situations where users forget
+  to return an object in a return statement of an asynchronous function.%
 }
 \EndCase
 
@@ -19378,10 +19390,10 @@ It is a compile-time error if a return statement of
 the form \code{\RETURN{} $e$;} appears in a generator function.
 
 \rationale{%
-In the case of a generator function, the object returned by the function is
-the iterable or stream associated with it,
-and individual elements are added to that iterable using yield statements,
-and so returning an object makes no sense.%
+  In the case of a generator function, the object returned by the function is
+  the iterable or stream associated with it,
+  and individual elements are added to that iterable using yield statements,
+  and so returning an object makes no sense.%
 }
 \EndCase
 
@@ -19392,14 +19404,14 @@ the form \code{\RETURN{} $e$;} appears in a generative constructor
 (\ref{generativeConstructors}).
 
 \rationale{%
-It is quite easy to forget to add the \FACTORY{} modifier for a constructor,
-accidentally converting a factory into a generative constructor.
-The static checker may detect a type mismatch
-in some, but not all, of these cases.
-The rule above helps catch such errors,
-which can otherwise be very hard to recognize.
-There is no real downside to it,
-as returning an object from a generative constructor is meaningless.%
+  It is quite easy to forget to add the \FACTORY{} modifier for a constructor,
+  accidentally converting a factory into a generative constructor.
+  The static checker may detect a type mismatch
+  in some, but not all, of these cases.
+  The rule above helps catch such errors,
+  which can otherwise be very hard to recognize.
+  There is no real downside to it,
+  as returning an object from a generative constructor is meaningless.%
 }
 \EndCase
 
@@ -19478,8 +19490,8 @@ A \Index{labeled case clause} is a case clause within a switch statement
 prefixed by a label $L$.
 
 \rationale{%
-The sole role of labels is to provide targets for
-the break (\ref{break}) and continue (\ref{continue}) statements.%
+  The sole role of labels is to provide targets for
+  the break (\ref{break}) and continue (\ref{continue}) statements.%
 }
 
 \begin{grammar}
@@ -19501,9 +19513,9 @@ The scope of a label that labels a statement $s$ is $s$.
 The scope of a label that labels a case clause of a switch statement $s$ is $s$.
 
 \rationale{%
-Labels should be avoided by programmers at all costs.
-The motivation for including labels in the language
-is primarily making Dart a better target for code generation.%
+  Labels should be avoided by programmers at all costs.
+  The motivation for including labels in the language
+  is primarily making Dart a better target for code generation.%
 }
 
 
@@ -19621,12 +19633,12 @@ then the \YIELD{} statement returns without an object
 otherwise it completes normally.
 
 \rationale{%
-The stream associated with an asynchronous generator could be canceled
-by any code with a reference to that stream at any point
-where the generator was passivated.
-Such a cancellation constitutes an irretrievable error for the generator.
-At this point, the only plausible action for the generator is
-to clean up after itself via its \FINALLY{} clauses.%
+  The stream associated with an asynchronous generator could be canceled
+  by any code with a reference to that stream at any point
+  where the generator was passivated.
+  Such a cancellation constitutes an irretrievable error for the generator.
+  At this point, the only plausible action for the generator is
+  to clean up after itself via its \FINALLY{} clauses.%
 }
 
 \LMHash{}%
@@ -19638,19 +19650,19 @@ in which case the nearest enclosing asynchronous for loop
 if any, is paused first.
 
 \rationale{%
-If a \YIELD{} occurred inside an infinite loop
-and the enclosing function never suspended,
-there might not be an opportunity for consumers of the enclosing stream
-to run and access the data in the stream.
-The stream might then accumulate an unbounded number of elements.
-Such a situation is untenable.
-Therefore, we allow the enclosing function to be suspended
-when a new object is added to its associated stream.
-However, it is not essential (and in fact, can be quite costly)
-to suspend the function on every \YIELD.
-The implementation is free to decide
-how often to suspend the enclosing function.
-The only requirement is that consumers are not blocked indefinitely.%
+  If a \YIELD{} occurred inside an infinite loop
+  and the enclosing function never suspended,
+  there might not be an opportunity for consumers of the enclosing stream
+  to run and access the data in the stream.
+  The stream might then accumulate an unbounded number of elements.
+  Such a situation is untenable.
+  Therefore, we allow the enclosing function to be suspended
+  when a new object is added to its associated stream.
+  However, it is not essential (and in fact, can be quite costly)
+  to suspend the function on every \YIELD.
+  The implementation is free to decide
+  how often to suspend the enclosing function.
+  The only requirement is that consumers are not blocked indefinitely.%
 }
 
 \LMHash{}%
@@ -19838,14 +19850,14 @@ It is a compile-time error if the type of $c$
 may not be assigned to \code{bool}.
 
 \rationale{%
-Why is this a statement, not a built in function call?
-Because it is handled magically
-so it has no effect and no overhead when assertions are disabled.
-Also, in the absence of final methods,
-one could not prevent it being overridden
-(though there is no real harm in that).
-It cannot be viewed as a function call that is being optimized away
-because the arguments might have side effects.%
+  Why is this a statement, not a built in function call?
+  Because it is handled magically
+  so it has no effect and no overhead when assertions are disabled.
+  Also, in the absence of final methods,
+  one could not prevent it being overridden
+  (though there is no real harm in that).
+  It cannot be viewed as a function call that is being optimized away
+  because the arguments might have side effects.%
 }
 
 
@@ -19933,10 +19945,10 @@ followed by a qualified identifier that gives the name of the library.
 An implicitly named library has the empty string as its name.
 
 \rationale{%
-The name of a library is used to tie it to
-separately compiled parts of the library (called parts) and
-can be used for printing and, more generally, reflection.
-The name may be relevant for further language evolution.%
+  The name of a library is used to tie it to
+  separately compiled parts of the library (called parts) and
+  can be used for printing and, more generally, reflection.
+  The name may be relevant for further language evolution.%
 }
 
 \commentary{%
@@ -20068,18 +20080,18 @@ even if restricted via \SHOW, \HIDE, or \AS,
 preempts the automatic import.
 
 \rationale{%
-It would be nice if there was nothing special about \code{dart:core}.
-However, its use is pervasive,
-which leads to the decision to import it automatically.
-On the other hand, some library $L$ may wish to define entities
-with names used by \code{dart:core}
-(which it can easily do, as the names declared by a library take precedence).
-Other libraries may wish to use $L$,
-and may want to use members of $L$ that conflict with the core library
-without having to use a prefix and without encountering errors.
-The above rule makes this possible,
-essentially canceling \code{dart:core}'s special treatment
-by means of yet another special rule.%
+  It would be nice if there was nothing special about \code{dart:core}.
+  However, its use is pervasive,
+  which leads to the decision to import it automatically.
+  On the other hand, some library $L$ may wish to define entities
+  with names used by \code{dart:core}
+  (which it can easily do, as the names declared by a library take precedence).
+  Other libraries may wish to use $L$,
+  and may want to use members of $L$ that conflict with the core library
+  without having to use a prefix and without encountering errors.
+  The above rule makes this possible,
+  essentially canceling \code{dart:core}'s special treatment
+  by means of yet another special rule.%
 }
 
 \subsubsection{The Imported Namespace}
@@ -20101,15 +20113,15 @@ Any other library is a \Index{non-system library}.
 }
 
 \rationale{%
-The special rules for system libraries exist for the following reason.
-Normal conflicts are resolved at deployment time,
-but the functionality of a system library is
-injected into an application at run time,
-and may vary over time as the platform is upgraded.
-Thus, conflicts with a system library can arise
-outside the developer's control.
-To avoid breaking deployed applications in this way,
-conflicts with the system libraries are treated specially.%
+  The special rules for system libraries exist for the following reason.
+  Normal conflicts are resolved at deployment time,
+  but the functionality of a system library is
+  injected into an application at run time,
+  and may vary over time as the platform is upgraded.
+  Thus, conflicts with a system library can arise
+  outside the developer's control.
+  To avoid breaking deployed applications in this way,
+  conflicts with the system libraries are treated specially.%
 }
 
 \LMHash{}%
@@ -20364,11 +20376,11 @@ as defined previously
 \end{itemize}
 
 \rationale{%
-The purpose of having members of the imported library in
-\NamespaceName{\metavar{deferred}}
-is to ensure that usages of members that have not yet been loaded
-can be resolved normally and has a well-defined behavior,
-which will raise errors.%
+  The purpose of having members of the imported library in
+  \NamespaceName{\metavar{deferred}}
+  is to ensure that usages of members that have not yet been loaded
+  can be resolved normally and has a well-defined behavior,
+  which will raise errors.%
 }
 
 \LMHash{}%
@@ -20541,18 +20553,20 @@ is conflicted
 (\ref{conflictMergingOfNamespaces}).
 
 \rationale{%
-This rule is more strict than the corresponding rule for imports:
-When two imported declarations have a name clash, it is only an error to
-\emph{use} the conflicted name, it is not an error that the name clash exists.
-With exported names, it is an error that the name clash exists.
-The reason for this difference is that
-the conflict could silently break importers of the current library $L$,
-if we were to use the same approach for exports as for imports:
-If a library $L'$ imports $L$
-and uses a name $n$ which is re-exported by $L$ from $L_n$
-then the addition of a declaration named $n$ to some other re-exported library
-will make the use of $n$ in $L'$ an error,
-and the maintainers of $L'$ may not be in a position to change $L$.%
+  This rule is more strict than the corresponding rule for imports:
+  When two imported declarations have a name clash, it is only an error to
+  \emph{use} the conflicted name,
+  it is not an error that the name clash exists.
+  With exported names, it is an error that the name clash exists.
+  The reason for this difference is that
+  the conflict could silently break importers of the current library $L$,
+  if we were to use the same approach for exports as for imports:
+  If a library $L'$ imports $L$
+  and uses a name $n$ which is re-exported by $L$ from $L_n$
+  then the addition of a declaration named $n$
+  to some other re-exported library
+  will make the use of $n$ in $L'$ an error,
+  and the maintainers of $L'$ may not be in a position to change $L$.%
 }
 
 \LMHash{}%
@@ -20669,9 +20683,9 @@ Then \NamespaceName{\metavar{end}} is \NamespaceName{n}.
   which is not in the given namespace.%
 }
 \rationale{%
-Allowing this prevents situations where, e.g.,
-removing a declaration from a library $L$ would cause
-breakage in a library that imports $L$.%
+  Allowing this prevents situations where, e.g.,
+  removing a declaration from a library $L$ would cause
+  breakage in a library that imports $L$.%
 }
 
 
@@ -20983,13 +20997,14 @@ This specification does not discuss the interpretation of URIs,
 with the following exceptions.
 
 \rationale{%
-The interpretation of URIs is mostly left to
-the surrounding computing environment.
-For example, if Dart is running in a web browser,
-that browser will likely interpret some URIs.
-While it might seem attractive to specify, say, that
-URIs are interpreted with respect to a standard such as IETF RFC 3986,
-in practice this will usually depend on the browser and cannot be relied upon.%
+  The interpretation of URIs is mostly left to
+  the surrounding computing environment.
+  For example, if Dart is running in a web browser,
+  that browser will likely interpret some URIs.
+  While it might seem attractive to specify, say, that
+  URIs are interpreted with respect to a standard such as IETF RFC 3986,
+  in practice this will usually depend on the browser
+  and cannot be relied upon.%
 }
 
 \LMHash{}%
@@ -21001,8 +21016,8 @@ A URI of the form \code{package:$s$} is interpreted in
 an implementation specific manner.
 
 \rationale{%
-The intent is that, during development, Dart programmers can rely on
-a package manager to find elements of their program.%
+  The intent is that, during development, Dart programmers can rely on
+  a package manager to find elements of their program.%
 }
 
 \LMHash{}%
@@ -21020,28 +21035,28 @@ All further interpretation of URIs is implementation dependent.
 Dart supports static typing based on interface types.
 
 \rationale{%
-The type system is sound in the sense that
-if a variable of type $T$ refers to an object of type $S$ at run time,
-then $S$ is a subtype of $T$.
-In other words, the contents of the heap satisfies the expectations
-expressed by static typing.
+  The type system is sound in the sense that
+  if a variable of type $T$ refers to an object of type $S$ at run time,
+  then $S$ is a subtype of $T$.
+  In other words, the contents of the heap satisfies the expectations
+  expressed by static typing.
 
-However, type parameters are covariant
-(e.g., \SubtypeNE{\code{List<int>}}{\code{List<num>}})
-and this implies that certain operations are subject to dynamic type checks
-(such as \code{myList.add(1.5)}, which will throw at run time
-if \code{myList} has declared type \code{List<num>},
-but it is actually a \code{List<int>}).
-Hence, a program can be free of compile-time errors,
-and it may still incur a type error at run time.
+  However, type parameters are covariant
+  (e.g., \SubtypeNE{\code{List<int>}}{\code{List<num>}})
+  and this implies that certain operations are subject to dynamic type checks
+  (such as \code{myList.add(1.5)}, which will throw at run time
+  if \code{myList} has declared type \code{List<num>},
+  but it is actually a \code{List<int>}).
+  Hence, a program can be free of compile-time errors,
+  and it may still incur a type error at run time.
 
-This choice was made deliberately during the early days of Dart
-(and it is undoubtedly controversial).
-It represents a trade-off where
-the potential for run-time type errors is the cost,
-and the benefit is simpler programs.
-In recent years, Dart has evolved to have more and more static type safety,
-e.g., null safety, and this trend is likely to continue.%
+  This choice was made deliberately during the early days of Dart
+  (and it is undoubtedly controversial).
+  It represents a trade-off where
+  the potential for run-time type errors is the cost,
+  and the benefit is simpler programs.
+  In recent years, Dart has evolved to have more and more static type safety,
+  e.g., null safety, and this trend is likely to continue.%
 }
 
 
@@ -21592,17 +21607,17 @@ respectively
 \end{dartCode}
 
 \rationale{%
-Note that the type arguments passed to $C$ respectively \code{$p$.$C$}
-are erased,
-such that the resulting expression can be a correct static member invocation.
-If a future version of Dart allows type arguments to be passed via the class
-in an invocation of a static member,
-it may be preferable to preserve these type arguments.
-At that time,
-existing invocations where type arguments are passed in this manner
-will not break,
-because it is currently an error for a static member to depend on the value
-of a formal type parameter of the enclosing class.%
+  Note that the type arguments passed to $C$ respectively \code{$p$.$C$}
+  are erased,
+  such that the resulting expression can be a correct static member invocation.
+  If a future version of Dart allows type arguments to be passed via the class
+  in an invocation of a static member,
+  it may be preferable to preserve these type arguments.
+  At that time,
+  existing invocations where type arguments are passed in this manner
+  will not break,
+  because it is currently an error for a static member to depend on the value
+  of a formal type parameter of the enclosing class.%
 }
 
 \LMHash{}%
@@ -22335,20 +22350,20 @@ In this case we say that the types $S$ and $T$ are
 \Index{assignable}.
 
 \rationale{%
-This rule may surprise readers accustomed to conventional typechecking.
-The intent of the \AssignableRelationSymbol{} relation
-is not to ensure that an assignment is guaranteed to succeed dynamically.
-Instead, it aims to only flag assignments
-that are almost certain to be erroneous,
-without precluding assignments that may work.
+  This rule may surprise readers accustomed to conventional typechecking.
+  The intent of the \AssignableRelationSymbol{} relation
+  is not to ensure that an assignment is guaranteed to succeed dynamically.
+  Instead, it aims to only flag assignments
+  that are almost certain to be erroneous,
+  without precluding assignments that may work.
 
-For example, assigning an object of static type \code{Object}
-to a variable with static type \code{String},
-while not guaranteed to be correct,
-might be fine if the run-time value happens to be a string.
+  For example, assigning an object of static type \code{Object}
+  to a variable with static type \code{String},
+  while not guaranteed to be correct,
+  might be fine if the run-time value happens to be a string.
 
-A static analyzer or compiler
-may support more strict static checks as an option.%
+  A static analyzer or compiler
+  may support more strict static checks as an option.%
 }
 
 
@@ -22437,12 +22452,12 @@ implement \FUNCTION.
 }
 
 \rationale{%
-Since using \FUNCTION{} in these ways has no effect, it would be
-reasonable to disallow it completely, like we do extending, implementing or
-mixing in types like \code{int} or \code{String}.
-For backwards compatibility with Dart 1 programs,
-the syntax is allowed to remain, even if it has no effect.
-Tools may choose to warn users that their code has no effect.%
+  Since using \FUNCTION{} in these ways has no effect, it would be
+  reasonable to disallow it completely, like we do extending, implementing or
+  mixing in types like \code{int} or \code{String}.
+  For backwards compatibility with Dart 1 programs,
+  the syntax is allowed to remain, even if it has no effect.
+  Tools may choose to warn users that their code has no effect.%
 }
 
 
@@ -22676,12 +22691,13 @@ The name \code{FutureOr} as an expression
 denotes a \code{Type} object representing the type \code{FutureOr<dynamic>}.
 
 \rationale{%
-The \code{FutureOr<$T$>} type represents a case where an object can be
-either an instance of the type $T$
-or the type \code{Future<$T$>}.
-Such cases occur naturally in asynchronous code.
-The available alternative would be to use a top type (e.g., \DYNAMIC{}),
-but \code{FutureOr} allows some tools to provide a more precise type analysis.%
+  The \code{FutureOr<$T$>} type represents a case where an object can be
+  either an instance of the type $T$
+  or the type \code{Future<$T$>}.
+  Such cases occur naturally in asynchronous code.
+  The available alternative would be to use a top type (e.g., \DYNAMIC{}),
+  but \code{FutureOr} allows some tools to provide
+  a more precise type analysis.%
 }
 
 \LMHash{}%
@@ -22693,14 +22709,14 @@ of \code{Object}.
 }
 
 \rationale{%
-We only want to allow invocations of members that are inherited from
-a common supertype of both $T$ and \code{Future<$T$>}.
-In most cases the only common supertype is \code{Object}.
-The exceptions, like \code{FutureOr<Future<Object\gtgt}
-which has \code{Future<Object>} as common supertype,
-are few and not practically useful,
-so for now we choose to only allow invocations of
-members inherited from \code{Object}.%
+  We only want to allow invocations of members that are inherited from
+  a common supertype of both $T$ and \code{Future<$T$>}.
+  In most cases the only common supertype is \code{Object}.
+  The exceptions, like \code{FutureOr<Future<Object\gtgt}
+  which has \code{Future<Object>} as common supertype,
+  are few and not practically useful,
+  so for now we choose to only allow invocations of
+  members inherited from \code{Object}.%
 }
 
 \LMHash{}%
@@ -22782,42 +22798,42 @@ unless it is permitted according to one of the following rules.
 \item
   In a type cast \code{$e$ as $T$}, $e$ may have type \VOID.
   \rationale{%
-  Developers thus obtain the ability to \emph{override} the constraints
-  on usages of values with static type \VOID.
-  This means that it is not enforced that such values are discarded,
-  but they can only be used when the wish to do so
-  has been indicated explicitly.%
+    Developers thus obtain the ability to \emph{override} the constraints
+    on usages of values with static type \VOID.
+    This means that it is not enforced that such values are discarded,
+    but they can only be used when the wish to do so
+    has been indicated explicitly.%
   }
 \item
   In a parenthesized expression \code{($e$)}, $e$ may have type \VOID.
   \rationale{%
-  Note that \code{($e$)} itself has type \VOID,
-  which implies that it must occur in some context
-  where it is not an error to have it.%
+    Note that \code{($e$)} itself has type \VOID,
+    which implies that it must occur in some context
+    where it is not an error to have it.%
   }
 \item
   In a conditional expression \code{$e$\,?\,$e_1$\,:\,$e_2$},
   $e_1$ and $e_2$ may have type \VOID.
   \rationale{%
-  The static type of the conditional expression is then \VOID,
-  even if one of the branches has a different type,
-  which means that the conditional expression must again occur
-  in some context where it is not an error to have it.%
+    The static type of the conditional expression is then \VOID,
+    even if one of the branches has a different type,
+    which means that the conditional expression must again occur
+    in some context where it is not an error to have it.%
   }
 \item
   In a null coalescing expression \code{$e_1$\,??\,$e_2$},
   $e_2$ may have type \VOID.
   \rationale{%
-  The static type of the null coalescing expression is then \VOID,
-  which in turn restricts where it can occur.%
+    The static type of the null coalescing expression is then \VOID,
+    which in turn restricts where it can occur.%
   }
 \item
   In an expression of the form \code{\AWAIT\,\,$e$}, $e$ may have type \VOID.
   \rationale{%
-  This rule was adopted because it was a substantial breaking change
-  to turn this situation into an error
-  at the time where the treatment of \VOID{} was changed.
-  Tools may choose to give a hint in such cases.%
+    This rule was adopted because it was a substantial breaking change
+    to turn this situation into an error
+    at the time where the treatment of \VOID{} was changed.
+    Tools may choose to give a hint in such cases.%
   }
 \item
   \commentary{%
@@ -22841,10 +22857,10 @@ unless it is permitted according to one of the following rules.
   whose statically known type annotation is \VOID{}
   may have type \VOID.
   \rationale{%
-  Usages of that parameter in the body of the callee
-  are statically expected to be constrained by having type \VOID.
-  See the discussion about soundness below
-  (\ref{voidSoundness}).%
+    Usages of that parameter in the body of the callee
+    are statically expected to be constrained by having type \VOID.
+    See the discussion about soundness below
+    (\ref{voidSoundness}).%
   }
 \item
   In an expression of the form \code{$e_1$\,=\,$e_2$}
@@ -22852,10 +22868,10 @@ unless it is permitted according to one of the following rules.
   denoting a variable or formal parameter of type \VOID,
   $e_2$ may have type \VOID.
   \rationale{%
-  Usages of that variable or formal parameter
-  are statically expected to be constrained by having type \VOID.
-  See the discussion about soundness below
-  (\ref{voidSoundness}).%
+    Usages of that variable or formal parameter
+    are statically expected to be constrained by having type \VOID.
+    See the discussion about soundness below
+    (\ref{voidSoundness}).%
   }
 \item
   Let $e$ be an expression ending in a \synt{cascadeSection}
@@ -22929,15 +22945,15 @@ are not strictly enforced.
 }
 
 \rationale{%
-It could be said that the type \VOID{} is used
-to help developers maintain a certain self-imposed discipline
-about the fact that certain objects are not \emph{intended} to be used.
-%
-Because of the fact that enforcement is not necessary,
-and because of the treatment of \VOID{} in earlier versions of Dart,
-the language uses a \emph{best effort} approach to ensure
-that the value of an expression of type \VOID{}
-will not be used.%
+  It could be said that the type \VOID{} is used
+  to help developers maintain a certain self-imposed discipline
+  about the fact that certain objects are not \emph{intended} to be used.
+  %
+  Because of the fact that enforcement is not necessary,
+  and because of the treatment of \VOID{} in earlier versions of Dart,
+  the language uses a \emph{best effort} approach to ensure
+  that the value of an expression of type \VOID{}
+  will not be used.%
 }
 
 \commentary{%
@@ -23003,40 +23019,40 @@ Object f<X>(X x) => x;
 }
 
 \rationale{%
-Obviously, the support for preventing developers from using objects
-obtained from expressions of type \VOID{} is far from sound,
-in the sense that there are many ways to circumvent the rule
-that such an object should be discarded.
+  Obviously, the support for preventing developers from using objects
+  obtained from expressions of type \VOID{} is far from sound,
+  in the sense that there are many ways to circumvent the rule
+  that such an object should be discarded.
 
-However, we have chosen to focus on the simple, first-order usage
-(where an expression has type \VOID, and the value is used),
-and we have left higher-order cases largely unchecked,
-relying on additional tools such as linters to perform an analysis
-which covers indirect data flows.
+  However, we have chosen to focus on the simple, first-order usage
+  (where an expression has type \VOID, and the value is used),
+  and we have left higher-order cases largely unchecked,
+  relying on additional tools such as linters to perform an analysis
+  which covers indirect data flows.
 
-It would certainly have been possible to define sound rules,
-such that the value of an expression of type \VOID{}
-would be guaranteed to be discarded after some number of transfers
-from one variable or parameter to the next one, all with type \VOID,
-explicitly, or as the value of a type parameter.
-In particular, we could require that method overrides should
-never override return type \code{Object} by return type \VOID,
-or parameter types in the opposite direction;
-parameterized types with type argument \VOID{} could not be assigned
-to variables where the corresponding type argument is anything other than
-\VOID, etc.\ etc.
+  It would certainly have been possible to define sound rules,
+  such that the value of an expression of type \VOID{}
+  would be guaranteed to be discarded after some number of transfers
+  from one variable or parameter to the next one, all with type \VOID,
+  explicitly, or as the value of a type parameter.
+  In particular, we could require that method overrides should
+  never override return type \code{Object} by return type \VOID,
+  or parameter types in the opposite direction;
+  parameterized types with type argument \VOID{} could not be assigned
+  to variables where the corresponding type argument is anything other than
+  \VOID, etc.\ etc.
 
-But this would be quite impractical.
-In particular, the need to either prevent a large number of type variables
-from ever having the value \VOID,
-or preventing certain usages of values whose type is such a type variable,
-or whose type contains such a type variable,
-that would be severely constraining on a very large part of all Dart code.
+  But this would be quite impractical.
+  In particular, the need to either prevent a large number of type variables
+  from ever having the value \VOID,
+  or preventing certain usages of values whose type is such a type variable,
+  or whose type contains such a type variable,
+  that would be severely constraining on a very large part of all Dart code.
 
-So we have chosen to help developers maintain this self-imposed discipline
-in simple and direct cases,
-and leave it to ad-hoc reasoning or separate tools to ensure
-that the indirect cases are covered as closely as needed in practice.%
+  So we have chosen to help developers maintain this self-imposed discipline
+  in simple and direct cases,
+  and leave it to ad-hoc reasoning or separate tools to ensure
+  that the indirect cases are covered as closely as needed in practice.%
 }
 
 
