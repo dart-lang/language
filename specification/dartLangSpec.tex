@@ -3415,8 +3415,8 @@ one of the following is true:
   that correctly overrides $S$
   \commentary{%
     (that is, no member named $m$ is declared or inherited by $C$,
-    or one is inherited, but it does not have the required signature%
-  )}.
+    or one is inherited, but it does not have the required signature)%
+  }.
   In this case we also say that $S$ is noSuchMethod forwarded.
 \item
   \textbf{Forced by privacy:}
@@ -8203,7 +8203,7 @@ be determined by the following iterative process, where $V_m$ denotes
   Then, for all $i \in 1 .. k$,
   $U_{i,m+1}$ is obtained from $U_{i,m}$
   by substituting $U_{j,m}$ for every occurrence of $X_j$
-  that is in a position in $V_m$ which  is not contravariant,
+  that is in a position in $V_m$ which is not contravariant,
   and substituting \code{Null} for every occurrence of $X_j$
   which is in a contravariant position in $V_m$.
 
@@ -23614,12 +23614,12 @@ except if $R$ is
   \begin{itemize}
   \item[$\bullet$]
     Valid values of JavaScript \code{int} are any IEEE-754 64-bit
-    floating point number with no fractional part.  This includes
+    floating point number with no fractional part. This includes
     positive and negative \Index{infinity}, which can be reached by
     overflowing (integer division by zero is still a dynamic error).
     Otherwise valid integer literals (including any leading minus sign)
     that represent invalid JavaScript \code{int} values are compile-time
-    errors when compiling to JavaScript.  Operations on integers may
+    errors when compiling to JavaScript. Operations on integers may
     lose precision, because the operands and the result are represented
     as 64-bit floating point numbers that are limited to 53 significant
     bits.
@@ -23652,7 +23652,7 @@ except if $R$ is
   \item[$\bullet$]
     The \code{identical} method cannot distinguish the values $0.0$ and
     $-0.0$, and it cannot recognize any \Index{NaN} value as identical
-    to itself.  For efficiency, the \code{identical} operation uses the
+    to itself. For efficiency, the \code{identical} operation uses the
     JavaScript \code{===} operator.
   \end{itemize}%
 }
@@ -23673,7 +23673,7 @@ implementation, and the relevant tool support.
 
 In order to support more fine-grained update propagation from this
 language specification to artifacts that depend on it, location
-markers have been added.  The idea is that each logical unit (section,
+markers have been added. The idea is that each logical unit (section,
 subsection, etc) and each paragraph containing normative text should
 be addressable using these markers, such that source code (compilers
 and other tools, tests, etc.) can contain location markers, and the
@@ -23682,9 +23682,9 @@ document viewer search features.
 
 An SHA1 hash value of the text is associated with each location
 marker, such that changes in the text will incur changes in this hash
-value.  Consequently, source code in tools/tests that depend on
+value. Consequently, source code in tools/tests that depend on
 specific parts of the spec may be flagged for revision by checking
-whether these hash values have changed:  If a given test T depends on
+whether these hash values have changed: If a given test T depends on
 a paragraph with hash value V in the spec, and the search for V fails
 in a new version of the spec, then that paragraph has changed and T
 should be revisited and possible revised.
@@ -23693,7 +23693,7 @@ As a result, the search for parts of source code and similar artifacts
 in likely need of updates because of spec changes can be performed
 mechanically, which should help ensure that the conformance of all
 artifacts depending on this spec is maintained more easily, and hence
-more consistently.  Note that it makes no difference whether the need
+more consistently. Note that it makes no difference whether the need
 for an update has arisen in a very recent version of the spec or it
 has existed for a long time, because the hash value just remains
 different as long as the text is different from what it was when the
@@ -23705,14 +23705,14 @@ Concretely, this is based on the commands \LMHash and \LMLabel.
 \LMHash{V} is used to add the text V in the margin, intended to mark
 a paragraph of normative text with the SHA1 hash value of the text, V.
 \LMLabel{L} has the effect of \label{L}, and moreover it shows the
-text sec:L in the margin.  In order to indicate a dependency on a
+text sec:L in the margin. In order to indicate a dependency on a
 section or subsection an \LMLabel location marker is used, and in
 order to indicate a dependency on a specific paragraph, the hash value
 of that paragraph is used.
 
 In this file, each normative paragraph has had the command \LMHash{}
 added at the beginning, such that each of these paragraphs can be
-decorated with their hash value.  Similarly, all \section{}s,
+decorated with their hash value. Similarly, all \section{}s,
 \subsection{}s, \subsubsection{}s, and \paragraph{}s have had
 their \label commands changed to \LMLabel, such that they are
 decorated with logical names.
@@ -23721,14 +23721,14 @@ decorated with logical names.
 
 The design of location markers was proposed by Erik Ernst and
 developed through discussions with several others, in particular Gilad
-Bracha and Lars Bak.  Some discussions along the way that gave rise to
+Bracha and Lars Bak. Some discussions along the way that gave rise to
 the given design are outlined below.
 
 The basic idea is that a hash value based on the actual text will
 serve well to identify a piece of text, because it will change
 whenever the text changes, and it remains the same if the text is
 moved to a different location; in other words, it characterizes the
-text itself, independently of the rest of the document.  Hence:
+text itself, independently of the rest of the document. Hence:
 
   - references to specific paragraphs in the spec are easy to create:
     copy the marker and paste it into the source code (but see below
@@ -23757,19 +23757,19 @@ However, there is a conflict in this scenario: Lars pointed out that
 it is very inconvenient to have to create a lot of revision control
 commits (e.g., new versions of tests), just because a large number of
 artifacts depend on a specific hash value that changed, if that change
-has no real impact on each of those artifacts.  The obvious solution
+has no real impact on each of those artifacts. The obvious solution
 to this problem would be to use symbolic names and keep the actual
 hash values out of the primary artifacts.
 
 This approach has been used for \section{}s, \subsection{}s, etc., by
-using their labels as location markers.  For instance, dependency on
+using their labels as location markers. For instance, dependency on
 \subsubsection{New} would be marked as a dependency on 'sec:new',
 which will (most likely) exist with the same label in the spec for a
-long time.  To detect a need for updates, the hash value associated
+long time. To detect a need for updates, the hash value associated
 with \subsubsection{New} from the date of the latest check of this
 kind to the dependent artifact should be compared with the current
-hash value for the same \subsubsection{}:  The artifact should be
-revisited iff those hash values differ.  As an easy approximation to
+hash value for the same \subsubsection{}: The artifact should be
+revisited iff those hash values differ. As an easy approximation to
 this scheme, the hash values for all location markers would be
 computed for each spec update, and the location markers that have new
 hash values should cause revisits to all artifacts depending on that
@@ -23778,16 +23778,16 @@ location marker.
 The symbolic location markers on larger units like \section{}
 etc. enable location marking in a hierarchical fashion: Dependencies
 on a \subsubsection{} or on a \section{} can be chosen according to
-the actual needs with each dependent artifact.  In general, fine
+the actual needs with each dependent artifact. In general, fine
 granularity helps avoiding false positives, where an update somewhere
 in a large unit will flag too many dependent artifacts for revisits.
 In contrast, coarse granularity enables other artifacts to declare the
 actual dependencies when small units would be impractical because the
-artifact depends on so many of them.  But there is a problem at the
+artifact depends on so many of them. But there is a problem at the
 bottom of this hierarchy, namely with paragraphs.
 
 It would be very inconvenient to have to invent a logical name for
-every paragraph.  Similarly, using a simple paragraph numbering would
+every paragraph. Similarly, using a simple paragraph numbering would
 be unstable (add one new paragraph in the beginning of a section, and
 all the rest have new numbers, creating a massive flood of false
 update alerts, or, even worse, corrupting the declared dependencies in
@@ -23798,16 +23798,16 @@ Artifacts that depend on very specific elements in the spec may
 declare so by using an actual hash value for a given paragraph, and in
 return they pay in terms of potential updates to the marker when that
 paragraph changes, even in cases where the actual change makes no
-difference for that particular artifact.  This choice of granularity
+difference for that particular artifact. This choice of granularity
 vs. stability is up to the creator of each artifact.
 
 ** Maintenance of this document
 
 The invariant that each normative paragraph is associated with a line
-containing the text \LMHash{} should be maintained.  Extra occurrences
+containing the text \LMHash{} should be maintained. Extra occurrences
 of \LMHash{} can be added if needed, e.g., in order to make
-individual \item{}s in itemized lists addressable.  Each \LM.. command
-must occur on a separate line.  \LMHash{} must occur immediately
+individual \item{}s in itemized lists addressable. Each \LM.. command
+must occur on a separate line. \LMHash{} must occur immediately
 before the associated paragraph, and \LMLabel must occur immediately
 after the associated \section, \subsection{} etc.
 
