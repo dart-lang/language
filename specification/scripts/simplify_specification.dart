@@ -258,7 +258,7 @@ extension on List<String?> {
       if (gatherLine.startsWith(r"\end{itemize}")) {
         // At the end of the outermost itemized list: Done.
         this[itemIndex] = buffer.toString();
-        return gatherIndex + 1;
+        return gatherIndex;
       }
       final foundItem = trimmedGatherLine.startsWith(r"\item");
       final foundEnd = trimmedGatherLine.startsWith(r"\end{itemize}");
@@ -276,8 +276,16 @@ extension on List<String?> {
           // Gather lines after the nested itemized list, if any. Note
           /// that `itemLine` does not contain `\item`, but it's treated
           /// as if it did contain `\item`.
+          if (gatherIndex == 2075) {
+            print('>>> gatherIndex: $gatherIndex'); //DEBUG
+          }
           itemIndex = _findText(gatherIndex + 1);
           itemLine = this[itemIndex]; // Restore the `itemLine` invariant.
+          if (itemLine!.startsWith(r"\end{itemize}")) {
+            // No extra lines, at the end of the outermost itemized list: Done.
+            return itemIndex + 1;
+          }
+          // Some extra text found, gather it.
           gatherIndex = itemIndex + 1;
           continue;
         }
