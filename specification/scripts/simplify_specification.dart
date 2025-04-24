@@ -246,14 +246,16 @@ extension on List<String?> {
       if (trimmedGatherLine.startsWith(r"\begin{itemize}")) {
         // We do not gather a nested itemized list into the current item.
         // Finalize the current item.
+        if (gatherIndex == 5725) {
+          print('gatherIndex: $gatherIndex'); // DEBUG
+        }
         this[itemIndex] = buffer.toString();
         // Set up the first item of the nested itemized list.
         itemIndex = _findItem(gatherIndex + 1);
         itemLine = this[itemIndex];
         buffer = StringBuffer(itemLine!);
-        gatherIndex = itemIndex + 1;
-        gatherLine = this[gatherIndex]; // Restore the invariant.
-        if (gatherLine == null) continue;
+        gatherIndex = itemIndex;
+        continue;
       }
       if (gatherLine.startsWith(r"\end{itemize}")) {
         // At the end of the outermost itemized list: Done.
