@@ -226,18 +226,13 @@ extension on List<String?> {
     throw "_findText reached end of text";
   }
 
-  /// Return a "done" boolean and the index of the first line after
-  /// the line at index [listIndex] (which is assumed to contain the
-  /// command `\begin{itemize}`).
-  ///
-  /// In the lines between [listIndex] and the returned value,
-  /// gather the text for each item into a single line. Sets the
-  /// lines whose text was gathered to null (which means that they are
-  /// ignored).
-  (bool, int) _gatherItems(final int listIndex) {
-    if (listIndex >= 1995) {
-      print('>>> listIndex: $listIndex'); // DEBUG
-    }
+  /// Starting from the line with index [listIndex], which is assumed
+  /// to start with `\begin{itemize}`, search for `\item` commands and
+  /// gather the subsequent lines for each item into a single line.
+  /// Also handle nested itemized lists (no attempt to balance them, we
+  /// just rely on finding `\end{itemize}` at the beginning of a line).
+  /// Return the index of the first line after the itemized list.
+  int _gatherItems(final int listIndex) {
     final length = this.length;
     var itemIndex = _findItem(listIndex + 1);
     var itemLine = this[itemIndex]; // Invariant.
@@ -251,12 +246,11 @@ extension on List<String?> {
       if (trimmedGatherLine.startsWith(r"\begin{itemize}")) {
         // We do not gather a nested itemized list into the current item.
         // Finalize the current item.
-        if (gatherIndex == 2044) {
-          print('>>> gatherIndex: $gatherIndex, itemIndex: $itemIndex');
-        }
         this[itemIndex] = buffer.toString();
         // Set up the first item of the nested itemized list.
         itemIndex = _findItem(gatherIndex + 1);
+        itemLine = this[itemIndex];
+        buffer = StringBuffer(itemLine!);
         gatherIndex = itemIndex + 1;
         gatherLine = this[gatherIndex]; // Restore the invariant.
         if (gatherLine == null) continue;
@@ -264,7 +258,7 @@ extension on List<String?> {
       if (gatherLine.startsWith(r"\end{itemize}")) {
         // At the end of the outermost itemized list: Done.
         this[itemIndex] = buffer.toString();
-        return (true, gatherIndex + 1);
+        return gatherIndex + 1;
       }
       final foundItem = trimmedGatherLine.startsWith(r"\item");
       final foundEnd = trimmedGatherLine.startsWith(r"\end{itemize}");
@@ -307,21 +301,6 @@ extension on List<String?> {
     throw "_gatherItems reached end of text";
   }
 
-  /// Starting from the line with index [listIndex], which is assumed
-  /// to start with `\begin{itemize}`, search for `\item` commands and
-  /// gather the subsequent lines for each item into a single line.
-  /// Also handle nested itemized lists (no attempt to balance them, we
-  /// just rely on finding `\end{itemize}` at the beginning of a line).
-  int _processItemizedList(final int listIndex) {
-    var itemIndex = listIndex;
-    var done = false;
-    do {
-      (done, itemIndex) = _gatherItems(itemIndex);
-    } while (!done);
-    assert(itemIndex < length - 1);
-    return itemIndex + 1;
-  }
-
   void joinLines() {
     bool inFrontMatter = true;
     for (var lineIndex = 0; lineIndex < length; ++lineIndex) {
@@ -334,7 +313,7 @@ extension on List<String?> {
       if (line.startsWith(r"\LMHash{}")) {
         lineIndex = _gatherParagraph(lineIndex);
       } else if (line.startsWith(r"\begin{itemize}")) {
-        lineIndex = _processItemizedList(lineIndex);
+        lineIndex = _gatherItems(lineIndex);
       }
     }
   }
