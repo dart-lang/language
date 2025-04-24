@@ -333,6 +333,24 @@ extension on List<String?> {
       }
     }
   }
+
+  void removeSpuriousEmptyLines() {
+    final length = this.length;
+    bool previousLineWasEmpty = false;
+    for (int i = 0; i < length; ++i) {
+      var line = this[i];
+      if (line == null) continue;
+      if (line.isEmpty) {
+        if (previousLineWasEmpty) {
+          this[i] = null;
+        } else {
+          previousLineWasEmpty = true;
+        }
+      } else {
+        previousLineWasEmpty = false;
+      }
+    }
+  }
 }
 
 void main() {
@@ -344,7 +362,9 @@ void main() {
         ..removeComments()
         ..removeTrailingWhitespace()
         ..removeNonNormative()
-        ..joinLines();
+        ..joinLines()
+        ..removeTrailingWhitespace()
+        ..removeSpuriousEmptyLines();
   final simplifiedContents = workingContents.whereType<String>().toList();
   final outputFile = File(outputFilename);
   final outputSink = outputFile.openWrite();
