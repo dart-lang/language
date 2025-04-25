@@ -264,7 +264,27 @@ extension on List<String?> {
       if (gatherLine == null) continue;
       if (gatherLine.startsMinipage) inMinipage = true;
       if (inMinipage) {
-        if (gatherLine.endsMinipage) inMinipage = false;
+        if (gatherLine.endsMinipage) {
+          inMinipage = false;
+          // Finalize current item, set up new.
+          this[itemIndex] = buffer.toString();
+          itemIndex = _findText(gatherIndex + 1);
+          itemLine = this[itemIndex]; // Restore the `itemLine` invariant.
+          if (itemLine!.endsList) {
+            // No extra lines, at the end of the outermost itemized list: Done.
+            return itemIndex + 1;
+          } else if (itemLine.trimLeft().isItem) {
+            // No extra lines, starting a new item.
+            buffer = StringBuffer(itemLine);
+            gatherIndex = itemIndex;
+            continue;
+          } else {
+            // Some extra text found, gather it.
+            buffer = StringBuffer(itemLine); // Not starting with `\item`.
+            gatherIndex = itemIndex;
+            continue;
+          }
+        }
         continue;
       }
       if (gatherLine.startsCode) inCode = true;
