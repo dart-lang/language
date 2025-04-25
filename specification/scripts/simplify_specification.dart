@@ -180,19 +180,17 @@ extension on List<String?> {
         this[paragraphIndex] = buffer.toString();
         return gatherIndex;
       }
-      if (insertSpace) {
-        buffer.write(' ');
-      }
+      final spacing = insertSpace ? ' ' : '';
       final endsInPercent = gatherLine.endsWith('%');
       final String addLine;
       if (endsInPercent) {
-        addLine = gatherLine.substring(0, gatherLine.length - 1);
+        addLine = gatherLine.substring(0, gatherLine.length - 1).trimLeft();
         insertSpace = false;
       } else {
-        addLine = gatherLine;
+        addLine = gatherLine.trimLeft();
         insertSpace = true;
       }
-      buffer.write(addLine.trimLeft());
+      if (addLine.isNotEmpty) buffer.write('$spacing$addLine');
       this[gatherIndex] = null;
     }
     throw "Internal error: _gatherParagraph reached end of text";
@@ -299,19 +297,17 @@ extension on List<String?> {
         }
       }
       // `gatherLine` is text belonging to the current `\item`.
-      if (insertSpace) {
-        buffer.write(' ');
-      }
+      final spacing = insertSpace ? ' ' : '';
       final endsInPercent = gatherLine.endsWith('%');
       final String addLine;
       if (endsInPercent) {
-        addLine = gatherLine.substring(0, gatherLine.length - 1);
+        addLine = gatherLine.substring(0, gatherLine.length - 1).trimLeft();
         insertSpace = false;
       } else {
-        addLine = gatherLine;
+        addLine = gatherLine.trimLeft();
         insertSpace = true;
       }
-      buffer.write(addLine.trimLeft());
+      if (addLine.isNotEmpty) buffer.write('$spacing$addLine');
       this[gatherIndex] = null;
     }
     throw "_gatherItems reached end of text";
