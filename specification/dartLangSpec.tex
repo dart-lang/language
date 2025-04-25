@@ -5968,6 +5968,7 @@ The mixin derived from a class declaration:
 \}
 \end{normativeDartCode}
 
+\noindent
 has \code{Object} as required superinterface
 and combined superinterface,
 $I_1$, \ldots, $I_k$ as implemented interfaces,
@@ -6047,6 +6048,7 @@ Let $M_I$ be the interface that would be defined by the class declaration
 \}
 \end{normativeDartCode}
 
+\noindent
 where $\metavar{members}'$ are the member declarations of
 the mixin declaration $M$ except that all superinvocations are treated
 as if \SUPER{} was a valid expression with static type $M_S$.
@@ -18539,7 +18541,7 @@ $T$ $\id_1$ = $e$;
 \}
 \end{normativeDartCode}
 
-\noindent
+\LMHash{}%
 If the static type of $e$ is a top type
 (\ref{superBoundedTypes})
 then $T$ is \code{Iterable<\DYNAMIC>},
@@ -18852,6 +18854,7 @@ Execution of a switch statement of the form
 \}
 \end{normativeDartCode}
 
+\noindent
 or the form
 
 \begin{normativeDartCode}
@@ -18862,6 +18865,7 @@ or the form
 \}
 \end{normativeDartCode}
 
+\noindent
 proceeds as follows:
 
 \LMHash{}%
@@ -18895,6 +18899,7 @@ Matching of a \CASE{} clause \CASE{} $e_{k}: s_{k}$ of a switch statement
 \}
 \end{normativeDartCode}
 
+\noindent
 against the value of a variable \id{} proceeds as follows:
 
 \LMHash{}%
@@ -19013,6 +19018,7 @@ Execution of the case statements $s_h$ of a switch statement
 \}
 \end{normativeDartCode}
 
+\noindent
 or a switch statement
 
 \begin{normativeDartCode}
@@ -19024,6 +19030,7 @@ or a switch statement
 \}
 \end{normativeDartCode}
 
+\noindent
 proceeds as follows:
 
 \LMHash{}%
@@ -19195,6 +19202,8 @@ Execution of a \TRY{} statement $s$ of the form:
 \ON{} $T_n$ \CATCH{} ($e_n$, $t_n$) $c_n$
 \FINALLY{} $f$
 \end{normativeDartCode}
+
+\noindent
 proceeds as follows:
 
 \LMHash{}%
