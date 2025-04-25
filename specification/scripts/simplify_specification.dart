@@ -21,8 +21,28 @@ library;
 
 import 'dart:io';
 
-const specificationFilename = 'dartLangSpec.tex';
+void main() {
+  final inputFile = File(specificationFilename);
+  if (!inputFile.existsSync()) fail("Specification not found");
+  final contents = inputFile.readAsLinesSync();
+  final workingContents =
+      List<String?>.from(contents, growable: false)
+        ..removeComments()
+        ..removeDartCode()
+        ..removeTrailingWhitespace()
+        ..removeNonNormative()
+        ..joinLines()
+        ..removeTrailingWhitespace()
+        ..removeSpuriousEmptyLines();
+  final simplifiedContents = workingContents.whereType<String>().toList();
+  final outputFile = File(outputFilename);
+  final outputSink = outputFile.openWrite();
+  simplifiedContents.forEach(outputSink.writeln);
+}
+
 const outputFilename = 'dartLangSpec-simple.tex';
+
+const specificationFilename = 'dartLangSpec.tex';
 
 void fail(String message) {
   print("simplify_specification error: $message");
@@ -30,15 +50,15 @@ void fail(String message) {
 }
 
 extension on String {
-  bool get startsList =>
-      startsWith(r"\begin{itemize}") || startsWith(r"\begin{enumerate}");
+  bool get endsCode => startsWith(r"\end{normativeDartCode}");
   bool get endsList =>
       startsWith(r"\end{itemize}") || startsWith(r"\end{enumerate}");
+  bool get endsMinipage => contains(r"\end{minipage}");
   bool get isItem => startsWith(r"\item");
   bool get startsCode => startsWith(r"\begin{normativeDartCode}");
-  bool get endsCode => startsWith(r"\end{normativeDartCode}");
+  bool get startsList =>
+      startsWith(r"\begin{itemize}") || startsWith(r"\begin{enumerate}");
   bool get startsMinipage => contains(r"\begin{minipage}");
-  bool get endsMinipage => contains(r"\end{minipage}");
 }
 
 extension on List<String?> {
@@ -49,36 +69,23 @@ extension on List<String?> {
   static final _bracesRegExp = RegExp(r"\\[a-zA-Z]*{.*}");
   static final _parenBracesRexExp = RegExp(r"\(\\[a-zA-Z]*{.*}\)");
 
-  static bool _isWhitespace(String text, int index) {
-    int codeUnit = text.codeUnitAt(index);
-    return codeUnit == 0x09 || // Tab
-        codeUnit == 0x0A || // Line Feed
-        codeUnit == 0x0B || // Vertical Tab
-        codeUnit == 0x0C || // Form Feed
-        codeUnit == 0x0D || // Carriage Return
-        codeUnit == 0x20 || // Space
-        codeUnit == 0xA0 || // No-Break Space
-        codeUnit == 0x1680 || // Ogham Space Mark
-        (codeUnit >= 0x2000 && codeUnit <= 0x200A) || // En Space to Hair Space
-        codeUnit == 0x202F || // Narrow No-Break Space
-        codeUnit == 0x205F || // Medium Mathematical Space
-        codeUnit == 0x3000 || // Ideographic Space
-        codeUnit == 0xFEFF; // Zero Width No-Break Space (BOM)
-  }
-
-  static int _indentation(String text) {
-    final length = text.length;
-    for (int i = 0; i < length; ++i) {
-      if (!_isWhitespace(text, i)) {
-        return i;
+  void joinLines() {
+    bool inFrontMatter = true;
+    for (var lineIndex = 0; lineIndex < length; ++lineIndex) {
+      final line = this[lineIndex]; // Invariant.
+      if (line == null) continue;
+      if (inFrontMatter) {
+        if (line.startsWith(r"\begin{document}")) inFrontMatter = false;
+        continue;
+      }
+      if (line.startsWith(r"\LMHash{}")) {
+        lineIndex = _gatherParagraph(lineIndex);
+      } else if (line.startsWith(r"\noindent")) {
+        lineIndex = _gatherContinuedParagraph(lineIndex);
+      } else if (line.startsList) {
+        lineIndex = _gatherItems(lineIndex);
       }
     }
-    return length;
-  }
-
-  static String _lineStart(String line) {
-    final indentation = _indentation(line);
-    return "${' ' * indentation}}";
   }
 
   // Eliminate comment-only lines. Reduce other comments to `%`.
@@ -109,16 +116,29 @@ extension on List<String?> {
     }
   }
 
-  void removeTrailingWhitespace() {
-    for (int i = 0; i < length; ++i) {
-      final line = this[i];
+  /// Remove all blocks `\begin{dartCode} .. \end{dartCode}`.
+  /// All of these are examples, described in commentary.
+  void removeDartCode() {
+    final length = this.length;
+    var inDartCode = false;
+    for (var index = 0; index < length; ++index) {
+      final line = this[index];
       if (line == null) continue;
-      if (line.isNotEmpty && _isWhitespace(line, line.length - 1)) {
-        this[i] = line.trimRight();
+      if (line.startsWith(r"\begin{dartCode}")) {
+        inDartCode = true;
+      }
+      if (inDartCode) this[index] = null;
+      if (line.startsWith(r"\end{dartCode}")) {
+        inDartCode = false;
       }
     }
   }
 
+  /// Remove non-normative text elements.
+  /// This method removes `\commentary{...}` and `\rationale{...}`,
+  /// and it removes `\BlindDefineSymbol{...}`. It does not make
+  /// any attempts to balance brace begin and brace end characters,
+  /// it trusts the indentation to reflect this structure correctly.
   void removeNonNormative() {
     for (int i = 0; i < length; ++i) {
       final line = this[i];
@@ -166,50 +186,33 @@ extension on List<String?> {
     }
   }
 
-  int _gatherParagraphBase(final int paragraphIndex, StringBuffer buffer) {
+  void removeSpuriousEmptyLines() {
     final length = this.length;
-    var insertSpace = false;
-    for (
-      var gatherIndex = paragraphIndex + 1;
-      gatherIndex < length;
-      ++gatherIndex
-    ) {
-      var gatherLine = this[gatherIndex]; // Invariant.
-      if (gatherLine == null) continue;
-      if (gatherLine.isEmpty || gatherLine.startsWith(r"\EndCase")) {
-        // End of paragraph, finalize.
-        this[paragraphIndex] = buffer.toString();
-        return gatherIndex;
-      }
-      final spacing = insertSpace ? ' ' : '';
-      final endsInPercent = gatherLine.endsWith('%');
-      final String addLine;
-      if (endsInPercent) {
-        addLine = gatherLine.substring(0, gatherLine.length - 1).trimLeft();
-        insertSpace = false;
+    bool previousLineWasEmpty = false;
+    for (int i = 0; i < length; ++i) {
+      var line = this[i];
+      if (line == null) continue;
+      if (line.isEmpty) {
+        if (previousLineWasEmpty) {
+          this[i] = null;
+        } else {
+          previousLineWasEmpty = true;
+        }
       } else {
-        addLine = gatherLine.trimLeft();
-        insertSpace = true;
+        previousLineWasEmpty = false;
       }
-      if (addLine.isNotEmpty) buffer.write('$spacing$addLine');
-      this[gatherIndex] = null;
     }
-    throw "Internal error: reached end of text";
   }
 
-  /// Gather the text in lines `paragraphIndex + 1` into
-  /// a single line and store it at [paragraphIndex].
-  /// The line at [paragraphIndex] is expected to contain
-  /// `\LMHash{}` which will be removed.
-  int _gatherParagraph(final int paragraphIndex) =>
-      _gatherParagraphBase(paragraphIndex, StringBuffer(''));
-
-  /// Gather the text in lines `paragraphIndex + 1` into
-  /// a single line and store it at [paragraphIndex].
-  /// The line at [paragraphIndex] is expected to contain
-  /// `\noindent` which will be preserved.
-  int _gatherContinuedParagraph(final int paragraphIndex) =>
-      _gatherParagraphBase(paragraphIndex, StringBuffer(r"\noindent "));
+  void removeTrailingWhitespace() {
+    for (int i = 0; i < length; ++i) {
+      final line = this[i];
+      if (line == null) continue;
+      if (line.isNotEmpty && _isWhitespace(line, line.length - 1)) {
+        this[i] = line.trimRight();
+      }
+    }
+  }
 
   /// Return the index of the first line, starting with [startIndex],
   /// that contains the command `\item`. Note that this implies
@@ -242,6 +245,13 @@ extension on List<String?> {
     }
     throw "_findText reached end of text";
   }
+
+  /// Gather the text in lines `paragraphIndex + 1` into
+  /// a single line and store it at [paragraphIndex].
+  /// The line at [paragraphIndex] is expected to contain
+  /// `\noindent` which will be preserved.
+  int _gatherContinuedParagraph(final int paragraphIndex) =>
+      _gatherParagraphBase(paragraphIndex, StringBuffer(r"\noindent "));
 
   /// Starting from the line with index [listIndex], which is assumed
   /// to start with `\begin{itemize}` or `\begin{enumerate}`, search for
@@ -360,58 +370,73 @@ extension on List<String?> {
     throw "_gatherItems reached end of text";
   }
 
-  void joinLines() {
-    bool inFrontMatter = true;
-    for (var lineIndex = 0; lineIndex < length; ++lineIndex) {
-      final line = this[lineIndex]; // Invariant.
-      if (line == null) continue;
-      if (inFrontMatter) {
-        if (line.startsWith(r"\begin{document}")) inFrontMatter = false;
-        continue;
-      }
-      if (line.startsWith(r"\LMHash{}")) {
-        lineIndex = _gatherParagraph(lineIndex);
-      } else if (line.startsWith(r"\noindent")) {
-        lineIndex = _gatherContinuedParagraph(lineIndex);
-      } else if (line.startsList) {
-        lineIndex = _gatherItems(lineIndex);
-      }
-    }
-  }
+  /// Gather the text in lines `paragraphIndex + 1` into
+  /// a single line and store it at [paragraphIndex].
+  /// The line at [paragraphIndex] is expected to contain
+  /// `\LMHash{}` which will be removed.
+  int _gatherParagraph(final int paragraphIndex) =>
+      _gatherParagraphBase(paragraphIndex, StringBuffer(''));
 
-  void removeSpuriousEmptyLines() {
+  int _gatherParagraphBase(final int paragraphIndex, StringBuffer buffer) {
     final length = this.length;
-    bool previousLineWasEmpty = false;
-    for (int i = 0; i < length; ++i) {
-      var line = this[i];
-      if (line == null) continue;
-      if (line.isEmpty) {
-        if (previousLineWasEmpty) {
-          this[i] = null;
-        } else {
-          previousLineWasEmpty = true;
-        }
+    var insertSpace = false;
+    for (
+      var gatherIndex = paragraphIndex + 1;
+      gatherIndex < length;
+      ++gatherIndex
+    ) {
+      var gatherLine = this[gatherIndex]; // Invariant.
+      if (gatherLine == null) continue;
+      if (gatherLine.isEmpty || gatherLine.startsWith(r"\EndCase")) {
+        // End of paragraph, finalize.
+        this[paragraphIndex] = buffer.toString();
+        return gatherIndex;
+      }
+      final spacing = insertSpace ? ' ' : '';
+      final endsInPercent = gatherLine.endsWith('%');
+      final String addLine;
+      if (endsInPercent) {
+        addLine = gatherLine.substring(0, gatherLine.length - 1).trimLeft();
+        insertSpace = false;
       } else {
-        previousLineWasEmpty = false;
+        addLine = gatherLine.trimLeft();
+        insertSpace = true;
+      }
+      if (addLine.isNotEmpty) buffer.write('$spacing$addLine');
+      this[gatherIndex] = null;
+    }
+    throw "Internal error: reached end of text";
+  }
+
+  static int _indentation(String text) {
+    final length = text.length;
+    for (int i = 0; i < length; ++i) {
+      if (!_isWhitespace(text, i)) {
+        return i;
       }
     }
+    return length;
   }
-}
 
-void main() {
-  final inputFile = File(specificationFilename);
-  if (!inputFile.existsSync()) fail("Specification not found");
-  final contents = inputFile.readAsLinesSync();
-  final workingContents =
-      List<String?>.from(contents, growable: false)
-        ..removeComments()
-        ..removeTrailingWhitespace()
-        ..removeNonNormative()
-        ..joinLines()
-        ..removeTrailingWhitespace()
-        ..removeSpuriousEmptyLines();
-  final simplifiedContents = workingContents.whereType<String>().toList();
-  final outputFile = File(outputFilename);
-  final outputSink = outputFile.openWrite();
-  simplifiedContents.forEach(outputSink.writeln);
+  static bool _isWhitespace(String text, int index) {
+    int codeUnit = text.codeUnitAt(index);
+    return codeUnit == 0x09 || // Tab
+        codeUnit == 0x0A || // Line Feed
+        codeUnit == 0x0B || // Vertical Tab
+        codeUnit == 0x0C || // Form Feed
+        codeUnit == 0x0D || // Carriage Return
+        codeUnit == 0x20 || // Space
+        codeUnit == 0xA0 || // No-Break Space
+        codeUnit == 0x1680 || // Ogham Space Mark
+        (codeUnit >= 0x2000 && codeUnit <= 0x200A) || // En Space to Hair Space
+        codeUnit == 0x202F || // Narrow No-Break Space
+        codeUnit == 0x205F || // Medium Mathematical Space
+        codeUnit == 0x3000 || // Ideographic Space
+        codeUnit == 0xFEFF; // Zero Width No-Break Space (BOM)
+  }
+
+  static String _lineStart(String line) {
+    final indentation = _indentation(line);
+    return "${' ' * indentation}}";
+  }
 }
