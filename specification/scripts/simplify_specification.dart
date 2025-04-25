@@ -37,6 +37,8 @@ extension on String {
   bool get isItem => startsWith(r"\item");
   bool get startsCode => startsWith(r"\begin{normativeDartCode}");
   bool get endsCode => startsWith(r"\end{normativeDartCode}");
+  bool get startsMinipage => contains(r"\begin{minipage}");
+  bool get endsMinipage => contains(r"\end{minipage}");
 }
 
 extension on List<String?> {
@@ -255,10 +257,16 @@ extension on List<String?> {
     var buffer = StringBuffer(itemLine!.trimRight());
     var insertSpace = true;
     var inCode = false;
+    var inMinipage = false;
 
     for (var gatherIndex = itemIndex + 1; gatherIndex < length; ++gatherIndex) {
       var gatherLine = this[gatherIndex]; // Invariant.
       if (gatherLine == null) continue;
+      if (gatherLine.startsMinipage) inMinipage = true;
+      if (inMinipage) {
+        if (gatherLine.endsMinipage) inMinipage = false;
+        continue;
+      }
       if (gatherLine.startsCode) inCode = true;
       if (inCode) {
         if (gatherLine.endsCode) inCode = false;
