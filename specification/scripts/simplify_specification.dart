@@ -35,6 +35,8 @@ extension on String {
   bool get endsList =>
       startsWith(r"\end{itemize}") || startsWith(r"\end{enumerate}");
   bool get isItem => startsWith(r"\item");
+  bool get startsCode => startsWith(r"\begin{normativeDartCode}");
+  bool get endsCode => startsWith(r"\end{normativeDartCode}");
 }
 
 extension on List<String?> {
@@ -252,10 +254,16 @@ extension on List<String?> {
     var itemLine = this[itemIndex]; // Invariant.
     var buffer = StringBuffer(itemLine!.trimRight());
     var insertSpace = true;
+    var inCode = false;
 
     for (var gatherIndex = itemIndex + 1; gatherIndex < length; ++gatherIndex) {
       var gatherLine = this[gatherIndex]; // Invariant.
       if (gatherLine == null) continue;
+      if (gatherLine.startsCode) inCode = true;
+      if (inCode) {
+        if (gatherLine.endsCode) inCode = false;
+        continue;
+      }
       final trimmedGatherLine = gatherLine.trimLeft();
       if (trimmedGatherLine.startsList) {
         // We do not gather a nested itemized list into the current item.
