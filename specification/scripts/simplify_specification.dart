@@ -162,11 +162,8 @@ extension on List<String?> {
     }
   }
 
-  /// Gather the text in lines `paragraphIndex + 1` into
-  /// a single line and store it at [paragraphIndex].
-  int _gatherParagraph(final int paragraphIndex) {
+  int _gatherParagraphBase(final int paragraphIndex, StringBuffer buffer) {
     final length = this.length;
-    final buffer = StringBuffer('');
     var insertSpace = false;
     for (
       var gatherIndex = paragraphIndex + 1;
@@ -175,7 +172,7 @@ extension on List<String?> {
     ) {
       var gatherLine = this[gatherIndex]; // Invariant.
       if (gatherLine == null) continue;
-      if (gatherLine.isEmpty) {
+      if (gatherLine.isEmpty || gatherLine.startsWith(r"\EndCase")) {
         // End of paragraph, finalize.
         this[paragraphIndex] = buffer.toString();
         return gatherIndex;
@@ -193,8 +190,22 @@ extension on List<String?> {
       if (addLine.isNotEmpty) buffer.write('$spacing$addLine');
       this[gatherIndex] = null;
     }
-    throw "Internal error: _gatherParagraph reached end of text";
+    throw "Internal error: reached end of text";
   }
+
+  /// Gather the text in lines `paragraphIndex + 1` into
+  /// a single line and store it at [paragraphIndex].
+  /// The line at [paragraphIndex] is expected to contain
+  /// `\LMHash{}` which will be removed.
+  int _gatherParagraph(final int paragraphIndex) =>
+      _gatherParagraphBase(paragraphIndex, StringBuffer(''));
+
+  /// Gather the text in lines `paragraphIndex + 1` into
+  /// a single line and store it at [paragraphIndex].
+  /// The line at [paragraphIndex] is expected to contain
+  /// `\noindent` which will be preserved.
+  int _gatherContinuedParagraph(final int paragraphIndex) =>
+      _gatherParagraphBase(paragraphIndex, StringBuffer(r"\noindent "));
 
   /// Return the index of the first line, starting with [startIndex],
   /// that contains the command `\item`. Note that this implies
@@ -324,6 +335,8 @@ extension on List<String?> {
       }
       if (line.startsWith(r"\LMHash{}")) {
         lineIndex = _gatherParagraph(lineIndex);
+      } else if (line.startsWith(r"\noindent")) {
+        lineIndex = _gatherContinuedParagraph(lineIndex);
       } else if (line.startsList) {
         lineIndex = _gatherItems(lineIndex);
       }
