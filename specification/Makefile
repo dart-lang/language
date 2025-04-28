@@ -2,6 +2,8 @@ NAME=dartLangSpec
 SPEC=$(NAME).tex
 HASH=$(NAME)-hash.tex
 LIST=$(NAME)-list.txt
+TERSE_SPEC=$(NAME)-terse.tex
+TERSE_IDX=$(NAME)-terse.idx
 HASHER=scripts/addlatexhash.dart
 
 pdf:
@@ -39,6 +41,17 @@ dvihash: hash_and_list
 hash_and_list:
 	dart $(HASHER) $(SPEC) $(HASH) $(LIST)
 
+terse:
+	dart scripts/simplify_specification.dart
+
+tersepdf:
+	pdflatex $(TERSE_SPEC)
+	makeindex $(TERSE_IDX)
+	pdflatex $(TERSE_SPEC)
+	makeindex $(TERSE_IDX)
+	pdflatex $(TERSE_SPEC)
+	pdflatex $(TERSE_SPEC)
+
 help:
 	@echo "Goals:"
 	@echo "  pdf, dvi: generate the pdf/dvi file containing the spec"
@@ -51,7 +64,3 @@ cleanish:
 
 clean: cleanish
 	rm -f *.dvi *.pdf $(HASH) $(LIST)
-
-terse:
-	dart scripts/simplify_specification.dart
-
