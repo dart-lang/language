@@ -40,13 +40,19 @@ void main() {
   simplifiedContents.forEach(outputSink.writeln);
 }
 
-const outputFilename = 'dartLangSpec-simple.tex';
+const outputFilename = 'dartLangSpec-terse.tex';
 
 const specificationFilename = 'dartLangSpec.tex';
+
+const percentCodeUnit = 37; // Encoding of '%'.
 
 void fail(String message) {
   print("simplify_specification error: $message");
   exit(-1);
+}
+
+Never endOfTextFailure() {
+  throw StateError("Internal error: reached end of text.");
 }
 
 extension on String {
@@ -99,7 +105,7 @@ extension on List<String?> {
           this[i] = null; // A comment-only line disappears entirely.
         } else {
           final cutPosition = match.start + 2; // Include the `%`.
-          if (line.trimLeft().codeUnitAt(0) == 37) {
+          if (line.trimLeft().codeUnitAt(0) == percentCodeUnit) {
             // An indented comment-only line disappears entirely.
             this[i] = null;
           } else {
@@ -217,19 +223,19 @@ extension on List<String?> {
   /// Return the index of the first line, starting with [startIndex],
   /// that contains the command `\item`. Note that this implies
   /// `this[i] != null` where `i` is the returned value.
-  ///
-  /// This method does not attempt to balance `\begin{}`/`\end{}`
-  /// pairs,
   int _findItem(final int startIndex) {
     final length = this.length;
     for (int searchIndex = startIndex; searchIndex < length; ++searchIndex) {
       final line = this[searchIndex];
       if (line == null) continue;
       final trimmedLine = line.trimLeft();
-      if (trimmedLine.endsList) throw "_findItem did not find any items";
+      // A well-formed document should have some items in every itemized list.
+      if (trimmedLine.endsList) {
+        fail("no items found (line $searchIndex seems to be malformed)");
+      }
       if (trimmedLine.isItem) return searchIndex;
     }
-    throw "_findItem reached end of text";
+    endOfTextFailure();
   }
 
   /// Return the index of the first non-empty line after [startIndex].
@@ -243,7 +249,7 @@ extension on List<String?> {
         return searchIndex;
       }
     }
-    throw "_findText reached end of text";
+    endOfTextFailure();
   }
 
   /// Gather the text in lines `paragraphIndex + 1` into
@@ -367,7 +373,7 @@ extension on List<String?> {
       if (addLine.isNotEmpty) buffer.write('$spacing$addLine');
       this[gatherIndex] = null;
     }
-    throw "_gatherItems reached end of text";
+    endOfTextFailure();
   }
 
   /// Gather the text in lines `paragraphIndex + 1` into
@@ -405,7 +411,7 @@ extension on List<String?> {
       if (addLine.isNotEmpty) buffer.write('$spacing$addLine');
       this[gatherIndex] = null;
     }
-    throw "Internal error: reached end of text";
+    endOfTextFailure();
   }
 
   static int _indentation(String text) {
