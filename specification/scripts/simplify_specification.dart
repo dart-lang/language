@@ -51,6 +51,12 @@ void fail(String message) {
   exit(-1);
 }
 
+// Several steps in the algorithm are processing ranges of lines.
+// Typically, those ranges are not expected to include the last line in
+// the specification (we're just processing a block of sorts, somewhere
+// in the middle of the document). This function is called after loops
+// that are doing this kind of processing because the loop is expected
+// to reach a `return` statement rather than completing normally.
 Never endOfTextFailure() {
   throw StateError("Internal error: reached end of text.");
 }
