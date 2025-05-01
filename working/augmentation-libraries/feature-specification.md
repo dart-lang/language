@@ -847,7 +847,7 @@ Augmenting an existing enum value never changes the order in which it appears in
 
 For example:
 
-```
+```dart
 // main.dart
 part 'a.dart';
 part 'c.dart';
@@ -861,7 +861,6 @@ enum A {
   const A() : b = 0;
 
   const A.custom(this.b);
-}
 }
 
 // a.dart
