@@ -284,8 +284,8 @@ enough for things like the set of values matched by the pattern `DateTime(day:
 have certain values.
 
 A pattern is the natural way to describe a set of values of some type filtered
-by some arbitrary set of predicates on their propertiesl, and we will use
-somethig similar here. However, the patterns proposal defines a rich set of
+by some arbitrary set of predicates on their properties, and we will use
+something similar here. However, the patterns proposal defines a rich set of
 patterns to make the feature user friendly and expressive. It would require
 unnecessary complexity in the exhaustiveness algorithm to handle every single
 kind of pattern.
@@ -652,7 +652,7 @@ Space intersection is defined as:
 
 ### Restriction subsetting
 
-Similar to how a pair of type may have a subtype relation between them, one
+Similar to how a pair of types may have a subtype relation between them, one
 restriction may be a *subset* of another. If one restriction is a subset of
 another, then every value matched by the former will also be matched by the
 latter.
@@ -803,8 +803,8 @@ over the matched value type:
 
 1.  For each case (including cases with guards) except the first:
 
-    1.  Collect all of the of the patterns from the cases preceding `case`
-        (except ones with guards), and lift them to space unions as `preceding`.
+    1.  Collect all of the patterns from the cases preceding `case` (except ones
+        with guards), and lift them to space unions as `preceding`.
 
     2.  Lift the pattern for the current case to `case`.
 
