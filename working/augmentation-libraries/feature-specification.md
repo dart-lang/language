@@ -62,8 +62,7 @@ We say that a declaration which is not an augmentation declaration is an
 Augmentation declarations include:
 
 *   Type augmentations, which can add new members to types, add new values to
-    enums, add to the `with` or `implements` clauses, or provide bodies for
-    members.
+    enums, or add to the `with` or `implements` clauses.
 
 *   Function augmentations, which can provide a body.
 
@@ -76,11 +75,11 @@ An augmentation can fill in a body for a declared member that has no body, but
 can't *replace* an existing body or add to it. In order to allow augmentations
 to provide bodies for static methods and top-level functions, we allow
 declarations of those to be "abstract" and lack a body as long as a body is
-eventually provided by an augmentation declaration.
+eventually provided by an augmenting declaration.
 
 #### Design principle
 
-When designing this feature, a challenging question is how much power to give
+When designing this feature, a fundamental question is how much power to give
 augmentations. Giving them more ability to change the introductory declaration
 makes them more powerful and expressive. But the more an augmentation can
 change, the less a reader can correctly assume from reading only the
@@ -90,14 +89,14 @@ understand and work with.
 To balance those, the general principle of this feature is that augmentations
 can *add new capabilities* to the declaration and *fill in implementation*, but
 generally can't change any property a reader knows to be true from the
-introductory declaration. In other words, if a program would work without the
-augmentation being applied, it should generally still work after the
-augmentation is applied. *Note that this a design principle and not a strict
-guarantee.*
+introductory declaration or any prior augmentation. In other words, if a program
+would work without the augmentation being applied, it should generally still
+work after the augmentation is applied. *Note that this a design principle and
+not a strict guarantee.*
 
-For example, if the introductory declaration of a function takes an int
-parameter and returns a string, then any augmentation must also take an int and
-return a string. That way a reader knows how to call the function and what
+For example, if the introductory declaration of a function takes an `int`
+parameter and returns a `String`, then any augmentation must also take an `int`
+and return a `String`. That way a reader knows how to call the function and what
 they'll get back without having to read the augmentations.
 
 Likewise, if an introductory class declaration has a generative constructor,
@@ -130,14 +129,17 @@ topLevelDeclaration ::= classDeclaration
   | 'augment'? 'late' 'final' type? initializedIdentifierList ';'
   | 'augment'? 'late'? varOrType initializedIdentifierList ';'
 
-classDeclaration ::= 'augment'? (classModifiers | mixinClassModifiers)
+classDeclaration ::=
+    'augment'? (classModifiers | mixinClassModifiers)
     'class' typeWithParameters superclass? interfaces?
     memberedDeclarationBody
   | 'augment'? classModifiers 'mixin'? 'class' mixinApplicationClass
 
-mixinDeclaration ::= 'augment'? 'base'? 'mixin' typeIdentifier
-  typeParameters? ('on' typeNotVoidNotFunctionList)? interfaces?
-  memberedDeclarationBody
+mixinDeclaration ::=
+    'base'? 'mixin' typeIdentifier typeParameters?
+    ('on' typeNotVoidNotFunctionList)? interfaces? memberedDeclarationBody
+  | 'augment' 'base'? 'mixin' typeIdentifier typeParameters?
+    interfaces? memberedDeclarationBody
 
 extensionDeclaration ::=
     'extension' typeIdentifierNotType? typeParameters? 'on' type
@@ -149,7 +151,8 @@ extensionTypeDeclaration ::=
     'extension' 'type' 'const'? typeIdentifier
     typeParameters? representationDeclaration interfaces?
     memberedDeclarationBody
-  | 'augment' 'extension' 'type' typeIdentifier typeParameters? interfaces?
+  | 'augment' 'extension' 'type' 'const'? typeIdentifier
+    typeParameters? interfaces?
     memberedDeclarationBody
 
 enumType ::= 'augment'? 'enum' typeIdentifier
@@ -171,7 +174,8 @@ enumEntry ::= metadata 'augment'? identifier argumentPart?
   | metadata 'augment'? identifier typeArguments?
     '.' identifierOrNew arguments
 
-declaration ::= 'external'? factoryConstructorSignature ';'
+declaration ::=
+    'augment'? 'external'? factoryConstructorSignature ';'
   | 'augment'? 'external' constantConstructorSignature ';'
   | 'augment'? 'external' constructorSignature ';'
   | 'augment'? 'external'? 'static'? getterSignature ';'
@@ -188,12 +192,19 @@ declaration ::= 'external'? factoryConstructorSignature ';'
   | 'covariant' 'late'? varOrType initializedIdentifierList ';'
   | 'late'? 'final' type? initializedIdentifierList ';'
   | 'late'? varOrType initializedIdentifierList ';'
-  | redirectingFactoryConstructorSignature ';'
-  | constantConstructorSignature (redirection | initializers)? ';'
-  | 'augment' constantConstructorSignature initializers? ';'
-  | constructorSignature (redirection | initializers)? ';'
-  | 'augment' constructorSignature initializers? ';'
+  | 'augment'? redirectingFactoryConstructorSignature ';'
+  | 'augment'? constantConstructorSignature (redirection | initializers)? ';'
+  | 'augment'? constructorSignature (redirection | initializers)? ';'
 ```
+
+*Note that the grammar for putting `augment` before an extension type
+declaration doesn't allow also specifying a representation field. This is by
+design. An extension type augmentation always inherits the representation field
+of the introductory declaration and can't specify it.*
+
+*Likewise, the grammar for an augmenting `mixin` declaration does not allow
+specifying an `on` clause. Only the introductory declaration permits that. We
+could relax this restriction if compelling use cases arise.*
 
 ## Static semantics
 
@@ -215,10 +226,10 @@ define the following relations on *declarations* based on the relations between
 We say that a syntactic declaration *occurs in* a Dart file if the
 declaration's source code occurs in that Dart file.
 
-We say that a Dart file *contains* a declaration if the declaration occurs
-in the file itself, or if any of the files included by the Dart file contain
-the declaration. *That is, if the declaration occurs in a file in the subtree
-of that Dart file.*
+We say that a Dart file *contains* a declaration if the declaration occurs in
+the file itself, or if any of the part files transitively included by the Dart
+file contain the declaration. *That is, if the declaration occurs in a file in
+the part subtree of that Dart file.*
 
 We then define two orderings of declarations in a library, one partial and one
 complete.
@@ -414,11 +425,32 @@ the same type as the type in the corresponding declaration being augmented.
 *In short, an augmenting declaration can omit type annotations, but if it
 doesn't, it must repeat the type from the augmented definition.*
 
+#### Inheriting combined getter setter signatures
+
+An instance getter and instance setter can be augmented with an abstract
+variable declaration because the latter is syntactic sugar for an abstract
+getter and setter declaration. This leads to a tricky edge case where the
+augmenting abstract variable may want to inherit a type but the getter and
+setter it inherits from have different types:
+
+```dart
+class C {
+  int get x => 1;
+  set x(String value) {}
+
+  @metadataToAdd
+  augment abstract var x; // What type is inherited here?
+}
+```
+
+It's a **compile-time error** if an abstract variable augments a getter and
+setter that don't have a combined signature.
+
 ## Applying augmentations
 
 An augmentation declaration *D* is a declaration marked with the built-in
-identifier `augment`. We language version making `augment` a built-in
-identifier, to avoid breaking pre-feature code.
+identifier `augment`. We add `augment` as a built-in identifier as a language
+versioned change, to avoid breaking pre-feature code.
 
 *D* augments a declaration *I* with the same name and in the same context as
 *D*. There may be multiple augmentations in the context of *D*. More precisely,
@@ -431,8 +463,9 @@ to apply it to.*
 We say that *I* is the declaration which is *augmented by* *D*.
 
 *In other words, take all of the declarations with the same name in some
-context, order them according to after, and each augments the preceding one.
-The first one must not be marked `augment` and all the subsequent ones must be.*
+context, order them according to the "after" relation, and each augments the
+result of all the prior augmentations applied to the original declaration . The
+first one must not be marked `augment` and all the subsequent ones must be.*
 
 An augmentation declaration does not introduce a new name into the surrounding
 scope. *We could say that it attaches itself to the existing name.*
@@ -451,8 +484,8 @@ augmenting) is *incomplete* if all of:
 *   The function is not marked `external`. *An `external` function is considered
     to have a body, just not one that is visible as Dart code.*
 
-*   There is no initializer list. *Obviously, this only applies to constructor
-    declarations.*
+*   There is no redirection, initializer list, initializing formals, or super
+    parameters. *Obviously, this only applies to constructor declarations.*
 
 If a declaration is not *incomplete* then it is *complete*.
 
@@ -535,6 +568,16 @@ supported). The types in these clauses are appended to the introductory
 declarations' clauses of the same kind, and if that clause did not exist
 previously, then it is added with the new types.
 
+*Example:*
+
+```dart
+class C implements I1 with M1 {}
+augment class C implements I2 with M2 {}
+
+// Is equivalent to:
+class C implements I1, I2 with M1, M2 {}
+```
+
 Instance or static members defined in the body of the augmenting type,
 including enum values, are added to the instance or static namespace of the
 corresponding type in the introductory declaration. *In other words, the
@@ -546,15 +589,14 @@ the same context, according to the rules in the following subsections.
 
 It's a **compile-time** error if:
 
-*   The resulting clauses after being appended would be erroneous if declared
-    directly. This means you can't end up with multiple `extends` clauses on a
-    class, an `on` clause on an enum, etc.
-
 *   A library contains two top-level declarations with the same name, and one of
     the declarations is a class-like declaration and the other is not of the
     same kind, meaning that either one is a class, mixin, enum, extension or
     extension type declaration, and the other is not the same kind of
     declaration.
+
+*   An augmenting class declaration has an `extends` clause and any prior
+    declaration for the same class also has an `extends` clause.
 
 *   The augmenting declaration and augmented declaration do not have all the
     same modifiers: `abstract`, `base`, `final`, `interface`, `sealed` and
@@ -563,12 +605,6 @@ It's a **compile-time** error if:
     *This is not a technical requirement, but follows our design principle that
     what is known from reading the introductory declaration will still be true
     after augmentation.*
-
-*   An augmenting extension declares an `on` clause *(this is a syntax
-    error)*. We also do not allow adding further restrictions to a `mixin`
-    declaration, so no further types can be added to its `on` clause, if it
-    even has one. *These restrictions could both be lifted later if we have a
-    compelling use case.*
 
 *   The type parameters of the augmenting declaration do not match the
     augmented declarations's type parameters. This means there must be
@@ -634,7 +670,7 @@ It's a **compile-time** error if:
 
 ### Augmenting variables
 
-A class-like augmentation can add *new* variables (i.e. instance or static
+A class-like augmentation can add *new* variables (that is instance or static
 fields) to the type being augmented:
 
 ```dart
@@ -647,15 +683,15 @@ augment class C {
 }
 ```
 
-Variable declarations themselves can't be directly augmented, with the exception
-of abstract fields.
+Variable declarations themselves can't be augmented (by variables, getters, or
+setters), with the exception of abstract instance variable declarations.
 
 *A variable declaration implicitly has code for the synthesized getter and
 setter that access and modify the underlying backing storage. Since we don't
 allow augmentations to replace code, that implies that augmentations can't
 change variables. So we don't allow them to be augmented.*
 
-#### Abstract fields
+#### Abstract instance variables
 
 Dart supports `abstract` field declarations. They are syntactic sugar for
 declaring an abstract getter with an optional abstract setter if the variable is
@@ -705,16 +741,8 @@ It's a **compile-time error** if:
 ### Augmenting constructors
 
 Augmenting constructors works similar to augmenting a function, with some extra
-rules to handle features unique to constructors like initializer lists. Factory
-constructors, generative constructors, and const constructors (factory and
-generative) can be augmented. Redirecting constructors can't be augmented,
-though a class-like augmentation can add *new* redirecting constructors.
-
-*We could support augmenting redirecting constructors, but the use cases seem
-rare. Supporting this would require a way to specify that a constructor is
-redirecting without actually providing the redirection since the augmentation
-needs to fill that in and can't replace an existing redirection in the
-introductory declaration.*
+rules to handle features unique to constructors like redirections and
+initializer lists.
 
 It's a **compile-time error** if:
 
@@ -736,6 +764,23 @@ It's a **compile-time error** if:
     constructor is not, or vice versa. *An augmentation can't change whether or
     not a constructor is generative because that affects whether users are
     allowed to call the constructor in a subclass's initializer list.*
+
+An incomplete constructor can be completed by adding an initializer list and/or
+a body, or by adding a redirection:
+
+```dart
+class C {
+  C.generative();
+  factory C.fact();
+
+  C.other();
+}
+
+augment class C {
+  augment C.generative() : this.other();
+  factory augment C.fact() = C.other;
+}
+```
 
 ### Augmenting extension types
 
@@ -773,14 +818,26 @@ looks and behaves much like one, and it cannot be augmented as such.
 
 It's a **compile-time error** if:
 
-*   An augmenting declaration has the same name as the representation object.
+*   An augmenting declaration has the same name as the representation variable.
 
 *   An extension type augmentation contains a representation field clause.
 
 ### Augmenting with metadata annotations
 
-If an augmentation has metadata attached to it, these are appended to the
-metadata of the declaration being augmented.
+An augmenting declaration can have metadata attached to it. The language doesn't
+specify how metadata is used. Tools may choose to append metadata from
+augmentations to the resulting combined declaration or allow inspecting the
+metadata on the individual augmentations.
+
+*In practice, most code generators use the [analyzer package][] to introspect
+over code. Code generators introspecting on the _syntax_ of some code likely
+want to see the metadata for each syntactic declaration separately. Code
+generators introspecting over the resolved semantic model of the code (which is
+more common) probably want to see the metadata of the introductory declaration
+and all augmentations appended into a single list of metadata accessible from
+the combined declaration.*
+
+[analyzer package]: https://pub.dev/packages/analyzer
 
 ## Dynamic semantics
 
