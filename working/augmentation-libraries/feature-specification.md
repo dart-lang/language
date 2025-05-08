@@ -239,8 +239,8 @@ complete.
 A syntactic declaration *A* *is above* a syntactic declaration *B* if and only
 if:
 
-*   *A* and *B* occur in the same file, and the start of *A* is syntactically
-    before the start of *B*, in source order, or
+*   *A* and *B* occur in the same file, and *A*'s declared name is syntactically
+    before *B*'s declared name, in source order, or
 
 *   The file where *A* occurs includes the file where *B* occurs. *In other
     words, if there is a `part` chain from the file where A is declared to the
@@ -278,134 +278,127 @@ Then *B* *is after* *A* if and only if *A* *is before* *B*.
 `part` directives themselves into account when declarations are in sibling
 branches of the part tree.*
 
-This order is total (transitive, anti-symmetric, and irreflexive). It
-effectively orders declarations by a pre-order depth-first traversal of the file
-tree, visiting declarations of a file in source order, and then recursing on
-`part` directives in source order.
+This order is total. It effectively orders declarations by a pre-order
+depth-first traversal of the file tree, visiting declarations of a file in
+source order, and then recursing on `part` directives in source order.
 
-### Declaration context
+### Augmentation context
 
 Prior to this proposal, an entity like a class or function is introduced by a
 single syntactic declaration. With augmentations, an entity may be composed out
 of multiple declarations, the introductory one and any number of augmentations.
-We define a notion of a *context* to help us talk about the location where we
-need to look to collect all of the declarations that define some entity.
+We define a notion of a *augmentation context* to help us talk about the
+location where we need to look to collect all of the declarations that define
+some entity.
 
-* The context of a top-level declaration is the library and its associated tree
-  of part files.
+* The augmentation context of a top-level declaration is the library and its
+  associated tree of part files.
 
-* The context of a member declaration in a type declaration named *N* is the set
-  of type declarations (introductory and augmenting) named *N* in the enclosing
-  set of Dart files.
+* The augmentation context of a member declaration in a type or extension
+  declaration named *N* is the set of type declarations (introductory and
+  augmenting) named *N* in the enclosing set of Dart files.
 
-*Note that context is only defined for the kinds of declarations that can be
-augmented. We don't define a context for, say, local variable declarations,
-because those aren't subject to augmentation.*
+*Note that augmentation context is only defined for the kinds of declarations
+that can be augmented. We don't define an augmentation context for, say, local
+variable declarations, because those aren't subject to augmentation.*
 
 ### Scoping
 
-The static and instance member namespaces for a type or extension declaration,
-augmenting or not, are lexical only. Only the declarations (augmenting or not)
-declared inside the actual declaration are part of the lexical scope that
-member declarations are resolved in.
+The static and instance member namespaces for an augmented type or extension
+declaration include the declarations of all members in the introductory and
+augmenting declarations. Identifiers in the bodies of members are resolved
+against that complete merged namespace. *In other words, augmentations are
+applied before identifiers inside members are resolved.*
 
-_This means that a static or instance member declared in the augmented
-declaration of a class is not *lexically* in scope in a corresponding
-augmenting declaration of that class, just as an inherited instance member
-is not in the lexical scope of a class declaration._
+It is already a **compile-time error** for multiple declarations to have the
+same name in the same scope. This error is checked *after* part files and
+augmentations have been applied. *In other words, it's an error to declare the
+same top-level name in a library and a part, the same top-level name in two
+parts, the same static or instance name inside an introductory declaration and
+an augmentation on that declaration, or the same static or instance name inside
+two augmentations of the same declaration.*
 
-If a member declaration needs to reference a static or instance member
-declared in another introductory or augmenting declaration of the same
-type, it can use `this.name` for instance members and `TypeName.name` for
-static members to be explicit. Or it can rely on the default if
-`name` is not in the lexical scope at all, in which case it's interpreted
-as `this.name` if it occurs inside a scope where a `this` is available. _This
-approach is always potentially dangerous, since any
-third-party import adding a declaration with the same name would break the
-code. In practice that's almost never a problem, because instance members
-and top-level declarations usually use different naming strategies._
-
-Example:
+*For example:*
 
 ```dart
-// Main library "some_lib.dart":
-import 'other_lib.dart';
+// Library "main.dart":
+part 'other.dart';
 
-part 'some_augment.dart';
-
-const b = 37;
+const name = 'top level';
 
 class C {
-  static const int b = 42;
-  bool isEven(int n) {
-    if (n == 0) return true;
-    return !_isOdd(n - 1);
+  test() {
+    print(name);
   }
 }
 
-// Augmentation "some_augment.dart":
-part of 'some_lib.dart';
+main() {
+  C().test();
+}
 
-import 'also_lib.dart';
+// Part file "other.dart":
+part of 'main.dart';
 
 augment class C {
-  bool _isOdd(int n) => !this.isEven(n - 1);
-  void printB() { print(b); }  // Prints 37
+  String get name => 'member';
 }
 ```
 
-This code is fine. Code in `C.isEven` can refer to members added
-in the augmentation like `_isOdd()` because there is no other `_isOdd` in
-scope. Code in `C._isOdd` works too by explicitly using `this.isEven` to
-ensure it calls the correct method.
+This program prints "member", not "top level". When `name` is resolved inside
+`test()` it walks up to the instance member scope for `C`. Since that scope
+contains the merged members of all applied augmentations, it finds the `name`
+getter added by the augmentation and uses that instead of continuing and
+finding the top level name.
 
 You can visualize the namespace nesting sort of like this:
 
 ```
-some_lib.dart         : some_augment.dart
-                      :
-.-------------------------------------------.
-| library import scope:                     |
-| other_lib imports                         |
-'-------------------------------------------'
-          ^           :          ^
-          |           :          |
-          |           : .-------------------.
-          |           : | part import scope:|
-          |           : | also_lib imports  |
-          |           : '-------------------'
-          |           :          ^
-          |           :          |
-.-------------------------------------------.
-| top-level declaration scope:              |
-| const b = 37                              |
-| class C (fully augmented class)           |
-'-------------------------------------------'
-          ^           :          ^
-          |           :          |
-.-------------------. : .-------------------.
-| class C:          | : | augment class C:  |
-| const b = 42      | : | _isOdd()          |
-| isEven()          | : |                   |
-'-------------------' : '-------------------'
-         ^            :          ^
-         |            :          |
-.-------------------. : .-------------------.
-| C.isEven() body   | : | C._isOdd() body   |
-'-------------------' : '-------------------'
+main.dart               : other.dart
+                        :
+.-----------------------------------------------.
+| main.dart imports:                            |
+'-----------------------------------------------'
+           ^            :           ^
+           |            :           |
+           |            : .---------------------.
+           |            : | other.dart imports: |
+           |            : '---------------------'
+           |            :           ^
+           |            :           |
+.-----------------------------------------------.
+| top-level declarations:                       |
+| const name                                    |
+| class C                                       |
+'-----------------------------------------------'
+           ^            :           ^
+           |            :           |
+.-----------------------------------------------.
+| class C instance members:                     |
+| test()                                        |
+| name                                          |
+'-----------------------------------------------'
+           ^            :           ^
+           |            :           |
+.---------------------. : .---------------------.
+| test() body         | : | name body           |
+'---------------------' : '---------------------'
 ```
 
-Each part file has its own combined import scope, extending that of its
-parent, and its own member declaration scopes for each declared member,
-introducing a lexical scope for the declaration's contents. In the middle, each
-passes through the shared library declaration namespaces for the top-level
-instances themselves.
+The main library file has an import scope which is inherited by all of the part
+files. Each part file then has its own import scope (which are inherited by that
+part file's own further part files).
 
-It's a **compile-time error** for both a static and instance member of the same
-name to be defined on the same type, even if they live in different lexical
-scopes. You cannot work around this restriction by moving the static member
-out to an augmentation, even though it would result in an unambiguous resolution
-for references to those members.
+The main library and all part files share and contribute to a single top-level
+declaration scope. Each type or extension declaration in there has a scope
+shared across introductory and augmenting declarations of that type or
+extension.
+
+Then inside those types and extensions are scopes for the member bodies. Each
+member has its own scope. When resolving an identifier inside a member, we look
+in the member body, then up through the scopes whose declarations are merged
+from all of the augmentations and parts, then through the import scopes which
+may be different for each part file, and finally to the import scope of the main
+library.
 
 ### Type annotation inheritance
 
@@ -452,9 +445,10 @@ An augmentation declaration *D* is a declaration marked with the built-in
 identifier `augment`. We add `augment` as a built-in identifier as a language
 versioned change, to avoid breaking pre-feature code.
 
-*D* augments a declaration *I* with the same name and in the same context as
-*D*. There may be multiple augmentations in the context of *D*. More precisely,
-*I* is the declaration before *D* and after every other declaration before *D*.
+*D* augments a declaration *I* with the same name and in the same augmentation
+context as *D*. There may be multiple augmentations in the augmentation context
+of *D*. More precisely, *I* is the declaration before *D* and after every other
+declaration before *D*.
 
 It's a **compile-time error** if there is no matching declaration *I*. *In other
 words, it's an error to have a declaration marked `augment` with no declaration
@@ -463,9 +457,10 @@ to apply it to.*
 We say that *I* is the declaration which is *augmented by* *D*.
 
 *In other words, take all of the declarations with the same name in some
-context, order them according to the "after" relation, and each augments the
-result of all the prior augmentations applied to the original declaration . The
-first one must not be marked `augment` and all the subsequent ones must be.*
+augmentation context, order them according to the "after" relation, and each
+augments the result of all the prior augmentations applied to the original
+declaration . The first one must not be marked `augment` and all the subsequent
+ones must be.*
 
 An augmentation declaration does not introduce a new name into the surrounding
 scope. *We could say that it attaches itself to the existing name.*
@@ -571,11 +566,11 @@ previously, then it is added with the new types.
 *Example:*
 
 ```dart
-class C implements I1 with M1 {}
-augment class C implements I2 with M2 {}
+class C with M1 implements I1 {}
+augment class C with M2 implements I2 {}
 
 // Is equivalent to:
-class C implements I1, I2 with M1, M2 {}
+class C with M1, M2 implements I1, I2 {}
 ```
 
 Instance or static members defined in the body of the augmenting type,
@@ -585,7 +580,8 @@ augmentation can add new members to an existing type.*
 
 Instance and static members inside a class-like declaration may themselves
 be augmentations. In that case, they augment the corresponding members in
-the same context, according to the rules in the following subsections.
+the same augmentation context, according to the rules in the following
+subsections.
 
 It's a **compile-time** error if:
 
@@ -684,7 +680,8 @@ augment class C {
 ```
 
 Variable declarations themselves can't be augmented (by variables, getters, or
-setters), with the exception of abstract instance variable declarations.
+setters, even if the getter or setter is incomplete), with the exception of
+abstract instance variable declarations.
 
 *A variable declaration implicitly has code for the synthesized getter and
 setter that access and modify the underlying backing storage. Since we don't
@@ -694,8 +691,8 @@ change variables. So we don't allow them to be augmented.*
 #### Abstract instance variables
 
 Dart supports `abstract` field declarations. They are syntactic sugar for
-declaring an abstract getter with an optional abstract setter if the variable is
-non-final. They don't actually declare a variable with any backing storage.
+declaring an abstract getter and, if not `final`, an abstract setter. They don't
+actually declare a variable with any backing storage.
 
 Because abstract variables are effectively abstract getter and setter
 declarations, they can be augmented and used in augmentations just like function
@@ -748,9 +745,10 @@ It's a **compile-time error** if:
 
 *   The signature of the constructor augmentation does not match the original
     constructor. It must have the same number of positional parameters, the same
-    named parameters, and matching parameters must have the same type,
-    optionality, and any `required` modifiers must match. Any initializing
-    formals and super parameters must also be the same in both constructors.
+    named parameters, and matching parameters must have the same type (if
+    provided), optionality, and any `required` modifiers must match. Any
+    initializing formals and super parameters must also be the same in both
+    constructors.
 
 *   The augmenting constructor parameters specify any default values.
     *Default values are defined solely by the introductory constructor.*
@@ -893,8 +891,8 @@ augmenting declarations and an introductory declaration as follows:
 
 #### Members
 
-A class declaration stack, *C*, of a one non-augmenting and zero or more
-augmenting class declarations, defines an *augmented interface* (member
+A class declaration stack, *C*, of an introductory declaration and zero or more
+augmenting declarations, defines an *augmented interface* (member
 signatures) and *augmented implementation* (instance members declarations)
 based on the individual syntactic declarations.
 
@@ -925,7 +923,7 @@ abstract method* as:
 *   Let *C<sub>top</sub>* be the latest element of the stack and
     *C<sub>rest</sub>* the rest of the stack.
 *   If *C<sub>top</sub>* is a non-variable declaration, and is not declared
-    `abstract`, the *C* doe
+    abstract, the *C* doe
 *   If *C<sub>top</sub>* declares a function body, then *C* does not define an
     abstract method.
 *   Otherwise *C* defines an abstract method if *C<sub>rest</sub>* defines an
@@ -1000,16 +998,6 @@ follows:
         except that type parameters of the class are bound to the runtime type
         arguments of those parameters for the instance *o*).
     *   Execute the body *B* in this parameter scope, with `this` bound to *o*.
-    *   If *B* contains an expression of the form `augmented<TypeArgs>(args)`
-        (type arguments omitted if empty), then:
-        *   The static type of `augmented` is the augmented function type of
-            *C<sub>rest</sub>*. The expression is type-inferred as a function
-            value invocation of a function with that static type.
-        *   To evaluate the expression, evaluate `args` to an argument list
-            *A2*, invoke *C<sub>rest</sub>* with argument list *A2* and type
-            arguments that are the types of `TypeArgs`. The result of
-            `augmented<TypeArgs>(args)` is the same as the result of that
-            invocation (returned value or thrown error).
     *   _There would have been a compile-time error if there is no earlier
         declaration with a body._
     *   The result of invoking *C* is the returned or thrown result of
@@ -1075,6 +1063,7 @@ can `// ignore:` it if they know what they're doing.
 *   Remove support for augmenting typedefs.
 *   Remove support for augmenting redirecting constructors.
 *   Allow a function augmentation to have an `external` body.
+*   Rewrite "Scoping" section to be clearer.
 
 ### 1.34
 
@@ -1147,7 +1136,7 @@ can `// ignore:` it if they know what they're doing.
 ### 1.22
 
 *   Unify augmentation libraries and parts.
-    [Parts with imports specification][parts_with_imports.md] moved into
+    [Parts with imports][parts with imports] moved into
     separate document, as a stand-alone feature that is not linked to
     augmentations.
 *   Augmentation declarations can occur in any file, whether a library or
