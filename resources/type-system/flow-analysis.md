@@ -108,8 +108,8 @@ that assignment).
 - Lists
   - We use the notation `[a, b]` to denote a list containing elements `a` and
     `b`.
-  - We use the notation `l::a` where `l` is a list to denote a list beginning
-    with all the elements of `l` and followed by `a`.
+  - We use the notation `[...l, a]` where `l` is a list to denote a list
+    beginning with all the elements of `l` and followed by `a`.
 
 - Stacks
   - We use the notation `push(s, x)` to mean pushing `x` onto the top of the
@@ -118,8 +118,8 @@ that assignment).
     the top element of `s`.  If `s` is empty, the result is undefined.
   - We use the notation `top(s)` to mean the top element of the stack `s`.  If
     `s` is empty, the result is undefined.
-  - Informally, we also use `t::a` to describe a stack `s` such that `top(s)` is
-    `a` and `pop(s)` is `t`.
+  - Informally, we also use `[...t, a]` to describe a stack `s` such that
+    `top(s)` is `a` and `pop(s)` is `t`.
 
 ### Models
 
@@ -263,14 +263,14 @@ We also make use of the following auxiliary functions:
   where `r2` is `r` with `true` pushed as the top element of the stack.
 
 - `drop(M)`, where `M = FlowModel(r, VM)` is defined as `FlowModel(r1, VM)`
-  where `r` is of the form `r1::n0`.  This is the flow model which drops
+  where `r` is of the form `[...r1, n0]`.  This is the flow model which drops
   the reachability information encoded in the top entry in the stack.
 
 - `unsplit(M)`, where `M = FlowModel(r, VM)` is defined as `M1 = FlowModel(r1,
-  VM)` where `r` is of the form `s::n1::n0` and `r1 = s::(n0&&n1)`. The model
-  `M1` is a flow model which collapses the top two elements of the reachability
-  model from `M` into a single boolean which conservatively summarizes the
-  reachability information present in `M`.
+  VM)` where `r` is of the form `[...s, n1, n0]` and `r1 = [...s, n0&&n1]`. The
+  model `M1` is a flow model which collapses the top two elements of the
+  reachability model from `M` into a single boolean which conservatively
+  summarizes the reachability information present in `M`.
 
 - `merge(M1, M2)`, where `M1` and `M2` are flow models is the inverse of `split`
   and represents the result of joining two flow models at the merge of two
@@ -398,7 +398,7 @@ Promotion policy is defined by the following operations on flow models.
 
 We say that the **current type** of a variable `x` in variable model `VM` is `S` where:
   - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
-  - `promoted = l::S` or (`promoted = []` and `declared = S`)
+  - `promoted = [...l, S]` or (`promoted = []` and `declared = S`)
 
 Policy:
   - We say that at type `T` is a type of interest for a variable `x` in a set of
@@ -426,8 +426,8 @@ Policy:
     type `T` given variable model `VM` if
     - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
     - and `captured` is false
-    - and promoted::declared contains a type `S` such that `T` is `S` or `T` is
-      **NonNull(`S`)**.
+    - and [...promoted, declared] contains a type `S` such that `T` is `S` or
+      `T` is **NonNull(`S`)**.
 
 Definitions:
 
@@ -438,13 +438,14 @@ Definitions:
     - if `captured` is true then:
       - `VM = VariableModel(declared, promoted, tested, true, false, captured)`.
     - otherwise if `x` is promotable via assignment of `E` given `VM`
-      - `VM = VariableModel(declared, promoted::T, tested, true, false, captured)`.
+      - `VM = VariableModel(declared, [...promoted, T], tested, true, false,
+        captured)`.
     - otherwise if `x` is demotable via assignment of `E` given `VM`
       - `VM = VariableModel(declared, demoted, tested, true, false, captured)`.
       - where `previous` is the prefix of `promoted` ending with the first type
         `S` such that `T <: S`, and:
         - if `S` is nullable and if `T <: Q` where `Q` is **NonNull(`S`)** then
-          `demoted` is `previous::Q`
+          `demoted` is `[...previous, Q]`
         - otherwise `demoted` is `previous`
 
 - `stripParens(E1)`, where `E1` is an expression, is the result of stripping
@@ -472,8 +473,8 @@ Definitions:
       - Else if `S` is `X extends R` then let `T1` = `X & T`
       - Else If `S` is `X & R` then let `T1` = `X & T`
       - Else `x` is not promotable (shouldn't happen since we checked above)
-      - Let `VM2 = VariableModel(declared, promoted::T1, tested::T, assigned,
-      unassigned, captured)`
+      - Let `VM2 = VariableModel(declared, [...promoted, T1], [...tested, T],
+        assigned, unassigned, captured)`
       - Let `M2 = FlowModel(r, VI[x -> VM2])`
       - If `T1 <: Never` then `M3` = `unreachable(M2)`, otherwise `M3` = `M2`
 - `promoteToNonNull(E, M)` where `E` is an expression and `M` is a flow model is
