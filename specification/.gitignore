@@ -6,6 +6,7 @@ dartLangSpec*.log
 dartLangSpec*.out
 dartLangSpec*.pdf
 dartLangSpec*.toc
+dartLangSpec-terse.tex
 *-hash.tex
 *-list.txt
 .dart_tool/
