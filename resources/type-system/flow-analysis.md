@@ -414,39 +414,57 @@ Policy:
     - and `T <: S` or (`S` is `X extends R` and `T <: R`) or (`S` is `X & R` and
       `T <: R`)
 
-  - We say that a variable `x` is promotable via assignment of an expression of
-    type `T` given variable model `VM` if
-    - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
-    - and `captured` is false
-    - and `S` is the current type of `x` in `VM`
-    - and `T <: S` and not `S <: T`
-    - and `T` is a type of interest for `x` in `tested`
-
-  - We say that a variable `x` is demotable via assignment of an expression of
-    type `T` given variable model `VM` if
-    - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
-    - and `captured` is false
-    - and [...promoted, declared] contains a type `S` such that `T` is `S` or
-      `T` is **NonNull(`S`)**.
-
 Definitions:
+
+- `currentType(declared, promoted)`, where `declared` is a type and `promoted`
+  is a list of types, is the type `T` , defined as follows:
+  - If `promoted` is `[]`, `T` is `declared`.
+  - Otherwise, `T` is the last type in the `promoted` list.
+
+- `demote(promoted, written)`, where `promoted` is a list of types and `written`
+  is a type, is a list containing all types `T` from `promoted` such that
+  `written <: T`. _In effect, this removes any type promotions that are not
+  compatible with the `written` type._
+
+- `toi_promote(declared, demoted, tested, written)`, where `demoted` and
+  `tested` are lists of types, and `declared` and `written` are types, is the
+  list `promoted`, defined as follows. _("toi" stands for "type of interest".)_
+  - Let `p1` be a set containing the following types:
+    - **NonNull**(`declared`), if it is not the same as `declared`.
+    - For each type `T` in the `tested` list:
+      - `T`
+      - **NonNull**(`T`), if it is not the same as `T`.
+
+    _The types in `p1` are known as the types of interest._
+  - Let `p2` be the set `p1 \ { currentType(declared, demoted) }` _(where `\`
+    denotes set subtraction)_.
+  - If the `written` type is in `p2`, then `promoted` is `[demoted,
+    written]`. _Writing a value whose static type is a type of interest promotes
+    to that type._
+  - Otherwise:
+    - Let `p3` be the set of all types `T` in `p2` such that `written <: T <:
+      currentType(declared, demoted)`.
+    - If `p3` contains exactly one type `T` that is a subtype of all the others,
+      then `promoted` is `[demoted, T]`. _Writing a value whose static type is
+      a subtype of a type of interest promotes to that type of interest,
+      provided there is a single "best" type of interest available to promote
+      to._
+    - Otherwise, `promoted` is `demoted`. _If there is no single "best" type
+      of interest to promote to, then no type of interest promotion is done._
 
 - `assign(x, E, M)` where `x` is a local variable, `E` is an expression of
   inferred type `T`, and `M = FlowModel(r, VI)` is the flow model for `E` is
   defined to be `FlowModel(r, VI[x -> VM])` where:
-    - `VI(x) = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
-    - if `captured` is true then:
-      - `VM = VariableModel(declared, promoted, tested, true, false, captured)`.
-    - otherwise if `x` is promotable via assignment of `E` given `VM`
-      - `VM = VariableModel(declared, [...promoted, T], tested, true, false,
-        captured)`.
-    - otherwise if `x` is demotable via assignment of `E` given `VM`
-      - `VM = VariableModel(declared, demoted, tested, true, false, captured)`.
-      - where `previous` is the prefix of `promoted` ending with the first type
-        `S` such that `T <: S`, and:
-        - if `S` is nullable and if `T <: Q` where `Q` is **NonNull(`S`)** then
-          `demoted` is `[...previous, Q]`
-        - otherwise `demoted` is `previous`
+  - `VI(x) = VariableModel(declared, promoted, tested, assigned, unassigned,
+    captured)`
+  - If `captured` is true then:
+    - `VM = VariableModel(declared, promoted, tested, true, false, captured)`.
+  - Otherwise:
+    - Let `written = T`.
+    - Let `demoted = demote(promoted, written)`.
+    - Let `promoted' = toi_promote(declared, demoted, tested, written)`.
+    - Then `VM = VariableModel(declared, promoted', tested, true, false,
+      captured)`.
 
 - `stripParens(E1)`, where `E1` is an expression, is the result of stripping
   outer parentheses from the expression `E1`.  It is defined to be the
