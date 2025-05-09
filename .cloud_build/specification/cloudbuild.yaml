@@ -1,0 +1,5 @@
+steps:
+- name: 'ubuntu'
+  args: ['specification/scripts/build_pdf']
+options:
+  logging: CLOUD_LOGGING_ONLY
