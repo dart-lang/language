@@ -422,31 +422,41 @@ Definitions:
   - Otherwise, `T` is the last type in the `promoted` list.
 
 - `demote(promoted, written)`, where `promoted` is a list of types and `written`
-  is a type, is a list containing all types `T` from `promoted` such that
-  `written <: T`. _In effect, this removes any type promotions that are not
-  compatible with the `written` type._
+  is a type, is a list obtained by deleting any elements from `promoted` that do
+  not satisfy `written <: T`. _In effect, this removes any type promotions that
+  are no longer valid after the assignment of a value of type `written`._
 
 - `toi_promote(declared, demoted, tested, written)`, where `demoted` and
   `tested` are lists of types, and `declared` and `written` are types, is the
   list `promoted`, defined as follows. _("toi" stands for "type of interest".)_
-  - Let `p1` be a set containing the following types:
+  - Let `current = currentType(declared, demoted)`. _(This is the type of the
+    variable after demotions, but before type of interest promotion.)_
+  - If `written` and `current` are the same type, then `promoted` is
+    `demoted`. _(No type of interest promotion is necessary in this case.)_
+  - Otherwise _(when `written` is not `current`)_, let `p1` be a set containing
+    the following types:
     - **NonNull**(`declared`), if it is not the same as `declared`.
     - For each type `T` in the `tested` list:
       - `T`
-      - **NonNull**(`T`), if it is not the same as `T`.
+      - **NonNull**(`T`)
 
     _The types in `p1` are known as the types of interest._
-  - Let `p2` be the set `p1 \ { currentType(declared, demoted) }` _(where `\`
-    denotes set subtraction)_.
-  - If the `written` type is in `p2`, then `promoted` is `[demoted,
-    written]`. _Writing a value whose static type is a type of interest promotes
-    to that type._
-  - Otherwise:
+  - Let `p2` be the set `p1 \ { current }` _(where `\` denotes set difference)_.
+  - If the `written` type is in `p2`, and `written <: current`, then `promoted`
+    is `[...demoted, written]`. _Writing a value whose static type is a type of
+    interest promotes to that type._
+    - _Since `written` is the type assigned to the variable (after type
+      coercion), in non-erroneous code it is guaranteed to be a subtype of
+      `declared`. And `toi_promote` is always applied to the result of `demote`,
+      so all types in `demoted` are guaranteed to be supertypes of
+      `written`. Therefore, the requirement that `written <: current` is
+      automatically satisfied for non-erroneous code._
+  - Otherwise _(when `written` is not in `p2`)_:
     - Let `p3` be the set of all types `T` in `p2` such that `written <: T <:
-      currentType(declared, demoted)`.
+      current`.
     - If `p3` contains exactly one type `T` that is a subtype of all the others,
-      then `promoted` is `[demoted, T]`. _Writing a value whose static type is
-      a subtype of a type of interest promotes to that type of interest,
+      then `promoted` is `[...demoted, T]`. _Writing a value whose static type
+      is a subtype of a type of interest promotes to that type of interest,
       provided there is a single "best" type of interest available to promote
       to._
     - Otherwise, `promoted` is `demoted`. _If there is no single "best" type
