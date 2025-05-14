@@ -16337,8 +16337,9 @@ unless any of the following are true:
 \LMHash{}%
 It is a compile-time error if
 the static type of $e_1$ may not be assigned to \code{bool}.
-The static type of $c$ is the least upper bound (\ref{leastUpperBounds}) of
-the static type of $e_2$ and the static type of $e_3$.
+The static type of $c$ is the least upper bound
+(\ref{standardUpperBoundsAndStandardLowerBounds})
+of the static type of $e_2$ and the static type of $e_3$.
 
 
 \subsection{If-null Expressions}
@@ -16363,8 +16364,9 @@ Otherwise evaluate $e_2$ to an object $r$,
 and then $e$ evaluates to $r$.
 
 \LMHash{}%
-The static type of $e$ is the least upper bound (\ref{leastUpperBounds}) of
-the static type of $e_1$ and the static type of $e_2$.
+The static type of $e$ is the least upper bound
+(\ref{standardUpperBoundsAndStandardLowerBounds})
+of the static type of $e_1$ and the static type of $e_2$.
 
 
 \subsection{Logical Boolean Expressions}
@@ -21861,6 +21863,9 @@ However, their subtype relations are specified without restrictions.
   Intersection types are \emph{not} supported in general,
   only in this special case.%
 }
+Every other form of type may occur during static analysis
+as well as during execution,
+and the subtype relationship is always determined in the same way.
 
 % Subtype Rule Numbering
 \newcommand{\SrnReflexivity}{1}
@@ -24606,7 +24611,7 @@ parameters can make them identical.
 A function object is always an instance of some class $C$ that implements
 the class \FUNCTION{} (\ref{functionType}),
 and which has a method named \CALL,
-whose header is such that its function type is $C$ itself.
+whose signature is the function type $C$ itself.
 \commentary{%
   Consequently, all function types are subtypes of \FUNCTION{}
   (\ref{subtypes}).%
