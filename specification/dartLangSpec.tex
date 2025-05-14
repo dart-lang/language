@@ -22240,36 +22240,6 @@ along with rule instantiations showing
 each of the premises of $R$,
 continuing until a rule with no premises is reached.
 
-\commentary{%
-  For rule \SrnNull, note that the \code{Null} type
-  is a subtype of all non-$\bot$ types,
-  even though it doesn't actually extend or implement those types.
-  The other types are effectively treated as if they were nullable,
-  which makes the null object (\ref{null}) assignable to them.%
-}
-
-\LMHash{}%
-The first premise in the
-rules~\SrnLeftTypeAlias{} and~\SrnRightTypeAlias{}
-is a type alias declaration.
-This premise is satisfied in each of the following situations:
-
-\begin{itemize}
-\item A non-generic type alias named $F$ is declared.
-  In this case $s$ is zero,
-  no assumptions are made about the existence
-  of any formal type parameters,
-  and actual type argument lists are omitted everywhere in the rule.
-\item We may choose $s$ and \List{X}{1}{s} such that the following holds:
-  A generic type alias named $F$ is declared,
-  with formal type parameters \List{X}{1}{s}.
-  \commentary{%
-    Each formal type parameter $X_j$ may have a bound,
-    but the bounds are never used in this context,
-    so we do not introduce metavariables for them.%
-  }
-\end{itemize}
-
 \LMHash{}%
 Rule~\SrnRightFunction{} has as a premise that `$T$ is a function type'.
 This means that $T$ is a type of one of the forms introduced in
@@ -22307,14 +22277,14 @@ the set of direct superinterfaces of $C$
 }
 
 \commentary{%
-  The last premise of rule~\SrnSuperinterface{}
+  The last premise of rule~\SrnNominal{}
   substitutes the actual type arguments \List{S}{1}{s} for the
   formal type parameters \List{X}{1}{s},
   because \List{T}{1}{m} may contain those formal type parameters.%
 }
 
 \commentary{%
-  The rules~\SrnCovariance{} and~\SrnSuperinterface{}
+  The rules~\SrnCovariance{} and~\SrnNominal{}
   are applicable to interfaces,
   but they can be used with classes as well,
   because a non-generic class $C$ which is used as a type
