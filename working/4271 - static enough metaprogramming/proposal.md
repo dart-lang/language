@@ -627,6 +627,18 @@ evaluation at compile time _if the underlying compiler supports it_.
 const konst = pragma('konst');
 ```
 
+> [!NOTE]
+>
+> The actual name `konst` is a subject to discussion and change. It can be
+> `comptime`, `constexpr` or anything else. Concrete name is irrelevant and
+> choosing a different name does not change the core of this proposal.
+>
+> I have chosen metadata instead of introducing a new keyword for pragmatic
+> reasons - it does not require syntax changes.
+>
+> It is important to understand that concrete syntax is secondary, the
+> capability is more important.
+
 Applying `@konst` to normal variables and fields simply requests compiler to
 compute their value at compile time:
 
@@ -854,12 +866,19 @@ Note that all methods are annotated with `@konst` so if compiler supports
 `@konst` these must be invoked on constant objects and will be folded away -
 compiler does not need to store any information itself.
 
+> [!NOTE]
+>
+> `dart:mirrors` allows developer to ignore privacy, enumerate and access
+> private fields and methods. However Dart VM does mark `dart:*` classes
+> as non-reflectable. Similar approach should be probably taken with compile
+> time reflection: `FieldInfo.getFrom` should ignore privacy unless target
+> is marked as non-reflectable.
+
 ### It's a spectrum of choice
 
 I have intentionally avoided saying that `@konst` has to be a language feature
 and that any Dart implementation needs to support compile time constant
-evaluation of `@konst`. I think we should consider doing this as a toolchain
-feature, similar to how `platform-const` is implemented.
+evaluation of `@konst`. I think we should implement this as a toolchain feature, similar to how `platform-const` is implemented.
 
 For example, a native JIT or DDC (development mode JS compiler) could simply
 implement `TypeInfo` on top of runtime reflection. This way developer can debug
@@ -876,14 +895,94 @@ operations.
 > runtime performance. This reduces the size of deployed applications but
 > decreases peak performance.
 
-In this model, developer _might_ encounter compile time errors when building
-release application which they did not observe while developing - as development
-and deployment toolchains implement different semantics.
+There are multiple reasons for going this route. First of all, I believe that
+this allows to considerably simplify the design and implementation of this
+feature. But there is another reason for this: _you can't actually perform
+compile time evaluation without knowing compile time environment_. Consider for
+example the following code:
 
-I think that's an acceptable price to pay for the convenience&power of this
-feature. We can later choose to implement additional checks in development
-toolchains or analyzer to minimize amount of errors which are only surfaced by
-release builds. But I don't see this as a requirement for shipping this feature.
+```dart
+void foo(@konst String id) {
+  if (id.length != 10) {
+    throw 'Incorect value for $id';
+  }
+
+  // Do various things with id.
+}
+
+void bar() {
+  foo(const String.fromEnvironment('some.define'));
+}
+```
+
+Dart Analyzer can't really say what happens here because it does not know
+a specific value of `id` - the value is only known when compiling. The example
+can be made even more complicated by adding dependency on various platform
+specific defines (e.g. to distinguish between target platforms and specialize
+for them).
+
+Fundamentally this means that _compiling_ an application can reveal compile
+time error which are not revealed by running Dart analyzer on the same code.
+Furthermore compiling for different platforms can reveal different errors.
+
+The fact that these errors surface in compile time is an intrinsic property
+of this proposal - and is a direct consequence of its powerful ability to
+specialize code based on the compile time computation. It can't be fully
+avoided for the reasons which are explained above - though we could eventually
+_choose_ to implement subset of this proposal in analyzer as well and surface
+some of the errors earlier. However I currently don't see direct analyzer
+support as a necessary requirement to shipping this feature.
+
+> [!NOTE]
+>
+> If we decide that `@konst` is a no-op in debug (development) mode and
+> `@konst` reflection falls back to actual reflection then it is reasonable
+> to expect that developer could still opt-in into full `@konst` evaluation
+> for debug (development) mode. This is important to enable testing this code
+> without forcing developers to build their code in release mode.
+
+> [!NOTE]
+>
+> Some of our tools (most notably analyzer and DDC) are capable of
+> analyzing/compiling libraries only given the _outlines_ of their dependencies.
+> This was one of the showstoppers for enhanced constant proposal, which did not
+> introduce a syntactic marker to delineate code potentially needed for
+> `const`-evaluation from the rest of the program, which would mean that
+> outlines had to contain bodies for most methods - making them impractically
+> large and erasing their benefits.
+>
+> This proposal does not suffer the same issue, even if we decide to support
+> `@konst` evaluation in these tools: as `@konst` actually provides a syntactic
+> marker which partitions the program. Only bodies of methods with `@konst`
+> parameters need to be included into the outline.
+
+### Non-Goals
+
+This proposal does _not_ intend to cover all cases which are supportable via
+Dart source code generation or which are supported by macro systems in other
+programming languages. For example the following capabilities are out of scope:
+
+- injecting new declarations into the program;
+- changing or expanding Dart syntax.
+
+This means that certain things are not possible with this proposal which are
+possible with code generation. Most notably it is not possible to declare
+fields, methods or parameters. This means for example that it is impossible
+to use `@konst` to inject a `copyWith` method based on the list of fields.
+
+> [!NOTE]
+>
+> It is however possible to define method like this:
+>
+> ```dart
+> // Universal function to apply updates specified by the record.
+> T copyWith<@konst T, @konst R extends Record>(T obj, R updates) {
+>   // ...
+> }
+> ```
+>
+> Though usability of this method will be questionable as there will be good
+> autocomplete available for `updates` parameter.
 
 ### Prototype implementation
 
