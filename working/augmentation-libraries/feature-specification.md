@@ -106,10 +106,11 @@ from changing the constructor to a factory.
 
 ## Syntax
 
-The grammar changes are fairly simple. The grammar is modified to allow an
-`augment` modifier before various declarations. Also, functions, getters, and
-setters are allowed to have `;` bodies even when not instance members (except
-for local functions, which must still have a real body).
+There are a handful of grammar changes mostly around allowing `augment` before
+the various declarations that can be augmented allowing declarations to be less
+"complete" than they were required to be before this proposal since an
+augmentation can fill them in. For example, non-instance functions without
+bodies and enums without values.
 
 ```
 topLevelDeclaration ::= classDeclaration
@@ -133,19 +134,13 @@ classDeclaration ::=
     'augment'? (classModifiers | mixinClassModifiers)
     'class' typeWithParameters superclass? interfaces?
     memberedDeclarationBody
-  | 'augment'? classModifiers 'mixin'? 'class' mixinApplicationClass
+  | classModifiers 'mixin'? 'class' mixinApplicationClass
 
 mixinDeclaration ::=
     'base'? 'mixin' typeIdentifier typeParameters?
     ('on' typeNotVoidNotFunctionList)? interfaces? memberedDeclarationBody
   | 'augment' 'base'? 'mixin' typeIdentifier typeParameters?
     interfaces? memberedDeclarationBody
-
-extensionDeclaration ::=
-    'extension' typeIdentifierNotType? typeParameters? 'on' type
-    memberedDeclarationBody
-  | 'augment' 'extension' typeIdentifierNotType typeParameters?
-    memberedDeclarationBody
 
 extensionTypeDeclaration ::=
     'extension' 'type' 'const'? typeIdentifier
@@ -154,11 +149,6 @@ extensionTypeDeclaration ::=
   | 'augment' 'extension' 'type' 'const'? typeIdentifier
     typeParameters? interfaces?
     memberedDeclarationBody
-
-enumType ::= 'augment'? 'enum' typeIdentifier
-  typeParameters? mixins? interfaces?
-  '{' enumEntry (',' enumEntry)* (',')?
-  (';' memberDeclarations)? '}'
 
 typeAlias ::= 'augment'? 'typedef' typeIdentifier typeParameters? '=' type ';'
   | 'augment'? 'typedef' functionTypeAlias
@@ -169,10 +159,6 @@ memberDeclarations ::= (metadata memberDeclaration)*
 
 memberDeclaration ::= declaration
   | 'augment'? methodSignature functionBody
-
-enumEntry ::= metadata 'augment'? identifier argumentPart?
-  | metadata 'augment'? identifier typeArguments?
-    '.' identifierOrNew arguments
 
 declaration ::=
     'augment'? 'external'? factoryConstructorSignature ';'
@@ -206,81 +192,45 @@ of the introductory declaration and can't specify it.*
 specifying an `on` clause. Only the introductory declaration permits that. We
 could relax this restriction if compelling use cases arise.*
 
+### Enums
+
+For enum declarations, in addition to the `augment` modifier, we allow declaring
+an enum (or augmentation of one) with no values. This is useful if the
+introductory declaration wants to let the augmentation fill in all values, or if
+the augmentation wants to add members but no values.
+
+When there are no values, the enum still requires a leading `;` before the first
+member to avoid ambiguity.
+
+```
+enumType ::= 'augment'? 'enum' typeIdentifier typeParameters?
+    mixins? interfaces? '{' enumBody? '}'
+
+enumBody ::= enumEntry (',' enumEntry)* (',')? (';' memberDeclarations)?
+    | ';' memberDeclarations
+```
+
+*Note that an enum can also have neither values nor members and both `{}` and
+`{;}` are valid.*
+
+### Extensions
+
+Extension declarations can be augmented:
+
+```
+extensionDeclaration ::=
+    'extension' typeIdentifierNotType? typeParameters? 'on' type
+    memberedDeclarationBody
+  | 'augment' 'extension' typeIdentifierNotType typeParameters?
+    memberedDeclarationBody
+```
+
+Note that only extensions *with names* allow a leading `augment`. Since
+augmentations are matched with their introductory declaration by name, unnamed
+extensions can't be augmented. *Doing so wouldn't accomplish anything anyway.
+Just make two separate unnamed extensions.*
+
 ## Static semantics
-
-### Declaration ordering relations
-
-As part of the meta-programming and augmentation features, we expand the
-[capabilities of part files][parts with imports]. With that feature, a part file
-can now have its own `import` and `export` directives, and further nested `part`
-files, with part files inheriting the imports and prefixes of their parent (part
-or library) file.
-
-[parts with imports]: parts_with_imports.md
-
-Augmentation declarations interact with part files in restrictions on where an
-augmenting declaration may occur relative to the declaration it augments. We
-define the following relations on *declarations* based on the relations between
-*files* of a library.
-
-We say that a syntactic declaration *occurs in* a Dart file if the
-declaration's source code occurs in that Dart file.
-
-We say that a Dart file *contains* a declaration if the declaration occurs in
-the file itself, or if any of the part files transitively included by the Dart
-file contain the declaration. *That is, if the declaration occurs in a file in
-the part subtree of that Dart file.*
-
-We then define two orderings of declarations in a library, one partial and one
-complete.
-
-#### "Is above"
-
-A syntactic declaration *A* *is above* a syntactic declaration *B* if and only
-if:
-
-*   *A* and *B* occur in the same file, and *A*'s declared name is syntactically
-    before *B*'s declared name, in source order, or
-
-*   The file where *A* occurs includes the file where *B* occurs. *In other
-    words, if there is a `part` chain from the file where A is declared to the
-    file where B is declared, then A is above B.*
-
-This is a partial order. If A and B occur in sibling part files where neither
-declaration's file contains the other, then there is no is above relation
-between the declarations.
-
-#### "Is before" and "is after"
-
-For any two syntactic declarations *A*, and *B*:
-
-*   If *A* is above *B* then *A* is before *B*.
-
-*   If *B* is above *A* then *B* is before *A*.
-
-*   Otherwise, *A* and *B* are in sibling branches of the part tree:
-
-    *   Let *F* be the least containing file for those two files. *Find the
-        nearest root file in the part subtree that contains both A and B.
-        Neither A nor B will occur directly in F because if it did, then A or B
-        would be above the other and the previous clauses would have handled
-        it.*
-
-    *   If the `part` directive in *F* including the file that contains *A* is
-        syntactically before the `part` directive in *F* including the file that
-        contains *B* in source order, then *A* is before *B*.
-
-    *   Otherwise *B* is before *A*.
-
-Then *B* *is after* *A* if and only if *A* *is before* *B*.
-
-*In short, we complete the partial "is above" order by taking the order of
-`part` directives themselves into account when declarations are in sibling
-branches of the part tree.*
-
-This order is total. It effectively orders declarations by a pre-order
-depth-first traversal of the file tree, visiting declarations of a file in
-source order, and then recursing on `part` directives in source order.
 
 ### Augmentation context
 
@@ -459,7 +409,7 @@ We say that *I* is the declaration which is *augmented by* *D*.
 *In other words, take all of the declarations with the same name in some
 augmentation context, order them according to the "after" relation, and each
 augments the result of all the prior augmentations applied to the original
-declaration . The first one must not be marked `augment` and all the subsequent
+declaration. The first one must not be marked `augment` and all the subsequent
 ones must be.*
 
 An augmentation declaration does not introduce a new name into the surrounding
@@ -533,18 +483,89 @@ declaration has an augmented declaration which is itself an augmentation
 declaration, and so on, until an introductory declaration is reached.
 
 In some cases (enum values, `with` clauses, etc.), the order that augmentations
-are applied is user-visible, so must be specified. Augmentations are ordered
-using the *after* relation and are applied from least to greatest in that order.
+are applied is user-visible, so must be specified. Within a single file, the
+obvious order for applying augmentations is based on which appears first.
+[Expanded part files][parts with imports] make that more complex: there may be
+augmentations of the same declaration scattered across an entire tree of part
+files.
+
+[parts with imports]: parts_with_imports.md
+
+Some terminology:
+
+*   A syntactic declaration *occurs in* a Dart file if the declaration's source
+    code occurs in that file.
+
+*   A Dart file *includes* a part file, if the Dart file has a `part` directive
+    with a URI denoting that part file.
+
+*   A Dart file *contains* a declaration if the declaration occurs in the file
+    itself or any of the part files it transitively includes.
+
+For any two syntactic declarations *A*, and *B*:
+
+*   If *A* and *B* occur in the same file:
+
+    *   If *A*'s declared name is syntactically before *B*'s declared name,
+        in source order, then *A* is before *B.* *This rule wouldn't work for
+        unnamed extensions since there is no identifier to look at, but
+        unnamed declarations can't be augmented, so this isn't a problem.*
+
+    *   Otherwise *B* is before *A*.
+
+*   Else if the file where *A* occurs includes the file where *B* occurs then
+    *A* is before *B*.
+
+*   Else if the file where *B* occurs includes the file where *A* occurs then
+    *B* is before *A*.
+
+    *In other words, if there is a `part` chain from the file where one
+    augmentation is declared to the file where the other is, then the outer one
+    comes first.*
+
+*   Otherwise, *A* and *B* are in sibling branches of the part tree:
+
+    *   Let *F* be the least containing file for those two files. *Find the
+        nearest root file in the part subtree that contains both A and B.
+        Neither A nor B will occur directly in F because if it did, then the
+        previous clauses would have handled it.*
+
+    *   If the `part` directive in *F* including the file that contains *A* is
+        syntactically before the `part` directive in *F* including the file that
+        contains *B* in source order, then *A* is before *B*.
+
+    *   Otherwise *B* is before *A*.
+
+    *In other words, augmentations in sibling branches are ordered by the `part`
+    directive order in the file where the branches split off.*
+
+We say that *B* *is after* *A* if and only if *A* *is before* *B*.
+
+*In short, declarations are ordered by a pre-order depth-first traversal of the
+file tree, visiting declarations of a file in source order, and then recursing
+into `part` directives in source order.*
+
+Augmentations are applied in least to greatest order using the *after* relation.
 
 *For example:*
 
 ```dart
-enum E { a }
-augment enum E { b }
-augment enum E { c }
+// main.dart:
+part 'a.dart';
+part 'b.dart';
+
+enum E { v1 }
+augment enum E { v2 }
+augment enum E { v3 }
+
+// a.dart:
+augment enum E { v4 }
+
+// b.dart:
+augment enum E { v5 }
 ```
 
-*The resulting enum has values `a`, `b`, and `c`, in that order.*
+*The resulting enum has values `v1`, `v2`, `v3`, `v4`, and `v5`, in that order.*
 
 ### Augmenting class-like declarations
 
@@ -556,6 +577,8 @@ augment class SomeClass {
   // ...
 }
 ```
+
+Mixin application classes can't be augmented.
 
 A class, enum, extension type, mixin, or mixin class augmentation may
 specify `extends`, `implements` and `with` clauses (when generally
@@ -616,6 +639,75 @@ It's a **compile-time** error if:
     other top-level variables that might be in scope in the library
     augmentation.*
 
+### Augmenting function and constructor signatures
+
+[signature matching]: #Augmenting_function_and_constructor_signatures
+
+When augmenting a function (top level, static method, instance method, etc.) or
+constructor (generative, factory, etc.) the parameter lists must be the same in
+all meaningful ways. We say that an augmenting function or constructor's
+signature *matches* if:
+
+*   It has the same number of type parameters with the same type parameter names
+    (same identifiers) and bounds (after type annotation inheritance), if any
+    (same *types*, even if they may not be written exactly the same in case one
+    of the declarations needs to refer to a type using an import prefix).
+
+*   The return type (after type annotation inheritance) is the same as the
+    augmented declaration's return type.
+
+*   It has the same number of positional and optional parameters as the
+    augmented declaration.
+
+*   It has the same set of named parameter names as the augmented declaration.
+
+*   For all corresponding pairs of parameters:
+
+    *   They have the same type (after type annotation inheritance).
+
+    *   They have the same `required` and `covariant` modifiers.
+
+    *For constructors, we do not require parameters to match in uses of
+    initializing formals or super parameters. In fact, they are implicitly
+    _prohibited_ from doing so: if a constructor and its augmentation both have
+    initializing formals or super parameters, they are both complete and it's an
+    error to augment a complete constructor with another complete constructor.
+    Instead, at most only one of the constructors can use initializing formals
+    or super parameters and all other declarations for the same constructor
+    must declare the corresponding parameters as regular parameters.*
+
+*   For all positional parameters:
+
+    *   The augmenting function's parameter name is `_`, or
+
+    *   The augmenting function's parameter name is the same as the name of the
+        corresponding positional parameter in every preceding declaration that
+        doesn't have `_` as its name.
+
+    *In other words, a declaration can ignore a positional parameter's name by
+    using `_`, but all declarations in the chain that specify a name have to
+    agree on it.*
+
+    ```dart
+    f1(int _) {}
+    augment f1(int x) {} // OK.
+    augment f1(int _) {} // OK.
+    augment f1(int y) {} // Error, can't change name.
+    augment f1(int _) {} // OK.
+    ```
+
+    *Note that this is a transitive property.*
+
+    *If an augmentation uses `_` for a parameter name, the name is not
+    "inherited" from a preceding declaration for use in the augmentation's
+    body. The name of the parameter for that augmentation is `_`, which can't
+    be used because it's a wildcard:*
+
+    ```dart
+    f(int x);
+    augment f(int _) { print(x); } // Error.
+    ```
+
 ### Augmenting functions
 
 A top-level function, static method, instance method, operator, getter, or
@@ -637,23 +729,8 @@ augment class Person {
 
 It's a **compile-time** error if:
 
-*   The function signature of the augmenting function does not exactly match the
-    function signature of the augmented function. This means that:
-
-    *   Any provided return types must be the same type.
-
-    *   There must be same number or required and optional positional
-        parameters, all with the same types (when provided), the same number of
-        named parameters, each pairwise with the same name, same type (when
-        provided) and same `required` and `covariant` modifiers.
-
-    *   Any type parameters and their bounds (when provided) must be the same
-        (like for type declarations).
-
-    *Since repeating the signature is, by definition, redundant, this doesn't
-    accomplish anything semantically. But it ensures that anyone reading the
-    augmenting function can see the declarations of any parameters that it
-    uses in its body.*
+*   The signature of the augmenting function does not [match][signature
+    matching] the signature of the augmented function.
 
 *   The augmenting function specifies any default values. *Default values are
     defined solely by the introductory function.*
@@ -719,7 +796,24 @@ class C {
 }
 ```
 
-### Augmenting enum members
+For purposes of [signature matching][], the implicit setter induced by a
+non-final abstract variable has a positional parameter named `_`. *This means
+you can augment an abstract variable with a setter that uses whatever positional
+parameter name you want:*
+
+```dart
+class C {
+  abstract int x;
+}
+
+augment class C {
+  augment set x(int anyNameIWant) { // OK.
+    // ...
+  }
+}
+```
+
+### Augmenting enums
 
 An augmentation of an enum type can add new members to the enum, including new
 enum values. Enum values are appended in augmentation application order.
@@ -735,6 +829,11 @@ It's a **compile-time error** if:
     `values`, and this rule just clarifies that this error is applicable for
     augmenting declarations as well.*
 
+*   An enum doesn't have any values after all augmentations are applied. *The
+    grammar allows an enum declaration to not have any values so that other
+    declarations of the same enum can add them, but ultimately the enum must
+    end up with some.*
+
 ### Augmenting constructors
 
 Augmenting constructors works similar to augmenting a function, with some extra
@@ -743,12 +842,8 @@ initializer lists.
 
 It's a **compile-time error** if:
 
-*   The signature of the constructor augmentation does not match the original
-    constructor. It must have the same number of positional parameters, the same
-    named parameters, and matching parameters must have the same type (if
-    provided), optionality, and any `required` modifiers must match. Any
-    initializing formals and super parameters must also be the same in both
-    constructors.
+*   The signature of the augmenting function does not [match][signature
+    matching] the signature of the augmented function.
 
 *   The augmenting constructor parameters specify any default values.
     *Default values are defined solely by the introductory constructor.*
@@ -785,40 +880,15 @@ augment class C {
 When augmenting an extension type declaration, the parenthesized clause where
 the representation type is specified is treated as a constructor that has a
 single positional parameter, a single initializer from the parameter to the
-representation field, and an empty body. The representation field clause must
-be present on the declaration which introduces the extension type, and must be
-omitted from all augmentations of the extension type.
+representation field, and an empty body. This constructor is complete.
 
-This means that an augmentation can add a body to an extension type's implicit
-constructor, which isn't otherwise possible. This is done by augmenting the
-constructor in the body of the extension type. *Note that there is no
-guarantee that any instance of an extension type will have necessarily executed
-that body, since you can get instances of extension types through casts or other
-conversions that sidestep the constructor.* For example:
+The extension also introduces a complete getter for the representation variable.
 
-```dart
-extension type A(int b) {
-  augment A(int b) {
-    assert(b > 0);
-  }
-}
-```
-
-*This is designed in anticipation of supporting [primary constructors][] on
-other types in which case the extension type syntax will then be understood by
-users to be a primary constructor for the extension type.*
-
-[primary constructors]:
-https://github.com/dart-lang/language/blob/main/working/2364%20-%20primary%20constructors/feature-specification.md
-
-The extension type's representation object is *not* a variable, even though it
-looks and behaves much like one, and it cannot be augmented as such.
-
-It's a **compile-time error** if:
-
-*   An augmenting declaration has the same name as the representation variable.
-
-*   An extension type augmentation contains a representation field clause.
+*In other words, we treat the representation field clause as declaring an
+implicit constructor and final field for the representation variable. Since they
+are both complete, they can't be augmented with bodies. The representation
+variable getter can be augmented, because it's a getter and not a field
+declaration, but the augmentation can't add a body.*
 
 ### Augmenting with metadata annotations
 
@@ -1020,33 +1090,33 @@ words, it is not the expectation that augmentations should duplicate the
 original documentation comments, but instead provide comments that are specific
 to the augmentation.
 
-### Path requirement lint suggestion
+### Part directive order
 
-One issue with the augmentation application order is that it is not stable
-under reordering of `part` directives. Sorting part directives can change the
-order that augmentation applications in separate included sub-trees are applied
-in.
+The order that augmentations are applied is sometimes user visible. That order
+is in turn affected by the order of `part` file directives in the file.
 
-To help avoiding issues, we want to introduce a *lint* which warns if a library
-is susceptible to part file reordering changing augmentation application order.
-A possible name could be `augmentation_ordering`.
+That means that the order of `part` declarations in a file is now semantically
+meaningful. Tools like IDEs should not assume it is always safe to, say,
+automatically alphabetize them. However, in most cases, augmentation order
+doesn't matter and it's *usually* safe to sort them if a user requests it.
 
-Its effect would be to **report a warning** *if* for any two (top-level)
-augmenting declarations with name *n*, one is not *above* the other.
+For the `part` directive order to matter:
 
-If the lint is satisfied, then all augmenting declarations are ordered by
-the *before* relation, which means that no two of them can be in different
-sibling parts of the same file, and therefore all the augmenting
-declarations occur along a single path down the part-file tree. _This
-ensures that *part file directive ordering* has no effect on augmentation
-application order._
+1.  There must be augmentations of the same declaration in multiple separate
+    part files.
 
-The language specification doesn't specify lints or warnings, so this lint
-suggestion is not normative. We wish to have the lint, and preferably
-include it in the "recommended" lint set, because it can help users avoid
-accidental problems. We want it as a lint instead of a language restriction
-so that it doesn't interfere with macro-generated code, and so that users
-can `// ignore:` it if they know what they're doing.
+2.  The part files containing the augmentations must be siblings with neither
+    a parent of the other.
+
+3.  Those augmentations must have their application order be user visible. This
+    isn't defined precisely, but includes adding `enum` values or mixins (`with`
+    clause). Even then, the order is often not visible. Both augmentations would
+    have to add enum values. If multiple augmentations add `with` clauses, the
+    order is only visible if the applied mixins have overlapping members.
+
+The first two are fairly simple to detect. The third is subtle (and may not be
+fully captured by that paragraph). It's probably safest to be pessimistic
+and assume the third point is always true.
 
 ## Changelog
 
@@ -1064,6 +1134,14 @@ can `// ignore:` it if they know what they're doing.
 *   Remove support for augmenting redirecting constructors.
 *   Allow a function augmentation to have an `external` body.
 *   Rewrite "Scoping" section to be clearer.
+*   Remove recommend path ordering lint. Commit to making `part` directive
+    order meaningful and acceptable to rely on (#3849).
+*   Allow enum declarations without values (#4356).
+*   Specify signature matching for implicit setters from abstract variables
+    (#4022).
+*   Clarify that you can't augment an extension type constructor and add a body
+    (#4047).
+*   Don't allow augmenting mixin application classes (#4060).
 
 ### 1.34
 
