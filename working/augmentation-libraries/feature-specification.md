@@ -142,12 +142,6 @@ mixinDeclaration ::=
   | 'augment' 'base'? 'mixin' typeIdentifier typeParameters?
     interfaces? memberedDeclarationBody
 
-extensionDeclaration ::=
-    'extension' typeIdentifierNotType? typeParameters? 'on' type
-    memberedDeclarationBody
-  | 'augment' 'extension' typeIdentifierNotType typeParameters?
-    memberedDeclarationBody
-
 extensionTypeDeclaration ::=
     'extension' 'type' 'const'? typeIdentifier
     typeParameters? representationDeclaration interfaces?
@@ -218,6 +212,23 @@ enumBody ::= enumEntry (',' enumEntry)* (',')? (';' memberDeclarations)?
 
 *Note that an enum can also have neither values nor members and both `{}` and
 `{;}` are valid.*
+
+### Extensions
+
+Extension declarations can be augmented:
+
+```
+extensionDeclaration ::=
+    'extension' typeIdentifierNotType? typeParameters? 'on' type
+    memberedDeclarationBody
+  | 'augment' 'extension' typeIdentifierNotType typeParameters?
+    memberedDeclarationBody
+```
+
+Note that only extensions *with names* allow a leading `augment`. Since
+augmentations are matched with their introductory declaration by name, unnamed
+extensions can't be augmented. *Doing so wouldn't accomplish anything anyway.
+Just make two separate unnamed extensions.*
 
 ## Static semantics
 
@@ -464,11 +475,6 @@ augment class C {
 }
 ```
 
-An extension type declaration induces an implicit unnamed constructor that is
-complete. *This is because it implicitly initializes the representation field.
-That implies that you can't augment an extension type declaration's constructor
-to give it a body.*
-
 ### Application order
 
 The same declaration can be augmented multiple times by separate augmentation
@@ -485,20 +491,25 @@ files.
 
 [parts with imports]: parts_with_imports.md
 
-We say that a syntactic declaration *occurs in* a Dart file if the declaration's
-source code occurs in that file.
+Some terminology:
 
-We say that a Dart file *contains* a declaration if the declaration occurs in
-the file itself, or if any of the part files transitively included by the Dart
-file contain the declaration. *That is, if the declaration occurs in a file in
-the part subtree of that Dart file.*
+*   A syntactic declaration *occurs in* a Dart file if the declaration's source
+    code occurs in that file.
+
+*   A Dart file *includes* a part file, if the Dart file has a `part` directive
+    with a URI denoting that part file.
+
+*   A Dart file *contains* a declaration if the declaration occurs in the file
+    itself or any of the part files it transitively includes.
 
 For any two syntactic declarations *A*, and *B*:
 
 *   If *A* and *B* occur in the same file:
 
     *   If *A*'s declared name is syntactically before *B*'s declared name,
-        in source order, then *A* is before *B.*
+        in source order, then *A* is before *B.* *This rule wouldn't work for
+        unnamed extensions since there is no identifier to look at, but
+        unnamed declarations can't be augmented, so this isn't a problem.*
 
     *   Otherwise *B* is before *A*.
 
@@ -566,6 +577,8 @@ augment class SomeClass {
   // ...
 }
 ```
+
+Mixin application classes can't be augmented.
 
 A class, enum, extension type, mixin, or mixin class augmentation may
 specify `extends`, `implements` and `with` clauses (when generally
@@ -654,8 +667,14 @@ signature *matches* if:
 
     *   They have the same `required` and `covariant` modifiers.
 
-    *   If augmenting a constructor, they must both be initializing formals,
-        super parameters, or neither.
+    *For constructors, we do not require parameters to match in uses of
+    initializing formals or super parameters. In fact, they are implicitly
+    _prohibited_ from doing so: if a constructor and its augmentation both have
+    initializing formals or super parameters, they are both complete and it's an
+    error to augment a complete constructor with another complete constructor.
+    Instead, at most only one of the constructors can use initializing formals
+    or super parameters and all other declarations for the same constructor
+    must declare the corresponding parameters as regular parameters.*
 
 *   For all positional parameters:
 
@@ -678,6 +697,16 @@ signature *matches* if:
     ```
 
     *Note that this is a transitive property.*
+
+    *If an augmentation uses `_` for a parameter name, the name is not
+    "inherited" from a preceding declaration for use in the augmentation's
+    body. The name of the parameter for that augmentation is `_`, which can't
+    be used because it's a wildcard:*
+
+    ```dart
+    f(int x);
+    augment f(int _) { print(x); } // Error.
+    ```
 
 ### Augmenting functions
 
@@ -800,7 +829,7 @@ It's a **compile-time error** if:
     `values`, and this rule just clarifies that this error is applicable for
     augmenting declarations as well.*
 
-*   An enum doesn't have any values after all augmentats are applied. *The
+*   An enum doesn't have any values after all augmentations are applied. *The
     grammar allows an enum declaration to not have any values so that other
     declarations of the same enum can add them, but ultimately the enum must
     end up with some.*
@@ -851,40 +880,15 @@ augment class C {
 When augmenting an extension type declaration, the parenthesized clause where
 the representation type is specified is treated as a constructor that has a
 single positional parameter, a single initializer from the parameter to the
-representation field, and an empty body. The representation field clause must
-be present on the declaration which introduces the extension type, and must be
-omitted from all augmentations of the extension type.
+representation field, and an empty body. This constructor is complete.
 
-This means that an augmentation can add a body to an extension type's implicit
-constructor, which isn't otherwise possible. This is done by augmenting the
-constructor in the body of the extension type. *Note that there is no
-guarantee that any instance of an extension type will have necessarily executed
-that body, since you can get instances of extension types through casts or other
-conversions that sidestep the constructor.* For example:
+The extension also introduces a complete getter for the representation variable.
 
-```dart
-extension type A(int b) {
-  augment A(int b) {
-    assert(b > 0);
-  }
-}
-```
-
-*This is designed in anticipation of supporting [primary constructors][] on
-other types in which case the extension type syntax will then be understood by
-users to be a primary constructor for the extension type.*
-
-[primary constructors]:
-https://github.com/dart-lang/language/blob/main/working/2364%20-%20primary%20constructors/feature-specification.md
-
-The extension type's representation object is *not* a variable, even though it
-looks and behaves much like one, and it cannot be augmented as such.
-
-It's a **compile-time error** if:
-
-*   An augmenting declaration has the same name as the representation variable.
-
-*   An extension type augmentation contains a representation field clause.
+*In other words, we treat the representation field clause as declaring an
+implicit constructor and final field for the representation variable. Since they
+are both complete, they can't be augmented with bodies. The representation
+variable getter can be augmented, because it's a getter and not a field
+declaration, but the augmentation can't add a body.*
 
 ### Augmenting with metadata annotations
 
