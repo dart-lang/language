@@ -110,6 +110,14 @@ that assignment).
     `b`.
   - We use the notation `[...l, a]` where `l` is a list to denote a list
     beginning with all the elements of `l` and followed by `a`.
+  - A list of types `p` is called a _promotion chain_ iff, for all `i < j`,
+    `p[i] <: p[j]`. _Note that since the subtyping relation is transitive, in
+    order to establish that `p` is a promotion chain, it is sufficient to check
+    the `p[i] <: p[j]` relation for each adjacent pair of types._
+  - A promotion chain `p` is said to be _valid for declared type `T`_ iff every
+    type in `p` is a subtype of `T`. _Note that since the subtyping relation is
+    transitive, in order to establish that `p` is valid for declared type `T`,
+    it is sufficient to check that the first type in `p` is a subtype of `T`._
 
 - Stacks
   - We use the notation `push(s, x)` to mean pushing `x` onto the top of the
@@ -123,7 +131,7 @@ that assignment).
 
 ### Models
 
-A *variable model*, denoted `VariableModel(declaredType, promotedTypes,
+A *variable model*, denoted `VariableModel(declaredType, promotionChain,
 tested, assigned, unassigned, writeCaptured)`, represents what is statically
 known to the flow analysis about the state of a variable at a given point in the
 source code.
@@ -131,10 +139,10 @@ source code.
 - `declaredType` is the type assigned to the variable at its declaration site
   (either explicitly or by type inference).
 
-- `promotedTypes` is a list of types that the variable has been promoted to,
-  with the final type in the list being the current promoted type of the
-  variable. Note that each type in the list must be a subtype of all previous
-  types, and of the declared type.
+- `promotionChain` is the variable's promotion chain. This is a list of types
+  that the variable has been promoted to, with the final type in the list being
+  the current promoted type of the variable. It must always be a valid promotion
+  chain for declared type `declaredType`.
 
 - `tested` is a set of types which are considered "of interest" for the purposes
   of promotion, generally because the variable in question has been tested
@@ -397,8 +405,8 @@ We also make use of the following auxiliary functions:
 Promotion policy is defined by the following operations on flow models.
 
 We say that the **current type** of a variable `x` in variable model `VM` is `S` where:
-  - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
-  - `promoted = [...l, S]` or (`promoted = []` and `declared = S`)
+  - `VM = VariableModel(declared, promotionChain, tested, assigned, unassigned, captured)`
+  - `promotionChain = [...l, S]` or (`promotionChain = []` and `declared = S`)
 
 Policy:
   - We say that at type `T` is a type of interest for a variable `x` in a set of
@@ -407,7 +415,7 @@ Policy:
 
   - We say that a variable `x` is promotable via type test with type `T` given
     variable model `VM` if
-    - `VM = VariableModel(declared, promoted, tested, assigned, unassigned, captured)`
+    - `VM = VariableModel(declared, promotionChain, tested, assigned, unassigned, captured)`
     - and `captured` is false
     - and `S` is the current type of `x` in `VM`
     - and not `S <: T`
@@ -416,64 +424,81 @@ Policy:
 
 Definitions:
 
-- `currentType(declared, promoted)`, where `declared` is a type and `promoted`
-  is a list of types, is the type `T` , defined as follows:
-  - If `promoted` is `[]`, `T` is `declared`.
-  - Otherwise, `T` is the last type in the `promoted` list.
+- `demote(promotionChain, written)`, is a promotion chain obtained by deleting
+  any elements from `promotionChain` that do not satisfy `written <: T`. _In
+  effect, this removes any type promotions that are no longer valid after the
+  assignment of a value of type `written`._
+  - _Note that if `promotionChain` is valid for declared type `T`, it follows
+    that `demote(promotionChain, written)` is also valid for declared type `T`._
 
-- `demote(promoted, written)`, where `promoted` is a list of types and `written`
-  is a type, is a list obtained by deleting any elements from `promoted` that do
-  not satisfy `written <: T`. _In effect, this removes any type promotions that
-  are no longer valid after the assignment of a value of type `written`._
-
-- `toi_promote(declared, demoted, tested, written)`, where `demoted` and
-  `tested` are lists of types, and `declared` and `written` are types, is the
-  list `promoted`, defined as follows. _("toi" stands for "type of interest".)_
-  - Let `current = currentType(declared, demoted)`. _(This is the type of the
-    variable after demotions, but before type of interest promotion.)_
-  - If `written` and `current` are the same type, then `promoted` is
-    `demoted`. _(No type of interest promotion is necessary in this case.)_
-  - Otherwise _(when `written` is not `current`)_, let `p1` be a set containing
-    the following types:
+- `toi_promote(declared, promotionChain, tested, written)`, where `declared` and
+  `written` are types satisfying `written <: declared`, `promotionChain` is
+  valid for declared type `declared`, and all types `T` in `promotionChain`
+  satisfy `written <: T`, is the promotion chain `newPromotionChain`, defined as
+  follows. _("toi" stands for "type of interest".)_
+  - Let `provisionalType` be the last type in `promotionChain`, or `declared` if
+    `promotionChain` is empty. _(This is the type of the variable after
+    demotions, but before type of interest promotion.)_
+    - _Since the last type in a promotion chain is a subtype of all the others,
+      it follows that all types `T` in `promotionChain` satisfy `provisionalType
+      <: T`._
+  - If `written` and `provisionalType` are the same type, then
+    `newPromotionChain` is `promotionChain`. _(No type of interest promotion is
+    necessary in this case.)_
+  - Otherwise _(when `written` is not `provisionalType`)_, let `p1` be a set
+    containing the following types:
     - **NonNull**(`declared`), if it is not the same as `declared`.
     - For each type `T` in the `tested` list:
       - `T`
       - **NonNull**(`T`)
 
     _The types in `p1` are known as the types of interest._
-  - Let `p2` be the set `p1 \ { current }` _(where `\` denotes set difference)_.
-  - If the `written` type is in `p2`, and `written <: current`, then `promoted`
-    is `[...demoted, written]`. _Writing a value whose static type is a type of
-    interest promotes to that type._
-    - _Since `written` is the type assigned to the variable (after type
-      coercion), in non-erroneous code it is guaranteed to be a subtype of
-      `declared`. And `toi_promote` is always applied to the result of `demote`,
-      so all types in `demoted` are guaranteed to be supertypes of
-      `written`. Therefore, the requirement that `written <: current` is
-      automatically satisfied for non-erroneous code._
+  - Let `p2` be the set `p1 \ { provisionalType }` _(where `\` denotes set
+    difference)_.
+  - If the `written` type is in `p2`, and `written <: provisionalType`, then
+    `newPromotionChain` is `[...promotionChain, written]`. _Writing a value
+    whose static type is a type of interest promotes to that type._
+    - _By precondition, `written <: declared` and `written <: T` for all types
+      in `promotionChain`. Therefore, `newPromotionChain` satisfies the
+      definition of a promotion chain, and is valid for declared type
+      `declared`._
   - Otherwise _(when `written` is not in `p2`)_:
     - Let `p3` be the set of all types `T` in `p2` such that `written <: T <:
-      current`.
+      provisionalType`.
     - If `p3` contains exactly one type `T` that is a subtype of all the others,
-      then `promoted` is `[...demoted, T]`. _Writing a value whose static type
-      is a subtype of a type of interest promotes to that type of interest,
+      then `promoted` is `[...promotionChain, T]`. _Writing a value whose static
+      type is a subtype of a type of interest promotes to that type of interest,
       provided there is a single "best" type of interest available to promote
       to._
-    - Otherwise, `promoted` is `demoted`. _If there is no single "best" type
-      of interest to promote to, then no type of interest promotion is done._
+      - _Since `T <: provisionalType <: declared`, and all types `U` in
+        `promotionChain` satisfy `provisionalType <: U`, it follows that all
+        types `U` in `promotionChain` satisfy `T <: U`. Therefore
+        `newPromotionChain` satisfies the definition of a promotion chain, and
+        is valid for declared type `declared`._
+    - Otherwise, `newPromotionChain` is `promotionChain`. _If there is no single
+      "best" type of interest to promote to, then no type of interest promotion
+      is done._
 
 - `assign(x, E, M)` where `x` is a local variable, `E` is an expression of
-  inferred type `T`, and `M = FlowModel(r, VI)` is the flow model for `E` is
-  defined to be `FlowModel(r, VI[x -> VM])` where:
+  inferred type `T` (which must be a subtype of `x`'s declared type), and `M =
+  FlowModel(r, VI)` is the flow model for `E` is defined to be `FlowModel(r,
+  VI[x -> VM])` where:
   - `VI(x) = VariableModel(declared, promoted, tested, assigned, unassigned,
     captured)`
   - If `captured` is true then:
-    - `VM = VariableModel(declared, promoted, tested, true, false, captured)`.
+    - `VM = VariableModel(declared, promotionChain, tested, true, false, captured)`.
   - Otherwise:
     - Let `written = T`.
-    - Let `demoted = demote(promoted, written)`.
-    - Let `promoted' = toi_promote(declared, demoted, tested, written)`.
-    - Then `VM = VariableModel(declared, promoted', tested, true, false,
+    - Let `promotionChain' = demote(promotionChain, written)`.
+    - Let `promotionChain'' = toi_promote(declared, promotionChain', tested,
+      written)`.
+      - _The preconditions for `toi_promote` are satisfied because:_
+        - _`demote` deletes any elements from `promotionChain` that do not
+          satisfy `written <: T`, therefore every element of `promotionChain'`
+          satisfies `written <: T`._
+        - _`written = T` and `T` is a subtype of `x`'s declared type, therefore
+          `written <: declared`._
+    - Then `VM = VariableModel(declared, promotionChain'', tested, true, false,
       captured)`.
 
 - `stripParens(E1)`, where `E1` is an expression, is the result of stripping
@@ -579,7 +604,12 @@ then they are all assigned the same value as `after(N)`.
 - **Local-variable assignment**: If `N` is an expression of the form `x = E1`
   where `x` is a local variable, then:
   - Let `before(E1) = before(N)`.
-  - Let `after(N) = assign(x, E1, after(E1))`.
+  - Let `E1'` be the result of applying type coercion to `E1`, to coerce it to
+    the declared type of `x`.
+  - Let `after(N) = assign(x, E1', after(E1))`.
+    - _Since type coercion to type `T` produces an expression whose static type
+      is a subtype of `T`, the precondition of `assign` is satisfied, namely
+      that the static type of `E1'` must be a subtype of `x`'s declared type._
 
 - **operator==** If `N` is an expression of the form `E1 == E2`, where the
   static type of `E1` is `T1` and the static type of `E2` is `T2`, then:
@@ -645,7 +675,12 @@ then they are all assigned the same value as `after(N)`.
 - **Local variable conditional assignment**: If `N` is an expression of the form
   `x ??= E1` where `x` is a local variable, then:
   - Let `before(E1) = split(promote(x, Null, before(N)))`.
-  - Let `M1 = assign(x, E1, after(E1))`
+  - Let `E1'` be the result of applying type coercion to `E1`, to coerce it to
+    the declared type of `x`.
+  - Let `M1 = assign(x, E1', after(E1))`
+    - _Since type coercion to type `T` produces an expression whose static type
+      is a subtype of `T`, the precondition of `assign` is satisfied, namely
+      that the static type of `E1'` must be a subtype of `x`'s declared type._
   - Let `M2 = split(promoteToNonNull(x, before(N)))`
   - Let `after(N) = merge(M1, M2)`
 
