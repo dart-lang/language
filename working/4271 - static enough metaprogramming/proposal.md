@@ -1,15 +1,23 @@
-tldr: I propose we follow the lead of **D**, **Zig** and **C++26** when it comes
-to metaprogramming. We introduce an optional (toolchain) feature to force
-compile time execution of certain constructs. We add library functions to
-introspect program structure which are _required_ to execute in compile time
-toolchain supports that. These two together should give enough expressive power
-to solve a wide range of problems where metaprogramming is currently wanted. cc
-@dart-lang/language-team
+# Static Enough Metaprogramming
 
-# History of `dart:mirrors`
+**Author**: Slava Egorov (@mraleph, vegorov@google.com)
+
+**Status**: Draft
+
+**Version**: 1.0
+
+**Summary**: I propose we follow the lead of **D**, **Zig** and **C++26** when it
+comes to metaprogramming. We introduce an optional (toolchain) feature to force
+compile-time execution of certain constructs. We add library functions to
+introspect program structure which are _required_ to execute at compile time
+if the toolchain supports that. These two together should give enough expressive
+power to solve a wide range of problems where metaprogramming is currently
+wanted.
+
+## History of `dart:mirrors`
 
 In the first days of 2017 I have written a blog post ["The fear of
-`dart:mirrors`"][the-fear-of-dartmirrors] which contained started with the
+`dart:mirrors`"][the-fear-of-dartmirrors] which started with the
 following paragraph:
 
 > [`dart:mirrors`][dart-mirrors-1-21-1] might be the most misunderstood,
@@ -18,12 +26,12 @@ following paragraph:
 > fog of uncertainty and marked as _Status: Unstable_ in the documentation -
 > even though APIs have not changed for a very long time.
 
-In 2017 type system was still optional, AOT was a glorified
+In 2017 the type system was still optional, AOT was a glorified
 _"ahead-off-time-JIT"_, and the team maintained at least 3 different Dart
-front-ends (VM, dart2js and analyzer). Things really started shifting with Dart
-2 release: it had replaced optional types with a static type system and
-introduced _common front-end (CFE)_ infrastructure to be shared by all backends.
-Dart 3 introduced null-safety by default (NNBD).
+front-ends (VM, dart2js and analyzer). Things really started shifting with the
+Dart 2 release: it had replaced optional types with a static type system and
+introduced a _common front-end (CFE)_ infrastructure to be shared by all
+backends. Dart 3 introduced null-safety by default (NNBD).
 
 And so 8 years and many stable releases later Dart language and its toolchains
 have changed in major ways, but [`dart:mirrors`][dart-mirrors] remained in the
@@ -33,21 +41,21 @@ on Dart, only in JIT mode and only outside of Flutter.
 How did this happen?
 
 The root of the answer lies in the conflict between _Dart 1 design philosophy_
-and necessity to use _AOT-compilation_ for deployment.
+and the necessity to use _AOT-compilation_ for deployment.
 
 Dart 1 was all in on dynamic typing. You don't know what a variable contains -
-but you can do anything with it. Can pass it anywhere. Can all any methods on
+but you can do anything with it. Can pass it anywhere. Can call any methods on
 it. Any class can override a catch-all `noSuchMethod` and intercept invocations
 of methods it does not define. Dart's reflection system `dart:mirrors` is
 similarly unrestricted: you can [reflect][dart-mirrors-reflect] on any value,
-then ask information about its [type][dart-mirrors-type], ask type about its
+then ask information about its [type][dart-mirrors-type], ask a type about its
 [declarations][dart-mirrors-declarations], ask declared members about their
 [parameters][dart-mirrors-parameters] and so on. Having an appropriate _mirror_
 you can invoke methods, read and write fields, instantiate new objects.
 
 This ability to _indirectly_ act on the state of the program creates a problem
-for static analysis of the program and that in turn affects ability of the AOT
-compiler to produce a small and fast binary.
+for the static analysis of the program and that in turn affects the ability
+of the AOT compiler to produce a small and fast binary.
 
 To put this complexity in simple terms consider two pieces of code:
 
@@ -61,34 +69,34 @@ InstanceMirror m; List args; Symbol name;
 m.invoke(name, args);
 ```
 
-When compiler sees the first piece of code it can easily figure out which
+When a compiler sees the first piece of code it can easily figure out which
 `method` implementation this call can reach and what kind of parameters are
-passed through. With the second piece of code analysis complexity skyrockets -
+passed through. With the second piece of code, analysis complexity skyrockets -
 none of the information is directly available in the source code: to know
-anything about the invocation compiler needs to know a lot about contents of
+anything about the invocation a compiler needs to know a lot about contents of
 `m`, `args` and `name`.
 
 While it is not impossible to built static analysis which is capable to see
-through the reflective access - in practice such analyses are complicated, slow
+through reflective access - in practice such analyses are complicated, slow
 and suffer from precision issues on real world code.
 
-AOT compilation and reflection is pulling into opposite directions: AOT compiler
-wants to know which parts of the program are accessed and how, while reflection
-obscures this information and provides developer with indirect access to the
-whole program. When trying to resolve this conflict you can choose between three
-options:
+AOT compilation and reflection is pulling into opposite directions: the AOT
+compiler wants to know which parts of the program are accessed and how, while
+reflection obscures this information and provides developer with indirect
+access to the whole program. When trying to resolve this conflict you can choose
+between three options:
 
 - The first option is to **make reflection system _just work_ even after AOT
   compilation**. This means retaining all information (and code) which can be
   indirectly accessed via reflection. In practice this means retaining _most_ of
   the original program - because most uses of reflection are notoriously hard to
   analyze statically.
-- The second option is to **allow AOT-compiler to ignore reflection uses it
+- The second option is to **allow an AOT-compiler to ignore reflection uses it
   can't analyze** and providing developer with a way to feed additional
   information about reflective uses into the compiler. If developer forgets (or
   feeds incomplete or incorrect information) reflective code _might_ break after
-  compilation if compiler decides to remove part of the program which it deems
-  unreachable.
+  compilation if the compiler decides to remove part of the program which it
+  deems unreachable.
 - The third option is to capitulate and **disable reflection APIs in AOT
   compiled code**.
 
@@ -96,7 +104,7 @@ Facing this choice is not unique to Dart: Java faces exactly the same challenge.
 On one hand, the package [`java.lang.reflect`][java-reflect] provides indirect
 APIs for accessing and modifying the state and structure of the running program.
 On the other hand, developers want to obfuscate and shrink their apps before
-deployment. Java ecosystem went with the second option: shrinking tools
+deployment. The Java ecosystem went with the second option: shrinking tools
 more-or-less ignore reflection and developers have to [manually inform
 toolchain][android-shrink-code] about the program elements which are accessed
 reflectively.
@@ -109,11 +117,11 @@ reflectively.
 >
 > - [Reflection Analysis for Java][paper-java-suif-reflection]
 > - [Understanding and Analyzing Java Reflection][paper-java-reflection-2019]
-> - [Challenges for Static Analysis of Java Reflection – Literature Review and Empirical Study](paper-java-reflection-challenges)
+> - [Challenges for Static Analysis of Java Reflection – Literature Review and Empirical Study][paper-java-reflection-challenges]
 >
 > Graal VM Native Image (AOT compiler for Java) attempts to fold away as much of
 > reflection uses as it can, but otherwise just like ProGuard and similar tools
-> [relies][java-native-image-reflection] on the developer to inform compiler
+> [relies][java-native-image-reflection] on a developer to inform the compiler
 > about reflection uses it could not resolve statically.
 >
 > R8 (Android bytecode shrinker) has a special
@@ -130,36 +138,36 @@ reflectively.
 > compile-time reflection.
 
 Dart initially went with the first option and tried to make `dart:mirrors` _just
-work_ when compiling Dart to JavaScript. However, rather quickly `dart2js` team
-started facing performance and code size issues caused by `dart:mirrors` in
+work_ when compiling Dart to JavaScript. However, rather quickly the `dart2js`
+team started facing performance and code size issues caused by `dart:mirrors` in
 large Web applications. So they switched gears and tried the second option:
-introduced [`@MirrorsUsed`][dart-mirrors-used] annotation. However it provided
-only a temporary and partial reprieve from the problems and was eventually
-abandoned together with `dart:mirrors`.
+they introduced [`@MirrorsUsed`][dart-mirrors-used] annotation. However it
+provided only a temporary and partial reprieve from the problems and was
+eventually abandoned together with `dart:mirrors`.
 
 There were two other attempts to address code size issues caused by mirrors,
 while retaining some amount of reflective capabilities: now abandoned package
 [`smoke`][pkg-smoke] and still maintained package
 [`reflectable`][pkg-reflectable]. Both of these apply similar approach: instead
-of relying on the toolchain to provide unrestricted reflection, have developer
+of relying on the toolchain to provide unrestricted reflection, have a developer
 opt-in into specific reflective capabilities for specific parts of the program
 then generate a pile of auxiliary Dart code implementing these capabilities.
 
 > [!NOTE]
 >
 > Another exploration similar in nature was
-> (go/const-tree-shakeable-reflection-objects)[http://go/const-tree-shakeable-reflection-objects].
+> [go/const-tree-shakeable-reflection-objects](http://go/const-tree-shakeable-reflection-objects).
 
-Fundamentally both of these approaches were dead ends and Web applications
+Fundamentally both `smoke` and `reflectable` were dead ends and Web applications
 written in Dart solved their code size and performance issues by moving away
 from reflection to _code generation_, effectively abandoning runtime
 metaprogramming in favor of build time metaprogramming. Code generators are
 usually written on top of Dart's [analyzer][pkg-analyzer] package: they inspect
-(possibly incomplete) program structure and produce additional code which needs
-to be compiled together with the program.
+a (possibly incomplete) program structure and produce additional code which
+needs to be compiled together with the program.
 
 Following this experience, we have decided to completely disable `dart:mirrors`
-when implementing native AOT compiler.
+when implementing a native AOT compiler.
 
 > [!NOTE]
 >
@@ -171,14 +179,14 @@ when implementing native AOT compiler.
 
 > [!NOTE]
 >
-> If you are familiar with intricacies of Dart VM / Flutter engine embedding you
-> might know that Dart VM C API is largely reflective in nature: it allows you
-> to look up libraries, classes and members by their names. It allows you invoke
-> methods and set fields indirectly. That why `@pragma('vm:entry-point')`
-> exists - and that is why you are required to place it on entities which are
-> accessed from outside of Dart.
+> If you are familiar with the intricacies of Dart VM / Flutter engine embedding
+> you might know that the Dart VM C API is largely reflective in nature: it
+> allows you to look up libraries, classes and members by their names. It allows
+> you to invoke methods and set fields indirectly. That why
+> `@pragma('vm:entry-point')` exists - and that is why you are required to
+> place it on entities which are accessed from outside of Dart.
 
-# `const`
+## `const`
 
 Let me change gears for a moment and discuss Dart's `const` and its limitations.
 This feature gives you just enough power at compile time to:
@@ -188,7 +196,7 @@ This feature gives you just enough power at compile time to:
 - perform arithmetic on `int` and `double` values
 - perform logical operations on `bool` values
 - compare primitive values
-- ask `length` of a constant `String`
+- ask the `length` of a constant `String`
 
 Exhaustive list is given in section 17.3 of
 [Dart Programming Language Specification](https://spec.dart.dev/DartLangSpecDraft.pdf)
@@ -196,7 +204,7 @@ and even though the description occupies 5 pages the sublanguage it defines is
 very small and excludes a lot of expressions which feel like they should
 actually be included. It just feels wrong that `const x = [].length` is invalid
 while `const x = "".length` is valid. For some seemingly arbitrary reason
-`String.length` is the only blessed property which can't be accessed in a
+`String.length` is the only blessed property which can be accessed in a
 constant expression. You can't write `[for (var i = 0; i < 10; i++) i]` and so
 on.
 
@@ -264,20 +272,20 @@ static String _computeCharacterAttributes() {
 }
 ```
 
-This requires the definition of constant expression to be expanded to cover a
-significantly larger subset of Dart than it currently includes. Such feature
+This requires the definition of a constant expression to be expanded to cover a
+significantly larger subset of Dart than it currently includes. Such a feature
 does however exist in other programming languages, most notably **C++**, **D**,
 and **Zig**.
 
-## C++
+### C++
 
-Originally metaprogramming facilities provided by **C++** were limited to
+Originally, the metaprogramming facilities provided by **C++** were limited to
 preprocessor macros and [template metaprogramming][cpp-tmp]. However, **C++11**
 added [`constexpr`][cpp-constexpr] and **C++20** added
 [`consteval`][cpp-consteval].
 
 The following code is valid in modern **C++** and computes
-`kCharacterAttributes` table in compile time.
+`kCharacterAttributes` table in compile-time.
 
 ```cpp
 constexpr uint8_t CHAR_SIMPLE_STRING_END = 1;
@@ -306,7 +314,7 @@ constexpr auto kCharacterAttributes = []() {
 > described in the next section about **D**. I am omitting it from discussion
 > here because it is not part of the language _just yet_.
 
-## D
+### D
 
 **C++** example given above can be trivially translated to **D**, which also
 supports [compile time function execution (CTFE)][dlang-ctfe].
@@ -347,7 +355,7 @@ string fmt(T)(T o)
 
 //  This foreach loop is expanded in compile time by copying
 //  the body of the loop for each element of the aggregate
-//. and substituting memberName with corresponding constant.
+//  and substituting memberName with the corresponding constant.
 //  vvvvvvvvvvvvvv
     static foreach (memberName; [__traits(allMembers, T)])
     //                                    ^^^^^^^^^^
@@ -418,7 +426,7 @@ string fmt!Person(Person o)
 See [Compile-time vs. compile-time][dlang-compiletime] for an introduction into
 **D**'s compile-time metaprogramming.
 
-## Zig
+### Zig
 
 **Zig** metaprogramming facilities are centered around
 [`comptime`][zig-comptime] - a modifier which requires variable to be known at
@@ -497,7 +505,7 @@ pub fn main() !void {
 }
 ```
 
-## Dart and Platform-specific code
+### Dart and Platform-specific code
 
 Dart's does not have a powerful compile time execution mechanism similar to
 those described above. Or does it?
@@ -599,7 +607,7 @@ evaluation was expanded to support significantly larger subset of Dart than
 specification currently permits for `const` expressions, including imperative
 loops, if-statements, `List` and `Map` operations.
 
-# Static _Enough_ Metaprogramming for Dart
+## Static _Enough_ Metaprogramming for Dart
 
 Let us first recap [History of `dart:mirrors`](#history-of-dartmirrors):
 reflection posed challenges for Dart because it often makes code impossible to
@@ -803,7 +811,7 @@ void invokeBar(Map<String, Object> values) {
 }
 ```
 
-## `@konst` reflection
+### `@konst` reflection
 
 Features described above lay the foundation of compile time metaprogramming, but
 for it to be complete we need to expose more information about the structure of
@@ -862,7 +870,7 @@ final class FieldInfo<HostType, FieldType> {
 }
 ```
 
-Note that all methods are annotated with `@konst` so if compiler supports
+Note that all methods are annotated with `@konst` so if the compiler supports
 `@konst` these must be invoked on constant objects and will be folded away -
 compiler does not need to store any information itself.
 
@@ -874,7 +882,7 @@ compiler does not need to store any information itself.
 > time reflection: `FieldInfo.getFrom` should ignore privacy unless target
 > is marked as non-reflectable.
 
-### It's a spectrum of choice
+#### It's a spectrum of choice
 
 I have intentionally avoided saying that `@konst` has to be a language feature
 and that any Dart implementation needs to support compile time constant
@@ -951,12 +959,13 @@ support as a necessary requirement to shipping this feature.
 > outlines had to contain bodies for most methods - making them impractically
 > large and erasing their benefits.
 >
-> This proposal does not suffer the same issue, even if we decide to support
-> `@konst` evaluation in these tools: as `@konst` actually provides a syntactic
-> marker which partitions the program. Only bodies of methods with `@konst`
-> parameters need to be included into the outline.
+> One possible way to address this issue is to separate imports into two
+> categories: imports that only provide outline (default) and imports that
+> provide full libraries. It then becomes a compile time error if you attempt
+> to evaluate a call and corresponding method is coming from "outline-only"
+> import.
 
-### Non-Goals
+#### Non-Goals
 
 This proposal does _not_ intend to cover all cases which are supportable via
 Dart source code generation or which are supported by macro systems in other
@@ -970,21 +979,212 @@ possible with code generation. Most notably it is not possible to declare
 fields, methods or parameters. This means for example that it is impossible
 to use `@konst` to inject a `copyWith` method based on the list of fields.
 
+#### Applicability
+
+Let's consider a number of motivational use cases considered during `macros`
+development.
+
+##### auto constructor
+
+Not directly applicable. Can't declare a constructor out of the list of fields
+or declare parameters based on the list of fields.
+
+FWIW this use case might not be as relevant if Dart has primary constructors.
+
+##### `hashCode`, `==`
+
+Applicable. Allows you to write a generic function
+`int hashCodeOf<@konst T>(T self)`. Can also make a mixin for better ergonomics.
+
+See [example](#example-defining-hashcode-and-) below.
+
+##### `copyWith`
+
+Not directly applicable because you can't synthesize parameter list.
+
+It is however possible to define method like this:
+
+```dart
+// Universal function to apply updates specified by the record.
+T copyWith<@konst T, @konst R extends Record>(T obj, R updates) {
+   // ...
+}
+```
+
+Though usability of this method will be questionable as there will be no good
+autocomplete available for `updates` parameter.
+
+##### data class
+
+Mostly applicable. Given normal complete class declaration `@konst` can be used
+to synthesize most of the boilerplate methods: `operator==`, `get hashCode`,
+`toString`, serialization and deserialization support.
+
+Can't synthesize constructor or `copyWith`.
+
+##### (de)serialization
+
+Applicable. See [JSON example](#example-synthesizing-json-serialization) below.
+
 > [!NOTE]
 >
-> It is however possible to define method like this:
+> We should consider if `@konst` reflection should have a capability to
+> construct instances from the list of field values bypassing constructors.
+>
+> Consider for example something like this:
 >
 > ```dart
-> // Universal function to apply updates specified by the record.
-> T copyWith<@konst T, @konst R extends Record>(T obj, R updates) {
->   // ...
-> }
-> ```
+> class Foo {
+>   final String x;
+>   final int y;
 >
-> Though usability of this method will be questionable as there will be good
-> autocomplete available for `updates` parameter.
+>   // Empty external constructor.
+>   external Foo._();
+> }
+>
+> /// Construct an instance of `T` using values from `r`.
+> T construct<@konst T>(Record r);
+>
+> Foo f = construct<Foo>((x: '', y: 10));
+> ```
 
-### Prototype implementation
+
+##### json serializable
+
+Applicable.
+
+##### field validation
+
+Not directly applicable. But can be coupled with
+[property wrappers](http://go/dart-property-wrappers) to achieve this.
+
+##### Server side routing
+
+Applicable. You can build routing table at compile time by iterating methods.
+
+##### ORM
+
+Applicable.
+
+##### observable fields
+
+Not directly applicable. But can be coupled with
+[property wrappers](http://go/dart-property-wrappers) to achieve this.
+
+One possible extension here is allowing interplay between constant evaluation
+and method forwarding
+
+```dart
+class A {
+  external int foo;
+}
+
+// Which is basically
+class A {
+  int get foo => noSuchMethod(Invocation(...));
+  set foo(int v) => noSuchMethod(Invocation(...));
+}
+
+// Could actually be more like:
+
+class A {
+  int get foo => A.resolve(#foo)(receiver: this, args: []);
+  set foo(int v) => A.resolve(#foo)(receiver: this, args: [v]);
+}
+
+// And developer could do:
+class A {
+  int get foo => A.resolve(#foo)(receiver: this, args: []);
+  set foo(int v) => A.resolve(#foo)(receiver: this, args: [v]);
+
+  R Function({A receiver, ...}) resolve<@konst R>(@konst Symbol method) {
+    // ...
+  }
+}
+```
+
+But maybe this gets too complicated and something less generic (property
+wrappers) is better.
+
+##### Proxy classes
+
+Not directly applicable because we can't create new classes using this proposal.
+
+That being said we could consider a reflective capability to declare an
+anonymous class from a list of methods, e.g. something along the lines of:
+
+```dart
+Class<Base> createClass<@konst Base>(@konst Map<String, Function> methods);
+```
+
+Such capability can then be used to implement proxy classes.
+
+##### js_wrapping
+
+Not directly applicable.
+
+##### auto dispose
+
+Partially applicable. Can be used to synthesize `dispose` body.
+
+##### functional widget
+
+See this [package][package-functional-widget] for context.
+
+Not directly applicable, though might be covered if we allow to
+create anonymous classes (see [Proxy classes](#proxy-classes) section).
+
+##### stateful widget/state boilerplate
+
+Similar to [the previous section](#functional-widget) to make this proposal
+applicable we need some way to allow injecting new classes into the program.
+
+##### union types (ala freezed)
+
+TODO: unclear what this means.
+
+##### auto listenable
+
+TODO: unclear what this means.
+
+##### render accessors
+
+TODO: unclear what this means.
+
+##### angular
+
+Not applicable.
+
+##### template languages
+
+Not applicable.
+
+##### mockito
+
+Not applicable.
+
+##### analytics
+
+TODO: what does this mean?
+
+##### flutter widget transformer
+
+Not applicable.
+
+##### protos
+
+Not applicable.
+
+#### pigeon
+
+Not applicable
+
+##### DI
+
+I think applicable to statically resolvable DI variants where constructors
+are threaded through from the root of the application.
+
+#### Prototype implementation
 
 To get the feeling of expressive power, implementation complexity and costs I
 have thrown together a very rough prototype implementation which can be found
@@ -1002,7 +1202,7 @@ handling of nullable types and lists. Manual implementation inlined both - while
 reflective leaned on having helper methods for these. I will take a closer look
 at this an update this section accordingly.
 
-### Example: Synthesizing JSON serialization
+#### Example: Synthesizing JSON serialization
 
 > [!NOTE]
 >
@@ -1011,7 +1211,7 @@ at this an update this section accordingly.
 > experiment with the prototype implementation which I have concocted in a very
 > limited time frame.
 
-#### `toJson<@konst T>`
+##### `toJson<@konst T>`
 
 ```dart
 Map<String, Object?> toJson<@konst T>(T value) => {
@@ -1032,7 +1232,7 @@ class A {
 Map<...> toJson$A(A value) => {a: value.a, b: value.b};
 ```
 
-#### `fromJson<@konst T>`
+##### `fromJson<@konst T>`
 
 ```dart
 T fromJson<@konst T>(Map<String, Object?> json) {
@@ -1123,10 +1323,10 @@ String _valueFromJson$String(Object? value) {
 }
 ```
 
-### Example: Defining `hashCode` and `==`
+#### Example: Defining `hashCode` and `==`
 
-We could also instruct compiler to handle `mixin`'s (and possibly all generic
-classes) with `@konst` type parameters in a special way: _clone_ their
+We could also instruct the compiler to handle `mixin`'s (and possibly all
+generic classes) with `@konst` type parameters in a special way: _clone_ their
 declarations with known type arguments. This would allow to write the following
 code:
 
@@ -1185,7 +1385,13 @@ class A with DataClass<A> {
 // get hashCode in terms of its fields.
 ```
 
-# References
+## Changelog
+
+### 1.0 - May 16, 2025
+
+* Initial version
+
+<!-- References -->
 
 [r8-troubleshooting]: https://r8.googlesource.com/r8/+/refs/heads/master/compatibility-faq.md#troubleshooting
 [paper-miao-siek]: https://dl.acm.org/doi/abs/10.1145/2543728.2543739
@@ -1220,3 +1426,5 @@ class A with DataClass<A> {
 [dlang-compiletime]: https://wiki.dlang.org/Compile-time_vs._compile-time
 [zig-comptime]: https://ziglang.org/documentation/master/#toc-comptime
 [konst-prototype-branch]: https://github.com/mraleph/sdk/tree/static_enough_reflection
+[std-source-location]: https://en.cppreference.com/w/cpp/utility/source_location
+[package-functional-widget]: https://pub.dev/packages/functional_widget
