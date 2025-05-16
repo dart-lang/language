@@ -16,7 +16,7 @@ expressive than constructors in current Dart.
 
 This document specifies generic constructors. This is a feature that
 supports the declaration of constructors whose treatment of type parameters
-is more flexible and expressive than constructors in current Dart. 
+is more flexible and expressive than constructors in current Dart.
 
 In particular, it allows the constructor to have type parameters that are
 not used in the return type (that is, the type of the newly created
@@ -165,16 +165,16 @@ class Map<K, V> {
 }
 ```
 
-However, that is a compile-time error because it returns a 
+However, that is a compile-time error because it returns a
 `Map<Object?, List<Object?>>` where the return type is `Map<K, V>`.
 But we don't know `K` or `V`, and we can't assume that `V` is of the form
 `List<K>` or a supertype thereof. We might try to cast the map literal to
-`Map<K, V>`, and that might work, but an invocation like 
+`Map<K, V>`, and that might work, but an invocation like
 `Map<int, String>.keyToList(xs)` will then throw at run time because the
 map literal isn't going to have the required type no matter which iterable
 we are passing as `keys`.
 
-With the generic constructor and with an invocation like 
+With the generic constructor and with an invocation like
 `Map<int, String>.keyToList(xs)`, the actual type arguments will be used as
 a context type for the constructor invocation. The generic constructor
 `Map.keyToList` fails to infer actual type arguments such that the
@@ -226,19 +226,19 @@ The grammar is adjusted as follows:
 
 ```ebnf
 <constructorSignature> ::= <constructorName> <formalParameterList>
-  | <typeIdentifier> <typeArguments>? '.' <identifierOrNew> 
+  | <typeIdentifier> <typeArguments>? '.' <identifierOrNew>
     <typeParameters> <formalParameterList>
-  | <typeIdentifier> <typeArguments> '.' <identifierOrNew> 
+  | <typeIdentifier> <typeArguments> '.' <identifierOrNew>
     <formalParameterList>
 
-<factoryConstructorSignature> ::= 
+<factoryConstructorSignature> ::=
     'const'? 'factory' <constructorSignature>
 
 <redirectingFactoryConstructorSignature> ::=
-    'const'? 'factory' <constructorSignature> '=' 
+    'const'? 'factory' <constructorSignature> '='
     <constructorDesignation>
 
-<constantConstructorSignature> ::= 
+<constantConstructorSignature> ::=
     'const' <constructorSignature>
 ```
 
@@ -253,7 +253,7 @@ declaration.
 
 ### Static Analysis
 
-A generic constructor declaration occurs as a member of a type introducing 
+A generic constructor declaration occurs as a member of a type introducing
 declaration or an extension declaration. Its current scope is the body
 scope of the enclosing declaration. It introduces a type parameter scope
 whose enclosing scope is the current scope of the generic constructor
@@ -317,11 +317,11 @@ non-generic class).
 In this case, the super-initializer of the constructor (explicit or
 implicit, and excepting `Object` that does not have a super-initializer)
 will invoke the superconstructor with actual type arguments that correspond
-to the type `C<T1 .. Tk>` of the current constructor invocation. 
+to the type `C<T1 .. Tk>` of the current constructor invocation.
 
 That is, if `C` is declared with `k` type parameters `X1 .. Xk` and
 superclass `B<U1 .. Us>` then the `j`th actual type argument to the super
-constructor invocation is obtained as `[T1/X1 .. Tk/Xk]Uj`, for `j` in 
+constructor invocation is obtained as `[T1/X1 .. Tk/Xk]Uj`, for `j` in
 `1 .. s`.
 
 Moreover, in the body of _D_, the reserved word `this` has static type
@@ -359,7 +359,7 @@ whose constructor signature applies a list of actual type arguments to the
 `<typeIdentifier>`, of the form `C<T1 .. Tk>`. (This includes the case
 where `k` is zero, which again implies that `C` is a non-generic class).
 
-In this case, the redirectee must have a type which is a subtype of 
+In this case, the redirectee must have a type which is a subtype of
 `C<T1 .. Tk>`. Similarly, if the redirectee denotes a generic constructor
 and no actual type arguments are provided then `C<T1 .. Tk>` is used as the
 type to match when such type arguments are inferred.
@@ -396,7 +396,7 @@ inferred exactly like invocations of that static method.*
 Consider an invocation of this generic constructor of the form
 `C<S1 .. Sk>.name(args)`, with context type `T`. This invocation is
 subjected to type inference as if the generic constructor had been the same
-static method of `C` as in the previous case, but with context type 
+static method of `C` as in the previous case, but with context type
 `C<S1 .. Sk>`.
 
 Warnings are not language specified entities, but the following warning is
