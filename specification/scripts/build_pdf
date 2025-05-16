@@ -1,0 +1,13 @@
+#!/usr/bin/env -S bash --norc
+
+apt-get update -qq
+apt-get install -y --no-install-recommends \
+    build-essential \
+    texlive-latex-base \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    lmodern
+cd specification
+make
+mkdir artifacts
+cp dartLangSpec.pdf artifacts/DartLangSpecDraft.pdf
