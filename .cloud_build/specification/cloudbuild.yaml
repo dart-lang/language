@@ -7,4 +7,4 @@ options:
 artifacts:
   objects:
     location: 'gs://dart-specification/'
-    paths: ['artifacts/**']
+    paths: ['specification/artifacts/**']
