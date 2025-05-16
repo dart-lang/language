@@ -9,5 +9,5 @@ apt-get install -y --no-install-recommends \
     lmodern
 cd specification
 make
-mkdir firebase
-cp dartLangSpec.pdf firebase/DartLangSpecDraft.pdf
+mkdir artifacts
+cp dartLangSpec.pdf artifacts/DartLangSpecDraft.pdf
