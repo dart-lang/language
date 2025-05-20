@@ -41,6 +41,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% May 2025
+% - Add `s?.length` as a constant expression in the case where `s` satisfies
+%   some requirements.
+%
 % Apr 2025
 % - Change the rules about constants to be more consistent: Every constant
 %   expression is also a potentially constant expression. Also, eliminate
@@ -8871,6 +8875,12 @@ are the following:
   It is further constant if $e$ is a constant expression that
   evaluates to an instance of \code{String},
   such that \code{length} denotes an instance getter invocation.
+
+\item An expression of the form \code{$e$?.length} is potentially constant
+  if $e$ is a potentially constant expression.
+  It is further constant if $e$ is a constant expression that
+  evaluates to null, or it evaluates to an instance of \code{String}
+  and \code{length} denotes an instance getter invocation.
 
 \item An expression of the form \code{$e$\,\,as\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
