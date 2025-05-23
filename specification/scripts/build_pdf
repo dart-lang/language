@@ -9,5 +9,9 @@ apt-get install -y --no-install-recommends \
     lmodern
 cd specification
 make
-mkdir artifacts
-cp dartLangSpec.pdf artifacts/DartLangSpecDraft.pdf
+mkdir -p artifacts
+if [ "$_BASE_BRANCH" == "main" ]; then
+  cp dartLangSpec.pdf artifacts/DartLangSpecDraft.pdf
+fi
+mkdir -p artifacts/pr/$_PR_NUMBER
+cp dartLangSpec.pdf artifacts/pr/$_PR_NUMBER/DartLangSpecDraft.pdf
