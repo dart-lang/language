@@ -1,5 +1,7 @@
 #!/usr/bin/env -S bash --norc
 
+set -ex
+
 apt-get update -qq
 apt-get install -y --no-install-recommends \
     build-essential \
