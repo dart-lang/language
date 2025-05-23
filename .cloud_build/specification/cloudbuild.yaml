@@ -1,10 +1,8 @@
 steps:
 - name: 'ubuntu'
   args: ['specification/scripts/build_pdf']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '-m', 'r', 'specification/artifacts/', 'gs://dart-specification']
 options:
   automapSubstitutions: true
   logging: CLOUD_LOGGING_ONLY
-artifacts:
-  objects:
-    location: 'gs://dart-specification/'
-    paths: ['specification/artifacts/**']
