@@ -6,5 +6,5 @@ options:
   logging: CLOUD_LOGGING_ONLY
 artifacts:
   objects:
-    location: 'gs://dart-specification/'
+    location: 'gs://dart-specification/$_PR_NUMBER/'
     paths: ['specification/artifacts/**']
