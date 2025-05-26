@@ -5,7 +5,7 @@ steps:
   - 'BRANCH_NAME=$BRANCH_NAME'
   - '_PR_NUMBER=$_PR_NUMBER'
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: [ '-m', 'cp', '-r', 'specification/artifacts/', 'gs://dart-specification']
+  args: [ '-m', 'cp', '-r', 'specification/artifacts/*', 'gs://dart-specification']
 options:
   automapSubstitutions: true
   logging: CLOUD_LOGGING_ONLY
