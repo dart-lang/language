@@ -1,6 +1,9 @@
 steps:
 - name: 'ubuntu'
   args: ['specification/scripts/build_pdf']
+  env:
+  - 'BRANCH_NAME=$BRANCH_NAME'
+  - '_PR_NUMBER=$_PR_NUMBER'
 - name: 'gcr.io/cloud-builders/gsutil'
   args: [ '-m', 'cp', '-r', 'specification/artifacts/', 'gs://dart-specification']
 options:
