@@ -8,7 +8,12 @@
     ],
     "redirects": [
       {
-        "source": "pr/:pr/DartLangSpecDraft.pdf",
+         "source": "/DartLangSpecDraft.pdf",
+         "destination": "https://storage.googleapis.com/dart-specification/DartLangSpecDraft.pdf",
+         "type": 302
+      },
+      {
+        "source": "/pr/:pr/DartLangSpecDraft.pdf",
         "destination": "https://storage.googleapis.com/dart-specification/pr/:pr/DartLangSpecDraft.pdf",
         "type": 301
       },
