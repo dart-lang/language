@@ -851,8 +851,8 @@ It's a **compile-time error** if:
 *   The signature of the augmenting function does not [match][signature
     matching] the signature of the augmented function.
 
-*   The augmenting constructor parameters specify any default values,
-    and the constructor is a non-redirecting factory. *Default values are
+*   The augmenting constructor parameters specify any default values, and
+    the constructor is not a non-redirecting factory. *Default values are
     defined by the introductory constructor, except when this precludes the
     augmentation from choosing whether or not the constructor should be
     redirecting.*
