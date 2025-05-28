@@ -733,7 +733,8 @@ It's a **compile-time** error if:
     matching] the signature of the augmented function.
 
 *   The augmenting function specifies any default values. *Default values are
-    defined solely by the introductory function.*
+    defined solely by the introductory function. Note that constructors are
+    treated differently from other functions in this respect.*
 
 *   A function is not complete after all augmentations are applied, unless it
     is in a context where it can be abstract. *Every function declaration
@@ -840,13 +841,21 @@ Augmenting constructors works similar to augmenting a function, with some extra
 rules to handle features unique to constructors like redirections and
 initializer lists.
 
+It is **not** a compile-time error for an incomplete factory constructor to
+omit default values. *That is, they are treated similarly to abstract
+instance methods in this respect. This allows the augmenting declaration to
+implement the constructor by adding a redirection or a body.*
+
 It's a **compile-time error** if:
 
 *   The signature of the augmenting function does not [match][signature
     matching] the signature of the augmented function.
 
-*   The augmenting constructor parameters specify any default values.
-    *Default values are defined solely by the introductory constructor.*
+*   The augmenting constructor parameters specify any default values, and
+    the constructor is not a non-redirecting factory. *Default values are
+    defined by the introductory constructor, except when this precludes the
+    augmentation from choosing whether or not the constructor should be
+    redirecting.*
 
 *   The introductory constructor is `const` and the augmenting constructor
     is not or vice versa. *An augmentation can't change whether or not a
@@ -857,6 +866,13 @@ It's a **compile-time error** if:
     constructor is not, or vice versa. *An augmentation can't change whether or
     not a constructor is generative because that affects whether users are
     allowed to call the constructor in a subclass's initializer list.*
+
+*   More than one constructor declaration in an augmentation chain specifies
+    a default value for the same parameter.
+
+*   A constructor declaration in an augmentation chain is a redirecting
+    factory, and some declaration in the chain specifies a default value
+    for one or more parameters.
 
 An incomplete constructor can be completed by adding an initializer list and/or
 a body, or by adding a redirection:
