@@ -11,6 +11,11 @@
         "source": "!DartLangSpecDraft.pdf",
         "destination": "https://www.dartlang.org/guides/language/spec",
         "type": 302
+      },
+      {
+        "source": "DartLangSpecDraft.pdf",
+        "destination": "https://storage.googleapis.com/dart-specification/DartLangSpecDraft.pdf",
+        "type": 302
       }
     ]
   }
