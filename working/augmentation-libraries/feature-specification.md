@@ -871,9 +871,13 @@ It's a **compile-time error** if:
     constructor is not, or vice versa. *An augmentation can't change whether or
     not a constructor is generative because that affects whether users are
     allowed to call the constructor in a subclass's initializer list.*
-    
+
 *   More than one constructor declaration in an augmentation chain specifies
     a default value for the same parameter.
+
+*   A constructor declaration in an augmentation chain is a redirecting
+    factory, and some declaration in the chain specifies a default value
+    for one or more parameters.
 
 An incomplete constructor can be completed by adding an initializer list and/or
 a body, or by adding a redirection:
