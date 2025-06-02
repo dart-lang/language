@@ -1,7 +1,7 @@
 # Augmentations
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com <br>
-Version: 1.35 (see [Changelog](#Changelog) at end)
+Version: 1.36 (see [Changelog](#Changelog) at end)
 
 Augmentations allow splitting a declaration across multiple locations,
 both within a single file and across multiple files. They can add new top-level
@@ -149,9 +149,6 @@ extensionTypeDeclaration ::=
   | 'augment' 'extension' 'type' 'const'? typeIdentifier
     typeParameters? interfaces?
     memberedDeclarationBody
-
-typeAlias ::= 'augment'? 'typedef' typeIdentifier typeParameters? '=' type ';'
-  | 'augment'? 'typedef' functionTypeAlias
 
 memberedDeclarationBody ::= '{' memberDeclarations '}'
 
@@ -641,7 +638,7 @@ It's a **compile-time** error if:
 
 ### Augmenting function and constructor signatures
 
-[signature matching]: #Augmenting_function_and_constructor_signatures
+[signature matching]: #augmenting-function-and-constructor-signatures
 
 When augmenting a function (top level, static method, instance method, etc.) or
 constructor (generative, factory, etc.) the parameter lists must be the same in
@@ -1119,6 +1116,11 @@ fully captured by that paragraph). It's probably safest to be pessimistic
 and assume the third point is always true.
 
 ## Changelog
+
+### 1.36
+
+*   Remove `augment` from typedef grammar since typedefs can no longer be
+    augmented (#4388).
 
 ### 1.35
 
