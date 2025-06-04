@@ -148,8 +148,8 @@ topLevelDeclaration ::= classDeclaration
 
 ### Class-like declarations
 
-We allow `augment` before class, enum, and extension type declarations. *(Enums
-are handled in the next section.)*
+We allow `augment` before class, extension type, and mixin declarations. *(Enums
+and extensions are discussed in subsequent sections.)*
 
 ```
 classDeclaration ::=
@@ -208,7 +208,7 @@ setters, and operators. *Example:*
 
 ```dart
 class C {
-  static abstract int x;   // Incomplete static variable.
+  static abstract int x;   // Incomplete static variable (getter and setter).
   static int get y;        // Incomplete static getter.
   static set z(int value); // Incomplete static setter.
 }
@@ -776,19 +776,19 @@ It's a **compile-time** error if:
 *   The augmenting function specifies any default values. *Default values are
     defined solely by the introductory function.*
 
-*   A function is not complete after all augmentations are applied, unless it
-    is in a context where it can be abstract. *Every function declaration
-    eventually needs to have a body filled in unless it's an instance method
-    that can be abstract. In that case, if no declaration provides a body, it
-    is considered abstract.*
+*   A function is not complete after all augmentations are applied, unless it's
+    an instance member and the surrounding class is abstract. *Every function
+    declaration eventually needs to have a body filled in unless it's an
+    instance method that can be abstract. In that case, if no declaration
+    provides a body, it is considered abstract.*
 
 ### Augmenting variables, getters, and setters
 
 For purposes of augmentation, a variable declaration is treated as implicitly
 defining a getter whose return type is the type of the variable. If the variable
-is not `final` or is `late`, then the variable declaration also implicitly
-defines a setter with a parameter named `_` whose type is the type of the
-variable.
+is not `final`, or is `late` without an initializer, then the variable
+declaration also implicitly defines a setter with a parameter named `_` whose
+type is the type of the variable.
 
 If the variable is `abstract`, then the getter and setter are incomplete,
 otherwise they are complete. *For non-abstract variables, the compiler
@@ -809,16 +809,13 @@ It's a **compile-time error** if:
 *   The signature of the augmenting getter or setter does not [match][signature
     matching] the signature of the augmented getter or setter.
 
-*   An augmenting setter specifies any default values. *Default values are
-    defined solely by the introductory declaration.*
-
 *   A `const` variable declaration is augmented or augmenting.
 
 *   A getter or setter (including one implicitly induced by a variable
-    declaration) is not complete after all augmentations are applied, unless it
-    is in a context where it can be abstract. *Every getter or setter
-    declaration eventually needs to have a body filled in unless it's an
-    instance member that can be abstract. In that case, if no declaration
+    declaration) is not complete after all augmentations are applied, unless
+    it's an instance member and the surrounding class is abstract. *Every getter
+    or setter declaration eventually needs to have a body filled in unless it's
+    an instance member that can be abstract. In that case, if no declaration
     provides a body, it is considered abstract.*
 
 ### Augmenting enums
