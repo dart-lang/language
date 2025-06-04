@@ -106,11 +106,25 @@ from changing the constructor to a factory.
 
 ## Syntax
 
-There are a handful of grammar changes mostly around allowing `augment` before
-the various declarations that can be augmented allowing declarations to be less
-"complete" than they were required to be before this proposal since an
-augmentation can fill them in. For example, non-instance functions without
-bodies and enums without values.
+The syntax changes are simple but fairly extensive and touch several parts of
+the grammar so are broken out into separate sections.
+
+### Top-level augmentations and incomplete top-level members
+
+We allow an `augment` modifier before most top-level declarations.
+
+Also, we allow incomplete declarations at the top level. This reuses the same
+syntax used inside a class to declare abstract variables, methods, getters,
+setters, and operators. For callable members, that means the body is `;`. For
+variable declarations, that means using `abstract`. *Example:*
+
+```dart
+abstract int x;   // Incomplete top-level variable.
+int get y;        // Incomplete top-level getter.
+set z(int value); // Incomplete top-level setter.
+```
+
+The new top-level grammar is:
 
 ```
 topLevelDeclaration ::= classDeclaration
@@ -123,13 +137,21 @@ topLevelDeclaration ::= classDeclaration
   | 'augment'? 'external' getterSignature ';'
   | 'augment'? 'external' setterSignature ';'
   | 'augment'? 'external' finalVarOrType identifierList ';'
-  | 'augment'? functionSignature (functionBody | ';')
+  | 'augment'? 'abstract' finalVarOrType identifierList ';'
   | 'augment'? getterSignature (functionBody | ';')
   | 'augment'? setterSignature (functionBody | ';')
+  | 'augment'? functionSignature (functionBody | ';')
   | 'augment'? ('final' | 'const') type? initializedIdentifierList ';'
   | 'augment'? 'late' 'final' type? initializedIdentifierList ';'
   | 'augment'? 'late'? varOrType initializedIdentifierList ';'
+```
 
+### Class-like declarations
+
+We allow `augment` before class, extension type, and mixin declarations. *(Enums
+and extensions are discussed in subsequent sections.)*
+
+```
 classDeclaration ::=
     'augment'? (classModifiers | mixinClassModifiers)
     'class' typeWithParameters superclass? interfaces?
@@ -164,8 +186,8 @@ declaration ::=
   | 'augment'? 'external'? 'static'? getterSignature ';'
   | 'augment'? 'external'? 'static'? setterSignature ';'
   | 'augment'? 'external'? 'static'? functionSignature ';'
-  | 'external' ('static'? finalVarOrType | 'covariant' varOrType) identifierList ';'
   | 'augment'? 'external'? operatorSignature ';'
+  | 'external' ('static'? finalVarOrType | 'covariant' varOrType) identifierList ';'
   | 'augment'? 'abstract' (finalVarOrType | 'covariant' varOrType) identifierList ';'
   | 'static' 'const' type? initializedIdentifierList ';'
   | 'static' 'final' type? initializedIdentifierList ';'
@@ -180,14 +202,26 @@ declaration ::=
   | 'augment'? constructorSignature (redirection | initializers)? ';'
 ```
 
-*Note that the grammar for putting `augment` before an extension type
-declaration doesn't allow also specifying a representation field. This is by
-design. An extension type augmentation always inherits the representation field
-of the introductory declaration and can't specify it.*
+As with top-level declarations, we also reuse the abstract member syntax with a
+`static` modifier to allow declaring incomplete static fields, methods, getters,
+setters, and operators. *Example:*
 
-*Likewise, the grammar for an augmenting `mixin` declaration does not allow
+```dart
+class C {
+  static abstract int x;   // Incomplete static variable (getter and setter).
+  static int get y;        // Incomplete static getter.
+  static set z(int value); // Incomplete static setter.
+}
+```
+
+Note that the grammar for putting `augment` before an extension type declaration
+doesn't allow also specifying a representation field. This is by design. An
+extension type augmentation always inherits the representation field of the
+introductory declaration and can't specify it.
+
+Likewise, the grammar for an augmenting `mixin` declaration does not allow
 specifying an `on` clause. Only the introductory declaration permits that. We
-could relax this restriction if compelling use cases arise.*
+could relax this restriction if compelling use cases arise.
 
 ### Enums
 
@@ -605,6 +639,16 @@ subsections.
 
 It's a **compile-time** error if:
 
+*   An augmentation declaration is applied to a declaration of a different kind.
+    For example, augmenting a `class` with a `mixin`, an `enum` with a function,
+    a method with a getter, a constructor with a static method, etc.
+
+    The exception is that a variable declaration (introductory or augmenting) is
+    treated as a getter declaration (and a setter declaration if non-final) for
+    purposes of augmentation. These implicit declarations can augment and be
+    augmented by other explicit getter and setter declarations. (See "Augmenting
+    variables, getters, and setters" for more details.)
+
 *   A library contains two top-level declarations with the same name, and one of
     the declarations is a class-like declaration and the other is not of the
     same kind, meaning that either one is a class, mixin, enum, extension or
@@ -732,83 +776,47 @@ It's a **compile-time** error if:
 *   The augmenting function specifies any default values. *Default values are
     defined solely by the introductory function.*
 
-*   A function is not complete after all augmentations are applied, unless it
-    is in a context where it can be abstract. *Every function declaration
-    eventually needs to have a body filled in unless it's an instance method
-    that can be abstract. In that case, if no declaration provides a body, it
-    is considered abstract.*
+*   A function is not complete after all augmentations are applied, unless it's
+    an instance member and the surrounding class is abstract. *Every function
+    declaration eventually needs to have a body filled in unless it's an
+    instance method that can be abstract. In that case, if no declaration
+    provides a body, it is considered abstract.*
 
-### Augmenting variables
+### Augmenting variables, getters, and setters
 
-A class-like augmentation can add *new* variables (that is instance or static
-fields) to the type being augmented:
+For purposes of augmentation, a variable declaration is treated as implicitly
+defining a getter whose return type is the type of the variable. If the variable
+is not `final`, or is `late` without an initializer, then the variable
+declaration also implicitly defines a setter with a parameter named `_` whose
+type is the type of the variable.
 
-```dart
-class C {}
+If the variable is `abstract`, then the getter and setter are incomplete,
+otherwise they are complete. *For non-abstract variables, the compiler
+synthesizes a getter that accesses the backing storage and a setter that updates
+it, so these members have bodies.*
 
-augment class C {
-  int x = 3;
+A getter can be augmented by another getter, and likewise a setter can be
+augmented by a setter. This is true whether the getter or setter is explicitly
+declared or implicitly declared using a variable declaration.
 
-  static int y = 4;
-}
-```
+*Since non-abstract variables are complete, that implies that it is an error to
+augment a non-abstract variable declaration with a complete getter, setter, or
+variable declaration. Likewise, it is an error to augment a complete getter or
+setter with a non-abstract variable declaration.*
 
-Variable declarations themselves can't be augmented (by variables, getters, or
-setters, even if the getter or setter is incomplete), with the exception of
-abstract instance variable declarations.
+It's a **compile-time error** if:
 
-*A variable declaration implicitly has code for the synthesized getter and
-setter that access and modify the underlying backing storage. Since we don't
-allow augmentations to replace code, that implies that augmentations can't
-change variables. So we don't allow them to be augmented.*
+*   The signature of the augmenting getter or setter does not [match][signature
+    matching] the signature of the augmented getter or setter.
 
-#### Abstract instance variables
+*   A `const` variable declaration is augmented or augmenting.
 
-Dart supports `abstract` field declarations. They are syntactic sugar for
-declaring an abstract getter and, if not `final`, an abstract setter. They don't
-actually declare a variable with any backing storage.
-
-Because abstract variables are effectively abstract getter and setter
-declarations, they can be augmented and used in augmentations just like function
-declarations:
-
-*Examples:*
-
-```dart
-class C {
-  // Augment an abstract variable with a getter:
-  abstract final int a;
-  augment int get a => 1; // OK.
-
-  // Augment an abstract variable with a getter and setter:
-  abstract int b;
-  augment int get b => 1; // OK.
-  augment set b(int value) {} // OK.
-
-  // Augment a getter with an abstract variable:
-  int get c;
-
-  @someMetadata
-  augment abstract final int c; // (Not very useful, but valid.)
-}
-```
-
-For purposes of [signature matching][], the implicit setter induced by a
-non-final abstract variable has a positional parameter named `_`. *This means
-you can augment an abstract variable with a setter that uses whatever positional
-parameter name you want:*
-
-```dart
-class C {
-  abstract int x;
-}
-
-augment class C {
-  augment set x(int anyNameIWant) { // OK.
-    // ...
-  }
-}
-```
+*   A getter or setter (including one implicitly induced by a variable
+    declaration) is not complete after all augmentations are applied, unless
+    it's an instance member and the surrounding class is abstract. *Every getter
+    or setter declaration eventually needs to have a body filled in unless it's
+    an instance member that can be abstract. In that case, if no declaration
+    provides a body, it is considered abstract.*
 
 ### Augmenting enums
 
@@ -816,7 +824,7 @@ An augmentation of an enum type can add new members to the enum, including new
 enum values. Enum values are appended in augmentation application order.
 
 Enum values themselves can't be augmented since they are essentially constant
-variables and variables can't be augmented.
+variables and constant variables can't be augmented.
 
 It's a **compile-time error** if:
 
@@ -1121,6 +1129,7 @@ and assume the third point is always true.
 
 *   Remove `augment` from typedef grammar since typedefs can no longer be
     augmented (#4388).
+*   Allow augmenting variable declarations (#4387).
 
 ### 1.35
 
