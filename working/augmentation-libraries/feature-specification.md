@@ -775,11 +775,13 @@ provide default values for optional parameters:
 class C {
   void m1([int i]);
   void m2({String name});
+  void m3({String otherName = "Smith"}); // OK, too.
 }
 
 augment class C {
   augment m1([i = 1]) {}
-  augment m2({name = "Smith"}) {}
+  augment m2({name = "John"}) {}
+  augment m3({otherName}) {}
 }
 ```
 
@@ -787,23 +789,24 @@ An optional formal parameter has the default value _d_ if exactly one
 declaration of that formal parameter in the augmentation chain specifies a
 default value, and it is _d_. An optional formal parameter does not have an
 explicitly specified default value if none of its declarations in the
-augmentation chain specifies a default value; the default value is introduced
-implicitly with the value null in the case where the parameter has a nullable
-declared type, and no default values are specified in the augmentation chain.
+augmentation chain specifies a default value; in this case, the default value
+is introduced implicitly with the value null in the case where the parameter
+has a nullable declared type, and no default values for that parameter are
+specified in the augmentation chain.
 
 It's a **compile-time** error if:
 
 *   The signature of the augmenting function does not [match][signature
     matching] the signature of the augmented function.
 
-*   The augmentation chain has two or more specifications of a default
-    value, even in the case where they are all identical. *Default values are
-    defined by the introductory function or an augmentation, but at most
-    once.*
+*   The augmentation chain has two or more specifications of a default value
+    for the same optional parameter. This is an error even in the case where
+    all of them are identical. *Default values are defined by the introductory
+    function or an augmentation, but at most once.*
 
 *   The augmentation chain has no specifications of a default value for an
-    optional parameter whose declared type is potentially non-nullable. *In
-    this case the specification must be explicit.*
+    optional parameter whose declared type is potentially non-nullable, and
+    the declared function is not abstract.
 
 *   A function is not complete after all augmentations are applied, unless it's
     an instance member and the surrounding class is abstract. *Every function
@@ -884,11 +887,17 @@ It's a **compile-time error** if:
 *   The signature of the augmenting function does not [match][signature
     matching] the signature of the augmented function.
 
-*   The augmenting constructor parameters specify any default values, and
-    the constructor is not a non-redirecting factory. *Default values are
-    defined by the introductory constructor, except when this precludes the
-    augmentation from choosing whether or not the constructor should be
-    redirecting.*
+*   The augmentation chain has two or more specifications of a default value
+    for the same optional parameter. This is an error even in the case where
+    all of them are identical. *Default values are defined by the introductory
+    declaration or an augmentation, but at most once.*
+
+*   The augmentation chain has exactly one specification of a default value
+    for an optional parameter, and the constructor is a redirecting factory.
+
+*   The augmentation chain has no specifications of a default value for an
+    optional parameter whose declared type is potentially non-nullable, and
+    the constructor is not a redirecting factory.
 
 *   The introductory constructor is `const` and the augmenting constructor
     is not or vice versa. *An augmentation can't change whether or not a
