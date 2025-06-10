@@ -450,7 +450,7 @@ scope. *We could say that it attaches itself to the existing name.*
 
 Augmentations aren't allowed to *replace* code, so they mostly add entirely new
 declarations to the surrounding type. However, function and constructor
-augmentations can fill in a body for an augmented declaration that is lacks one.
+augmentations can fill in a body for an augmented declaration that lacks one.
 
 More precisely, a function or constructor declaration (introductory or
 augmenting) is *incomplete* if all of:
@@ -768,14 +768,42 @@ augment class Person {
 }
 ```
 
+A top-level function, static method, or instance method may be augmented to
+provide default values for optional parameters:
+
+```dart
+class C {
+  void m1([int i]);
+  void m2({String name});
+}
+
+augment class C {
+  augment m1([i = 1]) {}
+  augment m2({name = "Smith"}) {}
+}
+```
+
+An optional formal parameter has the default value _d_ if exactly one
+declaration of that formal parameter in the augmentation chain specifies a
+default value, and it is _d_. An optional formal parameter does not have an
+explicitly specified default value if none of its declarations in the
+augmentation chain specifies a default value; the default value is introduced
+implicitly with the value null in the case where the parameter has a nullable
+declared type, and no default values are specified in the augmentation chain.
+
 It's a **compile-time** error if:
 
 *   The signature of the augmenting function does not [match][signature
     matching] the signature of the augmented function.
 
-*   The augmenting function specifies any default values. *Default values are
-    defined solely by the introductory function. Note that constructors are
-    treated differently from other functions in this respect.*
+*   The augmentation chain has two or more specifications of a default
+    value, even in the case where they are all identical. *Default values are
+    defined by the introductory function or an augmentation, but at most
+    once.*
+
+*   The augmentation chain has no specifications of a default value for an
+    optional parameter whose declared type is potentially non-nullable. *In
+    this case the specification must be explicit.*
 
 *   A function is not complete after all augmentations are applied, unless it's
     an instance member and the surrounding class is abstract. *Every function
