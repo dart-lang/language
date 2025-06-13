@@ -1037,7 +1037,7 @@ extension type V1(int it) {
 void qux() { print('qux'); }
 
 extension type V2(V1 it) {
-  void foo() { print('V2.foo); }
+  void foo() { print('V2.foo'); }
   void bar() {
     foo(); // Prints 'V2.foo'.
     it.foo(); // Prints 'V1.foo'.
