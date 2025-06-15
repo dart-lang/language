@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2025.04.03
+  - Add an exception for extension members in the error about nullable
+    receivers.
+
 2021.07.28
   - Allow a constant factory constructor in a class with a late final instance
     variable.
@@ -531,7 +535,7 @@ location outside of the statement.
 
 It is an error to call a method, setter, getter or operator on an expression
 whose type is potentially nullable and not `dynamic`, except for the methods,
-setters, getters, and operators on `Object`.
+setters, getters, and operators on `Object`, and except for extension members.
 
 It is an error to read a field or tear off a method from an expression whose
 type is potentially nullable and not `dynamic`, except for the methods and
