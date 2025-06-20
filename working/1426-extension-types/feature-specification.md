@@ -8,7 +8,7 @@ Status: Obsolete
 current name is again _extension types_. Please see the new 
 [extension types specification][] for the accepted specification proposal.**
 
-[extension types specification]: https://github.com/dart-lang/language/blob/main/accepted/future-releases/extension-types/feature-specification.md
+[extension types specification]: https://github.com/dart-lang/language/blob/main/accepted/3.3/extension-types/feature-specification.md
 
 
 ## Change Log
