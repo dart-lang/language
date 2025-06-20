@@ -9,7 +9,7 @@ Version 0.1 (see [CHANGELOG](#CHANGELOG) at end)
 Experiment flag: private-named-parameters
 
 This proposal makes it easier to initialize and declare private instance fields
-using named constructors parameters. It addresses [#2509][] and turns code like
+using named constructor parameters. It addresses [#2509][] and turns code like
 this:
 
 [#2509]: https://github.com/dart-lang/language/issues/2509
@@ -41,6 +41,24 @@ class House {
   House({this._windows, this._bedrooms, this._swimmingPools});
 }
 ```
+
+This proposal harmonizes with (and in a couple of places mentions) the [primary
+constructors][] proposal. When combined with that proposal, the above example
+becomes:
+
+[primary constructors]: https://github.com/dart-lang/language/blob/main/working/2364%20-%20primary%20constructors/feature-specification.md
+
+```dart
+class House({
+  this._windows,
+  this._bedrooms,
+  this._swimmingPools,
+});
+```
+
+Without this proposal, the example here wouldn't be able to use a primary
+constructor at all without giving up either privacy on the fields or named
+parameters in the constructor.
 
 ## Motivation
 
@@ -95,9 +113,8 @@ For example:
 ```dart
 class House {
   int? bedrooms; // 3. The corresponding field.
-  House({this.bedrooms}) {
-    print(bedrooms); // 1. The parameter variable.
-  }
+  House({this.bedrooms})
+    : assert(bedrooms == null || bedrooms >= 0); // 1. The parameter variable.
 }
 
 main() {
@@ -138,7 +155,7 @@ of the three features:
 
 *   They can make the parameter positional instead.
 
-*   They can commit to the API they want by making the field public and the
+*   They can commit to the API they want by making the field private and the
     parameter named, but use a public name for the parameter. Then instead of
     using an initializing formal, they manually initialize the field from the
     parameter, as in:
@@ -264,8 +281,8 @@ underscore does not leave something which is is a valid identifier *(as in `_`
 or `_2x`)* or leaves another private name *(as in `__x`)*, then the private name
 has no corresponding public name.
 
-Given an initializing formal or field parameter (for a primary constructor) with
-private name *p* in constructor C:
+Given a named initializing formal or field parameter (for a primary constructor)
+with private name *p* in constructor C:
 
 *   If *p* has no corresponding public name *n*, then compile-time error. *You
     can't use a private name for a named parameter unless there is a valid
@@ -279,8 +296,8 @@ private name *p* in constructor C:
     named, this then avoids the compile-time error that would otherwise be
     reported for a private named parameter.*
 
-*   The local variable in the initializer list scope of C is *p*. *In the
-    initializer list, the private name is used. Inside the body of the
+*   The name of the local variable in the initializer list scope of C is *p*.
+    *In the initializer list, the private name is used. Inside the body of the
     constructor, uses of *p* refer to the field, not the parameter.*
 
 *   If the parameter is an initializing formal, then it initializes a
@@ -291,6 +308,7 @@ private name *p* in constructor C:
 *For example:*
 
 ```dart
+// Note: Also uses an in-body primary constructor.
 class Id {
   late final int _region = 0;
 
@@ -305,10 +323,11 @@ main() {
 }
 ```
 
-*Note that the proposal only applies to initializing formals and field
-parameters. A named parameter can only have a private name in a context where it
-is _useful_ to do so because it corresponds to a private instance field. For all
-other named parameters it is still a compile-time error to have a private name.*
+*Note that the proposal only applies named parameters and only to ones which are
+initializing formals or field parameters. A named parameter can only have a
+private name in a context where it is _useful_ to do so because it corresponds
+to a private instance field. For all other named parameters it is still a
+compile-time error to have a private name.*
 
 ## Runtime semantics
 
@@ -334,11 +353,13 @@ further ideas for additional warnings, lints, and quick fixes.
 
 ### API documentation generation
 
-Docs generated using [`dart doc`][dartdoc] or other documentation generators
-should document any private named parameters using their public name. The fact
-that the parameter initializes or declares a private field is an implementation
-detail of the class. What a user of the class cares about is the corresponding
-public name for the constructor parameter.
+Authors documenting an API that uses this feature should refer to the
+constructor parameter by its public name since that's what users will pass.
+Likewise, docs generator like [`dart doc`][dartdoc] should document the
+constructor's parameter with its public name. The fact that the parameter
+initializes or declares a private field is an implementation detail of the
+class. What a user of the class cares about is the corresponding public name for
+the constructor parameter.
 
 [dartdoc]: https://dart.dev/tools/dart-doc
 
