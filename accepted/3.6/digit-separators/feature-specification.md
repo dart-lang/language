@@ -2,7 +2,7 @@
 
 Author: Lasse Nielsen, Sam Rawlins
 
-Status: In-progress
+Status: Accepted
 
 Version 1.0
 
