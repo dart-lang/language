@@ -1,6 +1,6 @@
 # Dart language evolution
 
-[![Build Status](https://github.com/dart-lang/language/workflows/CI/badge.svg)](https://github.com/dart-lang/language/actions?query=workflow%3ACI+branch%3Amain)
+[![Dart CI](https://github.com/dart-lang/language/actions/workflows/dart.yml/badge.svg)](https://github.com/dart-lang/language/actions/workflows/dart.yml)
 
 This repository is a place for the [Dart][website] language team to work on
 [language changes and features][language funnel], and to solicit and accept
