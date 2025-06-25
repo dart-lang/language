@@ -27,7 +27,7 @@ following paragraph:
 > even though APIs have not changed for a very long time.
 
 In 2017 the type system was still optional, AOT was a glorified
-_"ahead-off-time-JIT"_, and the team maintained at least 3 different Dart
+_"ahead-of-time-JIT"_, and the team maintained at least 3 different Dart
 front-ends (VM, dart2js and analyzer). Things really started shifting with the
 Dart 2 release: it had replaced optional types with a static type system and
 introduced a _common front-end (CFE)_ infrastructure to be shared by all
@@ -164,7 +164,9 @@ from reflection to _code generation_, effectively abandoning runtime
 metaprogramming in favor of build time metaprogramming. Code generators are
 usually written on top of Dart's [analyzer][pkg-analyzer] package: they inspect
 a (possibly incomplete) program structure and produce additional code which
-needs to be compiled together with the program.
+needs to be compiled together with the program. See
+[`package:json_serializable`][json-serializable] as a commonly used example
+of a code generator.
 
 Following this experience, we have decided to completely disable `dart:mirrors`
 when implementing a native AOT compiler.
@@ -306,13 +308,19 @@ constexpr auto kCharacterAttributes = []() {
 }();
 ```
 
-> [!NOTE]
->
-> **C++26** will most likely include [reflection][cpp-reflection] support which
-> would allow the program to introspect and modify its structure in compile
-> time. Reflection would allow programmer achieve results similar to those
-> described in the next section about **D**. I am omitting it from discussion
-> here because it is not part of the language _just yet_.
+**C++26** will include reflection which would allow the program to introspect
+and modify its structure in compile time. Reflection would allow programmer to
+achieve results similar to those described in the next section about **D**.
+
+Upcoming reflection capabilities are described in the following papers:
+
+* [Reflection for C++26](https://wg21.link/p2996)
+* [Annotations for reflection](https://wg21.link/p3394)
+* [Splicing a base class subobject](https://wg21.link/p3293)
+* [define_static_{string,object,array}](https://wg21.link/p3491)
+* [Expansion statements](https://wg21.link/p1306)
+* [Function parameter reflection in reflection for C++26](https://wg21.link/p3096)
+* [Error handling in reflection](https://wg21.link/p3560)
 
 ### D
 
@@ -1428,3 +1436,4 @@ class A with DataClass<A> {
 [konst-prototype-branch]: https://github.com/mraleph/sdk/tree/static_enough_reflection
 [std-source-location]: https://en.cppreference.com/w/cpp/utility/source_location
 [package-functional-widget]: https://pub.dev/packages/functional_widget
+[json-serializable]: https://pub.dev/packages/json_serializable
