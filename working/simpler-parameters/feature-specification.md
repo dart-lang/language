@@ -168,7 +168,7 @@ class InsuranceCatalogItem({
 Better, but the resulting parameter list is pretty cluttered. When combined
 with this proposal, the result is:
 
-```
+```dart
 class InsuranceCatalogItem({
   final List<String> texts,
   final Color iconColor = Colors.black,
