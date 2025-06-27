@@ -268,8 +268,8 @@ class Point {
   const this(int x, int y);
 }
 
-enum E { 
-  one('a'), 
+enum E {
+  one('a'),
   two('b');
 
   const this(String s);
@@ -534,7 +534,7 @@ constructors as well.
         <enumEntry> (',' <enumEntry>)* (',')?
         (';' (<metadata> <classMemberDeclaration>)*)?
      '}';
-     
+
 <constructorName> ::= // Modified rule.
      (<typeIdentifier> | 'this') ('.' <identifierOrNew>)?
 
@@ -542,7 +542,7 @@ constructors as well.
      <identifier>
    | 'new'
 
-<normalFormalParameterNoMetadata> ::= // Modified 
+<normalFormalParameterNoMetadata> ::= // Modified
      'novar'? <functionFormalParameter
    | 'novar'? <simpleFormalParameter
    | <fieldFormalParameter>
@@ -604,7 +604,7 @@ occur as follows:
 
 Assume that `p` is an optional formal parameter in _D_ which is not an
 initializing formal, and not a super parameter, and does not have the
-modifier `novar`. 
+modifier `novar`.
 
 Assume that `p` does not have a declared type, but it does have a default
 value whose static type in the empty context is a type (not a type schema)
@@ -687,6 +687,12 @@ Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
 ### Discussion
 
 ### Changelog
+
+1.6 - June 27, 2025
+
+* Explain in-header constructors as "move the parameter list", which also
+  introduces support for in-header constructors with all features (initializer
+  list, superinitializer, body), which will remain in the body.
 
 1.5 - November 25, 2024
 
