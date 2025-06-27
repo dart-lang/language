@@ -290,7 +290,7 @@ class Point {
 class Point(var int x, {required var int y});
 
 // Using a primary body constructor.
-class Point
+class Point {
   this(var int x, {required var int y});
 }
 ```
@@ -429,7 +429,7 @@ class E extends A {
   int z;
   final List<String> w;
 
-  primary E({
+  this({
     required var LongTypeExpression x1,
     required var LongTypeExpression x2,
     required var LongTypeExpression x3,
@@ -470,12 +470,7 @@ constructors as well.
 
 <primaryHeaderConstructorNoConst> ::= // New rule.
      <typeIdentifier> <typeParameters>?
-     ('.' <identifierOrNew>)? <formalParameterList>
-     <initializers>?
-
-<classNamePartNoConst> ::= // New rule.
-     <primaryHeaderConstructorNoConst>
-   | <typeWithParameters>;
+     ('.' <identifierOrNew>)? <declaringParameterList>
 
 <classNamePart> ::= // New rule.
      'const'? <primaryHeaderConstructorNoConst>
@@ -498,10 +493,17 @@ constructors as well.
    | ';';
 
 <enumType> ::= // Modified rule.
-     'enum' <classNamePartNoConst> <mixins>? <interfaces>? '{'
+     'enum' <classNamePart> <mixins>? <interfaces>? '{'
         <enumEntry> (',' <enumEntry>)* (',')?
         (';' (<metadata> <classMemberDeclaration>)*)?
      '}';
+
+<constructorSignature> ::= // Modified rule.
+     <constructorName> <declaringParameterList>
+   | 'this' ('.' <identifierOrNew>);
+
+<constantConstructorSignature> ::= // Modified rule.
+     'const' <constructorName> <declaringParameterList>;
 
 <constructorName> ::= // Modified rule.
      (<typeIdentifier> | 'this') ('.' <identifierOrNew>)?
@@ -510,11 +512,55 @@ constructors as well.
      <identifier>
    | 'new'
 
-<normalFormalParameterNoMetadata> ::= // Modified
-     'novar'? <functionFormalParameter
-   | 'novar'? <simpleFormalParameter
+<simpleFormalParameter> ::= // Modified rule.
+     'covariant'? <type>? <identifier>;
+
+<fieldFormalParameter> ::= // Modified rule.
+     <type>? 'this' '.' <identifier> (<formalParameterPart> '?'?)?;
+
+<declaringParameterList> ::= // New rule.
+     '(' ')'
+   | '(' <declaringFormalParameters> ','? ')'
+   | '(' <declaringFormalParameters> ',' <optionalOrNamedDeclaringFormalParameters> ')'
+   | '(' <optionalOrNamedDeclaringFormalParameters> ')';
+
+<declaringFormalParameters> ::= // New rule.
+     <declaringFormalParameter> (',' <declaringFormalParameter>)*;
+
+<declaringFormalParameter> ::= // New rule.
+     <metadata> <declaringFormalParameterNoMetadata>;
+
+<declaringFormalParameterNoMetadata> ::= // New rule.
+     <declaringFunctionFormalParameter>
    | <fieldFormalParameter>
-   | <superFormalParameter>
+   | <declaringSimpleFormalParameter>
+   | <superFormalParameter>;
+
+<declaringFunctionFormalParameter> ::= // New rule.
+     'covariant'? ('var' | 'final')? <type>? 
+     <identifier> <formalParameterPart> '?'?;
+
+<declaringSimpleFormalParameter> ::= // New rule.
+     'covariant'? ('var' | 'final')? <type>? <identifier>;
+
+<optionalOrNamedDeclaringFormalParameters> ::= // New rule.
+     <optionalPositionalDeclaringFormalParameters>
+   | <namedDeclaringFormalParameters>;
+
+<optionalPositionalDeclaringFormalParameters> ::= // New rule.
+     '[' <defaultDeclaringFormalParameter>
+     (',' <defaultDeclaringFormalParameter>)* ','? ']';
+
+<defaultDeclaringFormalParameter> ::= // New rule.
+     <declaringFormalParameter> ('=' <expression>)?;
+
+<namedDeclaringFormalParameters> ::= // New rule.
+     '{' <defaultDeclaringNamedParameter>
+     (',' <defaultDeclaringNamedParameter>)* ','? '}';
+
+<defaultDeclaringNamedParameter> ::= // New rule.
+     <metadata> 'required'? <declaringFormalParameterNoMetadata> 
+     ('=' <expression>)?;
 ```
 
 A class declaration whose class body is `;` is treated as a class declaration
