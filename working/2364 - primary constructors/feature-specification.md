@@ -4,15 +4,18 @@ Author: Erik Ernst
 
 Status: Draft
 
-Version: 1.5
+Version: 1.6
 
 Experiment flag: primary-constructors
 
 This document specifies _primary constructors_. This is a feature that
 allows one constructor and a set of instance variables to be specified in a
-concise form in the header of the declaration, or in the body. In order to
-use this feature, the given constructor must satisfy certain constraints.
-For example, a primary constructor in the header cannot have a body.
+concise form in the header of the declaration, or in the body. In the case
+where the constructor is specified in the header, some elements are still
+specified in the class body, if present: The in-header constructor can have
+an initializer list in the body, including assertions, instance variable
+initializers, and/or a superinitializer. The in-header constructor can also
+have a body in the class body.
 
 One variant of this feature has been proposed in the [struct proposal][],
 several other proposals have appeared elsewhere, and prior art exists in
@@ -54,17 +57,18 @@ more concisely:
 
 ```dart
 // A declaration with the same meaning, using a primary header constructor.
-class Point(int x, int y);
+class Point(var int x, var int y);
 ```
 
-A primary body constructor is slightly less concise, but it allows for
-an initializer list and a superinitializer and a body. The previous
-example would look as follows using a primary body constructor:
+A primary body constructor is slightly less concise, but it allows the
+class header to remain simpler and more readable when there are many
+parameters. The previous example would look as follows using a primary body
+constructor:
 
 ```dart
 // A declaration with the same meaning, using a primary body constructor.
 class Point {
-  this(int x, int y);
+  this(var int x, var int y);
 }
 ```
 
@@ -84,11 +88,11 @@ class Point {
 }
 
 // Using a primary header constructor.
-class Point(int x, int y);
+class Point(var int x, var int y);
 
 // Using a primary body constructor.
 class Point {
-  this(int x, int y);
+  this(var int x, var int y);
 }
 ```
 
@@ -102,42 +106,35 @@ Note that an empty class body, `{}`, can be replaced by `;`.
 The basic idea with the header form is that a parameter list that occurs
 just after the class name specifies both a constructor declaration and a
 declaration of one instance variable for each formal parameter in said
-parameter list.
+parameter list that has the _declaring_ modifier `var` or `final`.
 
-A primary header constructor cannot have a body, and it cannot have an normal
-initializer list (and hence, it cannot have a superinitializer, e.g.,
-`super.name(...)`). However, it can have assertions, it can have
-initializing formals (`this.p`) and it can have super parameters
-(`super.p`).
+With this feature, the declaration of formal parameters as `final` will be
+a compile-time error. This ensures that `final int x` is unambiguously a
+declaring parameter. Developers who wish to maintain a style whereby formal
+parameters are never modified will have a lint to flag all such mutations.
 
-The motivation for these restrictions is that a primary constructor is
-intended to be small and easy to read at a glance. If more machinery is
-needed then it is always possible to express the same thing as a body
-constructor.
+Similarly, with this feature a formal parameter can not be declared with
+the syntax `var name`, it must have a type (`T name`) or the type must be
+omitted (`name`).
 
-The parameter list of a primary header constructor uses the same syntax as
-constructors and other functions (specified in the grammar by the
-non-terminal `<formalParameterList>`).
+A primary header constructor can have a body and/or an initializer list.
+These elements are placed in the class body in a declaration that provides
+"the rest" of the constructor declaration which is given in the header.
+
+The parameter list of a primary constructor (in the header or in the body)
+uses a slightly different grammar than other functions. The difference is
+that it can include _declaring_ formal parameters. They can be recognized
+unambiguously because they have the modifier `var` or `final`.
 
 A primary body constructor can have a body and an initializer list as well
 as initializing formals and super parameters, just like other constructors
-in the body. It only differs from those other constructors in that a
-parameter which is not an initializing formal and not a super parameter
-serves to declare the formal parameter and the corresponding instance
-variable.
-
-The parameter list of a primary body constructor uses the same syntax as
-constructors and other functions, except that it also supports a new
-modifier, `novar`, indicating that the given parameter does not introduce
-an instance variable (that is, this is just a regular parameter).
+in the body.
 
 There is no way to indicate that the instance variable declarations should
 have the modifiers `late` or `external` (because formal parameters cannot
 have those modifiers). This omission is not seen as a problem in this
-proposal: It is always possible to use a normal constructor declaration and
-normal instance variable declarations, and it is probably a useful property
-that the primary constructor uses a formal parameter syntax which is
-completely like that of any other formal parameter list.
+proposal: They can be declared using the same syntax as today, and
+initialization, if any, can be expressed a constructor body.
 
 An `external` instance variable amounts to an `external` getter and an
 `external` setter. Such "variables" cannot be initialized by an
@@ -231,54 +228,15 @@ the rest of the language to say that this particular primary constructor is
 a "constant constructor". Hence `class const Name` rather than `const class
 Name`.
 
-The modifier `final` on a parameter in a primary constructor has the usual
-effect that the parameter itself cannot be modified. However, this modifier
-is also used to specify that the instance variable declaration which is
-induced by this primary constructor parameter is `final`.
+The modifier `final` on a parameter in a primary constructor specifies that
+the instance variable declaration which is induced by this primary
+constructor parameter is `final`.
 
-In the case where the constructor is constant, and in the case where the
-declaration is an `extension type` or an `enum` declaration, the modifier
-`final` on every instance variable is required. Hence, it can be omitted
-from the formal parameter in the primary constructor, because it is implied
-that this modifier must be present in the induced variable declarations in
-any case:
-
-```dart
-// Current syntax.
-class Point {
-  final int x;
-  final int y;
-  const Point(this.x, this.y);
-}
-
-enum E {
-  one('a'),
-  two('b');
-
-  final String s;
-  const E(this.s);
-}
-
-// Using a primary header constructor.
-class const Point(int x, int y);
-enum E(String s) { one('a'), two('b') }
-
-// Using a primary body constructor.
-class Point {
-  const this(int x, int y);
-}
-
-enum E { 
-  one('a'), 
-  two('b');
-
-  const this(String s);
-}
-```
-
-Note that an extension type declaration is specified to use a primary
-header constructor (in that case there is no other choice, it is in the
-grammar rules):
+In the case where the declaration is an `extension type`, the modifier
+`final` on the representation variable can be specified or omitted. Note
+that an extension type declaration is specified to use a primary header
+constructor (in that case there is no other choice, it is in the grammar
+rules):
 
 ```dart
 // Using a primary header constructor.
@@ -297,11 +255,11 @@ class Point {
 }
 
 // Using a primary header constructor.
-class Point(int x, [int y = 0]);
+class Point(var int x, [var int y = 0]);
 
 // Using a primary body constructor.
 class Point {
-  this(int x, [int y = 0]);
+  this(var int x, [var int y = 0]);
 }
 ```
 
@@ -310,11 +268,11 @@ in which case the type is inferred from the default value:
 
 ```dart
 // Infer type from default value, in header.
-class Point(int x, [y = 0]);
+class Point(var int x, [var y = 0]);
 
 // Infer type from default value, in body.
 class Point {
-  this(int x, [y = 0]);
+  this(var int x, [var y = 0]);
 }
 ```
 
@@ -329,11 +287,11 @@ class Point {
 }
 
 // Using a primary header constructor.
-class Point(int x, {required int y});
+class Point(var int x, {required var int y});
 
 // Using a primary body constructor.
-class Point
-  this(int x, {required int y});
+class Point {
+  this(var int x, {required var int y});
 }
 ```
 
@@ -349,12 +307,17 @@ class D<TypeVariable extends Bound> extends A with M implements B, C {
 }
 
 // Using a primary header constructor.
-class const D<TypeVariable extends Bound>.named(int x, [int y = 0])
-    extends A with M implements B, C;
+class const D<TypeVariable extends Bound>.named(
+  var int x, [
+  var int y = 0,
+]) extends A with M implements B, C;
 
 // Using a primary body constructor.
 class D<TypeVariable extends Bound> extends A with M implements B, C {
-  const this.named(int x, [int y = 0]);
+  const this.named(
+    var int x, [
+    var int y = 0,
+  ]);
 }
 ```
 
@@ -371,17 +334,21 @@ class Point {
 }
 
 // Using a primary header constructor.
-class Point(int x, int y): assert(0 <= x && x <= y * y);
+class Point(var int x, var int y) {
+  this : assert(0 <= x && x <= y * y);
+}
 
 // Using a primary body constructor.
 class Point {
-  this(int x, int y): assert(0 <= x && x <= y * y);
+  this(var int x, var int y): assert(0 <= x && x <= y * y);
 }
 ```
 
 Finally, when using a primary body constructor it is possible to use an
 initializer list in order to invoke a superconstructor and/or initialize
-some explicitly declared instance variables with a computed value.
+some explicitly declared instance variables with a computed value. The
+primary header constructor can have the same elements, but they are
+declared in the class body.
 
 ```dart
 // Current syntax.
@@ -399,21 +366,21 @@ class B extends A {
 }
 
 // Using primary constructors.
-class const A.someName(int x);
+class const A.someName(final int x);
 
 class B extends A {
   final String s1;
-  const this(novar int x, novar int y, {required String s2})
+  const this(int x, int y, {required final String s2})
       : s1 = y.toString(), assert(s2.isNotEmpty), super.someName(x + 1);
 }
 ```
 
-A formal parameter of a primary body constructor which has the modifier
-`novar` does not implicitly induce an instance variable. This makes it
-possible to use a primary constructor (thus avoiding the duplication of
-instance variable names and types) even in the case where some parameters
-should not introduce any instance variables (so they are just "normal"
-parameters).
+A formal parameter of a primary constructor which does not have the
+modifier `var` or `final` does not implicitly induce an instance
+variable. This makes it possible to use a primary constructor (thus
+avoiding the duplication of instance variable names and types) even in the
+case where some parameters should not introduce any instance variables (so
+they are just "normal" parameters).
 
 Finally, here is an example that illustrates how much verbosity this
 feature tends to eliminate:
@@ -433,7 +400,7 @@ class E extends A {
   LongTypeExpression x6;
   LongTypeExpression x7;
   LongTypeExpression x8;
-  external int y;
+  late int y;
   int z;
   final List<String> w;
 
@@ -450,41 +417,42 @@ class E extends A {
   })  : z = 1,
         w = const <Never>[],
         super('Something') {
-    // A normal constructor body.
+    // ... a normal constructor body ...
   }
 }
 
 // Using a primary body constructor.
-class A(novar String _);
+class A(String _);
 
 class E extends A {
-  external int y;
+  late int y;
   int z;
   final List<String> w;
 
-  primary E({
-    required LongTypeExpression x1,
-    required LongTypeExpression x2,
-    required LongTypeExpression x3,
-    required LongTypeExpression x4,
-    required LongTypeExpression x5,
-    required LongTypeExpression x6,
-    required LongTypeExpression x7,
-    required LongTypeExpression x8,
+  this({
+    required var LongTypeExpression x1,
+    required var LongTypeExpression x2,
+    required var LongTypeExpression x3,
+    required var LongTypeExpression x4,
+    required var LongTypeExpression x5,
+    required var LongTypeExpression x6,
+    required var LongTypeExpression x7,
+    required var LongTypeExpression x8,
     required this.y,
   }) : z = 1,
        w = const <Never>[],
        super('Something') {
-    // A normal constructor body.
+    // ... a normal constructor body ...
   }
 }
 ```
 
 Moreover, we may get rid of all those occurrences of `required` in the
 situation where it is a compile-time error to not have them, but that is a
-[separate proposal][inferred-required].
+separate proposal, [here][inferred-required] or [here][simpler-parameters]
 
 [inferred-required]: https://github.com/dart-lang/language/blob/main/working/0015-infer-required/feature-specification.md
+[simpler-parameters]: https://github.com/dart-lang/language/blob/main/working/simpler-parameters/feature-specification.md
 
 ## Specification
 
@@ -502,12 +470,7 @@ constructors as well.
 
 <primaryHeaderConstructorNoConst> ::= // New rule.
      <typeIdentifier> <typeParameters>?
-     ('.' <identifierOrNew>)? <formalParameterList>
-     <initializers>?
-
-<classNamePartNoConst> ::= // New rule.
-     <primaryHeaderConstructorNoConst>
-   | <typeWithParameters>;
+     ('.' <identifierOrNew>)? <declaringParameterList>
 
 <classNamePart> ::= // New rule.
      'const'? <primaryHeaderConstructorNoConst>
@@ -530,11 +493,18 @@ constructors as well.
    | ';';
 
 <enumType> ::= // Modified rule.
-     'enum' <classNamePartNoConst> <mixins>? <interfaces>? '{'
+     'enum' <classNamePart> <mixins>? <interfaces>? '{'
         <enumEntry> (',' <enumEntry>)* (',')?
         (';' (<metadata> <classMemberDeclaration>)*)?
      '}';
-     
+
+<constructorSignature> ::= // Modified rule.
+     <constructorName> <declaringParameterList>
+   | 'this' ('.' <identifierOrNew>);
+
+<constantConstructorSignature> ::= // Modified rule.
+     'const' <constructorSignature>;
+
 <constructorName> ::= // Modified rule.
      (<typeIdentifier> | 'this') ('.' <identifierOrNew>)?
 
@@ -542,15 +512,92 @@ constructors as well.
      <identifier>
    | 'new'
 
-<normalFormalParameterNoMetadata> ::= // Modified 
-     'novar'? <functionFormalParameter
-   | 'novar'? <simpleFormalParameter
+<simpleFormalParameter> ::= // Modified rule.
+     'covariant'? <type>? <identifier>;
+
+<fieldFormalParameter> ::= // Modified rule.
+     <type>? 'this' '.' <identifier> (<formalParameterPart> '?'?)?;
+
+<declaringParameterList> ::= // New rule.
+     '(' ')'
+   | '(' <declaringFormalParameters> ','? ')'
+   | '(' <declaringFormalParameters> ',' <optionalOrNamedDeclaringFormalParameters> ')'
+   | '(' <optionalOrNamedDeclaringFormalParameters> ')';
+
+<declaringFormalParameters> ::= // New rule.
+     <declaringFormalParameter> (',' <declaringFormalParameter>)*;
+
+<declaringFormalParameter> ::= // New rule.
+     <metadata> <declaringFormalParameterNoMetadata>;
+
+<declaringFormalParameterNoMetadata> ::= // New rule.
+     <declaringFunctionFormalParameter>
    | <fieldFormalParameter>
-   | <superFormalParameter>
+   | <declaringSimpleFormalParameter>
+   | <superFormalParameter>;
+
+<declaringFunctionFormalParameter> ::= // New rule.
+     'covariant'? ('var' | 'final')? <type>? 
+     <identifier> <formalParameterPart> '?'?;
+
+<declaringSimpleFormalParameter> ::= // New rule.
+     'covariant'? ('var' | 'final')? <type>? <identifier>;
+
+<optionalOrNamedDeclaringFormalParameters> ::= // New rule.
+     <optionalPositionalDeclaringFormalParameters>
+   | <namedDeclaringFormalParameters>;
+
+<optionalPositionalDeclaringFormalParameters> ::= // New rule.
+     '[' <defaultDeclaringFormalParameter>
+     (',' <defaultDeclaringFormalParameter>)* ','? ']';
+
+<defaultDeclaringFormalParameter> ::= // New rule.
+     <declaringFormalParameter> ('=' <expression>)?;
+
+<namedDeclaringFormalParameters> ::= // New rule.
+     '{' <defaultDeclaringNamedParameter>
+     (',' <defaultDeclaringNamedParameter>)* ','? '}';
+
+<defaultDeclaringNamedParameter> ::= // New rule.
+     <metadata> 'required'? <declaringFormalParameterNoMetadata> 
+     ('=' <expression>)?;
 ```
 
 A class declaration whose class body is `;` is treated as a class declaration
 whose class body is `{}`.
+
+Let _D_ be a class, extension type, or enum declaration.
+
+A compile-time error occurs if _D_ includes a `<classNamePart>` that
+contains a `<primaryHeaderConstructorNoConst>`, and the body of _D_
+contains a `<constructorSignature>` beginning with `this` that contains a
+`<declaringParameterList>`.
+
+*That is, it is an error to have a declaring parameter list of a primary
+constructor both in the header and in the body.*
+
+A compile-time error occurs if _D_ includes a `<classNamePart>` that
+does not contain a `<primaryHeaderConstructorNoConst>`, and the body of _D_
+contains a `<constructorSignature>` beginning with `this` that does not
+contain a `<declaringParameterList>`.
+
+*It is an error to have a primary constructor in the class body, but
+no declaring parameter list, neither in the header nor in the body. Note
+that constant constructors are included because a
+`<constantConstructorSignature>` contains a `<constructorSignature>`.*
+
+A compile-time error occurs if _D_ includes a `<classNamePart>` beginning
+with `const`, and the body of _D_ contains a `<constructorSignature>`
+beginning with `this` which is not part of a
+`<constantConstructorSignature>`.
+
+*That is, it is an error for the header to contain `const` if there is a
+primary constructor in the body as well, and it does not contain
+`const`. In short, if the header says `const` then a primary body
+constructor must also say `const`. On the other hand, it is allowed to omit
+`const` in the header and have `const` in a primary body
+constructor. Finally, it is allowed to omit `const` in both locations. In
+this case the constructor is not constant.*
 
 *The meaning of a primary constructor is defined in terms of rewriting it to a
 body constructor and zero or more instance variable declarations. This implies
@@ -604,7 +651,7 @@ occur as follows:
 
 Assume that `p` is an optional formal parameter in _D_ which is not an
 initializing formal, and not a super parameter, and does not have the
-modifier `novar`. 
+modifier `novar`.
 
 Assume that `p` does not have a declared type, but it does have a default
 value whose static type in the empty context is a type (not a type schema)
@@ -687,6 +734,12 @@ Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
 ### Discussion
 
 ### Changelog
+
+1.6 - June 27, 2025
+
+* Explain in-header constructors as "move the parameter list", which also
+  introduces support for in-header constructors with all features (initializer
+  list, superinitializer, body), which will remain in the body.
 
 1.5 - November 25, 2024
 
