@@ -503,7 +503,7 @@ constructors as well.
    | 'this' ('.' <identifierOrNew>);
 
 <constantConstructorSignature> ::= // Modified rule.
-     'const' <constructorName> <declaringParameterList>;
+     'const' <constructorSignature>;
 
 <constructorName> ::= // Modified rule.
      (<typeIdentifier> | 'this') ('.' <identifierOrNew>)?
@@ -565,6 +565,39 @@ constructors as well.
 
 A class declaration whose class body is `;` is treated as a class declaration
 whose class body is `{}`.
+
+Let _D_ be a class, extension type, or enum declaration.
+
+A compile-time error occurs if _D_ includes a `<classNamePart>` that
+contains a `<primaryHeaderConstructorNoConst>`, and the body of _D_
+contains a `<constructorSignature>` beginning with `this` that contains a
+`<declaringParameterList>`.
+
+*That is, it is an error to have a declaring parameter list of a primary
+constructor both in the header and in the body.*
+
+A compile-time error occurs if _D_ includes a `<classNamePart>` that
+does not contain a `<primaryHeaderConstructorNoConst>`, and the body of _D_
+contains a `<constructorSignature>` beginning with `this` that does not
+contain a `<declaringParameterList>`.
+
+*It is an error to have a primary constructor in the class body, but
+no declaring parameter list, neither in the header nor in the body. Note
+that constant constructors are included because a
+`<constantConstructorSignature>` contains a `<constructorSignature>`.*
+
+A compile-time error occurs if _D_ includes a `<classNamePart>` beginning
+with `const`, and the body of _D_ contains a `<constructorSignature>`
+beginning with `this` which is not part of a
+`<constantConstructorSignature>`.
+
+*That is, it is an error for the header to contain `const` if there is a
+primary constructor in the body as well, and it does not contain
+`const`. In short, if the header says `const` then a primary body
+constructor must also say `const`. On the other hand, it is allowed to omit
+`const` in the header and have `const` in a primary body
+constructor. Finally, it is allowed to omit `const` in both locations. In
+this case the constructor is not constant.*
 
 *The meaning of a primary constructor is defined in terms of rewriting it to a
 body constructor and zero or more instance variable declarations. This implies
