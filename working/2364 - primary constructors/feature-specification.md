@@ -204,10 +204,10 @@ class Point {
   const Point._(this.x, this.y);
 }
 
-// Using a primary constructor.
+// Using a primary header constructor.
 class const Point._(final int x, final int y);
 
-// Using a primary constructor.
+// Using a primary body constructor.
 class Point {
   const this._(final int x, final int y);
 }
