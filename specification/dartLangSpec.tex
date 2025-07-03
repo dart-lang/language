@@ -13161,7 +13161,7 @@ When execution of the body of $f$ completes (\ref{statementCompletion}),
   returns the \FALSE{} object,
   as must all further calls.
   In this situation, the outcome of invoking \code{current} is undefined
-  (\commentary{e.g., it could throw or return a default value}).
+  \commentary{(e.g., it could throw or return a default value)}.
 \item
   If it throws an exception object $e$ and stack trace $t$ then
   the current invocation of \code{moveNext()} throws $e$ and $t$ as well.
@@ -15777,7 +15777,7 @@ then $T_j$ is \code{Object?}.
 The corresponding actual argument in the body is replaced by
 \code{$p_j$\,\,\AS\,\,$T'_j$}
 where $T'_j$ is the type which would be $T_j$ if $p_j$ had not been covariant
-(\commentary{that is, it is computed as specified below}).
+\commentary{(that is, it is computed as specified below)}.
 
 \commentary{%
   This is concerned with the dynamic type of the function object obtained by
@@ -15791,7 +15791,7 @@ where $T'_j$ is the type which would be $T_j$ if $p_j$ had not been covariant
 
 \LMHash{}%
 Otherwise
-(\commentary{when $p_j$ is not covariant}),
+\commentary{(when $p_j$ is not covariant)},
 if $T$ is a non-generic class then for $j \in 1 .. n+k$,
 $T_j$ is a type annotation that denotes the same type
 (\ref{typeType})
@@ -15943,7 +15943,7 @@ then $T_j$ is \code{Object?}.
 The corresponding actual argument in the body is replaced by
 \code{$p_j$\,\,\AS\,\,$T'_j$}
 where $T'_j$ is the type which would be $T_j$ if $p_j$ had not been covariant
-(\commentary{that is, it is computed as specified below}).
+\commentary{(that is, it is computed as specified below)}.
 
 \commentary{%
   This is concerned with the dynamic type of the function object obtained by
@@ -15957,7 +15957,7 @@ where $T'_j$ is the type which would be $T_j$ if $p_j$ had not been covariant
 
 \LMHash{}%
 Otherwise
-(\commentary{when $p_j$ is not covariant}),
+\commentary{(when $p_j$ is not covariant)},
 if $S$ is a non-generic class then for $j \in 1 .. n+k$,
 $T_j$ is a type annotation that denotes the same type
 (\ref{typeType})
@@ -16272,9 +16272,9 @@ and after the transformation that eliminates cascades
 \LMHash{}%
 We use the phrase null-shorting as an adjective in order to
 indicate the connections between null shorting and other concepts
-(\commentary{%
-e.g., ``the null-shorting translation is used during null shorting''%
-}).
+\commentary{%
+  (e.g., ``the null-shorting translation is used during null shorting'')%
+}.
 
 \commentary{%
 Let $e$ be an expression of the form
@@ -16316,7 +16316,7 @@ as opposed to meta-level syntax.
 \metaCode{fn[x:\,\,Exp]:\,\,Exp\,\,=>\,\,E}
 defines a meta-level function of type
 \metaCode{Exp\,\,$\rightarrow$\,\,Exp}
-(\commentary{that is, a function from expressions to expressions}),
+\commentary{(that is, a function from expressions to expressions)},
 and
 \metaCode{fn[k:\,\,Exp\,\,$\rightarrow$\,\,Exp]:\,\,Exp\,\,=>\,\,E}
 defines a meta-level function of type
@@ -19522,7 +19522,7 @@ where $S_2$ is not a block statement is treated as
 
 \LMHash{}%
 Consider an \IF{} statement of any of the forms mentioned above
-(\commentary{the statement then starts with \code{\IF\,\,($e$)}}).
+\commentary{(the statement then starts with \code{\IF\,\,($e$)})}.
 It is a \Error{compile-time error} if the type of the expression $e$
 is not assignable to \code{bool}.
 
@@ -22974,7 +22974,7 @@ and type casts
 
 \LMHash{}%
 Intersection types
-(\commentary{types of the form \code{$X$\,\&\,$S$}}),
+\commentary{(types of the form \code{$X$\,\&\,$S$})},
 may arise during static analysis due to type promotion
 (\ref{typePromotion}).
 They never occur during execution,
@@ -24654,10 +24654,10 @@ The function \UpperBoundTypeName{} is defined as follows.
   \item Each $B_{1i}$ and $B_{2i}$ are types with the same canonical syntax.
   \item For each required entry named $n$ in $\metavar{Named}_1$,
     $\metavar{Named}_2$ contains an entry named $n$
-    (\commentary{which may or may not be required}).
+    \commentary{(which may or may not be required)}.
   \item For each required entry named $n$ in $\metavar{Named}_2$,
     $\metavar{Named}_1$ contains an entry named $n$
-    (\commentary{which may or may not be required}).
+    \commentary{(which may or may not be required)}.
   \end{itemize}
 
   Then \DefEqualsNewline{\UpperBoundType{$U_1$}{$U_2$}}{%
@@ -26725,9 +26725,9 @@ namely the declared type
 (\ref{localVariableDeclaration}).
 This is the stack of types of interest
 for the declaring occurrence of the name of $v$
-(\commentary{%
-i.e., the very first time the variable is mentioned, \ref{variables}%
-}).
+\commentary{%
+  (i.e., the very first time the variable is mentioned, \ref{variables})%
+}.
 
 \LMHash{}%
 If a local variable $v$ has an initializing expression
@@ -27007,9 +27007,9 @@ the same canonical syntax
 The algorithm must be performed such that the first case that matches
 is always the case which is performed.
 The algorithm produces results which are both positive and negative
-(\commentary{%
-  that is, in some situations the subtype relation is determined to be false%
-}),
+\commentary{%
+  (that is, in some situations the subtype relation is determined to be false)%
+},
 which is important for performance because
 it is then unnecessary to consider any subsequent cases.
 
@@ -27056,9 +27056,9 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   \item
     if $T_0$ is \code{Null}, \DYNAMIC, \VOID, or \code{$S$?} for any $S$,
     then the subtyping does not hold
-    (\commentary{%
-      i.e., the result of the subtyping query is known to be false%
-    }).
+    \commentary{%
+      (i.e., the result of the subtyping query is known to be false)%
+    }.
   \item
     Otherwise \SubtypeNE{T_0}{T_1} is true.
   \end{itemize}
