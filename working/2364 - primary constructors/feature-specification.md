@@ -63,7 +63,8 @@ class Point(var int x, var int y);
 A class that has a primary header constructor can not have any other
 generative non-redirecting constructors. This requirement must be upheld
 because it must be guaranteed that the primary header constructor is
-actually executed on every newly created instance of this class.
+actually executed on every newly created instance of this class. This rule
+is further motivated below.
 
 A primary body constructor is slightly less concise, but it allows the
 class header to remain simpler and more readable when there are many
@@ -113,10 +114,13 @@ just after the class name specifies both a constructor declaration and a
 declaration of one instance variable for each formal parameter in said
 parameter list that has the _declaring_ modifier `var` or `final`.
 
-With this feature, the declaration of formal parameters as `final` will be
-a compile-time error. This ensures that `final int x` is unambiguously a
-declaring parameter. Developers who wish to maintain a style whereby formal
-parameters are never modified will have a lint to flag all such mutations.
+With this feature, all other declarations of formal parameters as `final`
+will be a compile-time error. This ensures that `final int x` is
+unambiguously a declaring parameter. Developers who wish to maintain a
+style whereby formal parameters are never modified will have a 
+[lint][parameter_assignments] to flag all such mutations.
+
+[parameter_assignments]: https://dart.dev/tools/linter-rules/parameter_assignmentshttps://dart.dev/tools/linter-rules/parameter_assignments
 
 Similarly, with this feature a regular (non-declaring) formal parameter can
 not be declared with the syntax `var name`, it must have a type (`T name`)
@@ -128,7 +132,7 @@ These elements are placed in the class body in a declaration that provides
 
 The parameter list of a primary constructor (in the header or in the body)
 uses a slightly different grammar than other functions. The difference is
-that it can include _declaring_ formal parameters. They can be recognized
+that it can include declaring formal parameters. They can be recognized
 unambiguously because they have the modifier `var` or `final`.
 
 A primary body constructor can have a body and an initializer list as well
@@ -140,12 +144,6 @@ have the modifiers `late` or `external` (because formal parameters cannot
 have those modifiers). This omission is not seen as a problem in this
 proposal: They can be declared using the same syntax as today, and
 initialization, if any, can be done in a constructor body.
-
-An `external` instance variable amounts to an `external` getter and an
-`external` setter. Such a "variable" cannot be initialized by an
-initializing formal anyway, but it may need to be "initialized" in the
-sense that the intended program behavior requires that external setter to
-be invoked, and this can be done in the constructor body.
 
 ```dart
 // Current syntax.
@@ -377,7 +375,9 @@ class const A.someName(final int x);
 class B extends A {
   final String s1;
   const this(int x, int y, {required final String s2})
-      : s1 = y.toString(), assert(s2.isNotEmpty), super.someName(x + 1);
+      : s1 = y.toString(), 
+        assert(s2.isNotEmpty), 
+        super.someName(x + 1);
 }
 ```
 
@@ -415,17 +415,18 @@ that the value of a variable like `delta` is only used at a point in time
 where it exists.
 
 Similarly, if an identifier expression in an initializing expression of a
-non-late instance variable declaration resolves to a final instance
-variable (this is currently an error, there is no access to `this`), and
-there is a primary header constructor parameter that corresponds to this
-instance variable (that is, a declaring parameter or an initializing formal
-with the same name), it will evaluate to the value of the parameter.
-For example, `x` is used in the initializer for `y` in the example above,
-which is possible because of this mechanism.
+non-late instance variable declaration resolves to an instance variable
+(this is currently an error, there is no access to `this`), and there is a
+primary header constructor parameter that corresponds to this instance
+variable (that is, a declaring parameter or an initializing formal with the
+same name), it will evaluate to the value of the parameter.  For example,
+`x` is used in the initializer for `y` in the example above, which is
+possible because of this mechanism.
 
 This can only work if the primary header constructor is guaranteed to be
-executed. Hence the rule that there cannot be any other generative
-constructors in a class that has a primary header constructor.
+executed. Hence the rule, mentioned above, that there cannot be any other
+non-redirecting generative constructors in a class that has a primary
+header constructor.
 
 Finally, here is an example that illustrates how much verbosity this
 feature tends to eliminate:
@@ -459,15 +460,40 @@ class E extends A {
     required this.x7,
     required this.x8,
     required this.y,
-  })  : z = 1,
+  })  : z = y + 1,
         w = const <Never>[],
         super('Something') {
     // ... a normal constructor body ...
   }
 }
 
-// Using a primary body constructor.
+// Using a primary header constructor.
 class A(String _);
+
+class E({
+  required var LongTypeExpression x1,
+  required var LongTypeExpression x2,
+  required var LongTypeExpression x3,
+  required var LongTypeExpression x4,
+  required var LongTypeExpression x5,
+  required var LongTypeExpression x6,
+  required var LongTypeExpression x7,
+  required var LongTypeExpression x8,
+  required this.y,
+}) extends A {
+  late int y;
+  int z = y + 1;
+  final List<String> w = const <Never>[];
+
+  this : super('Something') {
+    // ... a normal constructor body ...
+  }
+}
+
+// Using a primary body constructor.
+class A {
+  this(String _);
+}
 
 class E extends A {
   late int y;
@@ -484,7 +510,7 @@ class E extends A {
     required var LongTypeExpression x7,
     required var LongTypeExpression x8,
     required this.y,
-  }) : z = 1,
+  }) : z = y + 1,
        w = const <Never>[],
        super('Something') {
     // ... a normal constructor body ...
@@ -494,7 +520,7 @@ class E extends A {
 
 Moreover, we may get rid of all those occurrences of `required` in the
 situation where it is a compile-time error to not have them, but that is a
-separate proposal, [here][inferred-required] or [here][simpler-parameters]
+separate proposal, [here][inferred-required] or [here][simpler-parameters].
 
 [inferred-required]: https://github.com/dart-lang/language/blob/main/working/0015-infer-required/feature-specification.md
 [simpler-parameters]: https://github.com/dart-lang/language/blob/main/working/simpler-parameters/feature-specification.md
@@ -654,13 +680,13 @@ Object {}`, and all three of them have `Object` as their direct superclass.*
 
 ### Static processing
 
-Consider a class, enum or extension type declaration _D_ with a primary
+Consider a class, enum, or extension type declaration _D_ with a primary
 header constructor *(note that it cannot be a `<mixinApplicationClass>`,
 because that kind of declaration does not support primary constructors,
-that is a syntax error)*. This declaration is treated as a class, enum, or
-extension type declaration without a primary header constructor which is
-obtained as described in the following. This determines the dynamic
-semantics of a primary constructor.
+that is a syntax error)*. This declaration is treated as a class, enum,
+respectively extension type declaration without a primary header
+constructor which is obtained as described in the following. This
+determines the dynamic semantics of a primary constructor.
 
 A compile-time error occurs if the body of _D_ contains a non-redirecting
 generative constructor. *This ensures that every constructor invocation
@@ -725,7 +751,7 @@ declaring formal parameter _p_ of a primary constructor. This extends the
 existing allowlist of places where `covariant` can occur.
 
 *A primary body constructor does not give rise to additional scopes or
-additional rules about access to this. The following applies to both the
+additional rules about access to `this`. The following applies to both the
 header and the body form of primary constructors.*
 
 The semantics of the primary constructor is found in the following steps,
@@ -753,8 +779,8 @@ value then `p` is considered to have the declared type `Object?`.
 have chosen the more strictly checked type `Object?` instead, in order to
 avoid introducing run-time type checking implicitly.*
 
-The current scope of the formal parameter list and initializer list (if
-any) of the primary constructor in _D_ is the body scope of the class.
+The current scope of the formal parameter list of the primary constructor
+in _D_ is the body scope of the class.
 
 *We need to ensure that the meaning of default value expressions is
 well-defined, taking into account that a primary header constructor is
@@ -764,7 +790,8 @@ of the fact that the primary constructor is actually placed outside the
 braces that delimit the class body.*
 
 Next, _k_ has the modifier `const` iff the keyword `const` occurs just
-before the name of _D_ or before `this`, or _D_ is an `enum` declaration.
+before the name of _D_ or before `this`, or if _D_ is an `enum`
+declaration.
 
 Consider the case where _D_ is a primary header constructor. If the name
 `C` in _D_ and the type parameter list, if any, is followed by `.id` where
@@ -831,7 +858,7 @@ literal, and the corresponding instance variable is non-final.
 The point is that it is highly confusing if such a parameter reference is
 considered to be "the same thing" as the variable with the same name which
 is in scope, but the parameter has the initial value of that instance
-variable and the instance variable has been modified in the meantime.
+variable, and the instance variable has been modified in the meantime.
 
 ### Discussion
 
