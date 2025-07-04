@@ -533,7 +533,7 @@ The grammar is modified as follows. Note that the changes include support
 for extension type declarations, because they're intended to use primary
 constructors as well.
 
-```
+```ebnf
 <classDeclaration> ::= // First alternative modified.
      (<classModifiers> | <mixinClassModifiers>)
      'class' <classNamePart> <superclass>? <interfaces>? <classBody>
