@@ -60,6 +60,11 @@ more concisely:
 class Point(var int x, var int y);
 ```
 
+A class that has a primary header constructor can not have any other
+generative non-redirecting constructors. This requirement must be upheld
+because it must be guaranteed that the primary header constructor is
+actually executed on every newly created instance of this class.
+
 A primary body constructor is slightly less concise, but it allows the
 class header to remain simpler and more readable when there are many
 parameters. The previous example would look as follows using a primary body
@@ -73,11 +78,11 @@ class Point {
 ```
 
 In the examples below we show the current syntax directly followed by a
-declaration using a primary constructor. The meaning of the two class
-declarations with the same name is always the same. Of course, we would
-have a name clash if we actually put those two declarations into the same
-library, so we should read the examples as "you can write this _or_ you can
-write that". So the example above would be shown as follows:
+declaration using a primary constructor. The meaning of the two (or more)
+class declarations with the same name is always the same. Of course, we
+would have a name clash if we actually put those two declarations into the
+same library, so we should read the examples as "you can write this _or_
+you can write that". So the example above would be shown as follows:
 
 ```dart
 // Current syntax.
@@ -113,9 +118,9 @@ a compile-time error. This ensures that `final int x` is unambiguously a
 declaring parameter. Developers who wish to maintain a style whereby formal
 parameters are never modified will have a lint to flag all such mutations.
 
-Similarly, with this feature a formal parameter can not be declared with
-the syntax `var name`, it must have a type (`T name`) or the type must be
-omitted (`name`).
+Similarly, with this feature a regular (non-declaring) formal parameter can
+not be declared with the syntax `var name`, it must have a type (`T name`)
+or the type must be omitted (`name`).
 
 A primary header constructor can have a body and/or an initializer list.
 These elements are placed in the class body in a declaration that provides
@@ -134,12 +139,13 @@ There is no way to indicate that the instance variable declarations should
 have the modifiers `late` or `external` (because formal parameters cannot
 have those modifiers). This omission is not seen as a problem in this
 proposal: They can be declared using the same syntax as today, and
-initialization, if any, can be expressed a constructor body.
+initialization, if any, can be done in a constructor body.
 
 An `external` instance variable amounts to an `external` getter and an
-`external` setter. Such "variables" cannot be initialized by an
-initializing formal anyway, so they will just need to be declared using a
-normal `external` variable declaration.
+`external` setter. Such a "variable" cannot be initialized by an
+initializing formal anyway, but it may need to be "initialized" in the
+sense that the intended program behavior requires that external setter to
+be invoked, and this can be done in the constructor body.
 
 ```dart
 // Current syntax.
@@ -216,7 +222,7 @@ class Point {
 Note that the class header contains syntax that resembles the constructor
 declaration, which may be helpful when reading the code.
 
-With the primray header constructor, the modifier `const` could have been
+With the primary header constructor, the modifier `const` could have been
 placed on the class (`const class`) rather than on the class name. This
 proposal puts it on the class name because the notion of a "constant class"
 conflicts with with actual semantics: It is the constructor which is
@@ -344,11 +350,11 @@ class Point {
 }
 ```
 
-Finally, when using a primary body constructor it is possible to use an
-initializer list in order to invoke a superconstructor and/or initialize
-some explicitly declared instance variables with a computed value. The
-primary header constructor can have the same elements, but they are
-declared in the class body.
+When using a primary body constructor it is possible to use an initializer
+list in order to invoke a superconstructor and/or initialize some
+explicitly declared instance variables with a computed value. The primary
+header constructor can have the same elements, but they are declared in the
+class body.
 
 ```dart
 // Current syntax.
@@ -381,6 +387,45 @@ variable. This makes it possible to use a primary constructor (thus
 avoiding the duplication of instance variable names and types) even in the
 case where some parameters should not introduce any instance variables (so
 they are just "normal" parameters).
+
+With a primary header constructor, the formal parameters in the header are
+introduced into a new scope. This means that the parameters whose name is
+not introduced by any nested scope (e.g., the class body scope) is in scope
+in the class body. It is a compile-time error to refer to such a parameter
+anywhere except in an initializing expression of a non-late instance
+variable declaration.
+
+```dart
+// Current syntax.
+class DeltaPoint {
+  final int x;
+  final int y;
+  DeltaPoint(this.x, int delta): y = x + delta;
+}
+
+// Using a primary header constructor.
+class DeltaPoint(final int x, int delta) {
+  final int y = x + delta;
+}
+```
+
+This is possible because it is guaranteed that the non-late initializers
+are evaluated during the execution of the primary header constructor, such
+that the value of a variable like `delta` is only used at a point in time
+where it exists.
+
+Similarly, if an identifier expression in an initializing expression of a
+non-late instance variable declaration resolves to a final instance
+variable (this is currently an error, there is no access to `this`), and
+there is a primary header constructor parameter that corresponds to this
+instance variable (that is, a declaring parameter or an initializing formal
+with the same name), it will evaluate to the value of the parameter.
+For example, `x` is used in the initializer for `y` in the example above,
+which is possible because of this mechanism.
+
+This can only work if the primary header constructor is guaranteed to be
+executed. Hence the rule that there cannot be any other generative
+constructors in a class that has a primary header constructor.
 
 Finally, here is an example that illustrates how much verbosity this
 feature tends to eliminate:
@@ -609,17 +654,59 @@ Object {}`, and all three of them have `Object` as their direct superclass.*
 
 ### Static processing
 
-Consider a class declaration or an extension type declaration with a
-primary header constructor *(note that it cannot be a
-`<mixinApplicationClass>`, because that kind of declaration does not
-support primary constructors, it's just a syntax error)*. This declaration
-is desugared to a class or extension type declaration without a primary
-constructor. An enum declaration with a primary header constructor is
-desugared using the same steps. This determines the dynamic semantics of a
-primary constructor.
+Consider a class, enum or extension type declaration _D_ with a primary
+header constructor *(note that it cannot be a `<mixinApplicationClass>`,
+because that kind of declaration does not support primary constructors,
+that is a syntax error)*. This declaration is treated as a class, enum, or
+extension type declaration without a primary header constructor which is
+obtained as described in the following. This determines the dynamic
+semantics of a primary constructor.
 
-The following errors apply to formal parameters of a primary constructor.
-Let _p_ be a formal parameter of a primary constructor in a class `C`:
+A compile-time error occurs if the body of _D_ contains a non-redirecting
+generative constructor. *This ensures that every constructor invocation
+for this class will invoke the primary header constructor, either directly
+or via a series of generative redirecting constructors. This is required in
+order to allow initializers with no access to `this` to use the
+parameters.*
+
+The declaring parameter list of the primary header constructor introduces a
+new scope, the _declaring parameter scope_, whose enclosing scope is the
+type parameter scope of _D_, if any, and otherwise the enclosing library
+scope. The body scope of _D_ has the declaring parameter scope as its
+enclosing scope.
+
+*This implies that every parameter of the primary header constructor is in
+scope in the class body, unless the class body has a declaration with the
+same name (which would shadow the parameter).*
+
+A compile-time error occurs if an identifier resolves to a primary header
+constructor parameter, unless the identifier occurs in an initializing
+expression of a non-late instance variable declaration.
+
+*We can only use these parameters when it is guaranteed that the primary
+header constructor is currently being executed.*
+
+Assume that the primary header constructor has a declaring parameter with
+the name `n`, or an initializing formal parameter with the name `n`. Assume
+that an initializing expression of a non-late instance variable contains an
+identifier expression of the form `n` which is resolved as a reference to
+the instance variable which is initialized by said parameter *(that
+instance variable must also have the name `n`)*. In this case, the
+identifier expression evaluates to the value of the parameter.
+
+*This means that initializing expressions can, apparently, use the value of
+instance variables declared by the same class (not, e.g., inherited ones).
+They will actually get the value of the primary header parameter, but this
+value is also guaranteed to be the initial value of the corresponding
+instance variable.*
+
+*Note that it only applies to identifier expressions. In particular, this
+does not allow initializing expressions to assign to other instance
+variables.*
+
+The following errors apply to formal parameters of a primary constructor,
+be it in the header or in the body. Let _p_ be a formal parameter of a
+primary constructor in a class `C`:
 
 A compile-time error occurs if _p_ contains a term of the form `this.v`, or
 `super.v` where `v` is an identifier, and _p_ has the modifier
@@ -629,29 +716,31 @@ A compile-time error occurs if _p_ has both of the modifiers `covariant`
 and `final`. *A final instance variable cannot be covariant, because being
 covariant is a property of the setter.*
 
-A compile-time error occurs if _p_ has both of the modifiers `covariant`
-and `novar`. *A parameter with the modifier `novar` does not induce an
-instance variable, so there is no variable and hence no setter.*
+A compile-time error occurs if _p_ has the modifier `covariant`, but
+neither `var` nor `final`. *This parameter does not induce an instance
+variable, so there is no setter.*
 
-Conversely, it is not an error for the modifier `covariant` to occur on
-another formal parameter _p_ of a primary constructor (this extends the
-existing allowlist of places where `covariant` can occur).
+Conversely, it is not an error for the modifier `covariant` to occur on a
+declaring formal parameter _p_ of a primary constructor. This extends the
+existing allowlist of places where `covariant` can occur.
+
+*A primary body constructor does not give rise to additional scopes or
+additional rules about access to this. The following applies to both the
+header and the body form of primary constructors.*
 
 The semantics of the primary constructor is found in the following steps,
 where _D_ is the class, extension type, or enum declaration in the program
 that includes a primary constructor, and _D2_ is the result of the
 derivation of the semantics of _D_. The derivation step will delete
 elements that amount to the primary constructor; it will add a new
-constructor _k_; it will add zero or more instance variable declarations;
-and it will add zero or more top-level constants *(holding parameter
-default values)*.
+constructor _k_; it will add zero or more instance variable declarations.
 
 Where no processing is mentioned below, _D2_ is identical to _D_. Changes
 occur as follows:
 
-Assume that `p` is an optional formal parameter in _D_ which is not an
-initializing formal, and not a super parameter, and does not have the
-modifier `novar`.
+Assume that `p` is an optional formal parameter in _D_ which has the
+modifier `var` or the modifier `final` *(that is, `p` is a declaring
+parameter)*.
 
 Assume that `p` does not have a declared type, but it does have a default
 value whose static type in the empty context is a type (not a type schema)
@@ -704,19 +793,18 @@ positional or named parameter remains optional; if it has a default value
   to _L2_, along with the default value, if any, and is otherwise unchanged.
 - A super parameter is copied from _L_ to _L2_ along with the default
   value, if any, and is otherwise unchanged.
-- A formal parameter with the modifier `novar` is copied unchanged from
-  _L_ to _L2_.
-- Otherwise, a formal parameter (named or positional) of the form `T p` or
-  `final T p` where `T` is a type and `p` is an identifier is replaced in
-  _L2_ by `this.p`, along with its default value, if any.
-  Next, an instance variable declaration of the form `T p;` or `final T p;`
-  is added to _D2_. The instance variable has the modifier `final` if the
-  parameter in _L_ is `final`, or _D_ is an `extension type` declaration,
-  or _D_ is an `enum` declaration, or the modifier `const` occurs just
-  before the class name in _D_.
-  In all cases, if `p` has the modifier `covariant` then this modifier is
-  removed from the parameter in _L2_, and it is added to the instance
-  variable declaration named `p`.
+- A formal parameter which is not covered by the previous two cases and
+  which does not have the modifier `var` or the modifier `final` is copied
+  unchanged from _L_ to _L2_ *(this is a plain, non-declaring parameter)*.
+- Otherwise, a formal parameter (named or positional) of the form `var T p`
+  or `final T p` where `T` is a type and `p` is an identifier is replaced
+  in _L2_ by `this.p`, along with its default value, if any.  Next, an
+  instance variable declaration of the form `T p;` or `final T p;` is added
+  to _D2_. The instance variable has the modifier `final` if the parameter
+  in _L_ has the modifier `final`, or _D_ is an `extension type`
+  declaration, or _D_ is an `enum` declaration. In all cases, if `p` has
+  the modifier `covariant` then this modifier is removed from the parameter
+  in _L2_, and it is added to the instance variable declaration named `p`.
 
 In every case, any DartDoc comments are copied along with the formal
 parameter, and in the case where an instance variable is implicitly induced
@@ -731,15 +819,81 @@ means that they preserve their semantics when moved into the body.*
 
 Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
 
+### Warnings
+
+The language does not specify warnings, but the following is recommended:
+
+A warning is emitted in the case where an identifier expression is resolved
+to yield the value of a declaring or initializing formal parameter in a
+primary header constructor, and this identifier occurs in a function
+literal, and the corresponding instance variable is non-final.
+
+The point is that it is highly confusing if such a parameter reference is
+considered to be "the same thing" as the variable with the same name which
+is in scope, but the parameter has the initial value of that instance
+variable and the instance variable has been modified in the meantime.
+
 ### Discussion
 
+This proposal includes support for adding the primary header parameters to
+the scope of the class, as proposed by Slava Egorov.
+
+It uses a simple scoping structure based directly on the syntax: The
+primary header parameters are added to the scope which is the enclosing
+scope of the class body scope. This allows non-late instance variable
+initializers (and no other locations) to use the primary header parameters
+whose name is not also the name of a declaration in the class body.
+
+For parameters which are directly associated with an instance variable
+declaration (that is, a declaring parameter or an initializing formal
+parameter), there is a special "backup" rule: Assume that `id` is an
+identifier expression in a non-late variable initializer. Assume that `id`
+resolves to an instance variable of the same class that has such a
+corresponding parameter. This used to be an error (because the location
+where `id` occurs does not have access to `this`), but it will now evaluate
+to the value of the corresponding parameter. Note that this value is
+guaranteed to also be the initial value of the corresponding instance
+variable.
+
+This differs from an approach in the case where there is an instance
+variable and a primary header parameter with the same name where there is
+no correspondence:
+
+```dart
+class A(int x) {
+  int x = 42;
+  final y = x + 1;
+}
+```
+
+In this case the primary header parameter `x` is just a plain parameter (it
+does not declare an instance variable named `x` and it doesn't initialize
+any such instance variable). With this proposal the occurrence of `x` in
+the initializing expression of `y` is a compile-time error (there is no
+access to `this`, and the "backup rule" doesn't apply).
+
+Alternatively, if we simply say that the primary header parameters are in
+scope in the non-late instance variable initializers then we'd allow `x` to
+refer to the parameter even though it has nothing whatsoever to do with the
+instance variable named `x`. This proposal does not use this alternative
+approach because it is considered highly confusing that the two occurrences
+of `x` in the class body are completely different entities.
+
 ### Changelog
+
+1.7 - July 4, 2025
+
+* Update the parts after the 'Syntax' section to use the new syntax of
+  version 1.6, and also to enable the scoping where initializing expressions
+  with no access to `this` can evaluate final instance variables by reading the
+  corresponding primary constructor formal parameter.
 
 1.6 - June 27, 2025
 
 * Explain in-header constructors as "move the parameter list", which also
   introduces support for in-header constructors with all features (initializer
-  list, superinitializer, body), which will remain in the body.
+  list, superinitializer, body), which will remain in the body. This version
+  only updates the introduction and the 'Syntax' section.
 
 1.5 - November 25, 2024
 
