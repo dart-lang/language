@@ -1,5 +1,8 @@
-# Extension Types
+This document [has moved].
 
+branch: main
+[has moved]: https://github.com/dart-lang/language/blob/main/accepted/3.3/extension-types/feature-specification.md
+=======branch: Active Duty
 Author: eernst@google.com
 
 Status: Accepted.
@@ -1539,3 +1542,4 @@ wrapper class is so huge that it is likely to be a major use case for
 extension types that they can allow us to use a built-in class as the
 representation, and still have a specialized interface&mdash;that is, an
 extension type.
+branch: spec_etype_await_nov23

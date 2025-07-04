@@ -51,8 +51,13 @@ cutMatch(line, match, {startOffset = 0, endOffset = 0, glue = ""}) {
 }
 
 cutRegexp(line, re, {startOffset = 0, endOffset = 0, glue = ""}) {
-  return cutMatch(line, re.firstMatch(line),
-      startOffset: startOffset, endOffset: endOffset, glue: glue);
+  return cutMatch(
+    line,
+    re.firstMatch(line),
+    startOffset: startOffset,
+    endOffset: endOffset,
+    glue: glue,
+  );
 }
 
 /// Removes the rest of [line] starting from the beginning of the
@@ -298,7 +303,7 @@ class HashAnalyzer {
   static const PENDING_IS_SECTION = 1;
   static const PENDING_IS_SUBSECTION = 2;
   static const PENDING_IS_SUBSUBSECTION = 3;
-  static const PENDING_IS_PARAGRAPH = 1;
+  static const PENDING_IS_PARAGRAPH = 4;
 
   var lineNumber = 0;
   var pendingSectioning = PENDING_IS_NONE;
@@ -509,8 +514,10 @@ addHashMarks(lines, hashEvents, listSink) {
       var start = hashEvent.startLineNumber;
       var end = hashEvent.endLineNumber;
       final hashValue = computeHashString(lines, start + 1, end, listSink);
-      lines[start] =
-          lines[start].replaceAll(latexArgumentRE, "{" + hashValue + "}");
+      lines[start] = lines[start].replaceAll(
+        latexArgumentRE,
+        "{" + hashValue + "}",
+      );
       listSink.write("  $hashValue\n");
     } else if (hashEvent is HashLabelEvent) {
       listSink.write("${hashEvent.labelText}\n");

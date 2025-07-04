@@ -5,20 +5,20 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'specification/**'
-      - '.github/workflows/spec.yml'
+        'specification/**'
+        '.github/workflows/spec.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'specification/**'
-      - '.github/workflows/spec.yml'
+        'special/**'
+        '.github/workflows/spec.yml'
 
 jobs:
   specification:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Install latex tools
         run: |
@@ -38,7 +38,7 @@ jobs:
 
       - name: Upload specification
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        uses: FirebaseExtended/action-hosting-deploy@120e124148ab7016bec2374e5050f15051255ba2
+        uses: FirebaseExtended/action-hosting-deploy@0cbcac4740c2bfb00d632f0b863b57713124eb5a
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DART_SPECIFICATION }}'

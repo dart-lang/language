@@ -1,0 +1,21 @@
+#!/usr/bin/env -S bash --norc
+
+set -ex
+
+apt-get update -qq
+apt-get install -y --no-install-recommends \
+    build-essential \
+    texlive-latex-base \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    lmodern
+cd specification
+make
+mkdir -p artifacts
+if [ "$BRANCH_NAME" == "main" ]; then
+  cp dartLangSpec.pdf artifacts/DartLangSpecDraft.pdf
+elif [ "$_PR_NUMBER" != "" ]; then
+  mkdir -p artifacts/pr/$_PR_NUMBER
+  cp dartLangSpec.pdf artifacts/pr/$_PR_NUMBER/DartLangSpecDraft.pdf
+fi
+

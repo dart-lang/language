@@ -740,7 +740,9 @@ pattern with the field name omitted (see name inference below).
 ### Object pattern
 
 ```
-objectPattern ::= typeName typeArguments? '(' patternFields? ')'
+objectPattern ::=
+    (typeName typeArguments? | (typeIdentifier '.')? 'Function')
+    '(' patternFields? ')'
 ```
 
 An object pattern matches values of a given named type and then extracts values
@@ -1875,6 +1877,14 @@ The context type schema for a pattern `p` is:
     //                  ^-- Infer Foo<num>.
     ```
 
+	If the type the object name resolves to is generic, and no type
+    arguments are specified, then instantiate to bounds is used to
+    fill in provisional type arguments for the purpose of determining
+    the context type schema. *Note that during the type checking
+    phase, these provisional type arguments will be replaced with the
+    result of applying downwards inference. See "Type checking and
+    pattern required type" below.*
+
 The pattern type schema for logical-or, null-check, constant, and relational
 patterns is not defined, because those patterns are only allowed in refutable
 contexts, and the pattern type schema is only used in irrefutable contexts.
@@ -1924,7 +1934,7 @@ To type check a pattern `p` being matched against a value of type `M`:
     performed. Otherwise *(when `M` is not `dynamic` or `Never`)*:
 
     1.  A compile-time error occurs if `M` does not have an operator `op`,
-        and there is no available and applicable extension operator `op`. 
+        and there is no available and applicable extension operator `op`.
         Let `A` be the type of the formal parameter of the given operator
         declaration, and let `R` be the return type.
 
@@ -3549,6 +3559,11 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.34 (after shipping)
+
+-   Adjust `objectPattern` to allow `Function(...)`, which is already
+    the implemented behavior (#3468).
 
 ### 2.33 (after shipping)
 

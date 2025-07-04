@@ -643,7 +643,7 @@ satisfies schema `Pt`.  Constraints in which `X` appears free in either `Pb` or
 ### Closure of type constraints
 
 The closure of a type constraint `Pb <: X <: Pt` with respect to a set of type
-variables `L` is the subtype constraint `Qb <: X :< Qt` where `Qb` is the
+variables `L` is the subtype constraint `Qb <: X <: Qt` where `Qb` is the
 greatest closure of `Pb` with respect to `L`, and `Qt` is the least closure of
 `Pt` with respect to `L`.
 
@@ -723,6 +723,12 @@ the set of type schemas `{U0, ..., Un}` such that:
     with respect to the constraint set `C`.
   - If `Vi` is not known (that is, it contains `_`), then `Ui = Vi`.
   - Otherwise, if `Xi` does not have an explicit bound, then `Ui = Vi`.
+  - Otherwise, let `Mb <: Xi <: Mt` be the merge of `C` with respect to `Xi`. If
+    `Mb` is not `_`, let `C1` be the constraint set produced by the subtype
+    constraint generation algorithm for `P = Mb`, `Q = B`, `L = {X0, ..., Xn}`.
+    Then `Ui` is the constraint solution for the type variable `Xi` with respect
+    to the constraint set `C + C1`. *Note that `X` is in `L` and that `Mb`
+    doesn't contain any of `X0, ..., Xn`.*
   - Otherwise, let `Bi` be the bound of `Xi`.  Then, let `Bi'` be the type
     schema formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in
     place of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we
@@ -736,8 +742,9 @@ consequences it has on type inference:_
     is, a type that does not contain `_`), that choice is frozen and is not
     affected by later type inference steps.  (Type inference accomplishes this
     by passing in any frozen choices as part of the partial solution)._
-  - _The bound of a type variable is only included as a constraint when the
-    choice of type for that type variable is about to be frozen._
+  - _The bound of a type variable participates in additional constraint
+    generation when the choice of type for that type variable is about to be
+    frozen._
   - _During each round of type inference, type variables are inferred left to
     right.  If the bound of one type variable refers to one or more type
     variables, then at the time the bound is included as a constraint, the type
@@ -771,6 +778,12 @@ defined to be the set of types `{U0, ..., Un}` such that:
   - Otherwise, if `Xi` does not have an explicit bound, then `Ui` is the
     grounded constraint solution for the type variable `Xi` with respect to the
     constraint set `C`.
+  - Otherwise, let `Mb <: Xi <: Mt` be the merge of `C` with respect to `Xi`.
+    If `Mb` is not `_`, let `C1` be the constraint set produced by the subtype
+    constraint generation algorithm for `P = Mb`, `Q = B`, `L = {X0, ..., Xn}`.
+    Then `Ui` is the grounded constraint solution for the type variable `Xi`
+    with respect to the constraint set `C + C1`. *Note that `X` is in `L` and
+    that `Mb` doesn't contain any of `X0, ..., Xn`.*
   - Otherwise, let `Bi` be the bound of `Xi`.  Then, let `Bi'` be the type
     schema formed by substituting type schemas `{U0, ..., Ui-1, Ti, ..., Tn}` in
     place of the type variables `{X0, ..., Xn}` in `Bi`.  _(That is, we
@@ -969,6 +982,450 @@ with respect to `L` under constraints `C0`
   - If for `i` in `0...m`, `Mi` is a subtype match for `Ni` with respect to `L`
   under constraints `Ci`.
 
+
+# Expression inference
+
+Expression inference is a recursive process of elaborating an expression in Dart
+source code, transforming it into a form in which all types and type coercions
+are explicit. An expression that has not yet undergone type inference is
+referred to as an _unelaborated expression_, and an expression that has
+completed type inference is referred to as an _elaborated expression_.
+
+_To aid in distinguishing unelaborated and elaborated expressions, the text
+below will typically denote an unelaborated expression by letter `e` (often with
+a suffix, e.g. `e_1`), and an elaborated expression by the letter `m` (again,
+often with a suffix)._
+
+Expression inference always takes place with respect to a type schema known as
+the expression's "context", which captures certain pieces of type information
+about the code surrounding the expression. Contexts are specified as part of the
+recursive rules for type inference; that is, when the rules for type inferring a
+certain kind of expression, statement, or pattern require that a subexpression
+be type inferred, they will specify the context in which that inference should
+be performed, using a phrase like "let `m` be the result of performing
+expression inference on `e`, in context `K`".
+
+_Often, an expression's context can be understood as the static type the
+expression must have (or be coercible to) in order to avoid a compile-time
+error. For example, in the statement `num n = f();`, the result of type
+inferring `f()` needs to be a subtype of `num` (or a type that's coercible to
+`num`) in order to avoid a compile-time error. Accordingly, `f()` is type
+inferred in the context `num`._
+
+_However, there are some exceptions. For example, in the code `Object? x = ...;
+if (x is num) { x = f(); }`, the variable `x` is promoted to the type `num`
+within the body of the `if` statement. Accordingly, `f()` is type inferred in
+the context `num`, in an effort to reduce the likelihood that the assignment `x
+= f()` will cause the type promotion to be lost. However, if the static type of
+`f()` doesn't wind up being a subtype of `num`, there is no compile-time error;
+`x` is simply demoted back to `Object?` as a side effect of the assignment._
+
+## Static types and soundness
+
+Every elaborated expression has an associated _static type_, which is produced
+as a by-product of the expression inference process. These static types are
+specified in this document using language such as: "inference of `e` produces an
+elaborated expression `m` with static type `T`". _The specification of static
+types in this document should be understood to supersede the specification of
+static types in the existing Dart language specification._
+
+_Informally, we may sometimes speak of the static type of an unelaborated
+expression `e`; when we do, what is meant by this is the static type of the
+elaborated expression `m` that results from performing expression inference on
+`e` in some context `K`, where `K` depends on where `e` appears in the broader
+program. Note in particular that a given expression might have a different
+static type at different points in the code, since the behavior of expression
+inference depends on the context `K`, as well as the flow analysis state._
+
+A property of expression inference, known as _soundness_, is that when an
+elaborated expression is executed, it is guaranteed either to diverge, throw an
+exception, or evaluate to a value that is an _instance satisfying_ its static
+type. _Instance satisfying_ is defined as follows: a value `v` is an instance
+satisfying type `T` iff the runtime type of `v` is a subtype of the _extension
+type erasure_ of `T`. _So, for example, every value is considered an instance
+satisfying type `dynamic`, and all values except `null` are considered an
+instance satisfying type `Object`._
+
+_This stands in contrast to the notion of "instance of"; a value `v` is an
+instance of a type `T` only if the runtime type of `v` is __precisely__ `T`._
+
+_The type inference rules below include informal sketches of a proof that
+soundness holds for each expression type. These are non-normative, so they are
+typeset in italics._
+
+## New operations allowed in elaborated expressions
+
+The elaboration process sometimes introduces new operations that are not easily
+expressible using the syntax of Dart. To allow these operations to be specified
+succintly, the syntax of Dart is extended to allow the following forms:
+
+- `@AWAIT_WITH_TYPE_CHECK(m_1)` represents the following operation:
+
+  - Let `T_1` be the static type of `m_1`.
+
+  - Let `T` be `flatten(T_1)`.
+
+  - Evaluate `m_1`, and let `v` denote the result. _Note that since `m_1` has
+    static type `T_1`, by soundness, `v` must be an instance satisfying
+    `T_1`. Since `T_1 <: FutureOr<flatten(T_1)>` for all `T_1`, it follows that
+    `v` must be an instance satisfying `FutureOr<flatten(T_1)>`, or
+    equivalently, satisfying `FutureOr<T>`. Therefore, `v` must either be an
+    instance satisfying `Future<T>`, or if not, it must be an instance
+    satisfying `T`. We consider the two cases below._
+
+  - If `v` is an instance satisfying type `Future<T>`, then let
+    `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluate to `v`.
+
+  - Otherwise, let `@AWAIT_WITH_TYPE_CHECK(m_1)` evaluate to a future satisfying
+    type `Future<T>` that will complete to the value `v` at some later
+    point. _Such a future could, for instance, be created by executing
+    `Future<T>.value(v)`, which is sound because in this case `v` is an instance
+    satisfying `T`. It also could be created using a more efficient
+    implementation-specific mechanism._
+
+  _Note that the two cases here may imply a runtime implementation doing an
+  actual `is Future<T>` type check and branching on the result, or a compiler
+  may be able to optimize away the check in some cases. This where the name
+  `@AWAIT_WITH_TYPE_CHECK` comes from._
+
+- `@CONCAT(m_1, m_2, ..., m_n)`, where each `m_i` is an elaborated expression
+  whose static type is a subtype of `String`, represents the operation of
+  evaluating each `m_i` in sequence and then concatenating the results into a
+  single string.
+
+- `@DOUBLE(d)` represents a literal double with numeric value `d`. The runtime
+  behavior of this construct is to evaluate to an instance of the type `double`
+  representing `d`. _This is used to explicitly mark integer literals that have
+  been converted, by type inference, to doubles._
+
+- `@IMPLICIT_CAST<T>(m)` represents an implicit cast of the expression `m` to
+  type `T`. The runtime behavior of this construct is the same as that of `m as
+  T`, except that in the case where the cast fails, the exception thrown is a
+  `TypeError` rather than a `CastError`.
+
+- `@INT(i)` represents a literal integer with numeric value `i`. The runtime
+  behavior of this construct is to evaluate to an instance of the type `int`
+  representing `i`. _This is used to explicitly mark integer literals that have
+  __not__ been converted, by type inference, to doubles._
+
+- `@LET(T v = m_1 in m_2)` represents the operation of first evaluating `m_1`,
+  whose static type must be a subtype of `T`, storing the result in temporary
+  storage, then evaluating `m_2` in a scope in which `v` has static type `T` and
+  evaluates to the stored value.
+
+  - When this specification specifies that a `@LET` expression should be created
+    using a variable `v` that does not appear in the source code, it should be
+    understood that a fresh variable is created that does not match any variable
+    that exists in the user's program. _TODO(paulberry): give an example to
+    clarify._
+
+- `@PROMOTED_TYPE<T>(m)` represents an elaborated expression whose runtime
+  behavior is the same as that of `m`, but where it is known that whenever the
+  elaborated expression executes, the resulting value is an instance satisfying
+  type `T`. _This is used in situations where additional reasoning, beyond the
+  static type of `m`, is required to establish soundness. Wherever this
+  construct is used, the additional reasoning follows in italics. Note that
+  since `m` and `@PROMOTED_TYPE<T>(m)` have the same runtime behavior,
+  implementations can most likely elide `@PROMOTED_TYPE<T>(m)` to `m` without
+  any loss of functionality, provided they are not trying to construct a proof
+  of soundness._
+
+## Additional properties satisfied by elaborated expressions
+
+The rules below ensure that elaborated expressions will satisfy the following
+properties:
+
+- An elaborated expression will never contain one of the tokens `?.`, `??`, or
+  `??=`. _The type inference process converts expressions containing these
+  tokens into simpler forms._
+
+- Elaborated expressions will never contain any implicit type checks. This
+  means, in particular, that:
+
+  - If an elaborated expression ever takes the form `m_1 ? m_2 : m_3`, it is
+    guaranteed that the static type of `m_1` will be a subtype of `bool`. _That
+    is, all the situations in which the compiler needs to check that a condition
+    is a proper boolean are spelled out in the type inference rules._
+
+  - If an elaborated expression ever takes the form `m_1 && m_2` or `m_1 ||
+    m_2`, it is guaranteed that the static type of `m_1` and `m_2` will both be
+    a subtype of `bool`. _That is, all the situations in which the compiler
+    needs to check that the argument of a logical boolean expression is a proper
+    boolean are spelled out in the type inference rules._
+
+  - If an elaborated expression ever takes the form `throw m_1`, it is
+    guaranteed that the static type of `m_1` will be a subtype of
+    `Object`. _That is, `null` will never be thrown._`
+
+  - If an elaborated expression ever takes the form of an invocation whose
+    target is not `dynamic`, then it is guaranteed that:
+
+    - Each invocation argument has a corresponding formal parameter in the
+      invocation target, and the static type of the argument is a subtype of the
+      corresponding formal parameter's static type (with appropriate generic
+      substitutions).
+
+    - All of the invocation target's required formal parameters have
+      corresponding arguments.
+
+_The type inference rules below include informal sketches of a proof that the
+output of type inference satisfies these additional properties. These are
+non-normative, so they are typeset in italics._
+
+## Coercions
+
+Before considering the specific rules for type inferring each type of
+expression, it is useful to define an operation known as _coercion_. _Coercion_
+is a type inference step that is applied to an elaborated expression `m_1` and a
+target type `T`, and produces a new elaborated expression `m_2`.
+
+_The coercion operation satisfies the following soundness property: the static
+type of `m_2` is guaranteed to be a subtype of `T`. A proof of this is sketched
+below._
+
+_Coercions are used in most situations where the existing spec calls for an
+assignability check._
+
+Coercion of an elaborated expression `m_1` to type `T` produces `m_2`, with
+static type `T_2`, where `m_2` and `T_2` are determined as follows:
+
+- Let `T_1` be the static type of `m_1`.
+
+- If `T_1 <: T`, then let `m_2` be `m_1` and `T_2` be `T_1`. _Since `T_1 <: T`,
+  soundness is satisfied._
+
+- Otherwise, if `T_1` is `dynamic`, then let `m_2` be `@IMPLICIT_CAST<T>(m_1)`
+  and `T_2` be `T`. _Since `T <: T`, soundness is satisfied._
+
+- Otherwise, if `T_1` is an interface type that contains a method called `call`
+  with type `U`, and `U <: T`, then let `m_2` be `m_1.call`, and let `T_2` be
+  `U`. _Since `U <: T`, soundness is satisfied._
+
+- _TODO(paulberry): add more cases to handle implicit instantiation of generic
+  function types, and `call` tearoff with implicit instantiation._
+
+- Otherwise, there is a compile-time error. _We have an expression of type `T_1`
+  in a situation that requires `T`, which isn't a supertype, nor is there a
+  coercion available, so it's a type error._
+
+### Shorthand for coercions
+
+In the text that follows, we will sometimes say something like "let `m` be the
+result of performing expression inference on `e`, in context `K`, and then
+coercing the result to type `T`." This is shorthand for the following sequence
+of steps:
+
+- Let `m_1` be the result of performing expression inference on `e`, in context
+  `K`.
+
+- Let `m` be the result of performing coercion of `m_1` to type `T`.
+
+_It follows, from the soundness of coercions, that the static type of `m` is
+guaranteed to be a subtype of `T`._
+
+## Expression inference rules
+
+The following sections detail the specific type inference rules for each valid
+Dart expression.
+
+### Null
+
+Expression inference of the literal `null`, regardless of context, produces the
+elaborated expression `null`, with static type `Null`.
+
+_The runtime behavior of `null` is to evaluate to an instance of the type
+`Null`, so soundness is satisfied._
+
+### Integer literals
+
+Expression inference of an integer literal `l`, in context `K`, produces an
+elaborated expression `m` with static type `T`, where `m` and `T` are determined
+as follows:
+
+- Let `i` be the numeric value of `l`.
+
+- Let `S` be the greatest closure of `K`.
+
+- If `double` is a subtype of `S` and `int` is _not_ a subtype of `S`, then:
+
+  - If `i` cannot be represented _precisely_ by an instance of `double`, then
+    there is a compile-time error.
+
+  - Otherwise, let `T` be the type `double`, and let `m` be
+    `@DOUBLE(i)`. _Soundness follows from the fact that `@DOUBLE(i)` always
+    evaluates to an instance of `double`._
+
+- Otherwise, if `l` is a hexadecimal integer literal, 2<sup>63</sup> ≤ `i` <
+  2<sup>64</sup>, and the `int` class is represented as signed 64-bit two's
+  complement integers:
+
+  - Let `T` be the type `int`, and let `m` be `@INT(i` - 2<sup>64</sup>`)`.
+
+  - _Soundness follows from the fact that the `@INT(j)` always evaluates to an
+    instance of `int`._
+
+- Otherwise, if `i` cannot be represented _precisely_ by an instance of `int`,
+  then there is a compile-time error.
+
+- Otherwise, let `T` be the type `int`, and let `m` be `@INT(i)`. _Soundness
+  follows from the fact that `@INT(i)` always evaluates to an instance of
+  `int`._
+
+### Double literals
+
+Expression inference of a double literal `l`, regardless of context, produces
+the elaborated expression `l`, with static type `double`.
+
+_The runtime behavior of a double literal is to evaluate to an instance of the
+type `double`, so soundness is satisfied._
+
+### Booleans
+
+Expression inference of a boolean literal `e` (`true` or `false`), regardless of
+context, produces the elaborated expression `e`, with static type `bool`.
+
+_The runtime behavior of a boolean literal is to evaluate to an instance of the
+type `bool`, so soundness is satisfied._
+
+### Strings
+
+Expression inference of a string literal `s`, regardless of context, produces an
+elaborated expression `m` with static type `String`, where `m` is determined as
+follows:
+
+- If `s` contains no _stringInterpolations_, then let `m` be `s`. _The runtime
+  behavior of a string literal with no _stringInterpolations_ is to evaluate to
+  an instance of the type `String`, so soundness is satisfied._
+
+- Otherwise:
+
+  - For each _stringInterpolation_ `s_i` inside `s`, in source order:
+
+    - Define `m_i` as follows:
+
+      - If `s_i` takes the form '`${`' `e` '`}`':
+
+        - Let `m_i` be the result of performing expression inference on `e`, in
+          context `_`.
+
+      - Otherwise, `s_i` takes the form '`$e`', where `e` is either `this` or an
+        identifier that doesn't contain `$`, so:
+
+        - Let `m_i` be the result of performing expression inference on `e`, in
+          context `_`.
+
+    - Let `n_i` be `m_i.toString()`. _Since both `Object.toString` and
+      `Null.toString` are declared with a return type of `String`, it follows
+      that the static type of `n_i` is `String`._
+
+  - Let `m` be `@CONCAT(parts)`, where `parts` is composed of simple string
+    literals representing the portions of `s` that are __not__
+    _stringInterpolations_, interleaved with the `n_i`.
+
+  - _The runtime behavior of `@CONCAT(parts)` is to evaluate to an instance of
+    the type `String`, so soundness is satisfied._
+
+### Symbol literal
+
+Expression inference of a symbol literal `e`, regardless of context, produces
+the elaborated expression `e`, with static type `Symbol`.
+
+_The runtime behavior of a symbol literal is to evaluate to an instance of the
+type `Symbol`, so soundness is satisfied._
+
+### Throw
+
+Expression inference of a throw expression `throw e_1`, regardless of context,
+produces an elaborated expression `m` with static type `Never`, where `m` is
+determined as follows:
+
+- Let `m_1` be the result of performing expression inference on `e_1`, in
+  context `_`, and then coercing the result to type `Object`.
+
+- _It follows, from the soundness of coercions, that the static type of `m_1` is
+  guaranteed to be a subtype of `Object`. That is, `null` will never be thrown._
+
+- Let `m` be `throw m_1`. _Soundness follows from the fact that `throw m_1`
+  never evaluates to a value._
+
+### This
+
+Expression inference of `this`, regardless of context, produces the elaborated
+expression `this` with static type `T`, where `T` is the interface type of the
+immediately enclosing class, enum, mixin, or extension type, or the "on" type of
+the immediately enclosing extension.
+
+_The runtime behavior of `this` is to evaluate to the target of the current
+instance member invocation, which is guaranteed to be an instance satisfying
+this type. So soundness is satisfied._
+
+### Logical boolean expressions
+
+Expression inference of a logical "and" expression (`e_1 && e_2`) or a logical
+"or" expression (`e_1 || e_2`), regardless of context, produces an elaborated
+expression `m` with static type `bool`, where `m` is determined as follows:
+
+- Let `m_1` be the result of performing expression inference on `e_1`, in
+  context `bool`, and then coercing the result to type `bool`.
+
+- Let `m_2` be the result of performing expression inference on `e_2`, in
+  context `bool`, and then coercing the result to type `bool`.
+
+- _It follows, from the soundness of coercions, that the static type of `m_1`
+  and `m_2` are both guaranteed to be a subtype of `bool`._
+
+- If `e` is of the form `e_1 && e_2`, let `m` be `m_1 && m_2`. _It is valid to
+  form this elaborated expression because the static type of `m_1` and `m_2` are
+  guaranteed to be a subtype of `bool`._
+
+- Otherwise, `e` is of the form `e_1 || e_2`, so let `m` be `m_1 || m_2`. _It is
+  valid to form this elaborated expression because the static type of `m_1` and
+  `m_2` are guaranteed to be a subtype of `bool`._
+
+_The runtime behavior of logical boolean expressions is to evaluate to a value
+equal to their first argument (in the case of a short-cut) or their second
+argument (in the case of no short-cut). Since the static type of `m_1` and `m_2`
+are guaranteed to be a subtype of `bool`, it follows that the the logical
+boolean expression will evaluate to an instance satisfying type `bool`, so
+soundness is satisfied._
+
+### Await expressions
+
+Expression inference of an await expression `await e_1`, in context `K`,
+produces an elaborated expression `m` with static type `T`, where `m` and `T`
+are determined as follows:
+
+- Define `K_1` as follows:
+
+  - If `K` is `FutureOr<S>` or `FutureOr<S>?` for some type schema `S`, then let
+    `K_1` be `K`.
+
+  - Otherwise, if `K` is `dynamic`, then let `K_1` be `FutureOr<_>`.
+
+  - Otherwise, let `K_1` be `FutureOr<K>`.
+
+- Let `m_1` be the result of performing expression inference on `e_1`, in
+  context `K_1`.
+
+- Let `T_1` be the static type of `m_1`.
+
+- If `T_1` is incompatible with await (as defined in the _extension types_
+  specification), then there is a compile-time error.
+
+- Let `T_2` be `flatten(T_1)`.
+
+- Let `m_2` be `@AWAIT_WITH_TYPE_CHECK(m_1)`, with static type
+  `Future<T_2>`. _This is sound because `@AWAIT_WITH_TYPE_CHECK(m_1)` always
+  evaluates to an instance satisfying type `Future<T_2>`._
+
+  - _Note that in many circumstances, it will be trivial for the compiler to
+    establish that `m_1` always evaluates to an instance `v` that satisfies type
+    `Future<T_2>`, in which case `m_2` can be optimized to
+    `@PROMOTED_TYPE<Future<T_2>>(m_1)`._
+
+- Let `T` be `T_2`, and let `m` be `await m_2`. _Since `m_2` has static type
+  `Future<T_2>`, the value of `await m_2` must necessarily be an instance
+  satisfying type `T_2`, so soundness is satisfied._
 
 <!--
 

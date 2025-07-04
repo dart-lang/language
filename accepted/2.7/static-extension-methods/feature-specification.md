@@ -96,7 +96,7 @@ If we make `on` a built-in identifier, then there should not be any parsing issu
 
 The ability to implicitly give an extension a private name is a simple feature, but with very low impact. It only allows you to omit a single private name for an extension that is only used in a single library.
 
-### Explicit Extension Member Invocation
+## Explicit Extension Member Invocation
 
 You can explicitly invoke an extension member on a particular object by performing a *member invocation* on an *extension application*.
 
@@ -190,7 +190,7 @@ That is, if `E` declares an instance member `T foo(T arg)`, then the inference o
 
 The static type of a member invocation on an extension application is the return type of the extension member with the corresponding member name of the invocation, with the explicit or inferred type arguments of the extension application replacing the type parameters bound by the extension, and the explicit or inferred type arguments of the invoked member replacing the type parameters bound by the member.
 
-##### Composite Assignments and Increment Operations
+#### Composite Assignments and Increment Operations
 
 Composite member invocations, like the composite assignment `e.id += 2` or the increment `e.id++`, are defined in terms of two individual member invocations (always one *get* operation and one *set* operation with the same basename). If the target expression of a composite member invocation is an extension application, we need to recognize and handle it specially.
 
@@ -208,13 +208,13 @@ Increment/decrement operations like `++e` and `e--` are equivalent to composite 
   - `E<...>(e).id++` is equivalent to `E<...>(e).id = E<...>(e).id + 1` except that `e` is only evaluated once, and the value of the increment expression is the value of the subexpression `E<...>(e).id` before the addition. Symmetrically for post-decrement.
   - `E<...>(e)[e1]++` is equivalent to `E<...>(e)[e2] = E<...>(e)[e2] + 1` except that `e` and `e2` are only evaluated once, and the value of the increment expression is the value of the subexpression `E<...>(e)[e2]` before the addition. Symmetrically for post decrement.
 
-##### Null Aware Member Invocations
+#### Null Aware Member Invocations
 
 A null-aware member invocation, whether simpler or composite, where the target is a extension application `E(e1)`, is evaluated by first evaluating `e1` to a value *v*. If *v* is `null` then the entire null-aware member invocation evaluates to `null` (and with NNBD, so does a following chain of selectors). If not, then the evaluation continues as the *corresponding simple  member invocation* with target `E(t)` where `t` is a fresh variable bound to *v*.
 
 The static type of a null-aware member invocation on an extension application is the same as the static type of the corresponding simple member invocation with the same extension application as target. (With NNBD, the type of `e1` is promoted to non-`null` before inferring the `on` type of the extension application, just as for the *implicit* invocation `e1?.…`, and the result type becomes nullable if it isn't already.)
 
-### Implicit Extension Member Invocation
+## Implicit Extension Member Invocation
 
 Extension members can be invoked *implicitly* (without mentioning the extension by name) as if they were members of the `on` type of the extension. This is intended as the primary way to use extensions, with explicit extension member invocation as a fallback for cases where the implicit extension resolution doesn't do what the user want. 
 
@@ -226,7 +226,7 @@ Implicit extension member invocation applies to null-aware member access. A null
 
 Implicit extension member invocation can also apply to individual *cascade* invocations. A cascade is treated as if each cascade section was a separate member invocation on an expression with the same value as the cascade receiver expression (the expression before the first `..`). This means that a cascade like `o..foo()..bar()` may perform an implicit extension member invocation on `o` for `foo()` and a normal invocation on `o` for `bar()`. There is no way to specify the corresponding explicit member invocation without expanding the cascade to a sequence of individual member invocations.
 
-##### Accessibility
+#### Accessibility
 
 An extension is *accessible* for an expression if it is declared in the current library, or if there is a non-deferred `import` declaration in the current library which imports a library with the extension in its export scope, where the name of the extension is not private, and the declaration is not hidden by a `hide` combinator mentioning the extension name, or a `show` combinator not mentioning the name, on the import. _This includes (non-deferred) imports with a prefix._
 
@@ -248,7 +248,7 @@ _*Rationale*: We want users to have control over which extensions are available.
 
 You still cannot *export* two extensions with the same name. The rules for export makes it a compile-time error to add two declarations with the same name to the export scope of a library.
 
-##### Applicability
+#### Applicability
 
 An extension `E` is *applicable* to a simple or composite member invocation with corresponding member *basename* *m* and target expression `e`, where `e` has static type *S*, if
 
@@ -259,7 +259,7 @@ An extension `E` is *applicable* to a simple or composite member invocation with
 
 Notice that the context type of the invocation does not affect whether the extension applies, and neither the context type nor the method invocation affects the type inference of `e`, but if the extension method itself is generic, the context type may affect the member invocation.
 
-##### Specificity
+#### Specificity
 
 When more than one extension is accessible and applicable to a member invocation, we define a partial ordering on those extensions wrt. that member invocation, so that we can choose the "best" candidate which will have its extension member be implicitly invoked.
 
@@ -273,7 +273,7 @@ Let *i* be a member invocation with target expression `e` and corresponding memb
 
 This definition ensures that "more specific than" is a partial order (anti-symmetric and transitive) relation.
 
-##### Examples
+#### Examples
 
 The following examples display the implicit extension resolution when multiple applicable extensions are available.
 
@@ -319,7 +319,7 @@ Com` and `List<num>` for the two other. Using the instantiate-to-bounds types as
 
 In practice, unintended extension method name conflicts are likely to be rare. Intended conflicts happen where the same author is providing more specialized versions of an extension for subtypes, and in that case, picking the extension which has the most precise types available to it is considered the best choice.
 
-### Static Members and Member Resolution
+## Static Members and Member Resolution
 
 Static member declarations in the extension declaration can be accessed the same way as static members of a class or mixin declaration: By prefixing with the extension's name.
 
@@ -338,7 +338,7 @@ Like for a class or mixin declaration, static members simply treat the surroundi
 
 It is a **compile-time error** if a simple or qualified identifier denoting the extension occurs in an expression except as the extension name of an extension application or as the target of a (static) simple or composite member invocation. In the latter case, it is a **compile-time error** if the extension does not declare a static member with the corresponding member name (or both a getter and a setter for a composite member invocation), and the invocation itself must be a valid invocation as for any other static member invocation.
 
-### Semantics of Invocations
+## Semantics of Invocations
 
 An extension member invocation is a member invocation where the target is an extension application, or where the target is an object where we perform implicit extension application. At run-time, implicit extension invocations have been resolved and any type arguments will have been inferred, so we can assume they are all known.
 
@@ -350,7 +350,7 @@ Post-NNBD, a non-nullable `on` type would not match a nullable receiver type, so
 
 During NNBD migration, where a non-nullable type or a legacy unsafely nullable type may contain `null` , it is a run-time error if a migrated extension with a non-nullable `on` type is called on `null`, just as all other cases where an unsafe `null` reaches a non-nullable context. This requires a run-time check which can be omitted when all non-NNBD code has been migrated.
 
-### Semantics of Extension Members
+## Semantics of Extension Members
 
 When executing an extension instance member, we stated earlier that the member is invoked with the original receiver as `this` object. We still have to describe how that works, and what the lexical scope is for those members.
 
@@ -384,7 +384,7 @@ An unqualified identifier `id` which is not declared in the lexical scope at all
 
 Even though you can access `this`, you cannot use `super` inside an extension method.
 
-### Member Conflict Resolution
+## Member Conflict Resolution
 
 An extension can declare a member with the same (base-)name as a member of the type it is declared on. This does not cause a compile-time conflict, even if the member does not have a compatible signature.
 
@@ -401,7 +401,7 @@ You cannot *access* this member in a normal invocation, so it could be argued th
 
 An unqualified identifier in the extension can refer to any extension member declaration, so inside an extension member body, `this.add` and `add` are not necessarily the same thing (if the `on` type has an `add` member, then `this.add` refers to that, while `add` refers to the extension method in the lexical scope). This may be confusing. In practice, extensions will rarely introduce members with the same name as their `on` type's members.
 
-### Tearoffs
+## Tearoffs
 
 A static extension method can be torn off like an instance method.
 
@@ -428,7 +428,7 @@ An explicit extension method application member invocation like `Foo<Bar>(b).baz
 
 There is still no way to tear off getters, setters or operators. If we ever introduce such a feature, it should work for extension methods too.
 
-### The `call` Member
+## The `call` Member
 
 A class instance method named `call` is implicitly callable on the object, and implicitly torn off when assigning the instance to a function type.
 

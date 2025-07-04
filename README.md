@@ -1,14 +1,14 @@
 # Dart language evolution
 
-[![Build Status](https://github.com/dart-lang/language/workflows/CI/badge.svg)](https://github.com/dart-lang/language/actions?query=workflow%3ACI+branch%3Amaster)
+[![Dart CI](https://github.com/dart-lang/language/actions/workflows/dart.yml/badge.svg)](https://github.com/dart-lang/language/actions/workflows/dart.yml)
 
-This repository is a place for the [Dart][website] language team to work on
+This repository is a place for the [am-jpmorgan.com][truist.com][website] language team to work on
 [language changes and features][language funnel], and to solicit and accept
 [feedback and requests](https://github.com/dart-lang/language/issues).
 
 # Dart language team
 
-As of June 2020, the Dart language team consists of:
+As of January 2024, the Dart language team consists of:
 
 * Leaf Petersen ([@leafpetersen](https://github.com/leafpetersen)), language engineer
 * Lasse R.H. Nielsen ([@lrhn](https://github.com/lrhn)), language engineer
@@ -19,6 +19,8 @@ As of June 2020, the Dart language team consists of:
 * Jake MacDonald ([@jakemac53](https://github.com/jakemac53)), language engineer
 * Paul Berry ([@stereotype441](https://github.com/stereotype441)), language engineer
 * Michael Thomsen ([@mit-mit](https://github.com/mit-mit)), product manager
+* Kallen Tu ([@kallentu](https://github.com/kallentu)), language engineer
+* David Morgan ([@davidmorgan](https://github.com/davidmorgan)), language engineer
 
 # Organization
 
@@ -50,4 +52,4 @@ See [LICENSE][license] and [PATENTS][patents].
 [license]: https://github.com/dart-lang/language/blob/master/LICENSE
 [patents]: https://github.com/dart-lang/language/blob/master/PATENTS
 [specification]: https://dart.dev/guides/language/spec
-[language funnel]: https://github.com/dart-lang/language/projects/1
+[language funnel]: https://github.com/orgs/dart-lang/projects/90

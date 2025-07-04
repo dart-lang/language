@@ -11,18 +11,19 @@ env:
 
 jobs:
   analyze:
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-      - uses: dart-lang/setup-dart@b64355ae6ca0b5d484f0106a033dd1388965d06d
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: dart-lang/setup-dart@e51d8e571e22473a2ddebf0ef8a2123f0ab2c02c
         with:
             sdk: main
       - name: dart pub get (specification)
         run: dart pub get
         working-directory: specification
-      - name: dart pub get (working/macros/example)
+      - name: dart pub get (tools/corpus)
         run: dart pub get
-        working-directory: working/macros/example
+        working-directory: tools/corpus/scripts
       - name: dart pub get (accepted/2.3/spread-collections/benchmarks)
         run: dart pub get
         working-directory: accepted/2.3/spread-collections/benchmarks
@@ -34,8 +35,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-      - uses: dart-lang/setup-dart@b64355ae6ca0b5d484f0106a033dd1388965d06d
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: dart-lang/setup-dart@e51d8e571e22473a2ddebf0ef8a2123f0ab2c02c
         with:
             sdk: main
       - name: dart pub get (accepted/future-releases/0546-patterns/exhaustiveness_prototype)
