@@ -1,0 +1,17 @@
+curl -X POST -H "Content-Type: application/json" \
+-H "X-Goog-User-Project: $(gcloud config list --format='value(core.project)')" \
+-H "Authorization: Bearer $(gcloud auth print-access-token)" \
+--data '{
+"input": {
+  "markup": "*"
+},
+"voice": {
+  "languageCode": "bn-IN",
+  "name": "bn-IN-Chirp3-HD-Achernar",
+  "voiceClone": {
+  }
+},
+"audioConfig": {
+  "audioEncoding": "LINEAR16"
+}
+}' "https://texttospeech.googleapis.com/v1/text:synthesize"
