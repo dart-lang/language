@@ -23523,7 +23523,7 @@ Then transform each library $L_i$, $i \in 1 .. n$ as follows:
 In short, this transformation adds a unique prefix to every type name
 which is resolved to a top-level declaration
 (in the same library or in an imported library).
-  
+
 This transformation does not change any occurrence of \VOID,
 and does not need to;
 \VOID{} is a reserved word, not a type identifier.
@@ -23545,7 +23545,8 @@ said types.
 
 \LMHash{}%
 When we say that two types $T_1$ and $T_2$ have the
-\IndexCustom{same explicitly resolved syntax}{type!same explicitly resolved syntax},
+\IndexCustom{same explicitly resolved syntax}{%
+  type!same explicitly resolved syntax},
 it refers to the situation where the current library
 and all libraries which are reachable via one or more imports
 have been transformed as described above,
@@ -23561,7 +23562,7 @@ In Dart, only function types can be subject to an alpha conversion:
 A function type is the only kind of type that declares type variables.
 For example,
 \code{List<X>\,\,\FUNCTION<X>({X\,\,arg})}
-can be turned into 
+can be turned into
 \code{List<Y>\,\,\FUNCTION<Y>({Y\,\,arg})}
 by alpha conversion.%
 }
@@ -23957,7 +23958,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
 \item
   If $T_0$ is \code{($V_0$, \ldots, $V_n$, \{$V_{n+1} d_{n+1}$, \ldots, $V_m d_m$\})}
   and $T_1$ is \code{($S_0$, \ldots, $S_n$, \{$S_{n+1} d_{n+1}$, \ldots, $S_m d_m$\})}
-  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{V_i}{S_i} for each $i \in 0 .. m$.  
+  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{V_i}{S_i} for each $i \in 0 .. m$.
 \end{itemize}
 
 
