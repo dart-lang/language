@@ -22893,6 +22893,13 @@ unless it is permitted according to one of the following rules.
     when the parameters of the statically known operator \code{[]=}
     both have type \VOID{}.%
   }
+  Finally, this rule also applies to setters.
+  \commentary{%
+    For example, with an expression of the form \code{$e_1$ = $e_2$}
+    which denotes a setter invocation whose
+    statically known parameter type is \VOID,
+    $e_2$ may have type \VOID{}.%
+  }
 \item
   In an expression of the form \code{$e_1$\,=\,$e_2$}
   where $e_1$ is an \synt{assignableExpression} denoting a local variable
@@ -22904,9 +22911,6 @@ unless it is permitted according to one of the following rules.
     See the discussion about soundness below
     (\ref{voidSoundness}).%
   }
-  Similarly, when \code{$e_1$\,=\,$e_2$} denotes
-  an invocation of a setter whose statically known parameter type is \VOID,
-  $e_2$ may have type \VOID.
 \item
   Let $e$ be an expression ending in a \synt{cascadeSection}
   of the form \code{..\,$S$\,$s$\;=\;$e_1$},
