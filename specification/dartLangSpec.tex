@@ -41,6 +41,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Jul 2025
+% - Clarify that operator `[]` and `[]=` are included in the `void` allowlist
+%   rule about formal parameters of type `void`, and so are setters.
+%
 % May 2025
 % - Add `s?.length` as a constant expression in the case where `s` satisfies
 %   some requirements.
@@ -22873,7 +22877,7 @@ unless it is permitted according to one of the following rules.
   may have type \VOID.
   \rationale{Usages of that variable are constrained.}
 \item
-  An actual parameter expression corresponding to a formal parameter
+  An actual argument expression corresponding to a formal parameter
   whose statically known type annotation is \VOID{}
   may have type \VOID.
   \rationale{%
@@ -22882,14 +22886,28 @@ unless it is permitted according to one of the following rules.
     See the discussion about soundness below
     (\ref{voidSoundness}).%
   }
+  This rule also applies to the operators \code{[]} and \code{[]=}.
+  \commentary{%
+    For example, $e_1$ and $e_2$ may have type \VOID{}
+    in an expression of the form \code{$e_0$[$e_1$] = $e_2$}
+    when the parameters of the statically known operator \code{[]=}
+    both have type \VOID{}.%
+  }
+  Finally, this rule also applies to setters.
+  \commentary{%
+    For example, with an expression of the form \code{$e_1$ = $e_2$}
+    which denotes a setter invocation whose
+    statically known parameter type is \VOID,
+    $e_2$ may have type \VOID{}.%
+  }
 \item
   In an expression of the form \code{$e_1$\,=\,$e_2$}
-  where $e_1$ is an \synt{assignableExpression}
-  denoting a variable or formal parameter of type \VOID,
+  where $e_1$ is an \synt{assignableExpression} denoting a local variable
+  \commentary{(which can also be a formal parameter)}
+  of type \VOID,
   $e_2$ may have type \VOID.
   \rationale{%
-    Usages of that variable or formal parameter
-    are statically expected to be constrained by having type \VOID.
+    Usages of that variable are constrained because it has type \VOID.
     See the discussion about soundness below
     (\ref{voidSoundness}).%
   }
