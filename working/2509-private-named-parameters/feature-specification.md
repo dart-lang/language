@@ -50,9 +50,9 @@ becomes:
 
 ```dart
 class House({
-  this._windows,
-  this._bedrooms,
-  this._swimmingPools,
+  var int? _windows,
+  var int? _bedrooms,
+  var int? _swimmingPools,
 });
 ```
 
@@ -262,9 +262,9 @@ When this proposal is combined with primary constructors, they can write:
 
 ```dart
 class House({
-  int? _windows,
-  int? _bedrooms,
-  int? _swimmingPools,
+  var int? _windows,
+  var int? _bedrooms,
+  var int? _swimmingPools,
 });
 ```
 
