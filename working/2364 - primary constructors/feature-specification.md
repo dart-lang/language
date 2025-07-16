@@ -128,8 +128,8 @@ style whereby formal parameters are never modified will have a
 [parameter_assignments]: https://dart.dev/tools/linter-rules/parameter_assignmentshttps://dart.dev/tools/linter-rules/parameter_assignments
 
 Similarly, with this feature a regular (non-declaring) formal parameter can
-not be declared with the syntax `var name`, it must have a type (`T name`)
-or the type must be omitted (`name`).
+not use the syntax `var name`, it must have a type (`T name`) or the type
+must be omitted (`name`).
 
 A declaring header constructor can have a body and/or an initializer list.
 These elements are placed in the class body in a declaration that provides
