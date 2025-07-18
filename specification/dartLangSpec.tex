@@ -6191,6 +6191,18 @@ the same value as $d_i$.
 If $S_q$ is a generative const constructor, and $M$ does not declare any
 fields, $C_q$ is also a const constructor.
 
+\LMHash{}%
+If $S$ does not declare any generative constructors then the application
+does not implicitly induce any forwarding constructors.
+In particular, it does not induce a default constructor
+(\ref{constructors}).
+
+\commentary{%
+  The default constructor would have a superinitializer
+  that attempts to invoke a constructor that does not exist.
+  Developers would have no way to eliminate this error.%
+}
+
 
 \section{Extensions}
 \LMLabel{extensions}
