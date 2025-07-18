@@ -42,6 +42,13 @@ class House {
 }
 ```
 
+Calls to the constructor are unchanged and continue to use the public argument
+names:
+
+```dart
+House(windows: 5, bedrooms: 3);
+```
+
 This proposal harmonizes with (and in a couple of places mentions) the [primary
 constructors][] proposal. When combined with that proposal, the above example
 becomes:
