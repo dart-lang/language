@@ -42,6 +42,13 @@ class House {
 }
 ```
 
+Calls to the constructor are unchanged and continue to use the public argument
+names:
+
+```dart
+House(windows: 5, bedrooms: 3);
+```
+
 This proposal harmonizes with (and in a couple of places mentions) the [primary
 constructors][] proposal. When combined with that proposal, the above example
 becomes:
@@ -268,6 +275,79 @@ class House({
 });
 ```
 
+### Concerns
+
+This proposal makes the language implicitly convert a private named parameter
+into the verbose pattern users do today where they declare a public named
+parameter and explicitly initialize the private field from it:
+
+```dart
+class C {
+  int? _variable;
+
+  C({int? variable}) : _variable = variable;
+}
+```
+
+While verbose, this code has the advantage of being very clear what's going on.
+A reader can see that the argument name they must use at the callsite is
+`variable`, the field is named `_variable`, and the latter is initialized from
+the former.
+
+Discarding the `_` implicitly may be confusing for users. If a user sees a class
+like:
+
+```dart
+class C({int? _variable}) {}
+```
+
+They may try to call it like `C(_variable: 123)` and be confused that it doesn't
+work. There's nothing in the code hinting that the `_` is removed from the
+argument name.
+
+In general, we try to design features that are both useful once you know
+them and intuitive to learn in the first place. This feature is helpful for
+brevity once you know the "trick", but it's opaque when it comes to learning.
+This is a real concern with the feature, but I believe the brevity makes it
+worth the learnability cost.
+
+We mitigate confusion here in a couple of ways:
+
+#### Only allow the syntax where it's meaningful
+
+At the language level, this proposal only allows `_` in a named parameter when
+doing so is *useful and meaningful*. It doesn't allow *any* named parameter to
+start with underscore, only a named parameter that declares or initializes a
+private instance field.
+
+A private named parameter *looks weird* since privacy makes little sense for an
+argument name and makes even less sense for the local parameter variable. (We
+already have a lint that warns on using `_` for local variable names since it
+accomplishes nothing.)
+
+If a user sees `_` on a parameter and is trying to figure out what's going on,
+they will reliably be in a context where that parameter is also referring to a
+field. If we're lucky, that may lead them to intuit that the privacy is for the
+field, not the parameter.
+
+#### Provide a teaching error if they use `_` for other named parameters
+
+If a user tries to put `_` before a named parameter that *isn't* an initializing
+formal or declaring parameter, it's an error. That error message can explain
+that it's forbidden *here* but that the syntax can be used to declare or
+initialize a private field.
+
+#### Provide a teaching error if they use `_` on the argument name
+
+If a user sees a named parameter with a private name, they may try to call the
+constructor with that same private argument name, like `C(_variable: 123)`.
+When they do, this is always an error.
+
+The error message for that can explain that the `_` is only used to make the
+corresponding field private and that the argument should be the public name. The
+first time a user tries to call one of these constructors the wrong way, we can
+teach them the feature.
+
 ## Static semantics
 
 An identifier is a **private name** if it starts with an underscore (`_`),
@@ -396,7 +476,22 @@ initializing formal with the private name.
 Since there's no reason to *not* prefer using an initialing formal in cases
 like this, it probably makes sense to have a lint encouraging this as well.
 
+### Good error messages when users misuse this feature
+
+Since this feature likely isn't as intuitive as we hope to be, error messages
+are even more important to help users understand what the language is doing and
+getting them back on the right path.
+
+The [Concerns][] section suggests two error cases and how good messaging there
+can help users learn the feature.
+
+[concerns]: #concerns
+
 ## Changelog
+
+### 0.2
+
+-   Add section about concerns for learnability and mitigations.
 
 ### 0.1
 
