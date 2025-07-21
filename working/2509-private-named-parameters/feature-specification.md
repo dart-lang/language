@@ -321,7 +321,7 @@ start with underscore, only a named parameter that declares or initializes a
 private instance field.
 
 A private named parameter *looks weird* since privacy makes little sense for an
-argument name and makes even less since for the local parameter variable. (We
+argument name and makes even less sense for the local parameter variable. (We
 already have a lint that warns on using `_` for local variable names since it
 accomplishes nothing.)
 
@@ -330,14 +330,14 @@ they will reliably be in a context where that parameter is also referring to a
 field. If we're lucky, that may lead them to intuit that the privacy is for the
 field, not the parameter.
 
-#### Provide a teaching errors if they use `_` for other named parameters
+#### Provide a teaching error if they use `_` for other named parameters
 
 If a user tries to put `_` before a named parameter that *isn't* an initializing
 formal or declaring parameter, it's an error. That error message can explain
 that it's forbidden *here* but that the syntax can be used to declare or
 initialize a private field.
 
-#### Provide teaching error if they use `_` on the argument name
+#### Provide a teaching error if they use `_` on the argument name
 
 If a user sees a named parameter with a private name, they may try to call the
 constructor with that same private argument name, like `C(_variable: 123)`.
