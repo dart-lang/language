@@ -108,7 +108,8 @@ However, initializing formals (the `this.` before a constructor parameter)
 complicate that story. When a named parameter is also an initializing formal,
 then the name affects *three* places in the program:
 
-1.  The name of the parameter variable inside the body of the constructor.
+1.  The name of the parameter variable inside the constructor initializer list.
+    (Inside the constructor *body*, it's the instance field that is in scope.)
 
 2.  The name used to pass an argument at the callsite.
 
