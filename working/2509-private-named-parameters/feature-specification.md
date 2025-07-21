@@ -74,11 +74,8 @@ its library. Privacy is only meaningful for declarations that could be accessed
 from outside of the library: top-level declarations and members on types.
 
 Local variables and parameters aren't in scope outside of the library where they
-are defined, so privacy doesn't come into play. Except, that is, for named
-parameters. A *named* parameter has one foot on each side of the function
-boundary. The parameter defines a local variable that is accessible inside the
-function, but it also specifies the name used at the callsite to pass an
-argument for that parameter:
+are defined, but named parameters can be referenced from outside of the library.
+This raises the question of how to interpret a private named parameter:
 
 ```dart
 test({String? _hmm}) {
@@ -90,17 +87,14 @@ main() {
 }
 ```
 
-A public function containing a named parameter whose name is private raises
-difficult questions. Is there any way to pass an argument to the function from
-outside of the library? If the parameter is required, does that mean the
-function is effectively uncallable? Or do we not treat the identifier as private
-even though it starts with an underscore if it happens to be a parameter name?
+Should this be allowed? And if so, do we treat this as a named parameter which
+can only be called from within the defining library?
 
-The language currently resolves these questions by routing around them: it is a
-compile-time error to have a named parameter with a private name. Users must use
-a public name instead. For most named parameters, this restriction is harmless.
-The parameter is only used within the body of the function and its idiomatic for
-local variables to not have private names anyway.
+The language currently resolves this by saying that it is a compile-time error
+to have a named parameter with a private name. Users must use a public name
+instead. For most named parameters, this restriction is harmless. The parameter
+is only used within the body of the function and it is idiomatic for local
+variables to not have private names anyway.
 
 ### Initializing formals
 
