@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 0.1 (see [CHANGELOG](#CHANGELOG) at end)
+Version 0.2 (see [CHANGELOG](#CHANGELOG) at end)
 
 Experiment flag: private-named-parameters
 
@@ -343,6 +343,34 @@ corresponding field private and that the argument should be the public name. The
 first time a user tries to call one of these constructors the wrong way, we can
 teach them the feature.
 
+### Super parameters
+
+We allow private named parameters for initializing formals and (assuming primary
+constructors exist), declaring parameters. What about the other special kind of
+constructor parameter, super parameters (the `super.` syntax)?
+
+Those are unaffected by this proposal. A super parameter generates an implicit
+argument that forwards to a superclass constructor. The argument name is always
+public, even if the superclass's constructor parameter uses this feature and
+has a private name. Thus, super parameters continue to always use public names.
+For example:
+
+```dart
+class Tool {
+  int _price;
+
+  Tool({this._price}); // Private name here.
+}
+
+void cheapTool() => Tool(price: 1); // Called with public name.
+
+class Hammer extends Tool {
+  Hammer({super.price}); // And thus call with public name here too.
+}
+
+void pricyHammer() => Hammer(price: 200);
+```
+
 ## Static semantics
 
 An identifier is a **private name** if it starts with an underscore (`_`),
@@ -487,6 +515,7 @@ can help users learn the feature.
 ### 0.2
 
 -   Add section about concerns for learnability and mitigations.
+-   Add section on super parameters.
 
 ### 0.1
 
