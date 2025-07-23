@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 0.1 (see [CHANGELOG](#CHANGELOG) at end)
+Version 0.2 (see [CHANGELOG](#CHANGELOG) at end)
 
 Experiment flag: private-named-parameters
 
@@ -74,11 +74,8 @@ its library. Privacy is only meaningful for declarations that could be accessed
 from outside of the library: top-level declarations and members on types.
 
 Local variables and parameters aren't in scope outside of the library where they
-are defined, so privacy doesn't come into play. Except, that is, for named
-parameters. A *named* parameter has one foot on each side of the function
-boundary. The parameter defines a local variable that is accessible inside the
-function, but it also specifies the name used at the callsite to pass an
-argument for that parameter:
+are defined, but named parameters can be referenced from outside of the library.
+This raises the question of how to interpret a private named parameter:
 
 ```dart
 test({String? _hmm}) {
@@ -90,17 +87,14 @@ main() {
 }
 ```
 
-A public function containing a named parameter whose name is private raises
-difficult questions. Is there any way to pass an argument to the function from
-outside of the library? If the parameter is required, does that mean the
-function is effectively uncallable? Or do we not treat the identifier as private
-even though it starts with an underscore if it happens to be a parameter name?
+Should this be allowed? And if so, do we treat this as a named parameter which
+can only be called from within the defining library?
 
-The language currently resolves these questions by routing around them: it is a
-compile-time error to have a named parameter with a private name. Users must use
-a public name instead. For most named parameters, this restriction is harmless.
-The parameter is only used within the body of the function and its idiomatic for
-local variables to not have private names anyway.
+The language currently resolves this by saying that it is a compile-time error
+to have a named parameter with a private name. Users must use a public name
+instead. For most named parameters, this restriction is harmless. The parameter
+is only used within the body of the function and it is idiomatic for local
+variables to not have private names anyway.
 
 ### Initializing formals
 
@@ -349,6 +343,34 @@ corresponding field private and that the argument should be the public name. The
 first time a user tries to call one of these constructors the wrong way, we can
 teach them the feature.
 
+### Super parameters
+
+We allow private named parameters for initializing formals and (assuming primary
+constructors exist), declaring parameters. What about the other special kind of
+constructor parameter, super parameters (the `super.` syntax)?
+
+Those are unaffected by this proposal. A super parameter generates an implicit
+argument that forwards to a superclass constructor. The super constructor's
+argument name is always public, even if the corresponding constructor parameter
+uses this feature and has a private name. Thus, super parameters continue to
+always use public names. For example:
+
+```dart
+class Tool {
+  int _price;
+
+  Tool({this._price}); // Private name here.
+}
+
+void cheapTool() => Tool(price: 1); // Called with public name.
+
+class Hammer extends Tool {
+  Hammer({super.price}); // And thus call with public name here too.
+}
+
+void pricyHammer() => Hammer(price: 200);
+```
+
 ## Static semantics
 
 An identifier is a **private name** if it starts with an underscore (`_`),
@@ -493,6 +515,7 @@ can help users learn the feature.
 ### 0.2
 
 -   Add section about concerns for learnability and mitigations.
+-   Add section on super parameters.
 
 ### 0.1
 
