@@ -226,10 +226,11 @@ encapsulation.
 
 ## Proposal
 
-The basic idea is simple. We let users use a private name in a named parameter.
-The compiler removes the `_` from the argument name but keeps it for the
-corresponding initialized or declared field. In other words, we do exactly what
-users are doing by hand when they write an initializer like:
+The basic idea is simple. We let users use a private name in a named parameter
+when the parameter also initializes or declares a field. The compiler removes
+the `_` from the argument name but keeps it for the corresponding field. In
+other words, we do exactly what users are doing by hand when they write an
+initializer like:
 
 ```dart
 class House {
@@ -395,9 +396,11 @@ with private name *p* in constructor C:
     compile-time error. *If removing the `_` leads to a collision with
     another parameter, then there is a conflict.*
 
-*   Otherwise, the name of the parameter in C is *n*. *If the parameter is
-    named, this then avoids the compile-time error that would otherwise be
-    reported for a private named parameter.*
+*   Otherwise, the name of the parameter in the signature of C is *n*. By "in
+    the signature", this means uses of the constructor: invocations, dynamic
+    invocations, tear-offs, chained calls from a subclass's constructor, etc.
+    *If the parameter is named, this then avoids the compile-time error that
+    would otherwise be reported for a private named parameter.*
 
 *   The name of the local variable in the initializer list scope of C is *p*.
     *In the initializer list, the private name is used. Inside the body of the
