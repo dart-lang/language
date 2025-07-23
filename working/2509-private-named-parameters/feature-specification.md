@@ -350,10 +350,10 @@ constructors exist), declaring parameters. What about the other special kind of
 constructor parameter, super parameters (the `super.` syntax)?
 
 Those are unaffected by this proposal. A super parameter generates an implicit
-argument that forwards to a superclass constructor. The argument name is always
-public, even if the superclass's constructor parameter uses this feature and
-has a private name. Thus, super parameters continue to always use public names.
-For example:
+argument that forwards to a superclass constructor. The super constructor's
+argument name is always public, even if the corresponding constructor parameter
+uses this feature and has a private name. Thus, super parameters continue to
+always use public names. For example:
 
 ```dart
 class Tool {
