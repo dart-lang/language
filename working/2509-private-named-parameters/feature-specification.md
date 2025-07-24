@@ -312,9 +312,9 @@ We mitigate confusion here in a couple of ways:
 #### Only allow the syntax where it's meaningful
 
 At the language level, this proposal only allows `_` in a named parameter when
-doing so is *useful and meaningful*. It doesn't allow *any* named parameter to
-start with underscore, only a named parameter that declares or initializes a
-private instance field.
+doing so is *useful and meaningful* because it declares or initializes a private
+instance field. If the named parameter does neither of those, this proposal
+still prohibits the parameter from having a private name.
 
 A private named parameter *looks weird* since privacy makes little sense for an
 argument name and makes even less sense for the local parameter variable. (We
@@ -461,13 +461,20 @@ further ideas for additional warnings, lints, and quick fixes.
 
 Authors documenting an API that uses this feature should refer to the
 constructor parameter by its public name since that's what users will pass.
-Likewise, docs generator like [`dart doc`][dartdoc] should document the
+Likewise, doc generators like [`dart doc`][dartdoc] should document the
 constructor's parameter with its public name. The fact that the parameter
 initializes or declares a private field is an implementation detail of the
 class. What a user of the class cares about is the corresponding public name for
 the constructor parameter.
 
 [dartdoc]: https://dart.dev/tools/dart-doc
+
+The language already allows a *positional* parameter to have a private name
+since doing so has no effect on callsites. Doc generators are encouraged to
+also show the public name for those parameters in generated docs too. The fact
+that the positional parameter happens to initialize or declare a private field
+is again an implementation detail that shouldn't appear in the API or
+documentation.
 
 ### Lint and quick fix to use private named parameter
 
