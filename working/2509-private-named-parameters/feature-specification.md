@@ -105,7 +105,7 @@ then the name affects *three* places in the program:
 1.  The name of the parameter variable inside the constructor initializer list.
     (Inside the constructor *body*, it's the instance field that is in scope.)
 
-2.  The name used to pass an argument at the callsite.
+2.  The name used to pass an argument at the call site.
 
 3.  The name of the corresponding instance field to initialize with that
     parameter.
@@ -138,7 +138,7 @@ This creates a tension. A user may want:
     unusual initializer syntax, and makes it clear to a reader that the field
     is directly initialized from that parameter.
 
-They want encapsulation, readability at callsites, and brevity in the class
+They want encapsulation, readability at call sites, and brevity in the class
 definition, but because of the compile-error on private named parameters, they
 can only [pick two][].
 
@@ -286,7 +286,7 @@ class C {
 ```
 
 While verbose, this code has the advantage of being very clear what's going on.
-A reader can see that the argument name they must use at the callsite is
+A reader can see that the argument name they must use at the call site is
 `variable`, the field is named `_variable`, and the latter is initialized from
 the former.
 
@@ -390,24 +390,26 @@ with private name *p* in constructor C:
 
 *   If *p* has no corresponding public name *n*, then compile-time error. *You
     can't use a private name for a named parameter unless there is a valid
-    public name that could be used at the callsite.*
+    public name that could be used at the call site.*
 
 *   If any other parameter in C has declared name *p* or *n*, then
     compile-time error. *If removing the `_` leads to a collision with
     another parameter, then there is a conflict.*
 
-*   Otherwise, the name of the parameter in the signature of C is *n*. By "in
-    the signature", this means uses of the constructor: invocations, dynamic
-    invocations, tear-offs, chained calls from a subclass's constructor, etc.
-    *If the parameter is named, this then avoids the compile-time error that
-    would otherwise be reported for a private named parameter.*
+If there is no error then:
 
-*   The name of the local variable in the initializer list scope of C is *p*.
-    *In the initializer list, the private name is used. Inside the body of the
-    constructor, uses of *p* refer to the field, not the parameter.*
+*   The parameter name of the parameter in the constructor is the public name
+    *n*. This means that the parameter has a public name in the constructor's
+    function signature, and arguments for this parameter are given using the
+    public name. All uses of the constructor, outside of its own code, see only
+    the public name.
 
-*   If the parameter is an initializing formal, then it initializes a
-    corresponding field with name *p*.
+*   The local variable introduced by the parameter, accessible only in the
+    initializer list, still has the private name *p*. *Inside the body of the
+    constructor, uses of _p_ refer to the instance variable, not the parameter.*
+
+*   The instance variable initialized by the parameter (and declared by it, if
+    the parameter is a field parameter), has the private name *p*.
 
 *   Else the field parameter induces an instance field with name *p*.
 
@@ -470,7 +472,7 @@ the constructor parameter.
 [dartdoc]: https://dart.dev/tools/dart-doc
 
 The language already allows a *positional* parameter to have a private name
-since doing so has no effect on callsites. Doc generators are encouraged to
+since doing so has no effect on call sites. Doc generators are encouraged to
 also show the public name for those parameters in generated docs too. The fact
 that the positional parameter happens to initialize or declare a private field
 is again an implementation detail that shouldn't appear in the API or
