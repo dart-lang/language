@@ -410,9 +410,9 @@ any.
 In other words, when a class has a primary constructor, each of the
 initializing expressions of a non-late instance variable has the same
 access to the primary constructor parameters as the initializer list would
-have if it had been a regular (non-declaring) constructor in the body. This
-is convenient, and it makes refactorings from one to another kind of
-constructor simpler and safer.
+have if it had been a regular (non-declaring) constructor in the body with
+an initializer list. This is convenient, and it makes refactorings from one
+to another kind of constructor simpler and safer.
 
 ```dart
 // Current syntax.
@@ -539,7 +539,7 @@ in the initializer list of the constructor to initialize `w`. This is
 necessary because there cannot be other non-redirecting generative
 constructors when there is a primary constructor, but in the two other
 versions we could add another non-redirecting generative constructor which
-would initialize `w` with some other value.
+could initialize `w` with some other value.
 
 Moreover, we may get rid of all those occurrences of `required` in the
 situation where it is a compile-time error to not have them, but that is a
