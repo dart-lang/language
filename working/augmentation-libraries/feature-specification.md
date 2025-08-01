@@ -450,7 +450,7 @@ scope. *We could say that it attaches itself to the existing name.*
 
 Augmentations aren't allowed to *replace* code, so they mostly add entirely new
 declarations to the surrounding type. However, function and constructor
-augmentations can fill in a body for an augmented declaration that is lacks one.
+augmentations can fill in a body for an augmented declaration that lacks one.
 
 More precisely, a function or constructor declaration (introductory or
 augmenting) is *incomplete* if all of:
@@ -768,13 +768,45 @@ augment class Person {
 }
 ```
 
+A top-level function, static method, or instance method may be augmented to
+provide default values for optional parameters:
+
+```dart
+class C {
+  void m1([int i]);
+  void m2({String name});
+  void m3({String otherName = "Smith"}); // OK, too.
+}
+
+augment class C {
+  augment m1([i = 1]) {}
+  augment m2({name = "John"}) {}
+  augment m3({otherName}) {}
+}
+```
+
+An optional formal parameter has the default value _d_ if exactly one
+declaration of that formal parameter in the augmentation chain specifies a
+default value, and it is _d_. An optional formal parameter does not have an
+explicitly specified default value if none of its declarations in the
+augmentation chain specifies a default value; in this case, the default value
+is introduced implicitly with the value null in the case where the parameter
+has a nullable declared type, and no default values for that parameter are
+specified in the augmentation chain.
+
 It's a **compile-time** error if:
 
 *   The signature of the augmenting function does not [match][signature
     matching] the signature of the augmented function.
 
-*   The augmenting function specifies any default values. *Default values are
-    defined solely by the introductory function.*
+*   The augmentation chain has two or more specifications of a default value
+    for the same optional parameter. This is an error even in the case where
+    all of them are identical. *Default values are defined by the introductory
+    function or an augmentation, but at most once.*
+
+*   The augmentation chain has no specifications of a default value for an
+    optional parameter whose declared type is potentially non-nullable, and
+    the declared function is not abstract.
 
 *   A function is not complete after all augmentations are applied, unless it's
     an instance member and the surrounding class is abstract. *Every function
@@ -845,13 +877,27 @@ Augmenting constructors works similar to augmenting a function, with some extra
 rules to handle features unique to constructors like redirections and
 initializer lists.
 
+It is **not** a compile-time error for an incomplete factory constructor to
+omit default values. *That is, they are treated similarly to abstract
+instance methods in this respect. This allows the augmenting declaration to
+implement the constructor by adding a redirection or a body.*
+
 It's a **compile-time error** if:
 
 *   The signature of the augmenting function does not [match][signature
     matching] the signature of the augmented function.
 
-*   The augmenting constructor parameters specify any default values.
-    *Default values are defined solely by the introductory constructor.*
+*   The augmentation chain has two or more specifications of a default value
+    for the same optional parameter. This is an error even in the case where
+    all of them are identical. *Default values are defined by the introductory
+    declaration or an augmentation, but at most once.*
+
+*   The augmentation chain has exactly one specification of a default value
+    for an optional parameter, and the constructor is a redirecting factory.
+
+*   The augmentation chain has no specifications of a default value for an
+    optional parameter whose declared type is potentially non-nullable, and
+    the constructor is not a redirecting factory.
 
 *   The introductory constructor is `const` and the augmenting constructor
     is not or vice versa. *An augmentation can't change whether or not a
@@ -862,6 +908,13 @@ It's a **compile-time error** if:
     constructor is not, or vice versa. *An augmentation can't change whether or
     not a constructor is generative because that affects whether users are
     allowed to call the constructor in a subclass's initializer list.*
+
+*   More than one constructor declaration in an augmentation chain specifies
+    a default value for the same parameter.
+
+*   A constructor declaration in an augmentation chain is a redirecting
+    factory, and some declaration in the chain specifies a default value
+    for one or more parameters.
 
 An incomplete constructor can be completed by adding an initializer list and/or
 a body, or by adding a redirection:
