@@ -111,9 +111,9 @@ that assignment).
   - We use the notation `[...l, a]` where `l` is a list to denote a list
     beginning with all the elements of `l` and followed by `a`.
   - A list of types `p` is called a _promotion chain_ iff, for all `i < j`,
-    `p[i] <: p[j]`. _Note that since the subtyping relation is transitive, in
+    `p[j] <: p[i]`. _Note that since the subtyping relation is transitive, in
     order to establish that `p` is a promotion chain, it is sufficient to check
-    the `p[i] <: p[j]` relation for each adjacent pair of types._
+    the `p[j] <: p[i]` relation for each adjacent pair of types._
   - A promotion chain `p` is said to be _valid for declared type `T`_ iff every
     type in `p` is a subtype of `T`. _Note that since the subtyping relation is
     transitive, in order to establish that `p` is valid for declared type `T`,
@@ -205,14 +205,6 @@ The following functions associate flow models to nodes:
 - `false(E)`, where `E` is an expression, represents the *flow model* just after
   execution of `E`, assuming that `E` completes normally and evaluates to `false`.
 
-- `break(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
-  represents the join of the flow models reaching each `break` statement
-  targetting `S`.
-
-- `continue(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
-  represents the join of the flow models reaching each `continue` statement
-  targetting `S`.
-
 - `assignedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
   or a `for` element in a collection, represents the set of variables assigned
   to in the recurrent part of `S`, not counting initializations of variables at
@@ -270,95 +262,119 @@ We also make use of the following auxiliary functions:
   nodes inside of a control flow split, and is defined as `FlowModel(r2, VM)`
   where `r2` is `r` with `true` pushed as the top element of the stack.
 
-- `drop(M)`, where `M = FlowModel(r, VM)` is defined as `FlowModel(r1, VM)`
-  where `r` is of the form `[...r1, n0]`.  This is the flow model which drops
-  the reachability information encoded in the top entry in the stack.
-
 - `unsplit(M)`, where `M = FlowModel(r, VM)` is defined as `M1 = FlowModel(r1,
   VM)` where `r` is of the form `[...s, n1, n0]` and `r1 = [...s, n0&&n1]`. The
   model `M1` is a flow model which collapses the top two elements of the
   reachability model from `M` into a single boolean which conservatively
   summarizes the reachability information present in `M`.
 
-- `merge(M1, M2)`, where `M1` and `M2` are flow models is the inverse of `split`
-  and represents the result of joining two flow models at the merge of two
-  control flow paths.  If `M1 = FlowModel(r1, VI1)` and `M2 = FlowModel(r2,
-  VI2)` where `pop(r1) = pop(r2) = r0` then:
-  - if `top(r1)` is true and `top(r2)` is false, then `M3` is `FlowModel(pop(r1), VI1)`.
-  - if `top(r1)` is false and `top(r2)` is true, then `M3` is `FlowModel(pop(r2), VI2)`.
-  - otherwise `M3` is `join(unsplit(M1), unsplit(M2))`
+- `unsplitTo(r0, M)` is defined recursively as follows:
+  - Let `M = FlowModel(r, VI)`.
+  - If `r0` and `r` have the same length, then `unsplitTo(r, M) = M`.
+  - Otherwise, `unsplitTo(r, M) = unsplitTo(r, unsplit(M))`.
+  - _In other words, the effect of `unsplitTo(r, M)` is to perform `unsplit()`
+    on `M` exactly the number of times necessary to cause the length of its
+    `reachability` stack to match that of `r`._
 
 - `join(M1, M2)`, where `M1` and `M2` are flow models, represents the union of
   two flow models and is defined as follows:
 
   - We define `join(M1, M2)` to be `M3 = FlowModel(r3, VI3)` where:
     - `M1 = FlowModel(r1, VI1)`
-    - `M2 = FlowModel(r2, VI2))`
+    - `M2 = FlowModel(r2, VI2)`
     - `pop(r1) = pop(r2) = r0` for some `r0`
     - `r3` is `push(r0, top(r1) || top(r2))`
     - `VI3` is the map which maps each variable `v` in the domain of `VI1` and
       `VI2` to `joinV(VI1(v), VI2(v))`.  Note that any variable which is in
       domain of only one of the two is dropped, since it is no longer in scope.
 
-  The `merge`, `join` and `joinV` combinators are commutative and associative by
-  construction.
+  _We expect the `join` and `joinV` combinators to be commutative and
+  associative, but we don't rely on this for the soundness of the algorithm._
 
-  For brevity, we will sometimes extend `join` and `merge` to more than two
-  arguments in the obvious way.  For example, `join(M1, M2, M3)` represents
-  `join(join(M1, M2), M3)`, and `join(S)`, where S is a set of models, denotes
-  the result of folding all models in S together using `join`.
+  For brevity, we will sometimes extend `join` to more than two arguments in the
+  obvious way.  For example, `join(M1, M2, M3)` represents `join(join(M1, M2),
+  M3)`, and `join(S)`, where S is a set of models, denotes the result of folding
+  all models in S together using `join`.
 
-- `restrictV(VMB, VMF, b)`, where `VMB` and `VMF` are variable models and `b` is
-  a boolean indicating wether the variable is written in the finally block,
-  represents the composition of two variable models through a try/finally and is
-  defined as follows:
-  - If `VMB = VariableModel(d1, p1, s1, a1, u1, c1)` and
-  - If `VMF = VariableModel(d2, p2, s2, a2, u2, c2)` then
-  - `VM3 = VariableModel(d3, p3, s3, a3, u3, c3)` where
-   - `d3 = d1 = d2`
-     - Note that all models must agree on the declared type of a variable
-   - `c3 = c2`
-     - A variable is captured if it is captured in the model of the finally
-       block (note that the finally block is analyzed using the join of the
-       model from before the try block and after the try block, and so any
-       captures from the try block are already modelled here).
-   - if `c3` is true then `p3 = []`.  (_Captured variables can never be
-     promoted._)
-   - Otherwise, if `b` is true then `p3 = p2`
-   - Otherwise, if the last entry in `p1` is a subtype of the last
-     entry of `p2`, then `p3 = p1` else `p3 = p2`.  If the variable is not
-     written to in the finally block, then it is valid to use any promotions
-     from the try block in any subsequent code (since if any subsequent code is
-     executed, the try block must have completed normally).  We only choose to
-     do so if the last entry is more precise.  (TODO: is this the right thing to
-     do here?).
-   - `s3 = s2`
-     - The set of types of interest is the set of types of interest in the
-       finally block.
-   - `a3 = a2 || a1`
-     - A variable is definitely assigned after the finally block if it is
-       definitely assigned by the try block or by the finally block (note that
-       code after the finally block will only be executed if the try block
-       completes normally).
-   - `u3 = u2`
-     - A variable is definitely unassigned if it is definitely unassigned in the
-       model of the finally block (note that the finally block is analyzed using
-       the join of the model from before the try block and after the try block,
-       and so the absence of any assignments that may have occurred in the try
-       block is already modelled here).
+  Simiarly, if L is a non-empty list of flow models, `join(...L)` represents the
+  result of folding the list using `join`.
 
-- `restrict(MB, MF, N)`, where `MB` and `MF` are flow models and `N` is a set of
-  variables assigned in the finally clause, models the flow of information
-  through a try/finally statement, and is defined as follows:
+- `rebasePromotedTypes(basePromotions, newPromotions)`, where `basePromotions`
+  and `newPromotions` are promotion chains, computes a promotion chain
+  containing promotions from both `basePromotions` and `newPromotions`,
+  discarding promotions if necessary to avoid violating the promotion chain
+  requirement. It is defined as follows:
+  - If `basePromotions` is empty, then `rebasePromotedTypes(basePromotions,
+    newPromotions) = newPromotions`.
+  - Otherwise:
+    - Let `T2` be the last type in `basePromotions`.
+    - Let `newPromotions'` be a promotion chain obtained by deleting any
+      elements `T` from `newPromotions` that do not satisfy `T <: T2`.
+    - Let `rebasePromotedTypes(basePromotions, newPromotions) =
+      [...basePromotions, ...newPromotions']`.
 
-  - We define `restrict(MB, MF, N)` to be `M3 = FlowModel(r3, VI3)` where:
-    - `MB = FlowModel(rb, VIB)`
-    - `MF = FlowModel(rf, VIF))`
-    - `pop(rb) = pop(rf) = r0` for some `r0`
-    - `r3` is `push(r0, top(rb) && top(rf))`
-    - `b` is true if `v` is in `N` and otherwise false
-    - `VI3` is the map which maps each variable `v` in the domain of `VIB` and
-      `VIF` to `restrictV(VIB(v), VIF(v), b)`.
+  _The reason `rebasePromotedTypes` is asymmetric is that it is used in
+  asymmetric situations. For example, when analyzing a `try`/`finally`
+  statement, `basePromotions` contains the promotions from the end of the `try`
+  block and `newPromotions` contains the promotions from the end of the
+  `finally` block. Hence, to compute the promotion chain after the
+  `try`/`finally` block, the promotions from `basePromotions` should be applied
+  first, followed by any promotions from `newPromotions` that do not violate the
+  promotion chain requirement._
+
+- `attachFinally(afterTry, beforeFinally, afterFinally)`, where `afterTry`,
+  `beforeFinally`, and `afterFinally` are flow models, represents the state of
+  the program after a `try/finally` statement, where `afterTry` is the state
+  after the `try` block, `beforeFinally` is the state before the `finally`
+  block, and `afterFinally` is the state after the `finally` block. It is
+  defined as `FlowModel(r4, VI4)`, where:
+  - Let `afterTry = FlowModel(r1, VI1)`, `beforeFinally = FlowModel(r2, VI2)`,
+    and `afterFinally = FlowModel(r3, VI3)`.
+  - Let `r4` be defined as follows:
+    - If `top(r3)` is `true`, then let `r4 = r1`. _If the `finally` block does
+      not unconditionally exit, then the reachability behavior of the
+      `try/finally` statement as a whole is the same as that of the `try`
+      block._
+    - Otherwise, let `r4 = unreachable(r1)`. _If the `finally` block
+      unconditionally exits, then the `try/finally` statement as a whole
+      unconditionally exits._
+  - Let `VI4` be the map which maps each variable `v` in the domain of either
+    `VI1` or `VI3` as follows:
+    - If `v` is in the domain of `VI1` but not `VI3`, then `VI4(v) = VI1(v)`.
+    - If `v` is in the domain of `VI3` but not `VI1`, then `VI4(v) = VI3(v)`.
+    - If `v` is in the domain of both `VI1` and `VI3`, then `VI4(v) =
+      attachFinallyV(VI1(v), VI2(v), VI3(v))`. _Note that if `v` is in the
+      domain of both `VI1` and `VI3`, it must have been declared before the
+      `try/finally` statement, therefore it must also be in the domain of
+      `VI2`._
+
+- `attachFinallyV(afterTry, beforeFinally, afterFinally)`, where `afterTry`,
+  `beforeFinally`, and `afterFinally` are variable models, represents the state
+  of a variable model after a `try/finally` statement, where `afterTry` is the
+  state after the `try` block, `beforeFinally` is the state before the `finally`
+  block, and `afterFinally` is the state after the `finally` block. It is
+  defined as `VariableModel(d4, p4, s4, a4, u4, c4)`, where:
+  - Let `afterTry = VariableModel(d1, p1, s1, a1, u1, c1)`.
+  - Let `beforeFinally = VariableModel(d2, p2, s2, a2, u2, c2)`.
+  - Let `afterFinally = VariableModel(d3, p3, s3, a3, u3, c3)`.
+  - Let `d4 = d3`. _A variable's declared type cannot change. Therefore, `d1 =
+    d2 = d3`, so it is safe to simply pick `d3`._
+  - Let `p4` be determined as follows:
+    - If the variable's value might have been changed by the `finally` block
+      (_TODO(paulberry): specify precisely how this is determined_), then `p4 =
+      p3`. _Promotions from the `try` block aren't necessarily valid, so only
+      promotions from the `finally` block are kept._
+    - Otherwise, `p4 = rebasePromotedTypes(p1, p3)`.
+  - Let `t4 = t3`. _The `finally` block inherited all tests from the `try`
+    block, so `t3` contains all relevant tested types._
+  - Let `a4 = a1 || a3`. _The variable is definitely assigned if it was
+    definitely assigned in either the `try` or the `finally` block._
+  - Let `u4 = u3`. _The `finally` block inherited the "unassigned" state from
+    the `try` block, so `u3` already accounts for assignments in both the `try`
+    and `finally` blocks._
+  - Let `c4 = c3`. _The `finally` block inherited the "writeCaptured" state from
+    the `try` block, so `c3` is already accounts for write captures in both the
+    `try` and `finally` blocks._
 
 - `unreachable(M)` represents the model corresponding to a program location
   which is unreachable, but is otherwise modeled by flow model `M = FlowModel(r,
@@ -672,74 +688,51 @@ then they are all assigned the same value as `after(N)`.
   - Let `before(E1) = before(N)`
   - Let `after(N) = promote(E1, S, after(E1))`
 
-- **Local variable conditional assignment**: If `N` is an expression of the form
-  `x ??= E1` where `x` is a local variable, then:
-  - Let `before(E1) = split(promote(x, Null, before(N)))`.
-  - Let `E1'` be the result of applying type coercion to `E1`, to coerce it to
-    the declared type of `x`.
-  - Let `M1 = assign(x, E1', after(E1))`
-    - _Since type coercion to type `T` produces an expression whose static type
-      is a subtype of `T`, the precondition of `assign` is satisfied, namely
-      that the static type of `E1'` must be a subtype of `x`'s declared type._
-  - Let `M2 = split(promoteToNonNull(x, before(N)))`
-  - Let `after(N) = merge(M1, M2)`
-
-TODO: This isn't really right, `E1` isn't really an expression here.
-
-- **Conditional assignment to a non local-variable**: If `N` is an expression of
-  the form `E1 ??= E2` where `E1` is not a local variable, and the type of `E1`
-  is `T1`, then:
-  - Let `before(E1) = before(N)`.
-  - If `T1` is strictly non-nullable, then:
-    - Let `before(E2) = unreachable(after(E1))`.
-    - Let `after(N) = after(E1)`.
-  - Otherwise:
-    - Let `before(E2) = split(after(E1))`.
-    - Let `after(N) = merge(after(E2), split(after(E1)))`.
-
-  TODO(paulberry): this doesn't seem to match what's currently implemented.
-
 - **Conditional expression**: If `N` is a conditional expression of the form `E1
   ? E2 : E3`, then:
-  - Let `before(E1) = before(N)`.
-  - Let `before(E2) = split(true(E1))`.
-  - Let `before(E3) = split(false(E1))`.
-  - Let `after(N) = merge(after(E2), after(E3))`.
-  - Let `true(N) = merge(true(E2), true(E3))`.
-  - Let `false(N) = merge(false(E2), false(E3))`.
+  - Let `before(E1) = split(before(N))`.
+  - Let `before(E2) = true(E1)`.
+  - Let `before(E3) = false(E1)`.
+  - Let `after(N) = unsplit(join(after(E2), after(E3)))`.
+  - Let `true(N) = unsplit(join(true(E2), true(E3)))`.
+  - Let `false(N) = unsplit(join(false(E2), false(E3)))`.
 
 - **If-null**: If `N` is an if-null expression of the form `E1 ?? E2`, where the
   type of `E1` is `T1`, then:
   - Let `before(E1) = before(N)`.
-  - If `T1` is strictly non-nullable, then:
-    - Let `before(E2) = unreachable(after(E1))`.
-    - Let `after(N) = after(E1)`.
-  - Otherwise:
-    - Let `before(E2) = split(after(E1))`.
-    - Let `after(N) = merge(after(E2), split(after(E1)))`.
-
-  TODO(paulberry): this doesn't seem to match what's currently implemented.
+  - Let `M0 = split(after(E1))`.
+  - Let `M1 = promoteToNonNull(E1, M0)`.
+  - Let `M1'` be defined as follows:
+    - If the static type of `E1` is a subtype of `Null` but not a subtype of
+      `Object` _(meaning it's `Null` or an equivalent type)_, let `M1' =
+      unreachable(M1)`.
+    - Otherwise, let `M1' = M1`.
+  - Let `before(E2)` be defined as follows:
+    - If the static type of `L1` is a non-nullable type, let `before(E2) =
+      unreachable(M0)`.
+    - Otherwise, let `before(E2) = M0`.
+  - Let `after(N) = unsplit(join(after(E2), M1'))`.
 
 - **Shortcut and**: If `N` is a shortcut "and" expression of the form `E1 && E2`,
   then:
-  - Let `before(E1) = before(N)`.
-  - Let `before(E2) = split(true(E1))`.
+  - Let `before(E1) = split(before(N))`.
+  - Let `before(E2) = true(E1)`.
   - Let `true(N) = unsplit(true(E2))`.
-  - Let `false(N) = merge(split(false(E1)), false(E2))`.
+  - Let `false(N) = unsplit(join(false(E1), false(E2)))`.
 
 - **Shortcut or**: If `N` is a shortcut "or" expression of the form `E1 || E2`,
   then:
-  - Let `before(E1) = before(N)`.
-  - Let `before(E2) = split(false(E1))`.
+  - Let `before(E1) = split(before(N))`.
+  - Let `before(E2) = false(E1)`.
   - Let `false(N) = unsplit(false(E2))`.
-  - Let `true(N) = merge(split(true(E1)), true(E2))`.
+  - Let `true(N) = unsplit(join(true(E1), true(E2)))`.
 
 - **Binary operator**: All binary operators other than `==`, `&&`, `||`, and
   `??`are handled as calls to the appropriate `operator` method.
 
 - **Null check operator**: If `N` is an expression of the form `E!`, then:
   - Let `before(E) = before(N)`.
-  - Let `after(E) = promoteToNonNull(E, after(E))`.
+  - Let `after(N) = promoteToNonNull(E, after(E))`.
 
 - **Method invocation**: If `N` is an expression of the form `E1.m1(E2)`, then:
   - Let `before(E1) = before(N)`
@@ -762,87 +755,154 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
 
 - **Break statement**: If `N` is a statement of the form `break [L];`, then:
 
-  - Let `S` be the statement targeted by the `break`.  If `L` is not present,
-    this is the innermost `do`, `for`, `switch`, or `while` statement.
-    Otherwise it is the `do`, `for`, `switch`, or `while` statement with a label
-    matching `L`.
-
-  - Update `break(S) = join(break(S), before(N))`.
-
   - Let `after(N) = unreachable(before(N))`.
 
 - **Continue statement**: If `N` is a statement of the form `continue [L];` then:
 
-  - Let `S` be the statement targeted by the `continue`.  If `L` is not present,
-    this is the innermost `do`, `for`, or `while` statement.  Otherwise it is
-    the `do`, `for`, or `while` statement with a label matching `L`, or the
-    `switch` statement containing a switch case with a label matching `L`.
-
-  - Update `continue(S) = join(continue(S), before(N))`.
-
   - Let `after(N) = unreachable(before(N))`.
 
-- **Return statement**: If `N` is a statement of the form `return E1;` then:
+- **Return statement with value**: If `N` is a statement of the form `return
+  E1;` then:
   - Let `before(E) = before(N)`.
   - Let `after(N) = unreachable(after(E))`;
 
+- **Return statement without value**: If `N` is a statement of the form
+  `return;` then:
+  - Let `after(N) = unreachable(before(N))`;
+
 - **Conditional statement**: If `N` is a conditional statement of the form `if
   (E) S1 else S2` then:
-  - Let `before(E) = before(N)`.
-  - Let `before(S1) = split(true(E))`.
-  - Let `before(S2) = split(false(E))`.
-  - Let `after(N) = merge(after(S1), after(S2))`.
+  - Let `before(E) = split(before(N))`.
+  - Let `before(S1) = true(E)`.
+  - Let `before(S2) = false(E)`.
+  - Let `after(N) = unsplit(join(after(S1), after(S2)))`.
 
 - **while statement**: If `N` is a while statement of the form `while
   (E) S` then:
-  - Let `before(E) = conservativeJoin(before(N), assignedIn(N), capturedIn(N))`.
-  - Let `before(S) = split(true(E))`.
-  - Let `after(N) = inheritTested(join(false(E), unsplit(break(S))), after(S))`.
+  - Let `before(E) = conservativeJoin(split(before(N)), assignedIn(N),
+    capturedIn(N))`.
+  - Let `before(S) = true(E)`.
+  - Let `r` be the `reachability` stack of `before(E)`.
+  - Let `breakModels` be a list whose first element is `false(E)`, and whose
+    remaining elements are `unsplitTo(r, before(B))` for each `break` statement
+    `B` that targets `N`.
+  - Let `after(N) = inheritTested(unsplit(join(...breakModels)), after(S))`.
 
-- **for statement**: If `N` is a for statement of the form `for (D; C; U) S`,
+- **for statement**: If `N` is a for statement of the form `for (D; [C]; U) S`,
   then:
   - Let `before(D) = before(N)`.
-  - Let `before(C) = conservativeJoin(after(D), assignedIn(N), capturedIn(N))`.
-  - Let `before(S) = split(true(C))`.
-  - Let `before(U) = merge(after(S), continue(S))`.
-  - Let `after(N) = inheritTested(join(false(C), unsplit(break(S))), after(U))`.
+  - Let `M0 = conservativeJoin(split(after(D)), assignedIn(N'),
+    capturedIn(N'))`, where `N'` represents the portion of the for statement
+    that excludes `D`.
+  - Let `before(S)` be defined as follows:
+    - If the condition `C` is present, then:
+      - Let `before(C) = M0`.
+      - Let `before(S) = true(C)`.
+    - Otherwise, let `before(S) = M0`.
+  - Let `r` be the `reachability` stack of `before(S)`.
+  - Let `continueModels` be a list whose first element is `after(S)`, and whose
+    remaining elements are `unsplitTo(r, before(C))` for each `continue`
+    statement `C` that targets `N`.
+  - Let `before(U) = join(...continueModels)`.
+  - Let `M1` be defined as follows:
+    - If the condition `C` is present, then let `M1 = false(C)`.
+    - Otherwise, let `M1 = unreachable(M0)`.
+  - Let `breakModels` be a list whose first element is `M1`, and whose remaining
+    elements are `unsplitTo(r, before(B))` for each `break` statement `B` that
+    targets `N`.
+  - Let `after(N) = inheritTested(unsplit(join(...breakModels)), after(U))`.
 
 - **do while statement**: If `N` is a do while statement of the form `do S while
   (E)` then:
-  - Let `before(S) = conservativeJoin(before(N), assignedIn(N), capturedIn(N))`.
-  - Let `before(E) = join(after(S), continue(N))`
-  - Let `after(N) = join(false(E), break(S))`
+  - Let `before(S) = conservativeJoin(split(before(N)), assignedIn(N),
+    capturedIn(N))`.
+  - Let `r` be the `reachability` stack of `before(S)`.
+  - Let `continueModels` be a list whose first element is `after(S)`, and whose
+    remaining elements are `unsplitTo(r, before(C))` for each `continue`
+    statement `C` that targets `N`.
+  - Let `before(E) = join(...continueModels)`.
+  - Let `breakModels` be a list whose first element is `false(E)`, and whose
+    remaining elements are `unsplitTo(r, before(B))` for each `break` statement
+    `B` that targets `N`.
+  - Let `after(N) = unsplit(join(...breakModels))`.
 
 - **for each statement**: If `N` is a for statement of the form `for (T X in E)
   S`, `for (var X in E) S`, or `for (X in E) S`, then:
   - Let `before(E) = before(N)`
-  - Let `before(S) = conservativeJoin(after(E), assignedIn(N), capturedIn(N))`
-  - Let `after(N) = join(before(S), break(S))`
+  - Let `before(S) = conservativeJoin(split(after(E)), assignedIn(N'),
+    capturedIn(N'))`, where `N'` represents the portion of the for statement
+    that excludes `E`.
+  - Let `after(N) = join(after(S), before(S))`. _In principle, it seems like it
+    ought to be necessary for the join to include code paths that come from
+    `break` statements that target `N`. However, since `before(S)` is the result
+    of a conservative join, no code path coming from a break statement that
+    targets `N` can possibly affect the join. So, as an optimization, these code
+    paths are ignored._
 
   TODO(paulberry): this glosses over how we handle the implicit assignment to X.
   See https://github.com/dart-lang/sdk/issues/42653.
 
 - **switch statement**: If `N` is a switch statement of the form `switch (E)
-  {alternatives}` then:
+  {alternatives}` (where each `alternative` is a `switchStatementDefault` or
+  `switchStatementCase` construct), then:
   - Let `before(E) = before(N)`.
-  - For each `C` in `alternatives` with statement body `S`:
-    - If `C` is labelled let `before(S) = conservativeJoin(after(E),
-      assignedIn(N), capturedIn(N))` otherwise let `before(S) = after(E)`.
-  - If the cases are exhaustive, then let `after(N) = break(N)` otherwise let
-    `after(N) = join(after(E), break(N))`.
+  - Let `unmatched = split(after(E))`. _Note: the name `unmatched` was chosen
+    because a future update is planned that will add support for patterns; in
+    this update, `unmatched` will model the program's state in the event that
+    the value of `E` has failed to match all of the alternatives seen so far._
+  - Let `r` be the `reachability` stack of `unmatched`.
+  - Collect the `alternatives` into groups, where each alternative is in the
+    same group as the following one iff its statement list is empty. _This
+    grouping has the property that if any alternative matches, the set of
+    statements that will be executed is the last set of statements in the
+    group._
+  - For each group `G` in `body`:
+    - Let `S` be the set of statements in the last alternative of `G`.
+    - Let `before(S)` be defined as follows:
+      - If any of the alternatives in `G` contains a label, then `before(S) =
+        split(conservativeJoin(unmatched, assignedIn(N), capturedIn(N)))`.
+      - Otherwise, let `before(S) = split(unmatched)`.
+  - Let `breakModels` be a list consisting of:
+    - For each group `G` in `body`:
+      - For each `break` statement `B` in `G` that targets `N`:
+        - `unsplitTo(r, before(B))`.
+      - If `after(S)` is locally reachable (where `S` be the set of statements
+        in the last alternative of `G`):
+        - `unsplit(after(S))`.
+    - If `N` does not contain a `default:` clause, and the static type of `E` is
+      not an always-exhaustive type:
+      - `unmatched`
+  - Let `after(N)` be defined as follows:
+    - If `breakModels` is an empty list, let `after(N) = unreachable(after(E))`.
+    - Otherwise, let `after(N) = unsplit(join(...breakModels))`
 
-- **try catch**: If `N` is a try/catch statement of the form `try B
-alternatives` then:
-  - Let `before(B) = before(N)`
-  - For each catch block `on Ti Si` in `alternatives`:
-    - Let `before(Si) = conservativeJoin(before(N), assignedIn(B), capturedIn(B))`
-  - Let `after(N) = join(after(B), after(C0), ..., after(Ck))`
+  TODO(paulberry): update this to account for patterns.
 
-- **try finally**: If `N` is a try/finally statement of the form `try B1 finally B2` then:
-  - Let `before(B1) = split(before(N))`
-  - Let `before(B2) = split(join(drop(after(B1)), conservativeJoin(before(N), assignedIn(B1), capturedIn(B1))))`
-  - Let `after(N) = restrict(after(B1), after(B2), assignedIn(B2))`
+- **try catch**: If `N` is a try statement of the form `try B catches` then:
+  - Let `before(B) = split(before(N))`.
+  - For each catch block `on Ti Si` in `catches`:
+    - Let `before(Si) = conservativeJoin(before(N), assignedIn(B),
+      capturedIn(B))`.
+  - Let `after(N) = unsplit(join(after(B), after(S0), ..., after(Sk)))`.
 
+- **try finally**: If `N` is a try statement of the form `try B1 finally B2`
+  then:
+  - Let `before(B1) = before(N)`
+  - Let `before(B2) = join(after(B1), conservativeJoin(before(N),
+    assignedIn(B1), capturedIn(B1)))`.
+  - Let `after(N) = attachFinally(after(B1), before(B2), after(B2))`.
+    - _Note: as an optimization, the computation of `attachFinally` may be
+      skipped in two circumstances:_
+      - _If `before(B2)` and `after(B2)` are identical flow models (meaning
+        nothing of consequence to flow analysis occured in `B2`), then `after(N)
+        = after(B1)`._
+      - _If `before(B1)`, `after(B1)`, and `before(B2)` are identical flow
+        models (meaning nothing of consequence to flow analysis happened in
+        `B1`), then `after(N) = after(B2)`._
+
+- **try catch finally**: If `N` is a try statement of the form `try B1 catches
+  finally B2`, then it is treated as equivalent to the statement `try { try B1
+  catches } finally B2`.
 
 ## Interesting examples
 
