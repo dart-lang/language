@@ -288,8 +288,8 @@ We also make use of the following auxiliary functions:
       `VI2` to `joinV(VI1(v), VI2(v))`.  Note that any variable which is in
       domain of only one of the two is dropped, since it is no longer in scope.
 
-  The `join` and `joinV` combinators are commutative and associative by
-  construction.
+  _We expect the `join` and `joinV` combinators to be commutative and
+  associative, but we don't rely on this for the soundness of the algorithm._
 
   For brevity, we will sometimes extend `join` to more than two arguments in the
   obvious way.  For example, `join(M1, M2, M3)` represents `join(join(M1, M2),
@@ -299,51 +299,37 @@ We also make use of the following auxiliary functions:
   Simiarly, if L is a non-empty list of flow models, `join(...L)` represents the
   result of folding the list using `join`.
 
-- `rebasePromotedTypes(p1, p2)`, where `p1` and `p2` are promotion chains,
-  computes a promotion chain containing promotions from both `p1` and `p2`,
+- `rebasePromotedTypes(basePromotions, newPromotions)`, where `basePromotions`
+  and `newPromotions` are promotion chains, computes a promotion chain
+  containing promotions from both `basePromotions` and `newPromotions`,
   discarding promotions if necessary to avoid violating the promotion chain
-  requirement. It is defined as `p3`, where:
-  - If `p2` is empty, then `p3 = p1`.
+  requirement. It is defined as follows:
+  - If `basePromotions` is empty, then `rebasePromotedTypes(basePromotions,
+    newPromotions) = newPromotions`.
   - Otherwise:
-    - Let `T2` be the last type in `p2`.
-    - Let `p1'` be a promotion chain obtained by deleting any elements `T` from
-      `p1` that do not satisfy `T <: T2`.
-    - Let `p3 = [...p2, ...p1']`.
+    - Let `T2` be the last type in `basePromotions`.
+    - Let `newPromotions'` be a promotion chain obtained by deleting any
+      elements `T` from `newPromotions` that do not satisfy `T <: T2`.
+    - Let `rebasePromotedTypes(basePromotions, newPromotions) =
+      [...basePromotions, ...newPromotions']`.
 
-- `attachFinallyV(VM1, VM2, VM3)`, where `VM1`, `VM2`, and `VM3` are variable
-  models, represents the state of a variable model after a `try/finally`
-  statement, where `VM1` is the state after the `try` block, `VM2` is the state
-  before the `finally` block, and `VM3` is the state after the `finally`
-  block. It is defined as `VariableModel(d4, p4, s4, a4, u4, c4)`, where:
-  - Let `VM1 = VariableModel(d1, p1, s1, a1, u1, c1)`.
-  - Let `VM2 = VariableModel(d2, p2, s2, a2, u2, c2)`.
-  - Let `VM3 = VariableModel(d3, p3, s3, a3, u3, c3)`.
-  - Let `d4 = d3`. _A variable's declared type cannot change. Therefore, `d1 =
-    d2 = d3`, so it is safe to simply pick `d3`._
-  - Let `p4` be determined as follows:
-    - If the variable's value might have been changed by the `finally` block
-      (_TODO(paulberry): specify precisely how this is determined_), then `p4 =
-      p3`. _Promotions from the `try` block aren't necessarily valid, so only
-      promotions from the `finally` block are kept._
-    - Otherwise, `p4 = rebasePromotedTypes(p3, p1)`.
-  - Let `t4 = t3`. _The `finally` block inherited all tests from the `try`
-    block, so `t3` contains all relevant tested types._
-  - Let `a4 = a1 || a3`. _The variable is definitely assigned if it was
-    definitely assigned in either the `try` or the `finally` block._
-  - Let `u4 = u3`. _The `finally` block inherited the "unassigned" state from
-    the `try` block, so `u3` already accounts for assignments in both the `try`
-    and `finally` blocks._
-  - Let `c4 = c3`. _The `finally` block inherited the "writeCaptured" state from
-    the `try` block, so `c3` is already accounts for write captures in both the
-    `try` and `finally` blocks._
+  _The reason `rebasePromotedTypes` is asymmetric is that it is used in
+  asymmetric situations. For example, when analyzing a `try`/`finally`
+  statement, `basePromotions` contains the promotions from the end of the `try`
+  block and `newPromotions` contains the promotions from the end of the
+  `finally` block. Hence, to compute the promotion chain after the
+  `try`/`finally` block, the promotions from `basePromotions` should be applied
+  first, followed by any promotions from `newPromotions` that do not violate the
+  promotion chain requirement._
 
-- `attachFinally(M1, M2, M3)`, where `M1`, `M2`, and `M3` are flow models,
-  represents the state of the program after a `try/finally` statement, where
-  `M1` is the state after the `try` block, `M2` is the state before the
-  `finally` block, and `M3` is the state after the `finally` block. It is
+- `attachFinally(afterTry, beforeFinally, afterFinally)`, where `afterTry`,
+  `beforeFinally`, and `afterFinally` are flow models, represents the state of
+  the program after a `try/finally` statement, where `afterTry` is the state
+  after the `try` block, `beforeFinally` is the state before the `finally`
+  block, and `afterFinally` is the state after the `finally` block. It is
   defined as `FlowModel(r4, VI4)`, where:
-  - Let `M1 = FlowModel(r1, VI1)`, `M2 = FlowModel(r2, VI2)`, and `M3 =
-    FlowModel(r3, VI3)`.
+  - Let `afterTry = FlowModel(r1, VI1)`, `beforeFinally = FlowModel(r2, VI2)`,
+    and `afterFinally = FlowModel(r3, VI3)`.
   - Let `r4` be defined as follows:
     - If `top(r3)` is `true`, then let `r4 = r1`. _If the `finally` block does
       not unconditionally exit, then the reachability behavior of the
@@ -361,6 +347,34 @@ We also make use of the following auxiliary functions:
       domain of both `VI1` and `VI3`, it must have been declared before the
       `try/finally` statement, therefore it must also be in the domain of
       `VI2`._
+
+- `attachFinallyV(afterTry, beforeFinally, afterFinally)`, where `afterTry`,
+  `beforeFinally`, and `afterFinally` are variable models, represents the state
+  of a variable model after a `try/finally` statement, where `afterTry` is the
+  state after the `try` block, `beforeFinally` is the state before the `finally`
+  block, and `afterFinally` is the state after the `finally` block. It is
+  defined as `VariableModel(d4, p4, s4, a4, u4, c4)`, where:
+  - Let `afterTry = VariableModel(d1, p1, s1, a1, u1, c1)`.
+  - Let `beforeFinally = VariableModel(d2, p2, s2, a2, u2, c2)`.
+  - Let `afterFinally = VariableModel(d3, p3, s3, a3, u3, c3)`.
+  - Let `d4 = d3`. _A variable's declared type cannot change. Therefore, `d1 =
+    d2 = d3`, so it is safe to simply pick `d3`._
+  - Let `p4` be determined as follows:
+    - If the variable's value might have been changed by the `finally` block
+      (_TODO(paulberry): specify precisely how this is determined_), then `p4 =
+      p3`. _Promotions from the `try` block aren't necessarily valid, so only
+      promotions from the `finally` block are kept._
+    - Otherwise, `p4 = rebasePromotedTypes(p1, p3)`.
+  - Let `t4 = t3`. _The `finally` block inherited all tests from the `try`
+    block, so `t3` contains all relevant tested types._
+  - Let `a4 = a1 || a3`. _The variable is definitely assigned if it was
+    definitely assigned in either the `try` or the `finally` block._
+  - Let `u4 = u3`. _The `finally` block inherited the "unassigned" state from
+    the `try` block, so `u3` already accounts for assignments in both the `try`
+    and `finally` blocks._
+  - Let `c4 = c3`. _The `finally` block inherited the "writeCaptured" state from
+    the `try` block, so `c3` is already accounts for write captures in both the
+    `try` and `finally` blocks._
 
 - `unreachable(M)` represents the model corresponding to a program location
   which is unreachable, but is otherwise modeled by flow model `M = FlowModel(r,
