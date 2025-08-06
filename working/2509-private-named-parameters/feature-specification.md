@@ -374,6 +374,12 @@ void pricyHammer() => Hammer(price: 200);
 
 ## Static semantics
 
+Prior to this proposal, a parameter only had one name which was used everywhere
+the parameter can be referred to. With this proposal, "parameter name" can be
+ambiguous, so we introduce some terminology.
+
+### Public and private names
+
 An identifier is a **private name** if it starts with an underscore (`_`),
 otherwise it's a **public name**.
 
@@ -385,6 +391,40 @@ underscore does not leave something which is is a valid identifier *(as in `_`
 or `_2x`)* or leaves another private name *(as in `__x`)*, then the private name
 has no corresponding public name.
 
+### Declared and access names
+
+*   A parameter's **declared name** is the original identifier used to introduce
+    the formal parameter. It's the name of the local variable used to access the
+    argument value bound to a parameter inside the body of a function or
+    constructor initializer list.
+
+    If the parameter initializes or declares an instance variable, the declared
+    name determines the name of the corresponding instance variable.
+
+*   A parameter's **access name** is the name that allows users of surrounding
+    declaration to work with the parameter. It's the name written at a callsite
+    to pass a named argument to the function or constructor.
+
+    It's the name that should be shown for the parameter in generated
+    documentation from tools like [dartdoc][]. When other documentation wants to
+    refer to the parameter using the `[squareBracket]` identifier syntax, that
+    doc comment should refer to it by its access name.
+
+    If a Dart implementation refers to the parameter in any automatically
+    generated code or strings, those should use its access name. For example,
+    implicit implementations of `toString()`, runtime error messages, stack
+    traces, etc.
+
+    In short, for all *users* of some code, it should appear as if the parameter
+    only has its access name.
+
+[dartdoc]: https://dart.dev/tools/dart-doc
+
+Unless otherwise specified, the access name of a parameter is its declared name.
+The exceptions are:
+
+### Private named parameters
+
 Given a named initializing formal or field parameter (for a primary constructor)
 with private name *p* in constructor C:
 
@@ -392,26 +432,19 @@ with private name *p* in constructor C:
     can't use a private name for a named parameter unless there is a valid
     public name that could be used at the call site.*
 
-*   If any other parameter in C has declared name *p* or *n*, then
-    compile-time error. *If removing the `_` leads to a collision with
-    another parameter, then there is a conflict.*
+*   If any other parameter in C has declared name *n*, then compile-time error.
+    *If removing the `_` leads to a collision with another parameter, then there
+    is a conflict. It is of course already an error if any other parameter has
+    declared name _p_. That's a normal parameter name collision error.*
 
-If there is no error then:
+    ```dart
+    class C {
+      C(int _a, {this._a}); // Already an error for parameter names to collide.
+      C(int a, {this._a}); // New error because the public name collides.
+    }
+    ```
 
-*   The parameter name of the parameter in the constructor is the public name
-    *n*. This means that the parameter has a public name in the constructor's
-    function signature, and arguments for this parameter are given using the
-    public name. All uses of the constructor, outside of its own code, see only
-    the public name.
-
-*   The local variable introduced by the parameter, accessible only in the
-    initializer list, still has the private name *p*. *Inside the body of the
-    constructor, uses of _p_ refer to the instance variable, not the parameter.*
-
-*   The instance variable initialized by the parameter (and declared by it, if
-    the parameter is a field parameter), has the private name *p*.
-
-*   Else the field parameter induces an instance field with name *p*.
+*   Otherwise, the access name of the parameter is *n*.
 
 *For example:*
 
@@ -431,11 +464,65 @@ main() {
 }
 ```
 
-*Note that the proposal only applies named parameters and only to ones which are
+*Note that this section only applies to named parameters that are also
 initializing formals or field parameters. A named parameter can only have a
 private name in a context where it is _useful_ to do so because it corresponds
 to a private instance field. For all other named parameters it is still a
 compile-time error to have a private name.*
+
+### Private positional parameters
+
+Dart already allows a positional parameter to have a private name. This is
+useful for a positional constructor parameter that is an initializing formal or
+a declaring parameter for a private instance variable. For other parameters,
+it's non-idiomatic but harmless to give them private names. *(Dart also allows
+local variables to have private names, which is unusual but harmless. A lint
+suggests that users don't do this.)*
+
+However, the user experience of the language is more than just the semantics.
+Generated documentation, code navigation in doc comment references, and runtime
+error messages all reflect a function or constructor's parameters back to the
+user.
+
+In all of those contexts, we want it to be an implementation detail that a
+positional parameter happens to have a private name. To that end:
+
+Given a positional parameter with private name *p* in formal parameter list L:
+
+*   If *p* has corresponding public name *n* and no other parameter in L has
+    declared name *n*, then the access name of the parameter is *n*.
+
+Since a positional parameter can't be passed using a named argument, this
+doesn't affect the language semantics. It does mean that generated docs, error
+messages, inferred super parameter names, etc. should all use the public name
+of the parameter. For example:*
+
+```dart
+const int foo = 0;
+
+class C {
+  int _foo;
+
+  /// Uses [foo] to set [_foo].
+  C(this._foo);
+}
+```
+
+Here, the generated documentation for C should show the constructor signature
+like `C(int foo)`. If a user clicks the `[foo]` reference in the doc comment
+and navigates to its definition, their IDE should take them to the constructor
+parameter `_foo` and not the unrelated top level constant `foo`.
+
+In short, a class author should never feel that can't use a private name for
+a positional initializing formal or declaring parameter because doing so might
+degrade the user experience of anyone working with the class or reveal the
+implementation detail that the parameter happens to initialize a private field.
+
+*Unlike with named parameters, this section applies to all positional
+parameters, regardless of whether they are initializing formals, declaring
+parameters, or even constructor parameters at all. This is because the language
+already allows using private names in all positional parameters, and we want a
+consistent user experience for all of them.*
 
 ## Runtime semantics
 
@@ -444,12 +531,18 @@ renaming.
 
 ## Compatibility
 
-This proposal takes code that it is currently a compile-time error (a private
-named parameter) and makes it valid in some circumstances (when the named
-parameter is an initializing formal or field parameter). Since it simply expands
-the set of valid programs, it is backwards compatible. Even so, it should be
-language versioned so that users don't inadvertently use this feature while
-their program allows being run on older pre-feature SDKs.
+For named parameters, this proposal takes code that it is currently a
+compile-time error (a private name) and makes it valid in some circumstances
+(when the named parameter is an initializing formal or field parameter). Since
+it simply expands the set of valid programs, it is backwards compatible.
+
+For positional parameters with private names, it falls back to continuing to use
+the private name as the access name in the rare case that there is a collision.
+That avoids breaking existing uses of private names in parameter lists.
+
+Even though non-breaking, this feature should be language versioned so that
+users don't inadvertently use this feature while their program allows being run
+on older pre-feature SDKs.
 
 ## Tooling
 
@@ -459,17 +552,32 @@ normative*, but is merely suggestions and ideas for the implementation teams.
 They may wish to implement all, some, or none of this, and will likely have
 further ideas for additional warnings, lints, and quick fixes.
 
+### Error messages
+
+Compile errors and runtime exceptions (from things like invalid dynamic calls)
+may sometimes show a function's signature to the user or otherwise refer to a
+formal parameter. When tools generate these error strings, they should use the
+access name of each parameter if the error relates to a *use* of the parameter
+list. *For example, an error related to calling a function with an incorrect
+parameter type.*
+
+Errors that refer to accessing the parameter from within the function or
+constructor should use its declared name. *For example, an error related to
+trying to assign to a formal parameter marked `final`, or an initializing formal
+with no corresponding instance variable.*
+
 ### API documentation generation
 
-Authors documenting an API that uses this feature should refer to the
-constructor parameter by its public name since that's what users will pass.
-Likewise, doc generators like [`dart doc`][dartdoc] should document the
-constructor's parameter with its public name. The fact that the parameter
-initializes or declares a private field is an implementation detail of the
-class. What a user of the class cares about is the corresponding public name for
-the constructor parameter.
+If they don't already, doc generators like [`dart doc`][dartdoc] should be
+updated to always use a parameter's access name when referring to the parameter.
 
 [dartdoc]: https://dart.dev/tools/dart-doc
+
+### In-editor documentation
+
+IDEs will often show inline generated documentation or signatures when hovering
+over declarations or callsites. When an editor or IDE synthesizes a signature
+for a formal parameter list, it should use the access name of every parameter.
 
 The language already allows a *positional* parameter to have a private name
 since doing so has no effect on call sites. Doc generators are encouraged to
@@ -523,6 +631,11 @@ can help users learn the feature.
 [concerns]: #concerns
 
 ## Changelog
+
+### 0.3
+
+-   Apply the same renaming to private positional parameters too (for doc
+    generators, error messages, etc.) (#4479).
 
 ### 0.2
 
