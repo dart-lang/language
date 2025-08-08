@@ -1017,10 +1017,14 @@ of declaration, and the constructor might be non-const).
 
 ### Changelog
 
-1.9 - July 31, 2025
+1.9 - August 8, 2025
 
 * Change the scoping such that non-late initializing expressions have the
-  primary constructor parameters as the enclosing scope.
+  primary constructor parameters as the enclosing scope. Adjust several
+  grammar rules. Clarify or correct several compile-time errors. Adjust the
+  rules about extension types to avoid a breaking change. Specify override
+  inference for getters and setters introduced by declaring parameters with
+  no explicit type. Perform several other smaller adjustments.
 
 1.8 - July 16, 2025
 
