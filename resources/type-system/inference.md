@@ -6,6 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
+2024.12.17
+  - Change the function literal return type inference rules to ignore
+    `return;` statements in generators (it doesn't actually cause null to be
+    returned).
+
 2022.05.12
   - Define the notions of "constraint solution for a set of type variables" and
     "Grounded constraint solution for a set of type variables".  These
@@ -324,7 +329,8 @@ schema.
     `e`, using the local type inference algorithm described below with typing
     context `K`, and update `T` to be `UP(flatten(S), T)` if the enclosing
     function is `async`, or `UP(S, T)` otherwise.
-  - For each `return;` statement in the block, update `T` to be `UP(Null, T)`.
+  - If the enclosing function is not marked `sync*` or `async*`: For each
+    `return;` statement in the block, update `T` to be `UP(Null, T)`.
   - For each `yield e;` statement in the block, let `S` be the inferred type of
     `e`, using the local type inference algorithm described below with typing
     context `K`, and update `T` to be `UP(S, T)`.
@@ -338,6 +344,11 @@ schema.
     local type inference algorithm described below with a typing context of
     `Stream<K>`; let `E` be the type such that `Stream<E>` is a super-interface
     of `S`; and update `T` to be `UP(E, T)`.
+
+In these rules, 'in the block' refers to return and yield statements that
+will complete the execution of the function literal under inference, not
+the ones, if any, that will complete the execution of a nested function
+body.
 
 The **actual returned type** of the function literal is the value of `T` after
 all `return` and `yield` statements in the block body have been considered.
