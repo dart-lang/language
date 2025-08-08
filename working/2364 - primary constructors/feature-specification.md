@@ -734,11 +734,11 @@ modifier `required` as well as a default value.
 
 ### Static processing
 
-The name of a primary constructor of the form 
+The name of a primary constructor of the form
 `'const'? id1 <typeParameters>? <declaringParameterList>` is `id1` *(that
 is, the same as the name of the class)*.
-The name of a primary constructor of the form 
-`'const'? id1 <typeParameters>? '.' id2 <declaringParameterList>` is 
+The name of a primary constructor of the form
+`'const'? id1 <typeParameters>? '.' id2 <declaringParameterList>` is
 `id1.id2`.
 
 A compile-time error occurs if a class, enum, or extension type has a
