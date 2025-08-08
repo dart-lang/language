@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Draft
 
-Version: 1.8
+Version: 1.9
 
 Experiment flag: declaring-constructors
 
@@ -61,13 +61,13 @@ more concisely:
 class Point(var int x, var int y);
 ```
 
-A class that has a declaring header constructor can not have any other
-generative non-redirecting constructors. This requirement must be upheld
+A class that has a declaring header constructor cannot have any other
+non-redirecting generative constructors. This requirement must be upheld
 because it must be guaranteed that the declaring header constructor is
 actually executed on every newly created instance of this class. This rule
 is further motivated below.
 
-A declaring header constructor is also known as a _primary constructor_, 
+A declaring header constructor is also known as a _primary constructor_,
 because all other generative constructors must invoke the primary one
 (directly or indirectly).
 
@@ -122,7 +122,7 @@ parameter list that has the _declaring_ modifier `var` or `final`.
 With this feature, all other declarations of formal parameters as `final`
 will be a compile-time error. This ensures that `final int x` is
 unambiguously a declaring parameter. Developers who wish to maintain a
-style whereby formal parameters are never modified will have a 
+style whereby formal parameters are never modified will have a
 [lint][parameter_assignments] to flag all such mutations.
 
 [parameter_assignments]: https://dart.dev/tools/linter-rules/parameter_assignmentshttps://dart.dev/tools/linter-rules/parameter_assignments
@@ -380,8 +380,8 @@ class const A.someName(final int x);
 class B extends A {
   final String s1;
   const this(int x, int y, {required final String s2})
-      : s1 = y.toString(), 
-        assert(s2.isNotEmpty), 
+      : s1 = y.toString(),
+        assert(s2.isNotEmpty),
         super.someName(x + 1);
 }
 ```
@@ -393,12 +393,26 @@ avoiding the duplication of instance variable names and types) even in the
 case where some parameters should not introduce any instance variables (so
 they are just "normal" parameters).
 
-With a declaring header constructor, the formal parameters in the header are
-introduced into a new scope. This means that each parameter whose name is
-not introduced by any nested scope (e.g., the class body scope) is in scope
-in the class body. It is a compile-time error to refer to such a parameter
-anywhere except in an initializing expression of a non-late instance
-variable declaration.
+With a declaring header constructor (aka a primary constructor), the formal
+parameters in the header are introduced into a new scope, known as the
+_primary initializer scope_.  This scope is inserted as the current scope
+in several locations. In particular, it is _not_ the enclosing scope for
+the body scope of the class, even though it is located syntactically in the
+class header. It is actually the other way around, namely, the class body
+scope is the enclosing scope for the primary initializer scope.
+
+The primary initializer scope is the current scope for the initializing
+expression of each non-late instance variable declaration in the class
+body, if any. Similarly, the primary initializer scope is the current scope
+for the initializer list in the body part of the primary constructor, if
+any.
+
+In other words, when a class has a primary constructor, each of the
+initializing expressions of a non-late instance variable has the same
+declarations in scope as the initializer list would have if it had been a
+regular (non-declaring) constructor in the body. This is convenient, and it
+makes refactorings from one to another kind of constructor simpler and
+safer.
 
 ```dart
 // Current syntax.
@@ -408,35 +422,40 @@ class DeltaPoint {
   DeltaPoint(this.x, int delta): y = x + delta;
 }
 
-// Using a primary constructor.
+// Using an declaring body constructor.
+class DeltaPoint {
+  final int y;
+  this(final int x, int delta) : y = x + delta;
+}
+
+// Using a primary constructor with a body part.
+class DeltaPoint(final int x, int delta) {
+  final int y;
+  this : y = x + delta;
+}
+
+// Using a primary constructor and the associated new scoping.
 class DeltaPoint(final int x, int delta) {
   final int y = x + delta;
 }
 ```
 
-This is possible because it is guaranteed that the non-late initializers
-are evaluated during the execution of the declaring header constructor,
-such that the value of a variable like `delta` is only used at a point in
-time where it exists.
+When there is a primary constructor, we can allow the initializing
+expressions of non-late instance variables to access the constructor
+parameters because it is guaranteed that the non-late initializers are
+evaluated during the execution of the declaring header constructor, such
+that the value of a variable like `delta` is only used at a point in time
+where it exists.
 
-Similarly, if an identifier expression in an initializing expression of a
-non-late instance variable declaration resolves to an instance variable
-(this is currently an error, there is no access to `this`), and there is a
-declaring header constructor parameter that corresponds to this instance
-variable (that is, a declaring parameter or an initializing formal with the
-same name), it will evaluate to the value of the parameter.  For example,
-`x` is used in the initializer for `y` in the example above, which is
-possible because of this mechanism.
-
-This can only work if the declaring header constructor is guaranteed to be
+This can only work if the primary constructor is guaranteed to be
 executed. Hence the rule, mentioned above, that there cannot be any other
-non-redirecting generative constructors in a class that has a declaring
-header constructor.
+non-redirecting generative constructors in a class that has a primary
+constructor.
 
 This further motivates the special terminology where a declaring header
 constructor is known as a primary constructor as well: The _primary_
 constructor is more powerful than other declaring constructors because it
-changes the scoping for the entire class declaration.
+changes the scoping for specific locations in the entire class body.
 
 Finally, here is an example that illustrates how much verbosity this
 feature tends to eliminate:
@@ -528,6 +547,16 @@ class E extends A {
 }
 ```
 
+Note that the version with a primary constructor can initialize `z` in the
+declaration itself, whereas the two other versions need to use an element
+in the initializer list of the constructor to initialize `z`. This is
+necessary because `y` isn't in scope in those two cases. Moreover, there
+cannot be other non-redirecting generative constructors when there is a
+primary constructor, but in the two other versions we could add another
+non-redirecting generative constructor which could initialize `w` with some
+other value, in which case we must also initialize `w` as shown in the
+three cases.
+
 Moreover, we may get rid of all those occurrences of `required` in the
 situation where it is a compile-time error to not have them, but that is a
 separate proposal, [here][inferred-required] or [here][simpler-parameters].
@@ -580,14 +609,18 @@ constructors as well.
      '}';
 
 <constructorSignature> ::= // Modified rule.
-     <constructorName> <declaringParameterList>
-   | 'this' ('.' <identifierOrNew>);
+     <constructorName> <formalParameterList>
+   | <declaringConstructorSignature>;
+
+<declaringConstructorSignature> ::= // New rule.
+     'this' ('.' <identifierOrNew>)? <declaringParameterList>?;
 
 <constantConstructorSignature> ::= // Modified rule.
-     'const' <constructorSignature>;
+     'const' <constructorName> <formalParameterList>
+   | <declaringConstantConstructorSignature>;
 
-<constructorName> ::= // Modified rule.
-     (<typeIdentifier> | 'this') ('.' <identifierOrNew>)?
+<declaringConstantConstructorSignature> ::= // New rule.
+     'const' 'this' ('.' <identifierOrNew>)? <declaringParameterList>;
 
 <identifierOrNew> ::=
      <identifier>
@@ -602,7 +635,8 @@ constructors as well.
 <declaringParameterList> ::= // New rule.
      '(' ')'
    | '(' <declaringFormalParameters> ','? ')'
-   | '(' <declaringFormalParameters> ',' <optionalOrNamedDeclaringFormalParameters> ')'
+   | '(' <declaringFormalParameters> ','
+         <optionalOrNamedDeclaringFormalParameters> ')'
    | '(' <optionalOrNamedDeclaringFormalParameters> ')';
 
 <declaringFormalParameters> ::= // New rule.
@@ -618,7 +652,7 @@ constructors as well.
    | <superFormalParameter>;
 
 <declaringFunctionFormalParameter> ::= // New rule.
-     'covariant'? ('var' | 'final')? <type>? 
+     'covariant'? ('var' | 'final')? <type>?
      <identifier> <formalParameterPart> '?'?;
 
 <declaringSimpleFormalParameter> ::= // New rule.
@@ -640,44 +674,50 @@ constructors as well.
      (',' <defaultDeclaringNamedParameter>)* ','? '}';
 
 <defaultDeclaringNamedParameter> ::= // New rule.
-     <metadata> 'required'? <declaringFormalParameterNoMetadata> 
+     <metadata> 'required'? <declaringFormalParameterNoMetadata>
      ('=' <expression>)?;
 ```
 
-A class declaration whose class body is `;` is treated as a class declaration
-whose class body is `{}`.
+A _declaring constructor_ declaration is a declaration that contains a
+`<declaringConstructorSignature>` with a `<declaringParameterList>`, or a
+declaration that contains a `<declaringConstantConstructorSignature>`, or
+it is a `<primaryConstructorNoConst>` in the header of a class, enum, or
+extension type declaration, together with a declaration in the body that
+contains a `<declaringConstructorSignature>` *(which does not contain a
+`<declaringParameterList>`, because that's an error)*.
+
+A class declaration whose class body is `;` is treated as a class
+declaration whose class body is `{}`.
 
 Let _D_ be a class, extension type, or enum declaration.
 
 A compile-time error occurs if _D_ includes a `<classNamePart>` that
 contains a `<primaryConstructorNoConst>`, and the body of _D_ contains a
-`<constructorSignature>` beginning with `this` that contains a
+`<declaringConstructorSignature>` that contains a
 `<declaringParameterList>`.
 
-*That is, it is an error to have a declaring parameter list of a primary
-constructor both in the header and in the body.*
+*It is an error to have a declaring parameter list both in the header and
+in the body.*
 
 A compile-time error occurs if _D_ includes a `<classNamePart>` that
 does not contain a `<primaryConstructorNoConst>`, and the body of _D_
-contains a `<constructorSignature>` beginning with `this` that does not
+contains a `<declaringConstructorSignature>` that does not
 contain a `<declaringParameterList>`.
 
 *It is an error to have a declaring constructor in the class body, but
-no declaring parameter list, neither in the header nor in the body. Note
-that constant constructors are included because a
-`<constantConstructorSignature>` contains a `<constructorSignature>`.*
+no declaring parameter list, neither in the header nor in the body.*
 
-A compile-time error occurs if _D_ includes a `<classNamePart>` beginning
-with `const`, and the body of _D_ contains a `<constructorSignature>`
-beginning with `this` which is not part of a
-`<constantConstructorSignature>`, and vice versa.
+*The keyword `const` can be specified in the class header when it contains
+a primary constructor, and in this case `const` can not be specified in the
+part of the primary constructor that occurs in the body (that is, the
+declaration that starts with `this` and contains an initializer list and/or
+a constructor body, if any). The rationale is that when the class header
+contains any parts of a declaring constructor, the class header must be the
+location where all parts of the signature of that primary constructor are
+specified.*
 
-*That is, it is an error for the header to contain `const` if there is a
-declaring constructor in the body as well, and it does not contain `const`;
-and it is an error for the header to not contain `const` if there is a
-declaring constructor in the body as well, and it does contain `const`.
-They must agree. Finally, it is of course allowed to omit `const` in both
-locations. In this case the constructor is not constant.*
+A compile-time error occurs if a class contains two or more declarations of
+a declaring constructor.
 
 *The meaning of a declaring constructor is defined in terms of rewriting it
 to a body constructor (a regular one, not declaring) and zero or more
@@ -689,90 +729,149 @@ class body just like `class C(int i);` and just like `class C extends
 Object {}`, and all three of them have `Object` as their direct
 superclass.*
 
-Finally, a compile-time error occurs in the case where an identifier
-expression is resolved to yield the value of a declaring or initializing
-formal parameter in a declaring header constructor, and this identifier
-occurs in a function literal, and the corresponding instance variable is
-non-final.
-
-*The point is that it is highly confusing if such a parameter reference is
-considered to be "the same thing" as the variable with the same name which
-is in scope, but the parameter has the initial value of that instance
-variable, and the instance variable has been modified in the meantime.*
-
-*For example:*
-
-```dart
-class C(var int x) {
-  var closure = () => x; // Warning!
-}
-
-main() {
-  var c = C(1);
-  c.x = 2;
-  print(c.closure()); // Prints 1.
-}
-```
+A compile-time error occurs if a `<defaultDeclaringNamedParameter>` has the
+modifier `required` as well as a default value.
 
 ### Static processing
 
+The name of a primary constructor of the form
+`'const'? id1 <typeParameters>? <declaringParameterList>` is `id1` *(that
+is, the same as the name of the class)*.
+The name of a primary constructor of the form
+`'const'? id1 <typeParameters>? '.' id2 <declaringParameterList>` is
+`id1.id2`.
+
+A compile-time error occurs if a class, enum, or extension type has a
+primary constructor whose name is also the name of a constructor declared
+in the body.
+
 Consider a class, enum, or extension type declaration _D_ with a declaring
-header constructor *(note that it cannot be a `<mixinApplicationClass>`,
-because that kind of declaration does not support declaring constructors,
-that is a syntax error)*. This declaration is treated as a class, enum,
-respectively extension type declaration without a declaring header
-constructor which is obtained as described in the following. This
-determines the dynamic semantics of a declaring constructor.
+header constructor, also known as a primary constructor *(note that it
+cannot be a `<mixinApplicationClass>`, because that kind of declaration
+does not support declaring constructors, that is a syntax error)*. This
+declaration is treated as a class, enum, respectively extension type
+declaration without a declaring header constructor which is obtained as
+described in the following. This determines the dynamic semantics of a
+declaring header constructor, and simiarly for a declaring body
+constructor.
 
 A compile-time error occurs if the body of _D_ contains a non-redirecting
-generative constructor. *This ensures that every constructor invocation for
-this class will invoke the declaring header constructor, either directly or
-via a series of generative redirecting constructors. This is required in
-order to allow initializers with no access to `this` to use the
+generative constructor, unless _D_ is an extension type.
+
+*For a class or an enum declaration, this ensures that every generative
+constructor invocation will invoke the declaring header constructor, either
+directly or via a series of generative redirecting constructors. This is
+required in order to allow initializers with no access to `this` to use the
 parameters.*
 
+If _D_ is an extension type, it is a compile-time error if _D_ does not
+contain a declaring constructor that has exactly one declaring parameter
+which is `final`.
+
+*For an extension type, this ensures that the name and type of the
+representation variable is well-defined, and existing rules about final
+instance variables ensure that every other non-redirecting generative
+constructor will initialize the representation variable. Moreover, there
+are no initializing expressions of any instance variable declarations, so
+there is no conflict about the meaning of names in such initializing
+expressions. This means that we can allow those other non-redirecting
+generative constructors to coexist with a primary constructor.*
+
+A compile-time error occurs if the name of the primary constructor is the
+same as the name of a constructor (declaring or not) in the body.
+
+*Moreover, it is an error if two constructor declarations in the body,
+declaring or otherwise, have the same name. This is just restating a
+compile-time error that we already have.*
+
 The declaring parameter list of the declaring header constructor introduces
-a new scope, the _declaring parameter scope_, whose enclosing scope is the
-type parameter scope of _D_, if any, and otherwise the enclosing library
-scope. The body scope of _D_ has the declaring parameter scope as its
-enclosing scope.
+a new scope, the _primary initializer scope_, whose enclosing scope is the
+body scope of _D_. Every primary parameter is entered into this scope.
 
-*This implies that every parameter of the declaring header constructor is
-in scope in the class body, unless the class body has a declaration with
-the same name (which would shadow the parameter).*
+The same parameter list also introduces the _primary parameter scope_,
+whose enclosing scope is also the body scope of the class. Every primary
+parameter which is not declaring, not initializing, and not a super
+parameter is entered into this scope.
 
-A compile-time error occurs if an identifier resolves to a declaring header
-constructor parameter, unless the identifier occurs in an initializing
-expression of a non-late instance variable declaration.
+The primary initializer scope is the current scope for the initializing
+expression, if any, of each non-late instance variable declaration. It is
+also the current scope for the initializer list in the body part of the
+declaring header constructor, if any.
 
-*We can only use these parameters when it is guaranteed that the declaring
-header constructor is currently being executed.*
+The primary parameter scope is the current scope for the body of the body
+part of the declaring header constructor, if any.
 
-Assume that the declaring header constructor has a declaring parameter with
-the name `n`, or an initializing formal parameter with the name `n`. Assume
-that an initializing expression of a non-late instance variable contains an
-identifier expression of the form `n` which is resolved as a reference to
-the instance variable which is initialized by said parameter *(that
-instance variable must also have the name `n`)*. In this case, the
-identifier expression evaluates to the value of the parameter.
+*Note that the _formal parameter initializer scope_ of a normal
+(non-declaring) constructor works in very much the same way as the primary
+initializer scope of a primary constructor. The difference is that the
+latter is the current scope for the initializing expressions of all
+non-late instance variable declarations, in addition to the initializer
+list of the body part of the constructor.*
 
-*This means that initializing expressions can, apparently, use the value of
-instance variables declared by the same class (not, e.g., inherited ones).
-They will actually get the value of the declaring header parameter, but
-this value is also guaranteed to be the initial value of the corresponding
-instance variable.*
+*The point is that the constructor body should have access to the "regular"
+parameters, but it should have access to the instance variables rather than
+the declaring or initializing parameters with the same names, also in the
+case of a declaring header constructor with a body in the class body. With
+an in-body declaring constructor, these rules just repeat what is already
+specified for the scoping of other constructors. For example:*
 
-*Note that it only applies to identifier expressions. In particular, this
-does not allow initializing expressions to assign to other instance
-variables.*
+```dart
+class C(var String x) {
+  void Function() captureAtDeclaration = () => print(x);
+  void Function() captureInInitializer;
+  void Function()? captureInBody;
+
+  this : captureInInitializer = (() => print(x)) {
+    captureInBody = () => print(x);
+  }
+}
+
+main() {
+  var c = C('parameter');
+  c.x = 'updated'; // Update `c.x` from 'parameter' to 'updated'.
+  c.captureAtDeclaration(); // Prints "parameter".
+  c.captureInInitializer(); // Prints "parameter".
+  c.captureInBody!(); // Prints "updated".
+}
+```
+
+*This scoping structure is highly unusual because the declaring parameter
+list of a primary constructor is outside the class body, and yet it is
+treated as if it were nested inside the body, and occurring in multiple
+locations! However, this ensures that the non-late variable initializers
+are treated the same as the initializer elements of an ordinary
+non-declaring constructor. Note that this only occurs when the class has a
+primary constructor, it does not occur when the class has an in-body
+declaring constructor, or when it does not have any declaring constructors
+at all. There is no access to any constructor parameters in the
+initializing expression of a non-late instance variable in those cases.
+For example:*
+
+```dart
+String x = 'top level';
+
+class C(String x) {
+  String instance = x;
+  late String lateInstance = x;
+}
+
+main() {
+  var c = C('parameter');
+  print(c.instance); // Prints "parameter".
+  print(c.lateInstance); // Prints "top level".
+}
+```
 
 The following errors apply to formal parameters of a declaring constructor,
 be it in the header or in the body. Let _p_ be a formal parameter of a
-declaring constructor in a class `C`:
+declaring constructor in a class, enum, or extension type declaration _D_
+named `C`:
 
 A compile-time error occurs if _p_ contains a term of the form `this.v`, or
 `super.v` where `v` is an identifier, and _p_ has the modifier
-`covariant`. *For example, `required covariant int this.v` is an error.*
+`covariant`. *For example, `required covariant int this.v` is an error. The
+reason for this error is that the modifier `covariant` must be specified on
+the declaration of `v` which is known to exist, not on the parameter.*
 
 A compile-time error occurs if _p_ has both of the modifiers `covariant`
 and `final`. *A final instance variable cannot be covariant, because being
@@ -786,16 +885,16 @@ Conversely, it is not an error for the modifier `covariant` to occur on a
 declaring formal parameter _p_ of a declaring constructor. This extends the
 existing allowlist of places where `covariant` can occur.
 
-*A declaring body constructor does not give rise to additional scopes or
-additional rules about access to `this`. The following applies to both the
-header and the body form of declaring constructors.*
+The following applies to both the header and the body form of declaring
+constructors.
 
 The semantics of the declaring constructor is found in the following steps,
 where _D_ is the class, extension type, or enum declaration in the program
 that includes a declaring constructor, and _D2_ is the result of the
 derivation of the semantics of _D_. The derivation step will delete
 elements that amount to the declaring constructor; it will add a new
-constructor _k_; it will add zero or more instance variable declarations.
+constructor _k_; and it will add zero or more instance variable
+declarations.
 
 Where no processing is mentioned below, _D2_ is identical to _D_. Changes
 occur as follows:
@@ -804,12 +903,20 @@ Assume that `p` is an optional formal parameter in _D_ which has the
 modifier `var` or the modifier `final` *(that is, `p` is a declaring
 parameter)*.
 
-Assume that `p` does not have a declared type, but it does have a default
-value whose static type in the empty context is a type (not a type schema)
-`T` which is not `Null`. In that case `p` is considered to have the
-declared type `T`. When `T` is `Null`, `p` is considered to have the
-declared type `Object?`. If `p` does not have a declared type nor a default
-value then `p` is considered to have the declared type `Object?`.
+Assume that the combined member signature for a getter with the same name
+as `p` from the superinterfaces of _D_ exists, and has return type `T`. In
+that case the parameter `p` has declared type `T` as well.
+
+*In other words, an instance variable introduced by a declaring parameter
+is subject to override inference, just like an explicitly declared instance
+variable.*
+
+Otherwise, assume that `p` does not have a declared type, but it does have
+a default value whose static type in the empty context is a type (not a
+type schema) `T` which is not `Null`. In that case `p` is considered to
+have the declared type `T`. When `T` is `Null`, `p` is considered to have
+the declared type `Object?`. If `p` does not have a declared type nor a
+default value then `p` is considered to have the declared type `Object?`.
 
 *Dart has traditionally assumed the type `dynamic` in such situations. We
 have chosen the more strictly checked type `Object?` instead, in order to
@@ -841,7 +948,7 @@ follows the name, type parameter list, if any, and `.id`, if any.
 Otherwise, _D_ is a declaring body constructor. If the reserved word `this`
 is followed by `.id` where `id` is an identifier then _k_ has the name
 `C.id`. If it is followed by `.new` then _k_ has the name `C`. If it is not
-followed by `.`  then _k_ has the name `C`.
+followed by `.` then _k_ has the name `C`.
 
 The formal parameter list _L2_ of _k_ is identical to _L_, except that each
 formal parameter is processed as follows.
@@ -870,15 +977,11 @@ positional or named parameter remains optional; if it has a default value
   in _L2_, and it is added to the instance variable declaration named `p`.
 
 In every case, any DartDoc comments are copied along with the formal
-parameter, and in the case where an instance variable is implicitly induced
-the DartDoc comment is also added to that instance variable.
+parameter, and in the case where an instance variable is implicitly
+induced, the DartDoc comment is also added to that instance variable.
 
-If there is an initializer list following the formal parameter list _L_ then
-_k_ has an initializer list with the same elements in the same order.
-
-*The current scope of the initializer list in _D_ is the body scope of the
-enclosing declaration even when _D_ is a declaring header constructor, which
-means that they preserve their semantics when moved into the body.*
+If there is an initializer list following the formal parameter list _L_
+then _k_ has an initializer list with the same elements in the same order.
 
 Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
 
@@ -887,49 +990,41 @@ Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
 This proposal includes support for adding the declaring header parameters to
 the scope of the class, as proposed by Slava Egorov.
 
-It uses a simple scoping structure based directly on the syntax: The
-declaring header parameters are added to the scope which is the enclosing
-scope of the class body scope. This allows non-late instance variable
-initializers (and no other locations) to use the declaring header
-parameters whose name is not also the name of a declaration in the class
-body.
+The scoping structure is highly unusual because the formal parameter list
+of a primary constructor is located outside the class body, and still the
+corresponding scopes (the primary initializer scope and the primary
+parameter scope) have the class body scope as their enclosing
+scope. However, this causes the scoping to be the same for elements in the
+initializer list and in the initializing expressions of non-late instance
+variables, and that allows us to move code from an initializer list to a
+variable initializer and vice versa without worrying about changing the
+meaning of the code. This in turn makes it easier to change a regular
+(non-declaring) constructor to a primary constructor, or vice versa. So we
+assume that the unusual scoping structure will make sense in practice.
 
-For parameters which are directly associated with an instance variable
-declaration (that is, a declaring parameter or an initializing formal
-parameter), there is a special "backup" rule: Assume that `id` is an
-identifier expression in a non-late variable initializer. Assume that `id`
-resolves to an instance variable of the same class that has such a
-corresponding parameter. This used to be an error (because the location
-where `id` occurs does not have access to `this`), but it will now evaluate
-to the value of the corresponding parameter. Note that this value is
-guaranteed to also be the initial value of the corresponding instance
-variable.
-
-This differs from an approach in the case where there is an instance
-variable and a declaring header parameter with the same name where there is
-no correspondence:
-
-```dart
-class A(int x) {
-  int x = 42;
-  final y = x + 1;
-}
-```
-
-In this case the declaring header parameter `x` is just a plain parameter (it
-does not declare an instance variable named `x` and it doesn't initialize
-any such instance variable). With this proposal the occurrence of `x` in
-the initializing expression of `y` is a compile-time error (there is no
-access to `this`, and the "backup rule" doesn't apply).
-
-Alternatively, if we simply say that the declaring header parameters are in
-scope in the non-late instance variable initializers then we'd allow `x` to
-refer to the parameter even though it has nothing whatsoever to do with the
-instance variable named `x`. This proposal does not use this alternative
-approach because it is considered highly confusing that the two occurrences
-of `x` in the class body are completely different entities.
+The proposal allows an `enum` declaration to include the modifier `const`
+just before the name of the declaration when it has a primary constructor,
+but it also allows this keyword to be omitted. The specified constructor
+will be constant in both cases. This differs from the treatment of regular
+(non-declaring) constructors in an `enum` declaration: They _must_ have the
+modifier `const`, it is never inferred. This discrepancy was included
+because the syntax `enum const E(String s) {...}` seems redundant because
+`enum` implies that every constructor must be constant. This is not the
+case in the body where a constructor declaration may be physically pretty
+far removed from any syntactic hint that the constructor must be constant
+(if we can't see the word `enum` then we may not know that it is that kind
+of declaration, and the constructor might be non-const).
 
 ### Changelog
+
+1.9 - August 8, 2025
+
+* Change the scoping such that non-late initializing expressions have the
+  primary constructor parameters as the enclosing scope. Adjust several
+  grammar rules. Clarify or correct several compile-time errors. Adjust the
+  rules about extension types to avoid a breaking change. Specify override
+  inference for getters and setters introduced by declaring parameters with
+  no explicit type. Perform several other smaller adjustments.
 
 1.8 - July 16, 2025
 
