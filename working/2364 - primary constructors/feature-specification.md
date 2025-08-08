@@ -62,7 +62,7 @@ class Point(var int x, var int y);
 ```
 
 A class that has a declaring header constructor cannot have any other
-generative non-redirecting constructors. This requirement must be upheld
+non-redirecting generative constructors. This requirement must be upheld
 because it must be guaranteed that the declaring header constructor is
 actually executed on every newly created instance of this class. This rule
 is further motivated below.
@@ -422,21 +422,35 @@ class DeltaPoint {
   DeltaPoint(this.x, int delta): y = x + delta;
 }
 
-// Using a primary constructor.
+// Using an declaring body constructor.
+class DeltaPoint {
+  final int y;
+  this(final int x, int delta) : y = x + delta;
+}
+
+// Using a primary constructor with a body part.
+class DeltaPoint(final int x, int delta) {
+  final int y;
+  this : y = x + delta;
+}
+
+// Using a primary constructor and the associated new scoping.
 class DeltaPoint(final int x, int delta) {
   final int y = x + delta;
 }
 ```
 
-This is possible because it is guaranteed that the non-late initializers
-are evaluated during the execution of the declaring header constructor,
-such that the value of a variable like `delta` is only used at a point in
-time where it exists.
+When there is a primary constructor, we can allow the initializing
+expressions of non-late instance variables to access the constructor
+parameters because it is guaranteed that the non-late initializers are
+evaluated during the execution of the declaring header constructor, such
+that the value of a variable like `delta` is only used at a point in time
+where it exists.
 
-This can only work if the declaring header constructor is guaranteed to be
+This can only work if the primary constructor is guaranteed to be
 executed. Hence the rule, mentioned above, that there cannot be any other
-non-redirecting generative constructors in a class that has a declaring
-header constructor.
+non-redirecting generative constructors in a class that has a primary
+constructor.
 
 This further motivates the special terminology where a declaring header
 constructor is known as a primary constructor as well: The _primary_
@@ -533,13 +547,15 @@ class E extends A {
 }
 ```
 
-Note that the version with a primary constructor can initialize `w` in the
+Note that the version with a primary constructor can initialize `z` in the
 declaration itself, whereas the two other versions need to use an element
-in the initializer list of the constructor to initialize `w`. This is
-necessary because there cannot be other non-redirecting generative
-constructors when there is a primary constructor, but in the two other
-versions we could add another non-redirecting generative constructor which
-could initialize `w` with some other value.
+in the initializer list of the constructor to initialize `z`. This is
+necessary because `y` isn't in scope in those two cases. Moreover, there
+cannot be other non-redirecting generative constructors when there is a
+primary constructor, but in the two other versions we could add another
+non-redirecting generative constructor which could initialize `w` with some
+other value, in which case we must also initialize `w` as shown in the
+three cases.
 
 Moreover, we may get rid of all those occurrences of `required` in the
 situation where it is a compile-time error to not have them, but that is a
@@ -594,11 +610,17 @@ constructors as well.
 
 <constructorSignature> ::= // Modified rule.
      <constructorName> <formalParameterList>
-   | 'this' ('.' <identifierOrNew>)? <declaringParameterList>?;
+   | <declaringConstructorSignature>;
+
+<declaringConstructorSignature> ::= // New rule.
+     'this' ('.' <identifierOrNew>)? <declaringParameterList>?;
 
 <constantConstructorSignature> ::= // Modified rule.
      'const' <constructorName> <formalParameterList>
-   | 'const' 'this' ('.' <identifierOrNew>)? <declaringParameterList>;
+   | <declaringConstantConstructorSignature>;
+
+<declaringConstantConstructorSignature> ::= // New rule.
+     'const' 'this' ('.' <identifierOrNew>)? <declaringParameterList>;
 
 <identifierOrNew> ::=
      <identifier>
@@ -656,20 +678,22 @@ constructors as well.
      ('=' <expression>)?;
 ```
 
-A _declaring constructor_ declaration is a constructor declaration whose
-`<constructorSignature>` begins with `'const'? 'this'`, or it is a
-`<primaryConstructorNoConst>` in the header of a class, enum, or extension
-type declaration together with a constructor declaration in the body whose
-`<constructorSignature>` begins with `'this'`, if any.
+A _declaring constructor_ declaration is a declaration that contains a
+`<declaringConstructorSignature>` with a `<declaringParameterList>`, or a
+declaration that contains a `<declaringConstantConstructorSignature>`, or
+it is a `<primaryConstructorNoConst>` in the header of a class, enum, or
+extension type declaration, together with a declaration in the body that
+contains a `<declaringConstructorSignature>` *(which does not contain a
+`<declaringParameterList>`, because that's an error)*.
 
-A class declaration whose class body is `;` is treated as a class declaration
-whose class body is `{}`.
+A class declaration whose class body is `;` is treated as a class
+declaration whose class body is `{}`.
 
 Let _D_ be a class, extension type, or enum declaration.
 
 A compile-time error occurs if _D_ includes a `<classNamePart>` that
 contains a `<primaryConstructorNoConst>`, and the body of _D_ contains a
-`<constructorSignature>` beginning with `this` that contains a
+`<declaringConstructorSignature>` that contains a
 `<declaringParameterList>`.
 
 *It is an error to have a declaring parameter list both in the header and
@@ -677,7 +701,7 @@ in the body.*
 
 A compile-time error occurs if _D_ includes a `<classNamePart>` that
 does not contain a `<primaryConstructorNoConst>`, and the body of _D_
-contains a `<constructorSignature>` beginning with `this` that does not
+contains a `<declaringConstructorSignature>` that does not
 contain a `<declaringParameterList>`.
 
 *It is an error to have a declaring constructor in the class body, but
@@ -732,14 +756,33 @@ declaring header constructor, and simiarly for a declaring body
 constructor.
 
 A compile-time error occurs if the body of _D_ contains a non-redirecting
-generative constructor. *This ensures that every generative constructor
-invocation for this class will invoke the declaring header constructor,
-either directly or via a series of generative redirecting
-constructors. This is required in order to allow initializers with no
-access to `this` to use the parameters.*
+generative constructor, unless _D_ is an extension type.
+
+*For a class or an enum declaration, this ensures that every generative
+constructor invocation will invoke the declaring header constructor, either
+directly or via a series of generative redirecting constructors. This is
+required in order to allow initializers with no access to `this` to use the
+parameters.*
+
+If _D_ is an extension type, it is a compile-time error if _D_ does not
+contain a declaring constructor that has exactly one declaring parameter
+which is `final`.
+
+*For an extension type, this ensures that the name and type of the
+representation variable is well-defined, and existing rules about final
+instance variables ensure that every other non-redirecting generative
+constructor will initialize the representation variable. Moreover, there
+are no initializing expressions of any instance variable declarations, so
+there is no conflict about the meaning of names in such initializing
+expressions. This means that we can allow those other non-redirecting
+generative constructors to coexist with a primary constructor.*
 
 A compile-time error occurs if the name of the primary constructor is the
 same as the name of a constructor (declaring or not) in the body.
+
+*Moreover, it is an error if two constructor declarations in the body,
+declaring or otherwise, have the same name. This is just restating a
+compile-time error that we already have.*
 
 The declaring parameter list of the declaring header constructor introduces
 a new scope, the _primary initializer scope_, whose enclosing scope is the
@@ -747,8 +790,8 @@ body scope of _D_. Every primary parameter is entered into this scope.
 
 The same parameter list also introduces the _primary parameter scope_,
 whose enclosing scope is also the body scope of the class. Every primary
-parameter which is not declaring and not initializing is entered into this
-scope.
+parameter which is not declaring, not initializing, and not a super
+parameter is entered into this scope.
 
 The primary initializer scope is the current scope for the initializing
 expression, if any, of each non-late instance variable declaration. It is
@@ -757,6 +800,13 @@ declaring header constructor, if any.
 
 The primary parameter scope is the current scope for the body of the body
 part of the declaring header constructor, if any.
+
+*Note that the _formal parameter initializer scope_ of a normal
+(non-declaring) constructor works in very much the same way as the primary
+initializer scope of a primary constructor. The difference is that the
+latter is the current scope for the initializing expressions of all
+non-late instance variable declarations, in addition to the initializer
+list of the body part of the constructor.*
 
 *The point is that the constructor body should have access to the "regular"
 parameters, but it should have access to the instance variables rather than
