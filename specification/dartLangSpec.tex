@@ -23737,7 +23737,8 @@ it is then unnecessary to consider any subsequent cases.
 
 \LMHash{}%
 A type $S$ is a subtype of a type $T$ in the environment $\Delta$
-(written \SubtypeStd{S}{T}) when:
+(written \SubtypeStd{S}{T} and
+abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
 
 \begin{itemize}
 \item
@@ -23756,7 +23757,7 @@ A type $S$ is a subtype of a type $T$ in the environment $\Delta$
   }
 \item
   \textbf{Right Top (\SrnRightTop):}
-  if $T$ is \code{Object?}, \DYNAMIC, or \VOID then \SubtypeNE{S}{T}.
+  if $T$ is \code{Object?}, \DYNAMIC, or \VOID{} then \SubtypeNE{S}{T}.
 \item
   \textbf{Left Top (\SrnLeftTop):}
   if $S$ is \DYNAMIC{} or \VOID{}
