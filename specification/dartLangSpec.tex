@@ -23795,10 +23795,10 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
   \item
     if $T$ is a type variable (promoted or not) the query is false.
   \item
-    if $T$ is \code{FutureOr<$S$>} for some $S$,
-    then the query is true if{}f \SubtypeNE{\code{Null}}{S}.
+    if $T$ is \code{FutureOr<$U$>} for some $U$,
+    then the query is true if{}f \SubtypeNE{\code{Null}}{U}.
   \item
-    if $T$ is \code{$S$?} for some $S$ then the query is true.
+    if $T$ is \code{$U$?} for some $U$ then the query is true.
   \item
     Otherwise, the query is false.
   \end{itemize}
