@@ -22089,14 +22089,14 @@ concrete syntax denoting $T$.
   different syntax denoting the same type,
   and different types denoted by the same syntax.
   We do this by defining in detail what it means to be the same type
-  (\ref{sameStaticType}).%
+  (\ref{sameType}).%
 }
 
 \LMHash{}%
 In section~\ref{subtypes} and its subsections,
 all designations of types are considered to be the same
 type if{}f they satisfy the criteria in
-Section~\ref{sameStaticType}.
+Section~\ref{sameType}.
 
 \LMHash{}%
 The subtype rules assume that all type aliases have been transitively expanded.
@@ -22491,7 +22491,7 @@ come in two variants:
   parameters can make them identical.
   This is also known as alpha equivalence.
   The detailed rules are described in
-  Section~\ref{sameStaticType}.%
+  Section~\ref{sameType}.%
 }
 
 \LMHash{}%
@@ -23379,8 +23379,8 @@ where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. r$
 }
 
 
-\subsection{Same Static Type}
-\LMLabel{sameStaticType}
+\subsection{Same Type}
+\LMLabel{sameType}
 
 \LMHash{}%
 This section specifies how to soundly determine whether or not two types
@@ -23741,16 +23741,17 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
 \begin{itemize}
 \item
   \textbf{Reflexivity:}
-  if $T_0$ and $T_1$ are the same type then \SubtypeNE{T_0}{T_1}
+  if $T_0$ and $T_1$ are the same type (\ref{sameType})
+  then \SubtypeNE{T_0}{T_1}.
 
   \commentary{%
-    Note that this check is necessary as the base case for primitive types,
-    and type variables, but not for composite types.
+    Note that this check is necessary as the base case for atomic types
+    and for type variables, but not for composite types.
     In particular, a structural equality check is admissible,
     but not required here.
-    Pragmatically, non-constant time identity checks here are
+    Pragmatically, non-constant time equality checks here are
     counter-productive.
-    So this rule should only be used when $T$ is atomic.%
+    Hence, this rule is only used when $T$ is atomic.%
   }
 \item
   \textbf{Right Top:}
