@@ -23822,7 +23822,7 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
     Note that this rule is admissible, and can be safely elided if desired.%
   }
 \item
-  \textbf{Type Variable Reflexivity 2 (\Srn):}
+  \textbf{Type Variable Reflexivity 2 (\SrnRightPromotedVariable*):}
   if $S$ is a type variable $X$
   or a promoted type variable \code{$X$\,\&\,$U$}
   and $T$ is \code{$X$\,\&\,$V$}
@@ -23833,8 +23833,8 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
   }
 \item
   \textbf{Right Promoted Variable (\SrnRightPromotedVariable):}
-  if $T$ is a promoted type variable \code{$X_1$\,\&\,$S_1$}
-  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{X_1} and \SubtypeNE{S}{S_1}.
+  if $T$ is a promoted type variable \code{$X$\,\&\,$U$}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{X} and \SubtypeNE{S}{U}.
 \item
   \textbf{Right FutureOr (\SrnRightFutureOrA, \SrnRightFutureOrB):}
   if $T$ is \code{FutureOr<$S_1$>}
