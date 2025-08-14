@@ -23823,10 +23823,10 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
   }
 \item
   \textbf{Type Variable Reflexivity 2 (?):}
-  if $S$ is a type variable $X_0$
-  or a promoted type variable \code{$X_0$\,\&\,$S_0$}
-  and $T$ is \code{$X_0$\,\&\,$S_1$}
-  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{S_1}.
+  if $S$ is a type variable $X$
+  or a promoted type variable \code{$X$\,\&\,$U$}
+  and $T$ is \code{$X$\,\&\,$V$}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{U}{V}.
 
   \commentary{%
     Note that this rule is admissible, and can be safely elided if desired.%
