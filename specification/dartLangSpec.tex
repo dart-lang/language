@@ -23737,7 +23737,7 @@ it is then unnecessary to consider any subsequent cases.
 
 \LMHash{}%
 A type $S$ is a subtype of a type $T$ in the environment $\Delta$
-(written \SubtypeStd{S}{T} and
+(written \SubtypeStd{S}{T},
 abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
 
 \begin{itemize}
@@ -23970,6 +23970,15 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
   and $T$ is \code{($S_0$, \ldots, $S_n$, \{$S_{n+1} d_{n+1}$, \ldots, $S_m d_m$\})}
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{V_i}{S_i} for each $i \in 0 .. m$.
 \end{itemize}
+
+\LMHash{}%
+In these rules, the numbers in parentheses refer to the derivation rules in
+Fig.~\ref{fig:subtypeRules} with the given number.
+A number with an asterisk indicates that
+a special case of said derivation rule is used.
+A number with no asterisk indicates that the textual rule above
+(or part of it) corresponds more directly to
+the derivation rule with the specified number.
 
 
 \section*{Appendix: Integer Implementations}
