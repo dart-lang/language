@@ -17502,10 +17502,10 @@ A \synt{typeIdentifier} is an identifier which can be used
 as the name of a type declaration.
 
 \commentary{%
-A \synt{qualifiedName} is not an identifier expression,
-but we specify its syntax here because it is used in several different contexts,
-and it is more closely related to the plain identifier
-than it is to any single one of those grammar rules where it is used.%
+  A \synt{qualifiedName} is not an identifier expression,
+  but we specify its syntax here because it is used in several different contexts,
+  and it is more closely related to the plain identifier
+  than it is to any single one of those grammar rules where it is used.%
 }
 
 \begin{grammar}
@@ -23394,39 +23394,39 @@ or upper and lower bounds
 (\ref{standardUpperBoundsAndStandardLowerBounds}).
 
 \commentary{%
-Note that the notion of being the same type at run time is different from
-the notion of being the same type during static analysis.
-For example, two distinct type variables \code{X} and \code{Y}
-might at run time be bound to the same type, e.g.,
-\code{List<int>}.
-However, during static analysis we must maintain that
-\code{X} and \code{Y} are different types
-because there is no guarantee that they are always bound to
-the same type at run time.%
+  Note that the notion of being the same type at run time is different from
+  the notion of being the same type during static analysis.
+  For example, two distinct type variables \code{X} and \code{Y}
+  might at run time be bound to the same type, e.g.,
+  \code{List<int>}.
+  However, during static analysis we must maintain that
+  \code{X} and \code{Y} are different types
+  because there is no guarantee that they are always bound to
+  the same type at run time.%
 }
 
 \commentary{%
-The phrases `same type' and `identical syntax' deserves some extra scrutiny.
-If a library $L$ imports the libraries $L_1$ and $L_2$
-(where $L_1$ and $L_2$ are not the same library),
-and both $L_1$ and $L_2$ declare a class \code{C},
-then the syntax \code{C} may occur as a type during static analysis of $L$
-in situations where it refers to two distinct types.
+  The phrases `same type' and `identical syntax' deserves some extra scrutiny.
+  If a library $L$ imports the libraries $L_1$ and $L_2$
+  (where $L_1$ and $L_2$ are not the same library),
+  and both $L_1$ and $L_2$ declare a class \code{C},
+  then the syntax \code{C} may occur as a type during static analysis of $L$
+  in situations where it refers to two distinct types.
 
-For instance, $L_1$ could declare a variable \code{v}
-of type \code{C}-in-$L_1$,
-and $L_2$ could declare a function
-\code{\VOID\,foo(C\,\,c)\,\,\{\}}
-which uses the type \code{C}-in-$L_2$,
-and $L$ could contain the expression \code{foo(v)}.
+  For instance, $L_1$ could declare a variable \code{v}
+  of type \code{C}-in-$L_1$,
+  and $L_2$ could declare a function
+  \code{\VOID\,foo(C\,\,c)\,\,\{\}}
+  which uses the type \code{C}-in-$L_2$,
+  and $L$ could contain the expression \code{foo(v)}.
 
-Note that even though it would be a compile-time error to use \code{C} in $L$
-(because it is ambiguous),
-it is not an error to have an expression like \code{foo(v)},
-and the static analysis of this expression \emph{must}
-be able to determine that the two types whose name is \code{C} are
-not the same type. The invocation may or may not be an error,
-depending on the subtyping relations.%
+  Note that even though it would be a compile-time error to use \code{C} in $L$
+  (because it is ambiguous),
+  it is not an error to have an expression like \code{foo(v)},
+  and the static analysis of this expression \emph{must}
+  be able to determine that the two types whose name is \code{C} are
+  not the same type. The invocation may or may not be an error,
+  depending on the subtyping relations.%
 }
 
 \rationale{%
@@ -23520,20 +23520,20 @@ Then transform each library $L_i$, $i \in 1 .. n$ as follows:
 \end{enumerate}
 
 \commentary{%
-In short, this transformation adds a unique prefix to every type name
-which is resolved to a top-level declaration
-(in the same library or in an imported library).
+  In short, this transformation adds a unique prefix to every type name
+  which is resolved to a top-level declaration
+  (in the same library or in an imported library).
 
-This transformation does not change any occurrence of \VOID,
-and does not need to;
-\VOID{} is a reserved word, not a type identifier.
-Also, \code{$\metavar{prefix}_j$.\VOID} would be a syntax error.
+  This transformation does not change any occurrence of \VOID,
+  and does not need to;
+  \VOID{} is a reserved word, not a type identifier.
+  Also, \code{$\metavar{prefix}_j$.\VOID} would be a syntax error.
 
-Note that the transformation changes terms derived from \synt{type},
-but it does not change expressions, or any other program element
-(except that a \synt{type} can occur in an expression, e.g., \code{<int>[]}).
-In particular, it does not change type literals
-(that is, expressions denoting types).%
+  Note that the transformation changes terms derived from \synt{type},
+  but it does not change expressions, or any other program element
+  (except that a \synt{type} can occur in an expression, e.g., \code{<int>[]}).
+  In particular, it does not change type literals
+  (that is, expressions denoting types).%
 }
 
 \LMHash{}%
@@ -23558,13 +23558,13 @@ An \Index{alpha conversion} of a type is a consistent renaming
 of the type variables declared in that type.
 
 \commentary{%
-In Dart, only function types can be subject to an alpha conversion:
-A function type is the only kind of type that declares type variables.
-For example,
-\code{List<X>\,\,\FUNCTION<X>({X\,\,arg})}
-can be turned into
-\code{List<Y>\,\,\FUNCTION<Y>({Y\,\,arg})}
-by alpha conversion.%
+  In Dart, only function types can be subject to an alpha conversion:
+  A function type is the only kind of type that declares type variables.
+  For example,
+  \code{List<X>\,\,\FUNCTION<X>({X\,\,arg})}
+  can be turned into
+  \code{List<Y>\,\,\FUNCTION<Y>({Y\,\,arg})}
+  by alpha conversion.%
 }
 
 \LMHash{}%
