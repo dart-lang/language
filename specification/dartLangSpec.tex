@@ -23837,13 +23837,13 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{X} and \SubtypeNE{S}{U}.
 \item
   \textbf{Right FutureOr (\SrnRightFutureOrA, \SrnRightFutureOrB):}
-  if $T$ is \code{FutureOr<$S_1$>}
+  if $T$ is \code{FutureOr<$U$>}
   then \SubtypeNE{S}{T} if{}f any of the following hold:
   \begin{itemize}
-  \item either \SubtypeNE{S}{\code{Future<$S_1$>}}.
-  \item or \SubtypeNE{S}{S_1}.
-  \item or $S$ is $X_0$ and $X_0$ has bound $B_0$ and \SubtypeNE{B_0}{T}.
-  \item or $S$ is \code{$X_0$\,\&\,$S_0$} and \SubtypeNE{S_0}{T}.
+  \item either \SubtypeNE{S}{\code{Future<$U$>}}.
+  \item or \SubtypeNE{S}{U}.
+  \item or $S$ is $X$ and $X$ has bound $B$ and \SubtypeNE{B}{T}.
+  \item or $S$ is \code{$X$\,\&\,$V$} and \SubtypeNE{V}{T}.
   \end{itemize}
 \item
   \textbf{Right Nullable (\SrnRightNullableOne, \SrnRightNullableTwo):}
