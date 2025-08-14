@@ -23789,7 +23789,7 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
     Otherwise \SubtypeNE{S}{T} is true.
   \end{itemize}
 \item
-  \textbf{Left Null (\SrnNullOne):}
+  \textbf{Left Null (\SrnRightFutureOrB*, \SrnNullOne):}
   if $S$ is \code{Null} then:
   \begin{itemize}
   \item
@@ -23804,9 +23804,9 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
   \end{itemize}
 \item
   \textbf{Left FutureOr (\SrnLeftFutureOr, \SrnNullTwo):}
-  if $S$ is \code{FutureOr<$S_0$>}
+  if $S$ is \code{FutureOr<$U$>}
   then \SubtypeNE{S}{T} if{}f
-  \SubtypeNE{\code{Future<$S_0$>}}{T} and \SubtypeNE{S_0}{T}.
+  \SubtypeNE{\code{Future<$U$>}}{T} and \SubtypeNE{U}{T}.
 \item
   \textbf{Left Nullable (\SrnLeftNullable):}
   if $S$ is \code{$S_0$?} then \SubtypeNE{S}{T} if{}f
