@@ -23755,142 +23755,142 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   }
 \item
   \textbf{Right Top:}
-  if $T_1$ is \DYNAMIC, \VOID, or \code{Object?} then \SubtypeNE{T_0}{T_1}.
+  if $T$ is \DYNAMIC, \VOID, or \code{Object?} then \SubtypeNE{S}{T}.
 \item
   \textbf{Left Top:}
-  if $T_0$ is \DYNAMIC{} or \VOID{}
-  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{\code{Object?}}{T_1}.
+  if $S$ is \DYNAMIC{} or \VOID{}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{\code{Object?}}{T}.
 \item
   \textbf{Left Bottom:}
-  if $T_0$ is \code{Never} then \SubtypeNE{T_0}{T_1}.
+  if $S$ is \code{Never} then \SubtypeNE{S}{T}.
 \item
   \textbf{Right Object:}
-  if $T_1$ is \code{Object} then:
+  if $T$ is \code{Object} then:
   \begin{itemize}
   \item
-    if $T_0$ is an unpromoted type variable with bound $B$
-    then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{B}{\code{Object}}.
+    if $S$ is an unpromoted type variable with bound $B$
+    then \SubtypeNE{S}{T} if{}f \SubtypeNE{B}{\code{Object}}.
   \item
-    if $T_0$ is a promoted type variable \code{$X$\,\&\,$S$}
-    then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{S}{\code{Object}}.
+    if $S$ is a promoted type variable \code{$X$\,\&\,$S$}
+    then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{\code{Object}}.
   \item
-    if $T_0$ is \code{FutureOr<$S$>} for some $S$,
-    then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{S}{\code{Object}}.
+    if $S$ is \code{FutureOr<$S$>} for some $S$,
+    then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{\code{Object}}.
   \item
-    if $T_0$ is \code{Null}, \DYNAMIC, \VOID, or \code{$S$?} for any $S$,
+    if $S$ is \code{Null}, \DYNAMIC, \VOID, or \code{$S$?} for any $S$,
     then the subtyping does not hold
     (\commentary{%
       i.e., the result of the subtyping query is known to be false%
     }).
   \item
-    Otherwise \SubtypeNE{T_0}{T_1} is true.
+    Otherwise \SubtypeNE{S}{T} is true.
   \end{itemize}
 \item
   \textbf{Left Null:}
-  if $T_0$ is \code{Null} then:
+  if $S$ is \code{Null} then:
   \begin{itemize}
   \item
-    if $T_1$ is a type variable (promoted or not) the query is false.
+    if $T$ is a type variable (promoted or not) the query is false.
   \item
-    if $T_1$ is \code{FutureOr<$S$>} for some $S$,
+    if $T$ is \code{FutureOr<$S$>} for some $S$,
     then the query is true if{}f \SubtypeNE{\code{Null}}{S}.
   \item
-    if $T_1$ is \code{$S$?} for some $S$ then the query is true.
+    if $T$ is \code{$S$?} for some $S$ then the query is true.
   \item
     Otherwise, the query is false.
   \end{itemize}
 \item
   \textbf{Left FutureOr:}
-  if $T_0$ is \code{FutureOr<$S_0$>}
-  then \SubtypeNE{T_0}{T_1} if{}f
-  \SubtypeNE{\code{Future<$S_0$>}}{T_1} and \SubtypeNE{S_0}{T_1}.
+  if $S$ is \code{FutureOr<$S_0$>}
+  then \SubtypeNE{S}{T} if{}f
+  \SubtypeNE{\code{Future<$S_0$>}}{T} and \SubtypeNE{S_0}{T}.
 \item
   \textbf{Left Nullable:}
-  if $T_0$ is \code{$S_0$?} then \SubtypeNE{T_0}{T_1} if{}f
-  \SubtypeNE{S_0}{T_1} and \SubtypeNE{\code{Null}}{T_1}.
+  if $S$ is \code{$S_0$?} then \SubtypeNE{S}{T} if{}f
+  \SubtypeNE{S_0}{T} and \SubtypeNE{\code{Null}}{T}.
 \item
   \textbf{Type Variable Reflexivity 1:}
-  if $T_0$ is a type variable $X_0$
-  or a promoted type variable \code{$X_0$\,\&\,$S_0$} and $T_1$ is $X_0$
-  then \SubtypeNE{T_0}{T_1}.
+  if $S$ is a type variable $X_0$
+  or a promoted type variable \code{$X_0$\,\&\,$S_0$} and $T$ is $X_0$
+  then \SubtypeNE{S}{T}.
 
   \commentary{%
     Note that this rule is admissible, and can be safely elided if desired.%
   }
 \item
   \textbf{Type Variable Reflexivity 2:}
-  if $T_0$ is a type variable $X_0$
+  if $S$ is a type variable $X_0$
   or a promoted type variable \code{$X_0$\,\&\,$S_0$}
-  and $T_1$ is \code{$X_0$\,\&\,$S_1$}
-  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{T_0}{S_1}.
+  and $T$ is \code{$X_0$\,\&\,$S_1$}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{S_1}.
 
   \commentary{%
     Note that this rule is admissible, and can be safely elided if desired.%
   }
 \item
   \textbf{Right Promoted Variable:}
-  if $T_1$ is a promoted type variable \code{$X_1$\,\&\,$S_1$}
-  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{T_0}{X_1} and \SubtypeNE{T_0}{S_1}.
+  if $T$ is a promoted type variable \code{$X_1$\,\&\,$S_1$}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{X_1} and \SubtypeNE{S}{S_1}.
 \item
   \textbf{Right FutureOr:}
-  if $T_1$ is \code{FutureOr<$S_1$>}
-  then \SubtypeNE{T_0}{T_1} if{}f any of the following hold:
+  if $T$ is \code{FutureOr<$S_1$>}
+  then \SubtypeNE{S}{T} if{}f any of the following hold:
   \begin{itemize}
-  \item either \SubtypeNE{T_0}{\code{Future<$S_1$>}}.
-  \item or \SubtypeNE{T_0}{S_1}.
-  \item or $T_0$ is $X_0$ and $X_0$ has bound $B_0$ and \SubtypeNE{B_0}{T_1}.
-  \item or $T_0$ is \code{$X_0$\,\&\,$S_0$} and \SubtypeNE{S_0}{T_1}.
+  \item either \SubtypeNE{S}{\code{Future<$S_1$>}}.
+  \item or \SubtypeNE{S}{S_1}.
+  \item or $S$ is $X_0$ and $X_0$ has bound $B_0$ and \SubtypeNE{B_0}{T}.
+  \item or $S$ is \code{$X_0$\,\&\,$S_0$} and \SubtypeNE{S_0}{T}.
   \end{itemize}
 \item
   \textbf{Right Nullable:}
-  if $T_1$ is \code{$S_1$?}
-  then \SubtypeNE{T_0}{T_1} if{}f any of the following hold:
+  if $T$ is \code{$S_1$?}
+  then \SubtypeNE{S}{T} if{}f any of the following hold:
   \begin{itemize}
-  \item either \SubtypeNE{T_0}{S_1}.
-  \item or \SubtypeNE{T_0}{\code{Null}}.
-  \item or $T_0$ is $X_0$ and $X_0$ has bound $B_0$ and \SubtypeNE{B_0}{T_1}.
-  \item or $T_0$ is \code{$X_0$\,\&\,$S_0$} and \SubtypeNE{S_0}{T_1}.
+  \item either \SubtypeNE{S}{S_1}.
+  \item or \SubtypeNE{S}{\code{Null}}.
+  \item or $S$ is $X_0$ and $X_0$ has bound $B_0$ and \SubtypeNE{B_0}{T}.
+  \item or $S$ is \code{$X_0$\,\&\,$S_0$} and \SubtypeNE{S_0}{T}.
   \end{itemize}
 \item
   \textbf{Left Promoted Variable:}
-  If $T_0$ is a promoted type variable \code{$X_0$\,\&\,$S_0$}
-  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{S_0}{T_1}.
+  If $S$ is a promoted type variable \code{$X_0$\,\&\,$S_0$}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S_0}{T}.
 \item
   \textbf{Left Type Variable Bound:}
-  If $T_0$ is a type variable $X_0$ with bound $B_0$
-  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{B_0}{T_1}.
+  If $S$ is a type variable $X_0$ with bound $B_0$
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{B_0}{T}.
 \item
   \textbf{Function Type/Function:}
-  $T_0$ is a function type and $T_1$ is \FUNCTION.
+  $S$ is a function type and $T$ is \FUNCTION.
 \item
   \textbf{Record Type/Record:}
-  $T_0$ is a record type and $T_1$ is \RECORD.
+  $S$ is a record type and $T$ is \RECORD.
 \item
   \textbf{Interface Compositionality:}
-  If $T_0$ is an interface type \code{$C_0$<$S_0$, \ldots, $S_k$>}
-  and $T_1$ is \code{$C_0$<$U_0$, \ldots, $U_k$>}
-  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{S_i}{U_i} for each $i$.
+  If $S$ is an interface type \code{$C_0$<$S_0$, \ldots, $S_k$>}
+  and $T$ is \code{$C_0$<$U_0$, \ldots, $U_k$>}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S_i}{U_i} for each $i$.
 \item
   \textbf{Super-Interface:}
-  If $T_0$ is an interface type with super-interfaces \List{S}{0}{n}
-  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{S_i}{T_1} for some $i$.
+  If $S$ is an interface type with super-interfaces \List{S}{0}{n}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S_i}{T} for some $i$.
 \item
   \textbf{Positional Function Types:}
-  If $T_0$ is
+  If $S$ is
 
   \code{$U_0$ \FUNCTION<%
     $X_0$\,\EXTENDS\,$B_{00}$, \ldots, $X_k$\,\EXTENDS\,$B_{0k}$>(%
     $V_0$\,$x_0$, \ldots, $V_n$ $x_n$, %
     [$V_{n+1}$\,\,$x_{n+1}$, \ldots, $V_m$\,\,$x_m$])}
 
-  and $T_1$ is
+  and $T$ is
 
   \code{$U_1$ \FUNCTION<%
     $Y_0$\,\EXTENDS\,$B_{10}$, \ldots, $Y_k$\,\EXTENDS\,$B_{1k}$>(%
     $S_0$\,$y_0$, \ldots, $S_p$\,$y_p$, %
     [$S_{p+1}$\,$y_{p+1}$, \ldots, $S_q$\,$y_q$])}
 
-  then \SubtypeNE{T_0}{T_1} if{}f each of the following criteria is satisfied,
+  then \SubtypeNE{S}{T} if{}f each of the following criteria is satisfied,
   where the $Z_i$ are fresh type variables with bounds
   $[Z_0/X_0, \ldots, Z_k/X_k]B_{0i}$:
 
@@ -23908,7 +23908,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   \end{itemize}
 \item
   \textbf{Named Function Types:}
-  If $T_0$ is
+  If $S$ is
 
   \code{%
     $U_0$ \FUNCTION<$X_0$\,\EXTENDS\,$B_{00}$, \ldots, %
@@ -23917,7 +23917,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
           \{$r_{0,n+1}$\,$V_{n+1}$\,$x_{n+1}$, \ldots, $r_{0m}$\,$V_m$\,$x_m$\})}
 
   where $r_{0j}$ is empty or \REQUIRED{} for $j \in n+1 .. m$
-  and $T_1$ is
+  and $T$ is
 
   \code{%
     $U_1$ \FUNCTION<$Y_0$\,\EXTENDS\,$B_{10}$, \ldots, %
@@ -23926,7 +23926,7 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
           \{$r_{1,n+1}$\,$S_{n+1}$\,$y_{n+1}$, \ldots, $r_{1q}$\,$S_q$\,$y_q$\})}
 
   where $r_{1j}$ is empty or \REQUIRED{} for $j \in n+1 .. q$
-  then \SubtypeNE{T_0}{T_1} if{}f the following criteria are all satisfied,
+  then \SubtypeNE{S}{T} if{}f the following criteria are all satisfied,
   where \List{Z}{1}{k} are fresh type variables with bounds
   $[Z_0/X_0, \ldots, Z_k/X_k]B_{0i}$:
 
@@ -23958,9 +23958,9 @@ A type $T_0$ is a subtype of a type $T_1$ (written \SubtypeNE{T_0}{T_1}) when:
   }
 
 \item
-  If $T_0$ is \code{($V_0$, \ldots, $V_n$, \{$V_{n+1} d_{n+1}$, \ldots, $V_m d_m$\})}
-  and $T_1$ is \code{($S_0$, \ldots, $S_n$, \{$S_{n+1} d_{n+1}$, \ldots, $S_m d_m$\})}
-  then \SubtypeNE{T_0}{T_1} if{}f \SubtypeNE{V_i}{S_i} for each $i \in 0 .. m$.
+  If $S$ is \code{($V_0$, \ldots, $V_n$, \{$V_{n+1} d_{n+1}$, \ldots, $V_m d_m$\})}
+  and $T$ is \code{($S_0$, \ldots, $S_n$, \{$S_{n+1} d_{n+1}$, \ldots, $S_m d_m$\})}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{V_i}{S_i} for each $i \in 0 .. m$.
 \end{itemize}
 
 
