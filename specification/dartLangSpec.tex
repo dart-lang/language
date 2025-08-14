@@ -2108,29 +2108,29 @@ if an \ASYNC, \code{\ASYNC*} or \code{\SYNC*} modifier is attached to
 the body of a setter or constructor.
 
 \rationale{%
-An asynchronous setter would be of little use,
-since setters can only be used in the context of an assignment
-(\ref{assignment}),
-and an assignment expression always evaluates to
-the value of the assignment's right hand side.
-If the setter actually did its work asynchronously,
-one might imagine that one would return a future that resolved to
-the assignment's right hand side after the setter did its work.
+  An asynchronous setter would be of little use,
+  since setters can only be used in the context of an assignment
+  (\ref{assignment}),
+  and an assignment expression always evaluates to
+  the value of the assignment's right hand side.
+  If the setter actually did its work asynchronously,
+  one might imagine that one would return a future that resolved to
+  the assignment's right hand side after the setter did its work.
 
-An asynchronous constructor would, by definition, never return
-an instance of the class it purports to construct,
-but instead return a future.
-Calling such a beast via \NEW{} would be very confusing.
-If you need to produce an object asynchronously, use a method.
+  An asynchronous constructor would, by definition, never return
+  an instance of the class it purports to construct,
+  but instead return a future.
+  Calling such a beast via \NEW{} would be very confusing.
+  If you need to produce an object asynchronously, use a method.
 
-One could allow modifiers for factories.
-A factory for \code{Future} could be modified by \ASYNC,
-a factory for \code{Stream} could be modified by \code{\ASYNC*},
-and a factory for \code{Iterable} could be modified by \code{\SYNC*}.
-No other scenario makes sense because
-the object returned by the factory would be of the wrong type.
-This situation is very unusual so it is not worth making an exception
-to the general rule for constructors in order to allow it.%
+  One could allow modifiers for factories.
+  A factory for \code{Future} could be modified by \ASYNC,
+  a factory for \code{Stream} could be modified by \code{\ASYNC*},
+  and a factory for \code{Iterable} could be modified by \code{\SYNC*}.
+  No other scenario makes sense because
+  the object returned by the factory would be of the wrong type.
+  This situation is very unusual so it is not worth making an exception
+  to the general rule for constructors in order to allow it.%
 }
 
 \LMHash{}%
@@ -22520,7 +22520,7 @@ it instead uses \code{Object} as superclass.
 
 \LMHash{}%
 If a class or mixin declaration implements \FUNCTION, it has no effect.
-It is as if the \FUNCTION{} was removed from the \code{implements} clause
+It is as if the \FUNCTION{} was removed from the \IMPLEMENTS{} clause
 (and if it's the only implemented interface, the entire clause is removed).
 The resulting class or mixin interface
 does not have \FUNCTION{} as a superinterface.
@@ -22528,13 +22528,13 @@ does not have \FUNCTION{} as a superinterface.
 \LMHash{}%
 If a mixin application mixes \FUNCTION{} onto a superclass, it follows the
 normal rules for mixin-application, but since the result of that mixin
-application is equivalent to a class with \code{implements \FUNCTION}, and
+application is equivalent to a class with \code{\IMPLEMENTS\,\,\FUNCTION}, and
 that clause has no effect, the resulting class also does not
 implement \FUNCTION.
 \commentary{%
   The \FUNCTION{} class declares no concrete instance members,
-  so the mixin application creates a sub-class
-  of the superclass with no new members and no new interfaces.%
+  so the mixin application creates a sub-class of
+  the superclass with no new members and no new interfaces.%
 }
 
 \rationale{%
@@ -22763,10 +22763,11 @@ which is regular-bounded for all $T$.
   That is, \code{FutureOr} is in a sense
   the union of $T$ and the corresponding future type.
   The last point guarantees that
-  \code{FutureOr<$T$>} <: \code{Object?},
+  \SubtypeNE{\code{FutureOr<$T$>}}{\code{Object?}},
   and also that \code{FutureOr} is covariant in its type parameter,
   just like class types:
-  if $S$ <: $T$ then \code{FutureOr<$S$>} <: \code{FutureOr<$T$>}.%
+  if \SubtypeNE{S}{T} then
+  \SubtypeNE{\code{FutureOr<$S$>}}{\code{FutureOr<$T$>}}.%
 }
 
 \LMHash{}%
@@ -22817,7 +22818,7 @@ as follows:
 \end{itemize}
 
 
-\subsection{Type void}
+\subsection{Type Void}
 \LMLabel{typeVoid}
 
 \LMHash{}%
@@ -23430,30 +23431,30 @@ or upper and lower bounds
 }
 
 \rationale{%
-This shows that concrete syntax behaves in such a manner that it is
-unsafe to consider two types to be the same type,
-based on the fact that they are denoted by the same syntax,
-even during the static analysis of a single expression.
+  This shows that concrete syntax behaves in such a manner that it is
+  unsafe to consider two types to be the same type,
+  based on the fact that they are denoted by the same syntax,
+  even during the static analysis of a single expression.
 
-Similarly, it is incorrect to consider two terms derived from \synt{type}
-as different types based on the fact that they are syntactically different.
-For example, they could be the same type imported with different import
-prefixes.
+  Similarly, it is incorrect to consider two terms derived from \synt{type}
+  as different types based on the fact that they are syntactically different.
+  For example, they could be the same type imported with different import
+  prefixes.
 
-We could say that two identifiers
-(possibly qualified, e.g., \code{myPrefix.C} and \code{C})
-denote the same type
-if they have been resolved to the same declaration.
+  We could say that two identifiers
+  (possibly qualified, e.g., \code{myPrefix.C} and \code{C})
+  denote the same type
+  if they have been resolved to the same declaration.
 
-However, we introduce \emph{the explicitly resolved syntax for a type},
-which is basically an explicit representation of this idea,
-in order to make the underlying issues more explicit.
-The explicitly resolved syntax has the property that
-each type has a unique syntactic form
-(except for alpha equivalence, which is defined below).
-We may then consider this unique syntactic form as a static semantic value,
-rather than just a syntactic form which is dependent on
-its location in the program.%
+  However, we introduce \emph{the explicitly resolved syntax for a type},
+  which is basically an explicit representation of this idea,
+  in order to make the underlying issues more explicit.
+  The explicitly resolved syntax has the property that
+  each type has a unique syntactic form
+  (except for alpha equivalence, which is defined below).
+  We may then consider this unique syntactic form as a static semantic value,
+  rather than just a syntactic form which is dependent on
+  its location in the program.%
 }
 
 \LMHash{}%
