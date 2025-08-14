@@ -23741,7 +23741,7 @@ A type $S$ is a subtype of a type $T$ in the environment $\Delta$
 
 \begin{itemize}
 \item
-  \textbf{Reflexivity:}
+  \textbf{Reflexivity (\SrnReflexivity):}
   if $T_0$ and $T_1$ are the same type (\ref{sameType})
   then \SubtypeNE{T_0}{T_1}.
 
@@ -23755,17 +23755,17 @@ A type $S$ is a subtype of a type $T$ in the environment $\Delta$
     Hence, this rule is only used when $T$ is atomic.%
   }
 \item
-  \textbf{Right Top:}
+  \textbf{Right Top (\SrnRightTop):}
   if $T$ is \DYNAMIC, \VOID, or \code{Object?} then \SubtypeNE{S}{T}.
 \item
-  \textbf{Left Top:}
+  \textbf{Left Top (\SrnLeftTop):}
   if $S$ is \DYNAMIC{} or \VOID{}
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{\code{Object?}}{T}.
 \item
-  \textbf{Left Bottom:}
+  \textbf{Left Bottom (\SrnBottom):}
   if $S$ is \code{Never} then \SubtypeNE{S}{T}.
 \item
-  \textbf{Right Object:}
+  \textbf{Right Object (\SrnRightObjectFour):}
   if $T$ is \code{Object} then:
   \begin{itemize}
   \item
@@ -23787,7 +23787,7 @@ A type $S$ is a subtype of a type $T$ in the environment $\Delta$
     Otherwise \SubtypeNE{S}{T} is true.
   \end{itemize}
 \item
-  \textbf{Left Null:}
+  \textbf{Left Null (\SrnNullOne):}
   if $S$ is \code{Null} then:
   \begin{itemize}
   \item
@@ -23801,16 +23801,16 @@ A type $S$ is a subtype of a type $T$ in the environment $\Delta$
     Otherwise, the query is false.
   \end{itemize}
 \item
-  \textbf{Left FutureOr:}
+  \textbf{Left FutureOr (\SrnLeftFutureOr, \SrnNullTwo):}
   if $S$ is \code{FutureOr<$S_0$>}
   then \SubtypeNE{S}{T} if{}f
   \SubtypeNE{\code{Future<$S_0$>}}{T} and \SubtypeNE{S_0}{T}.
 \item
-  \textbf{Left Nullable:}
+  \textbf{Left Nullable (\SrnLeftNullable):}
   if $S$ is \code{$S_0$?} then \SubtypeNE{S}{T} if{}f
   \SubtypeNE{S_0}{T} and \SubtypeNE{\code{Null}}{T}.
 \item
-  \textbf{Type Variable Reflexivity 1:}
+  \textbf{Type Variable Reflexivity 1 (\SrnLeftPromotedVariableOne):}
   if $S$ is a type variable $X_0$
   or a promoted type variable \code{$X_0$\,\&\,$S_0$} and $T$ is $X_0$
   then \SubtypeNE{S}{T}.
@@ -23819,7 +23819,7 @@ A type $S$ is a subtype of a type $T$ in the environment $\Delta$
     Note that this rule is admissible, and can be safely elided if desired.%
   }
 \item
-  \textbf{Type Variable Reflexivity 2:}
+  \textbf{Type Variable Reflexivity 2 (?):}
   if $S$ is a type variable $X_0$
   or a promoted type variable \code{$X_0$\,\&\,$S_0$}
   and $T$ is \code{$X_0$\,\&\,$S_1$}
@@ -23829,11 +23829,11 @@ A type $S$ is a subtype of a type $T$ in the environment $\Delta$
     Note that this rule is admissible, and can be safely elided if desired.%
   }
 \item
-  \textbf{Right Promoted Variable:}
+  \textbf{Right Promoted Variable (\SrnRightPromotedVariable):}
   if $T$ is a promoted type variable \code{$X_1$\,\&\,$S_1$}
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{X_1} and \SubtypeNE{S}{S_1}.
 \item
-  \textbf{Right FutureOr:}
+  \textbf{Right FutureOr (\SrnRightFutureOrA, \SrnRightFutureOrB):}
   if $T$ is \code{FutureOr<$S_1$>}
   then \SubtypeNE{S}{T} if{}f any of the following hold:
   \begin{itemize}
@@ -23843,7 +23843,7 @@ A type $S$ is a subtype of a type $T$ in the environment $\Delta$
   \item or $S$ is \code{$X_0$\,\&\,$S_0$} and \SubtypeNE{S_0}{T}.
   \end{itemize}
 \item
-  \textbf{Right Nullable:}
+  \textbf{Right Nullable (\SrnRightNullableOne, \SrnRightNullableTwo):}
   if $T$ is \code{$S_1$?}
   then \SubtypeNE{S}{T} if{}f any of the following hold:
   \begin{itemize}
@@ -23853,30 +23853,30 @@ A type $S$ is a subtype of a type $T$ in the environment $\Delta$
   \item or $S$ is \code{$X_0$\,\&\,$S_0$} and \SubtypeNE{S_0}{T}.
   \end{itemize}
 \item
-  \textbf{Left Promoted Variable:}
+  \textbf{Left Promoted Variable (\SrnLeftPromotedVariableTwo):}
   If $S$ is a promoted type variable \code{$X_0$\,\&\,$S_0$}
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{S_0}{T}.
 \item
-  \textbf{Left Type Variable Bound:}
+  \textbf{Left Type Variable Bound (\SrnLeftVariableBound):}
   If $S$ is a type variable $X_0$ with bound $B_0$
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{B_0}{T}.
 \item
-  \textbf{Function Type/Function:}
+  \textbf{Function Type/Function (\SrnRightFunction):}
   $S$ is a function type and $T$ is \FUNCTION.
 \item
-  \textbf{Record Type/Record:}
+  \textbf{Record Type/Record (\SrnPositionalFunctionType):}
   $S$ is a record type and $T$ is \RECORD.
 \item
-  \textbf{Interface Compositionality:}
+  \textbf{Interface Compositionality (\SrnNamedFunctionType):}
   If $S$ is an interface type \code{$C_0$<$S_0$, \ldots, $S_k$>}
   and $T$ is \code{$C_0$<$U_0$, \ldots, $U_k$>}
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{S_i}{U_i} for each $i$.
 \item
-  \textbf{Super-Interface:}
+  \textbf{Super-Interface (\SrnNominal):}
   If $S$ is an interface type with super-interfaces \List{S}{0}{n}
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{S_i}{T} for some $i$.
 \item
-  \textbf{Positional Function Types:}
+  \textbf{Positional Function Types (\SrnPositionalFunctionType):}
   If $S$ is
 
   \code{$U_0$ \FUNCTION<%
@@ -23908,7 +23908,7 @@ A type $S$ is a subtype of a type $T$ in the environment $\Delta$
     for $i \in 0 .. k$.
   \end{itemize}
 \item
-  \textbf{Named Function Types:}
+  \textbf{Named Function Types (\SrnNamedFunctionType):}
   If $S$ is
 
   \code{%
