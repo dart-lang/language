@@ -23869,15 +23869,17 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
   \textbf{Function Type/Function (\SrnRightFunction):}
   $S$ is a function type and $T$ is \FUNCTION.
 \item
-  \textbf{Record Type/Record (\SrnPositionalFunctionType):}
+  %% TODO(eernst): Come records, we must add an inference rule for this
+  %% in the 'Subtype rules' figure.
+  \textbf{Record Type/Record ():}
   $S$ is a record type and $T$ is \RECORD.
 \item
-  \textbf{Interface Compositionality (\SrnNamedFunctionType):}
+  \textbf{Covariance (\SrnCovariance):}
   If $S$ is an interface type \code{$C_0$<$S_0$, \ldots, $S_k$>}
   and $T$ is \code{$C_0$<$U_0$, \ldots, $U_k$>}
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{S_i}{U_i} for each $i$.
 \item
-  \textbf{Super-Interface (\SrnNominal):}
+  \textbf{Nominal subtyping (\SrnNominal):}
   If $S$ is an interface type with super-interfaces \List{S}{0}{n}
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{S_i}{T} for some $i$.
 \item
