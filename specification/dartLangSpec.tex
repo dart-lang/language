@@ -23848,13 +23848,13 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
   \end{itemize}
 \item
   \textbf{Right Nullable (\SrnRightNullableOne, \SrnRightNullableTwo):}
-  if $T$ is \code{$S_1$?}
+  if $T$ is \code{$U$?}
   then \SubtypeNE{S}{T} if{}f any of the following hold:
   \begin{itemize}
-  \item either \SubtypeNE{S}{S_1}.
+  \item either \SubtypeNE{S}{U}.
   \item or \SubtypeNE{S}{\code{Null}}.
-  \item or $S$ is $X_0$ and $X_0$ has bound $B_0$ and \SubtypeNE{B_0}{T}.
-  \item or $S$ is \code{$X_0$\,\&\,$S_0$} and \SubtypeNE{S_0}{T}.
+  \item or $S$ is $X$ and $X$ has bound $B$ and \SubtypeNE{B}{T}.
+  \item or $S$ is \code{$X$\,\&\,$V$} and \SubtypeNE{V}{T}.
   \end{itemize}
 \item
   \textbf{Left Promoted Variable (\SrnLeftPromotedVariableTwo):}
