@@ -23483,6 +23483,9 @@ at least one of the following criteria holds:
   where $C$ and $D$ have been resolved to denote the same declaration,
   or they are both \code{FutureOr},
   and $U_j$ is the same type as $V_j$ for all $j \in 1 .. s$.
+\item $S$ is of the form $S'?$ and $T$ is of the form $T'?$,
+  and $S'$ is the same type as $T'$.
+%% TODO(eernst): When records are added, add a record type case here.
 \item $S$ and $T$ are both positional function types with the same
   number of mandatory parameters and the same number of optional parameters,
   the same return type, and the same type for each of the parameters.
@@ -23501,6 +23504,13 @@ at least one of the following criteria holds:
 \item There exists an alpha conversion of $S$ yielding $S'$, and
   $S'$ and $T$ are the same type.
 \end{itemize}
+
+\LMHash{}%
+For the purpose of the above test, \code{Object}, \code{dynamic},
+\code{Null}, \code{Never}, \code{Function},
+%% TODO(eernst): Add \code{Record},
+and \code{Future} are considered to be introduced by a declaration in
+\code{dart:core}.
 
 
 \section{Reference}
