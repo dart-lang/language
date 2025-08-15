@@ -23478,12 +23478,12 @@ at least one of the following criteria holds:
   and $T$ is an identifier or a prefixed identifier which is resolved
   to denote a type-introducing declaration $D_T$,
   and $D_S$ is the same declaration as  $D_T$.
+\item $S$ is of the form $S'?$ and $T$ is of the form $T'?$,
+  and $S'$ is the same type as $T'$.
 \item $S$ is of the form \code{$C$<$U_1$, \ldots\ $U_s$>},
   and $T$ is of the form \code{$D$<$V_1$, \ldots\ $V_s$>},
   where $C$ and $D$ have been resolved to denote the same declaration,
   and $U_j$ is the same type as $V_j$ for all $j \in 1 .. s$.
-\item $S$ is of the form $S'?$ and $T$ is of the form $T'?$,
-  and $S'$ is the same type as $T'$.
 %% TODO(eernst): When records are added, add a record type case here.
 \item $S$ and $T$ are both positional function types with the same
   number of mandatory parameters and the same number of optional parameters,
