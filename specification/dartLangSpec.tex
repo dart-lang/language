@@ -23509,11 +23509,11 @@ at least one of the following criteria holds:
     textually identical type parameter declaration lists,
     if they only differ in the choice of naming.%
   }
-\item $S$ is of the form \code{$F$<$U_1$, \ldots\ $U_s$>} where $F$
+\item (1) $S$ is of the form \code{$F$<$U_1$, \ldots\ $U_s$>} where $F$
   denotes a type alias declaration,
   the unfolding of the type alias yields $S'$,
   and $S'$ is the same type as $T$.
-\item $T$ is of the form \code{$G$<$V_1$, \ldots\ $V_s$>} where $G$
+  Otherwise (2), $T$ is of the form \code{$G$<$V_1$, \ldots\ $V_s$>} where $G$
   denotes a type alias declaration,
   the unfolding of the type alias yields $T'$,
   and $S$ is the same type as $T'$.
