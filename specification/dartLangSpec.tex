@@ -23502,15 +23502,16 @@ at least one of the following criteria holds:
   %
   For both (1) and (2), if at least one of the function types is generic
   then they must both be generic,
-  and they must have textually identical type parameter declaration lists.
-  With this, the $j$th type parameter declaration from $S$ and from $T$
+  and they must have the same names of type parameters in the same order,
+  and with the same types as bounds.
+  When satisfying these requirements,
+  the $j$th type parameter declaration from $S$ and from $T$
   are considered to be the same declaration, for all $j \in 1 .. s$.
 \item There exists an alpha conversion of $S$ yielding $S'$, and
   $S'$ and $T$ are the same type.
   \commentary{%
-    This rule can be used to obtain
-    textually identical type parameter declaration lists,
-    if they only differ in the choice of naming.%
+    This rule can be used to obtain type parameter declaration lists
+    with the same names in the same order, as required in the previous item.%
   }
 \item (1) $S$ is of the form \code{$F$<$U_1$, \ldots\ $U_s$>} where $F$
   denotes a type alias declaration,
