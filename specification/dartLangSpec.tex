@@ -23502,6 +23502,13 @@ at least one of the following criteria holds:
   and they must have textually identical type parameter declaration lists.
   With this, the $j$th type parameter declaration from $S$ and from $T$
   are considered to be the same declaration, for all $j \in 1 .. s$.
+\item There exists an alpha conversion of $S$ yielding $S'$, and
+  $S'$ and $T$ are the same type.
+  \commentary{%
+    This rule can be used to obtain
+    textually identical type parameter declaration lists,
+    if they only differ in the choice of naming.%
+  }
 \item $S$ is of the form \code{$F$<$U_1$, \ldots\ $U_s$>} where $F$
   denotes a type alias declaration,
   the unfolding of the type alias yields $S'$,
@@ -23510,13 +23517,6 @@ at least one of the following criteria holds:
   denotes a type alias declaration,
   the unfolding of the type alias yields $T'$,
   and $S$ is the same type as $T'$.
-\item There exists an alpha conversion of $S$ yielding $S'$, and
-  $S'$ and $T$ are the same type.
-  \commentary{%
-    This rule can be used to obtain
-    textually identical type parameter declaration lists,
-    if they only differ in the choice of naming.%
-  }
 \end{itemize}
 
 \LMHash{}%
