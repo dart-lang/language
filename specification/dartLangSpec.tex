@@ -23482,6 +23482,14 @@ at least one of the following criteria holds:
   number of mandatory parameters and the same set of named parameters,
   the same return type, and the same type for each of the parameters,
   and the same subset of the named parameters marked as \REQUIRED.
+\item $S$ is of the form \code{$F$<$U_1$, \ldots\ $U_s$>} where $F$
+  denotes a type alias declaration,
+  the unfolding of the type alias yields $S'$,
+  and $S'$ is the same type as $T$.
+\item $T$ is of the form \code{$G$<$V_1$, \ldots\ $V_s$>} where $G$
+  denotes a type alias declaration,
+  the unfolding of the type alias yields $T'$,
+  and $S$ is the same type as $T'$.
 \item There exists an alpha conversion of $S$ yielding $S'$, and
   $S'$ and $T$ are the same type.
 \end{itemize}
