@@ -23387,11 +23387,11 @@ where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. r$
 \LMLabel{sameType}
 
 \LMHash{}%
-This section specifies how to soundly determine whether or not two types
+This section specifies how to determine whether or not two types
 that are encountered during static analysis are the same type.
 
 \LMHash{}%
-Concrete syntax denoting types gives rise to several difficulties
+Concrete syntax denoting types gives rise to difficulties
 when used to determine static semantic properties,
 like subtyping relationships
 (\ref{subtypes})
@@ -23399,7 +23399,7 @@ or upper and lower bounds
 (\ref{standardUpperBoundsAndStandardLowerBounds}).
 
 \commentary{%
-  Note that the notion of being the same type at run time is different from
+  The notion of being the same type at run time is different from
   the notion of being the same type during static analysis.
   For example, two distinct type variables \code{X} and \code{Y}
   might at run time be bound to the same type, e.g.,
@@ -23408,12 +23408,9 @@ or upper and lower bounds
   \code{X} and \code{Y} are different types
   because there is no guarantee that they are always bound to
   the same type at run time.%
-}
 
-\commentary{%
-  The phrases `same type' and `identical syntax' deserves some extra scrutiny.
-  If a library $L$ imports the libraries $L_1$ and $L_2$
-  (where $L_1$ and $L_2$ are not the same library),
+  The phrase `same type' deserves some extra scrutiny.
+  If a library $L$ imports the libraries $L_1$ and $L_2$,
   and both $L_1$ and $L_2$ declare a class \code{C},
   then the syntax \code{C} may occur as a type during static analysis of $L$
   in situations where it refers to two distinct types.
@@ -23421,8 +23418,8 @@ or upper and lower bounds
   For instance, $L_1$ could declare a variable \code{v}
   of type \code{C}-in-$L_1$,
   and $L_2$ could declare a function
-  \code{\VOID\,foo(C\,\,c)\,\,\{\}}
-  which uses the type \code{C}-in-$L_2$,
+  \code{\VOID\,foo(C\,\,c)\,\,\{\ldots\}}
+  which refers to the type \code{C}-in-$L_2$,
   and $L$ could contain the expression \code{foo(v)}.
 
   Note that even though it would be a compile-time error to use \code{C} in $L$
@@ -23434,137 +23431,25 @@ or upper and lower bounds
   depending on the subtyping relations.%
 }
 
-\rationale{%
-  This shows that concrete syntax behaves in such a manner that it is
-  unsafe to consider two types to be the same type,
-  based on the fact that they are denoted by the same syntax,
-  even during the static analysis of a single expression.
-
-  Similarly, it is incorrect to consider two terms derived from \synt{type}
-  as different types based on the fact that they are syntactically different.
-  For example, they could be the same type imported with different import
-  prefixes.
-
-  We could say that two identifiers
-  (possibly qualified, e.g., \code{myPrefix.C} and \code{C})
-  denote the same type
-  if they have been resolved to the same declaration.
-
-  However, we introduce \emph{the explicitly resolved syntax for a type},
-  which is basically an explicit representation of this idea,
-  in order to make the underlying issues more explicit.
-  The explicitly resolved syntax has the property that
-  each type has a unique syntactic form
-  (except for alpha equivalence, which is defined below).
-  We may then consider this unique syntactic form as a static semantic value,
-  rather than just a syntactic form which is dependent on
-  its location in the program.%
-}
+\LMHash{}%
+Hence, when this specification refers to
+a type designated by a term
+that may seem to stand for concrete syntax,
+it is actually using \Index{resolved syntax}.
+Resolved syntax is syntax which is enhanced such that
+every \emph{applied} occurrence of an identifier
+(as opposed to a declaring occurrence)
+carries information about the declaration
+that it has been resolved to denote.
 
 \LMHash{}%
-The
-\IndexCustom{explicitly resolved syntax}{type!explicitly resolved syntax of}
-of the types in a given library $L_1$
-and all libraries \List{L}{2}{n} reachable from $L_1$ via
-one or more import links
-is determined as follows.
-First, choose a set of distinct, globally fresh identifiers
-\List{\metavar{prefix}}{1}{n}.
-Then transform each library $L_i$, $i \in 1 .. n$ as follows:
-
-\begin{enumerate}
-\item
-  For each type variable declared in $L_i$, consistently rename
-  it to a globally fresh name.
-\item
-  If $D_T$ is a declaration of a class, mixin, or type alias in $L_i$
-  whose name $n$ is private,
-  and an occurrence of $n$ that resolves to $D$
-  exists in a type alias declaration $D_A$ whose name is non-private,
-  then perform a consistent renaming of
-  all occurrences of $n$ in $L_i$ that resolve to $D_T$
-  to a fresh, non-private identifier.
-  \commentary{%
-    We make $D_T$ public, because it is being leaked anyway.%
-  }
-\item
-  Add a set of import directives to $L_i$ that imports
-  each of the libraries \List{L}{1}{n} with
-  the corresponding prefix $\metavar{prefix}_j$, $j \in 1 .. n$.
-
-  \commentary{%
-    This means that every library in the set
-    $\{\,\List{L}{1}{n}\,\}$
-    imports every other library in that set,
-    even itself and system libraries like \code{dart:core}.%
-  }
-\item
-  Let \id{} be an occurrence of
-  a non-private type identifier derived from \synt{typeName}
-  that resolves to a library declaration in the library $L_j$
-  in the original program;
-  \id{} is then transformed to \code{$\metavar{prefix}_j$.\id}.
-  Let \code{$p$.\id} be derived from \synt{typeName} such that $p$ is
-  an import prefix in the original program
-  and \id{} is a non-private identifier,
-  and consider the case where \code{$p$.\id} resolves to
-  a library declaration in the library $L_j$ in the original program,
-  for some $j$;
-  \code{$p$.\id} is then transformed to \code{$\metavar{prefix}_j$.\id}.
-\item
-  Replace every type in $L_i$ that denotes a type alias
-  along with its actual type arguments, if any,
-  by its transitive alias expansion
-  (\ref{typedef}).
-  \commentary{%
-    Note that the bodies of type alias declarations
-    already use the new prefixes,
-    so the results of the alias expansion will also use
-    the new prefixes consistently.%
-  }
-\end{enumerate}
+An \Index{alpha conversion} of a type is a consistent, non-capturing renaming
+of type variables declared in that type.
 
 \commentary{%
-  In short, this transformation adds a unique prefix to every type name
-  which is resolved to a top-level declaration
-  (in the same library or in an imported library).
-
-  This transformation does not change any occurrence of \VOID,
-  and does not need to;
-  \VOID{} is a reserved word, not a type identifier.
-  Also, \code{$\metavar{prefix}_j$.\VOID} would be a syntax error.
-
-  Note that the transformation changes terms derived from \synt{type},
-  but it does not change expressions, or any other program element
-  (except that a \synt{type} can occur in an expression, e.g., \code{<int>[]}).
-  In particular, it does not change type literals
-  (that is, expressions denoting types).%
-}
-
-\LMHash{}%
-Every \synt{type} in the resulting set of libraries
-is now expressed in a globally unique syntactic form,
-which is the form that we call the
-\IndexCustom{explicitly resolved syntax of}{type!explicitly resolved syntax of}
-said types.
-
-\LMHash{}%
-When we say that two types $T_1$ and $T_2$ have the
-\IndexCustom{same explicitly resolved syntax}{%
-  type!same explicitly resolved syntax},
-it refers to the situation where the current library
-and all libraries which are reachable via one or more imports
-have been transformed as described above,
-and the resulting explicitly resolved syntaxes are textually identical.
-
-\LMHash{}%
-We need to introduce one more concept:
-An \Index{alpha conversion} of a type is a consistent renaming
-of the type variables declared in that type.
-
-\commentary{%
-  In Dart, only function types can be subject to an alpha conversion:
-  A function type is the only kind of type that declares type variables.
+  In Dart, a function type is
+  the only kind of type which can declare type variables,
+  so only a generic function type can be subjected to an alpha conversion.
   For example,
   \code{List<X>\,\,\FUNCTION<X>({X\,\,arg})}
   can be turned into
@@ -23573,17 +23458,33 @@ of the type variables declared in that type.
 }
 
 \LMHash{}%
-Two function types are \Index{alpha equivalent} if{}f
-there exists an alpha conversion that makes them textually identical.
+We can now define what it means to be the same type.
+Two types $S$ and $T$ are the same type when
+at least one of the following criteria holds:
 
-\LMHash{}%
-Finally, we define that two type denotations $T_1$ and $T_2$ are the
-\IndexCustom{same static type}{type!same static}
-if there exist alpha conversions
-that can be applied to the function types
-that occur as subterms of $T_1$ and $T_2$, if any,
-such that the resulting terms $T'_1$ and $T'_2$ have
-the same explicitly resolved syntax.
+\begin{itemize}
+\item $S$ is \VOID{} and $T$ is \VOID.
+  \commentary{This is a reserved word and cannot be shadowed.}
+\item $S$ is an identifier or a prefixed identifier which is resolved
+  to denote a type-introducing declaration $D_S$,
+  and $T$ is an identifier or a prefixed identifier which is resolved
+  to denote a type-introducing declaration $D_T$,
+  and $D_S$ is the same declaration as  $D_T$.
+\item $S$ is of the form \code{$C$<$U_1$, \ldots\ $U_s$>},
+  and $T$ is of the form \code{$D$<$V_1$, \ldots\ $V_s$>},
+  where $C$ and $D$ have been resolved to denote the same declaration,
+  or they are both \code{FutureOr},
+  and $U_j$ is the same type as $V_j$ for all $j \in 1 .. s$.
+\item $S$ and $T$ are both positional function types with the same
+  number of mandatory parameters and the same number of optional parameters,
+  the same return type, and the same type for each of the parameters.
+\item $S$ and $T$ are both named function types with the same
+  number of mandatory parameters and the same set of named parameters,
+  the same return type, and the same type for each of the parameters,
+  and the same subset of the named parameters marked as \REQUIRED.
+\item There exists an alpha conversion of $S$ yielding $S'$, and
+  $S'$ and $T$ are the same type.
+\end{itemize}
 
 
 \section{Reference}
