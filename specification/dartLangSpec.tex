@@ -11,6 +11,7 @@
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
 \usepackage{makeidx}
+\usepackage{tocloft}
 \makeindex
 \title{Dart Programming Language Specification\\
 {6th edition draft}\\
@@ -460,6 +461,9 @@
 
 \begin{document}
 \maketitle
+% Adjust the horizontal offset of section titles in the table of contents.
+\setlength{\cftsubsecnumwidth}{2.7em}
+\setlength{\cftsubsubsecnumwidth}{3.4em}
 \tableofcontents
 
 \newpage
