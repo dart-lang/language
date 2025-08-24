@@ -802,14 +802,14 @@ It's a **compile-time** error if:
 *   The signature of the augmenting function does not [match][signature
     matching] the signature of the augmented function.
 
-*   The augmentation chain has two or more specifications of a default value
-    for the same optional parameter. This is an error even in the case where
-    all of them are identical. *Default values are defined by the introductory
-    function or an augmentation, but at most once.*
+*   More than one declaration in the augmentation chain specifies a default
+    value for the same optional parameter. This is an error even in the
+    case where all of them are identical. *Default values are defined by
+    the introductory function or an augmentation, but at most once.*
 
-*   The augmentation chain has no specifications of a default value for an
-    optional parameter whose declared type is potentially non-nullable, and
-    the declared function is not abstract.
+*   No declaration in the augmentation chain specifies a default value for
+    an optional parameter whose declared type is potentially non-nullable,
+    and the declared function is not abstract.
 
 *   A function is not complete after all augmentations are applied, unless it's
     an instance member and the surrounding class is abstract. *Every function
@@ -890,17 +890,17 @@ It's a **compile-time error** if:
 *   The signature of the augmenting function does not [match][signature
     matching] the signature of the augmented function.
 
-*   The augmentation chain has two or more specifications of a default value
-    for the same optional parameter. This is an error even in the case where
-    all of them are identical. *Default values are defined by the introductory
-    declaration or an augmentation, but at most once.*
+*   More than one declaration in the augmentation chain specifies a default
+    value for the same optional parameter. This is an error even in the
+    case where all of them are identical. *Default values are defined by
+    the introductory declaration or an augmentation, but at most once.*
 
 *   The augmentation chain has exactly one specification of a default value
     for an optional parameter, and the constructor is a redirecting factory.
 
-*   The augmentation chain has no specifications of a default value for an
-    optional parameter whose declared type is potentially non-nullable, and
-    the constructor is not a redirecting factory.
+*   No declaration in the augmentation chain specifies a default value for
+    an optional parameter whose declared type is potentially non-nullable,
+    and the constructor is not a redirecting factory.
 
 *   The introductory constructor is `const` and the augmenting constructor
     is not, or vice versa. *An augmentation can't change whether or not a
