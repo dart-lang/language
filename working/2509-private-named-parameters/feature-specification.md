@@ -461,22 +461,48 @@ further ideas for additional warnings, lints, and quick fixes.
 
 ### API documentation generation
 
-Authors documenting an API that uses this feature should refer to the
-constructor parameter by its public name since that's what users will pass.
-Likewise, doc generators like [`dart doc`][dartdoc] should document the
-constructor's parameter with its public name. The fact that the parameter
-initializes or declares a private field is an implementation detail of the
-class. What a user of the class cares about is the corresponding public name for
-the constructor parameter.
+The reason a parameter has a private name is only a convenience for the
+maintainer of that constructor so that they can use an initializing formal or
+declaring parameter. A *user* of that constructor doesn't care about that
+implementation detail.
+
+Therefore, generated documentation from tools like [`dart doc`][] and in-IDE
+contextual help should show the public names for parameters. For named
+parameters, the public name is what users must write for the corresponding named
+argument. Even for positional parameters, the name is what matters, and not that
+it happens to correspond to a private field.
 
 [dartdoc]: https://dart.dev/tools/dart-doc
 
-The language already allows a *positional* parameter to have a private name
-since doing so has no effect on call sites. Doc generators are encouraged to
-also show the public name for those parameters in generated docs too. The fact
-that the positional parameter happens to initialize or declare a private field
-is again an implementation detail that shouldn't appear in the API or
-documentation.
+When writing a doc comment that refers to a private named parameter, the
+reference should be the private name. That's the name that is actually in scope
+where the doc comment is resolved. But, as with the constructor's signature, doc
+generators are encouraged to remove the `_` and show the public name for that
+reference.
+
+For example, given some code like:
+
+```dart
+class C {
+  final int _positional;
+  final int _named;
+
+  /// Creates a new instance initialized from [_positional] and [_named].
+  C(this._positional, {this._named});
+}
+```
+
+Ideally, the generated documentation for the constructor would look something
+like:
+
+> ### C(int positional, {int named})
+>
+> Creates a new instance initialized from `positional` and `named`.
+
+Or, put another way, if a class maintainer changes a parameter with a public
+name to instead have a private name in order to take advantage of an
+initializing formal or declaring parameter, then the generated documentation
+should not change.
 
 ### Lint and quick fix to use private named parameter
 
