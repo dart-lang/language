@@ -781,7 +781,7 @@ void bar<@konst T>(@konst T v) { }
 for (@konst final v in [1, '2', [3]]) {
   invoke(bar, [v], types: [typeOf(v)]);
 }
-// expands to: bar<int>(1); bar<String>('2'); bar<List<int>>(3);
+// expands to: bar<int>(1); bar<String>('2'); bar<List<int>>([3]);
 ```
 
 You might notice that `invoke` is a bit _wonky_: `f` is `@konst`, but neither
