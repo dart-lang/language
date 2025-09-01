@@ -472,8 +472,8 @@ Definitions:
   - Let `p2` be the set `p1 \ { provisionalType }` _(where `\` denotes set
     difference)_.
   - If the `written` type is in `p2` then `newPromotionChain` is
-    `[...promotionChain, written]`. _Writing a value
-    whose static type is a type of interest promotes to that type._
+    `[...promotionChain, written]`. _Writing a value whose static type is a
+    type of interest promotes to that type._
     - _By precondition, `written <: declared` and `written <: T` for all types
       in `promotionChain`. Therefore, `newPromotionChain` satisfies the
       definition of a promotion chain, and is valid for declared type
