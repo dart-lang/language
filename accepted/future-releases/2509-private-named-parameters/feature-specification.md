@@ -381,8 +381,8 @@ A private name may have a **corresponding public name**. If the characters of
 the identifier with the leading underscore removed form a valid identifier and a
 public name, then that is the private name's corresponding public name. *For
 example, the corresponding public name of `_foo` is `foo`.* If removing the
-underscore does not leave something which is is a valid identifier *(as in `_`
-or `_2x`)* or leaves another private name *(as in `__x`)*, then the private name
+underscore does not leave something which is a valid identifier *(as in `_` or
+`_2x`)* or leaves another private name *(as in `__x`)*, then the private name
 has no corresponding public name.
 
 Given a named initializing formal or field parameter (for a primary constructor)
@@ -392,9 +392,13 @@ with private name *p* in constructor C:
     can't use a private name for a named parameter unless there is a valid
     public name that could be used at the call site.*
 
-*   If any other parameter in C has declared name *p* or *n*, then
-    compile-time error. *If removing the `_` leads to a collision with
-    another parameter, then there is a conflict.*
+*   If any other parameter in C has declared name *p* or *n*, then compile-time
+    error. *If removing the `_` leads to a collision with another parameter,
+    then there is a conflict. Note that it is an error even if the other
+    parameter is positional. There is no actual collision in that case since
+    only one argument name will appear at the callsite, but it would likely lead
+    to confusing generated docs. Since there's no benefit to allowing a
+    collision like this, we forbid it.*
 
 If there is no error then:
 
