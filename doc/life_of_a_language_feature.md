@@ -127,13 +127,13 @@ with all the implementation teams and any other stakeholders.
 
 ### Tracking doc
 
-Create a tracking doc to allow the wider team to track the progress of the
-feature. Keep this document up to date.
+Create a tracking doc to allow the Dash team and other stakeholders to track the
+progress of the feature. Keep this document up to date.
 
 The tracking doc includes the following:
 - [ ] A go-link that clearly describes the feature
 (e.g. `go/dart-dot-shorthands`)
-- [ ] A brief introduction on what the feature is and it's used
+- [ ] A brief introduction on what the feature is and how it's used
 - [ ] Useful links, background context, and other resources
 - [ ] A task breakdown table with status and owners for each task
 - [ ] Tables and links to the test tracking sheet
@@ -375,14 +375,14 @@ For example, moving `super-mixins` to `/accepted/2.1/` after shipping:
 
 ### Sharing the feature release
 
-Send out an email to the Dash team to notify them that the flag flipped and
+Send an email to the Dash team to notify them that the flag has been flipped and
 that they can start testing out the feature. Invite everyone to dogfood the
 feature and provide feedback through Github issues.
 
 You may also want to send a similar email to `flutter-insiders@`.
 
 Reach out to DevRel to discuss other means of advertising the new feature to
-users. This can involve a YouTube video, an X tweet, a LinkedIn post, and other
+users. This can involve a YouTube video, an X tweet, a LinkedIn post, or other
 types of social media posts.
 
 ### Using the feature in the SDK
