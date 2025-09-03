@@ -125,6 +125,20 @@ This issue must contain links to:
 One of the most important parts of the language feature process is communicating
 with all the implementation teams and any other stakeholders.
 
+### Tracking doc
+
+Create a tracking doc to allow the wider team to track the progress of the
+feature. Keep this document up to date.
+
+The tracking doc includes the following:
+- [ ] A go-link that clearly describes the feature
+(e.g. `go/dart-dot-shorthands`)
+- [ ] A brief introduction on what the feature is and it's used
+- [ ] Useful links, background context, and other resources
+- [ ] A task breakdown table with status and owners for each task
+- [ ] Tables and links to the test tracking sheet
+- [ ] (Optional) An FAQ section
+
 ### Channels for communication
 
 We'll send out an announcement email to the entire team, letting them know that
@@ -148,8 +162,8 @@ give some concrete examples, and collect insights from the implementation teams
 about what aspects of the implementation might need special attention.
 
 Get sign-off from the following teams:
-- [ ] Analyzer team
-- [ ] CFE team
+- [ ] Model team (parser, CFE, analyzer)
+- [ ] Developer experience team
 - [ ] Back-end teams:
   - [ ] Dart VM Team
   - [ ] Dart Web Team
@@ -302,6 +316,14 @@ within Google3.
 
 ## Shipping
 
+> [!NOTE]
+> We typically enable the feature by default in a version's beta 2 release. This
+> is so that we have time to test the feature in beta 3 and we can give
+> ourselves some leeway to fix any surprise bugs.
+>
+> If the implementation teams aren't confident by beta 2 of an intended release
+> version, we'll re-evaluate and push the feature forward to the next version.
+
 This is a general checklist for shipping a feature:
 - [ ] Make sure all pre-migrations are complete.
 - [ ] Submit a CL that enables the feature by default in the upcoming version.
@@ -316,13 +338,15 @@ Keep an eye out for breakages and any new QOL requests that surface from the
 usage of the feature. Sometimes people use features in ways we don't expect and
 we can learn a lot from seeing how the feature is used in the real world.
 
-### After shipping
+### Moving the feature spec
 
 After a feature has been shipped, the documents pertaining to the feature should
-be moved into subfolders carrying the name of the release in which they were
+be copied into the subfolder carrying the name of the release in which they were
 shipped (e.g. `2.1`).
 
-For example, moving `super-mixins` to `2.1` after shipping:
+The original file should have a forwarding stub to the new location of the file.
+
+For example, moving `super-mixins` to `/accepted/2.1/` after shipping:
 
 ```
 /language
@@ -347,4 +371,26 @@ For example, moving `super-mixins` to `2.1` after shipping:
         feature-specification.md
   /resources/
     [various supporting documents and resources]
+```
+
+### Sharing the feature release
+
+Send out an email to the Dash team to notify them that the flag flipped and
+that they can start testing out the feature. Invite everyone to dogfood the
+feature and provide feedback through Github issues.
+
+You may also want to send a similar email to `flutter-insiders@`.
+
+Reach out to DevRel to discuss other means of advertising the new feature to
+users. This can involve a YouTube video, an X tweet, a LinkedIn post, and other
+types of social media posts.
+
+### Using the feature in the SDK
+
+The Dart tryjobs need to update their pre-built SDK to allow the feature to be
+used. Remember to update `DEPS` in the SDK once you've flipped the flag.
+
+```
+# The `sdk_tag` in DEPS needs to be updated to the commit SHA of a recent tag.
+"sdk_tag": "git_revision:4bb26ad346b166d759773e01ffc8247893b9681e",
 ```
