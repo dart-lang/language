@@ -42,9 +42,8 @@
 % release of this document.
 %
 % Sep 2025
-% - Remove the rules about scoping with DartDoc comments. This topic is now
-%   handled by each of the tools that process those comments in any way, and
-%   this document only specifies the syntax of DartDoc comments.
+% - Remove the rules about DartDoc comments. This topic is now handled by each
+%   of the tools that process those comments in any way.
 %
 % Jul 2025
 % - Clarify that operator `[]` and `[]=` are included in the `void` allowlist
@@ -23411,28 +23410,14 @@ are sections of program text that are used for documentation.
 Dart supports both single-line and multi-line comments.
 A \Index{single line comment} begins with the token \code{//}.
 Everything between \code{//} and the end of line
-must be ignored by the Dart compiler
-unless the comment is a documentation comment.
+must be ignored by the Dart compiler.
 
 \LMHash{}%
 A \Index{multi-line comment} begins with the token \code{/*}
 and ends with the token \code{*/}.
-Everything between \code{/}* and \code{*}/
-must be ignored by the Dart compiler
-unless the comment is a documentation comment.
+Everything between \code{/*} and \code{*/}
+must be ignored by the Dart compiler.
 Comments may nest.
-
-\LMHash{}%
-\IndexCustom{Documentation comments}{documentation comments}
-are comments that begin with the tokens \code{///} or \code{/**}.
-
-\rationale{%
-  Documentation comments are intended to be processed by
-  a tool that produces human readable documentation.
-  However, this document does not place any constraints
-  on the interpretation or use of documentation comments,
-  that is determined by each of the relevant tools.%
-}
 
 
 \subsection{Operator Precedence}
