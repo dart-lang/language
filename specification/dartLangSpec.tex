@@ -19825,8 +19825,10 @@ If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
     If $d$ completed with an error \metavar{err} and a stack trace \metavar{st},
     execution of $s$ throws the error \metavar{err} and stack trace \metavar{st}.
     Otherwise execution of $s$ completes by returning without a value.
-  \item If $u$ becomes paused and $r$ is not already paused,
-    then pause $r$ by invoking its \code{pause} method with no arguments.
+  \item If $u$ becomes paused, then $r$ is paused.
+    If $r$ is not already paused, then pause $r$ by invoking its \code{pause}
+    method with no arguments. If $r$ is already paused, then invoking
+    \code{pause} again is allowed, but not required.
     Then suspend execution of $m$ again.
     \commentary{%
       A stream must not emit events while it's paused, so no event from $r$
@@ -19837,6 +19839,13 @@ If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
   \item If $u$ resumes from being paused, and $r$ is not currently paused
     while asynchronously delivering an event to $u$, then resume $r$
     by invoking its \code{resume} method with no arguments.
+    If $r$ is also paused while delivering an event, then calling \code{resume}
+    is allowed, as long as that call does not make $r$ stop being paused.
+    \commentary{%
+      Stream subscriptions remember how many times they have been paused
+      by calling their \code{pause} method, and requires as many calls to
+      their \code{resume} method before they stop being paused.
+    }
     Then suspend execution of $m$ again.
   \item If $r$ emits a value event with value $v$, then $u$ emits
     a value event with value $v$,
