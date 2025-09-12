@@ -512,7 +512,7 @@ initially I propose to limit shared fields by allowing only _trivially shareable
 types_, which include:
 
 - Objects which do not contain mutable state and thus can already pass through
-`SendPort` without copying:
+  `SendPort` without copying:
   - strings;
   - numbers;
   - instances of [deeply immutable][] types;
