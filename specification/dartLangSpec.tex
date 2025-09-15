@@ -19794,7 +19794,6 @@ The current call to \code{moveNext()} returns \TRUE.
 
 \LMHash{}%
 If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
-
 \begin{itemize}
 \item
   % This error can occur due to implicit casts.
@@ -19805,34 +19804,83 @@ If $m$ is marked \code{\ASYNC*} (\ref{functions}), then:
   The nearest enclosing asynchronous for loop (\ref{asynchronousFor-in}),
   if any, is paused.
 \item
-  The $o$ stream is listened to, creating a subscription $s$,
-  and for each event $x$, or error $e$ with stack trace $t$, of $s$:
-
-  \begin{itemize}
-  \item
-    If the stream $u$ associated with $m$ has been paused,
-    then execution of $m$ is suspended until $u$ is resumed or canceled.
-  \item
-    If the stream $u$ associated with $m$ has been canceled,
-    then $s$ is canceled by evaluating \code{\AWAIT{} v.cancel()}
-    where $v$ is a fresh variable referencing the stream subscription $s$.
-    Then, if the cancel completed normally,
-    the stream execution of $s$ returns without an object
-    (\ref{statementCompletion}).
-  \item
-    Otherwise, $x$, or $e$ with $t$, are added to
-    the stream associated with $m$ in the order they appear in $o$.
-    \commentary{%
-      Note that a dynamic error occurs if $x$ is added
-      and the dynamic type of $x$ is not a subtype of
-      the element type of said stream.%
-    }
-    The function $m$ may suspend.
-  \end{itemize}
+  If the stream subscription $u$ associated with this execution of $m$
+  has been paused, suspend execution of $m$ until $u$ has been resumed or
+  cancelled.
 \item
-  If the stream $o$ is done, execution of $s$ completes normally.
+  If $u$ has been cancelled, execution of $s$ returns without a value.
+\item
+  The $o$ stream is listened to by calling its \code{listen} method,
+  creating a subscription $r$.
+\item
+  Execution of $m$ is suspended. Until execution of $s$ completes in one of
+  the ways specified below, execution of $m$ occurs in the following cases:
+  \begin{itemize}
+  \item If $u$ is cancelled, whether while waiting for an event from $r$,
+    to deliver an event to $u$ or to be resumed from pause:
+    Cancel $r$ by invoking its \code{cancel} method with no arguments,
+    returning a future $d$.
+    \commentary{%
+      A stream cannot become paused or resumed after being cancelled,
+      and a stream subscription must not emit events after its \code{cancel}
+      function has been called, so no items below may apply after this.
+    }
+    Execution of $m$ is suspended until $d$ completes.
+    If $d$ completed with an error \metavar{err} and a stack trace \metavar{st},
+    execution of $s$ throws the error \metavar{err} and stack trace \metavar{st}.
+    Otherwise execution of $s$ completes by returning without a value.
+  \item If $u$ becomes paused, then $r$ is paused.
+    If $r$ is not already paused, then pause $r$ by invoking its \code{pause}
+    method with no arguments. If $r$ is already paused, then invoking
+    \code{pause} again is allowed, but not required.
+    Then suspend execution of $m$ again.
+    \commentary{%
+      A stream must not emit events while it's paused, so no event from $r$
+      may occur until $r$ is resumed.
+      The $r$ subscription may already be paused if it's delivering an
+      event asynchronously.
+    }
+  \item If $u$ resumes from being paused, and $r$ is not currently paused
+    while asynchronously delivering an event to $u$, then resume $r$
+    by invoking its \code{resume} method with no arguments.
+    If $r$ is also paused while delivering an event, then calling \code{resume}
+    is allowed, as long as that call does not make $r$ stop being paused.
+    \commentary{%
+      Stream subscriptions remember how many times they have been paused
+      by calling their \code{pause} method, and requires as many calls to
+      their \code{resume} method before they stop being paused.
+    }
+    Then suspend execution of $m$ again.
+  \item If $r$ emits a value event with value $v$, then $u$ emits
+    a value event with value $v$,
+    and if $r$ emits an error event with error \metavar{err}
+    and stack trace \metavar{st},
+    then $u$ emits an error event with error \metavar{err}
+    and stack trace \metavar{st}.
+    If the event of $u$ is not delivered \emph{synchronously} to the listener
+    of $u$, immediately when it is received from $r$, then:
+    \begin{itemize}
+      \item $r$ is paused by invoking its \code{pause} method with no arguments.
+      \item Execution of $m$ is suspended until the event has been delivered
+         or $u$ is cancelled.
+      \item When that event has been delievered, if $u$ is not paused or
+         cancelled then $r$ is resumed by invoking its \code{resume} method
+         with no arguments. \commentary{If the event is never delivered,
+         then $u$ is cancelled or perpetually paused, in which case this.}
+    \end{itemize}
+    Then suspend execution of $m$ again.
+  \item If $r$ emits a done event then $s$ completes normally.
+  \end{itemize}
 \end{itemize}
 
+\commentary{%
+  The semantics here propagates pause and cancel requests directly
+  to the nested stream subscription of the \code{\YIELD*}.
+  That ensures that a pause or cancel request is responded to as soon as possible,
+  to avoid the inner stream doing a larger computation to create a value that
+  the outer stream already knows it doesn't need, or if paused,
+  that it may not need.
+}
 
 \subsection{Assert}
 \LMLabel{assert}
