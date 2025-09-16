@@ -124,36 +124,6 @@ destroyed?
 These are all questions without satisfactory answers due to misalignment in
 execution modes between the native caller and Dart.
 
-Finally, the variation of the interop problem exists in an opposite direction:
-_invoking a native API from Dart on a specific thread_. Consider the following
-code for displaying a file open dialog on Mac OS X:
-
-```objc
-NSOpenPanel* panel = [NSOpenPanel openPanel];
-
-// Open the panel and return. When user selects a file
-// the passed block will be invoked.
-[panel beginWithCompletionHandler: ^(NSInteger result){
-   // Handle the result.
-}];
-```
-
-Trying to port this code to Dart hits the following issue: you can only use this
-API on the UI thread and Dart's main isolate is not running on the UI thread.
-Workarounds similar to discussed before can be applied here as well. You wrap a
-piece of Dart code you want to call on a specific thread into a function and
-then:
-
-1. Send Dart `isolateLocal` callback to be executed on the specific thread, but
-   make it enter (and leave) the target isolate.
-2. Create an isolate specific to the target thread (e.g. special _platform
-   isolate_ for running on main platform thread) and have callbacks to be run in
-   that isolate.
-
-However the issues described above equally apply here: you either hit a problem
-with stalling the caller by waiting to acquire an exclusive access to an isolate
-or you hit a problem with ergonomics around the lack of shared state.
-
 See [go/dart-interop-native-threading][] and [go/dart-platform-thread][] for
 more details around the challenge of crossing isolate-to-thread chasm and why
 all different solutions fall short.
@@ -295,9 +265,10 @@ class Isolate {
 }
 ```
 
-Note that youou can only enter `Isolate` when it is not used by another thread.
+Note that `runSync` can only enter an `Isolate` when it is not used by
+another thread.
 
-**TODO**: Futhermore we might want to facilitate integration with third-party
+**TODO**: Furthermore we might want to facilitate integration with third-party
 event-loops: e.g. allow to create isolate without scheduling its event loop on
 our own thread pool and provide equivalents of `Dart_SetMessageNotifyCallback`
 and `Dart_HandleMessage`. Though maybe we should not bundle this all together
