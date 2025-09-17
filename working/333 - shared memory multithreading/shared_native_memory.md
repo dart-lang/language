@@ -246,10 +246,27 @@ will cause `FieldAccessError` to be thrown.
 
 #### Core library API behavior 
 
-**TODO:** give exhaustive list of APIs that are expected to work outside of a
-concrete isolate. We expect all synchronous `dart:*` APis simply work. APIs
-which require message loop and microtask queue (e.g. async IO, timers,
-`Future` and `Stream` APIs) should throw easy to understand errors.
+All APIs that directly or indirectly depend on microtask queue and event loop
+should throw easy to understand errors when invoked from `isolateGroupBound`
+callable, e.g. an attempt to instantiate `Completer`, `Future`, `Stream`,
+`Timer`, `Zone` should throw an appropriately worded exception that these
+APIs can only be used when there is a current `Isolate`.
+
+Conversely we expect most (if not all) synchronous APIs in `dart:*` libraries
+to simply work when invoked from `isolateGroupBound`.
+
+Specifically for core libraries:
+
+* `dart:async` - does not work, constructors and static methods should throw
+appropriate errors.
+* `dart:core`, `dart:collection`, `dart:convert`, `dart:math`,
+  `dart:typed_data`, `dart:ffi` - are expected to fully work
+* `dart:io` - all synchronous APIs should work, all async APIs should throw.
+* `dart:isolate` - synchronous APIs should work.
+* `dart:mirrors` - is allowed to not work
+
+**TODO**: do we need a blocking version of `ReceivePort` which could be used
+from `isolateGroupBound` context?
 
 ### Additional Isolate APIs
 
@@ -273,6 +290,14 @@ event-loops: e.g. allow to create isolate without scheduling its event loop on
 our own thread pool and provide equivalents of `Dart_SetMessageNotifyCallback`
 and `Dart_HandleMessage`. Though maybe we should not bundle this all together
 into one update.
+
+**TODO**: Should we facilitate execution of asynchronous code inside a target
+isolate e.g. something like `T runAsync<T>(FutureOr<T> Function() f)`. When
+you invoke this function `f` will be executed in the context of the given
+isolate and then if it produced a `Future` we exit the isolate and block
+the current thread, while allowing the event loop for that isolate to run
+normally until returned future produces result.
+
 
 ### Scoped thread local values
 
@@ -684,6 +709,13 @@ It can be proven that memory model requirements ensure that data-race free
 programs behave in sequentially consistent way.
 
 #### Language and Library Semantics
+
+#### Object Construction
+
+When object is constructed all field initializers (i.e. those provided in the
+body of the class or in the initializer list) result in $\mathtt{Init}$
+write events. The same applies to initialization of individual elements of
+`TypedData` objects with `0`.
 
 #### Isolates
 
