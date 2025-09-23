@@ -523,7 +523,7 @@ obvious order for applying augmentations is based on which appears first.
 augmentations of the same declaration scattered across an entire tree of part
 files.
 
-[parts with imports]: parts_with_imports.md
+[parts with imports]: ../parts-with-imports/feature-specification.md
 
 Some terminology:
 
