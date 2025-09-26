@@ -195,7 +195,7 @@ The configurable URI for a `part` works just as for imports and exports, it
 chooses the URI that the `part` directive refers to, and after that the
 included file works just as any other part file.
 
-It's a **'** if a Dart (parent) file with URI *P* has a `part`
+It's a **compile-time error** if a Dart (parent) file with URI *P* has a `part`
 directive with a URI *U*, and the source content for the URI *U* does not parse
 as a `<partDirective>`, or if its leading `<partHeader>`'s `<uri>` string,
 resolved as a URI reference against the URI *U*, does not denote the library of
@@ -229,7 +229,7 @@ defined as:
     *I* is *C*.
     *   The import scope are computed the same way as for a pre-feature
         library. The implicit import of `dart:core` only applies to the
-        library file. _As usual, it's a ' if any `import`‘s
+        library file. _As usual, it's a **compile-time error** if any `import`‘s
         target URI does not resolve to a valid Dart library file._
     *   Let's introduce *importsOf*(*S*), where *S* is a set of `import`
         directives from a single Dart file, to refer to that computation, which
@@ -243,7 +243,7 @@ defined as:
     the current file. The parent scope of *P* is *I*.
     *   The *P* scope contains an entry for each name where the current file
         has an `import` directive with that name as prefix, `as name`. (If an
-        import is `deferred`, it's a ' if more than one
+        import is `deferred`, it's a **compile-time error** if more than one
         `import` directive in the same file has that prefix name, as usual.
         _It's not an error if two import deferred prefixes have the same name
         if they occur in different files, other file's imports are only
@@ -377,20 +377,20 @@ We say that a Dart file *includes* a part file, or that the part file
 _is included by_ a Dart file, if the Dart file has a `part` directive with a
 URI denoting that part file.
 
-*   _It's a ' if a Dart file has two `part` directives with
+*   _It's a **compile-time error** if a Dart file has two `part` directives with
     the same URI, so each included part file is included exactly once._
-*   _It's a ' if a `part` directive denotes a file which is
+*   _It's a **compile-time error** if a `part` directive denotes a file which is
     not a Dart part file._
 
 The *parent file* of a part file is the file denoted by the URI of the
 `part of` declaration of the part file. A library file has no parent file.
 
-*   _It's a ' if a part file is included by any Dart file
+*   _It's a **compile-time error** if a part file is included by any Dart file
     other than the part file's parent file._
 *   The *includes* and *is the parent file of* properties are equivalent for
     the files of a valid Dart program. A Dart file includes a part file if,
     and only if, the Dart file is the parent file of the part file, otherwise
-    there is a '.
+    there is a **compile-time error**.
     _(There are no restrictions on the parent file of a part file which is not
     part of a library of a Dart program. Dart semantics is only assigned to
     entire libraries and programs, not individual part files.)_
@@ -408,7 +408,7 @@ the Dart file, or if the file is a *sub-part* of a file included by the
     *included by* relation. We'll refer to it by saying either that one Dart
     file is an ancestor file of another part file, or that a part file is a
     sub-part of another Dart file.
-*   <a name="part_cycle"></a>_It's a ' if a part file is
+*   <a name="part_cycle"></a>_It's a **compile-time error** if a part file is
     a sub-part of itself._
     That is, if the *includes* relation has a cycle. _This is not a *necessary*
     error from the language's perspective, since no library can contain such a
@@ -417,7 +417,7 @@ the Dart file, or if the file is a *sub-part* of a file included by the
     the including file is not the parent of that file._
     _The rule is included as a help to tools that try to analyzer Dart code
     starting at individual files, they can then assume that either a part file
-    has an ancestor which is a library file, or there is a '.
+    has an ancestor which is a library file, or there is a **compile-time error**.
     Or an infinite number of part files._
 
 The *sub-tree* of a Dart file is the set of files containing the file itself
@@ -525,13 +525,13 @@ before, because they are considered blindingly obvious. We're making them
 explicit here, and will enforce the rules strictly for post-feature code, if we
 didn't already._
 
-*   It's a **'** if two Dart files of a library do not have the
+*   It's a **compile-time error** if two Dart files of a library do not have the
     same language version._All Dart files in a library must have the same
     language version._ Can be expressed locally as:
-    *   It's a ' if the associated language version of a part
+    *   It's a **compile-time error** if the associated language version of a part
         file is not the same as the language version of its parent file.
 
-*   It's a **'** if any file of a library has a
+*   It's a **compile-time error** if any file of a library has a
     language-version override marker (a line like `// @dart=3.12` before any
     Dart code), and any *other* file of the same library does not have a
     language-version override marker. _While it's still possible for that
@@ -547,13 +547,13 @@ didn't already._
     *   If a part file has no language version marker, then it's a compile-time
         error if its parent file has a language version marker.
 
-*   It's a **'** if two Dart files of a library do not belong
+*   It's a **compile-time error** if two Dart files of a library do not belong
     to the same package. _Every file in a library must belong to the same
     package to ensure that they always have the same default language version.
     It's also likely to break a lot of assumptions if they don't._ Can be
     expressed locally as:
 
-    *   It's a ' if a part file does not belong to the same
+    *   It's a **compile-time error** if a part file does not belong to the same
         package as its parent file.
 
     The Dart SDK's multi-language-version support, which based on files
