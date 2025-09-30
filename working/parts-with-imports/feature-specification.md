@@ -715,7 +715,7 @@ experiment automatically if the augmentations experiment is enabled.
 ## Feature Summary
 
 *   **Breaking**: A `part of` file directive cannot use a library name any more.
-*   A `part` file can contain `import`, `export` and `part` directives.
+*   A part file can contain `import`, `export` and `part` directives.
 *   Part files of a library must form a tree.
     _A part can, and must, only be part of one parent file._
 *   Exports are independent of where they occur, all works like today.
