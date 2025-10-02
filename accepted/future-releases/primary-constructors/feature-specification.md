@@ -619,6 +619,13 @@ constructors as well.
      'const' <constructorName> <formalParameterList>
    | <declaringConstantConstructorSignature>;
 
+<constructorName> ::= // Modified rule.
+     <typeIdentifierOrNew> ('.' identifierOrNew)?;     
+
+<typeIdentifierOrNew> ::= // New rule.
+     <typeIdentifier>
+   | 'new';
+
 <declaringConstantConstructorSignature> ::= // New rule.
      'const' 'this' ('.' <identifierOrNew>)? <declaringParameterList>;
 
@@ -732,7 +739,18 @@ superclass.*
 A compile-time error occurs if a `<defaultDeclaringNamedParameter>` has the
 modifier `required` as well as a default value.
 
+*Note that the updated grammar rule for `<constructorName>` allows
+non-declaring constructors to use `new` where the current rules require
+the class name. This is not a necessary part of the declaring constructors
+feature, but it contributes to the overall brevity of Dart programs.*
+
+
 ### Static processing
+
+The ability to use `new` rather than the class name in declarations of
+ordinary (non-declaring) constructors is purely syntactic. The static
+analysis and meaning of such constructors is identical to the form that
+uses the class name.
 
 The name of a primary constructor of the form
 `'const'? id1 <typeParameters>? <declaringParameterList>` is `id1` *(that
