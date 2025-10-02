@@ -243,9 +243,9 @@ constructor parameter is `final`.
 
 In the case where the declaration is an `extension type`, the modifier
 `final` on the representation variable can be specified or omitted. Note
-that an extension type declaration is specified to use a primary
-constructor (in that case there is no other choice, it is in the grammar
-rules):
+that an extension type declaration is specified to use a declaring
+constructor (it is not supported to declare the representation variable
+using a normal instance variable declaration):
 
 ```dart
 // Using a primary constructor.
@@ -874,8 +874,9 @@ reason for this error is that the modifier `covariant` must be specified on
 the declaration of `v` which is known to exist, not on the parameter.*
 
 A compile-time error occurs if _p_ has both of the modifiers `covariant`
-and `final`. *A final instance variable cannot be covariant, because being
-covariant is a property of the setter.*
+and `final`, also if the latter is implicitly induced. *A final instance
+variable cannot be covariant, because being covariant is a property of the
+setter.*
 
 A compile-time error occurs if _p_ has the modifier `covariant`, but
 neither `var` nor `final`. *This parameter does not induce an instance
@@ -890,30 +891,31 @@ constructors.
 
 The semantics of the declaring constructor is found in the following steps,
 where _D_ is the class, extension type, or enum declaration in the program
-that includes a declaring constructor, and _D2_ is the result of the
+that includes a declaring constructor _k_, and _D2_ is the result of the
 derivation of the semantics of _D_. The derivation step will delete
 elements that amount to the declaring constructor; it will add a new
-constructor _k_; and it will add zero or more instance variable
+constructor _k2_; and it will add zero or more instance variable
 declarations.
 
 Where no processing is mentioned below, _D2_ is identical to _D_. Changes
 occur as follows:
 
-Assume that `p` is an optional formal parameter in _D_ which has the
+Assume that `p` is an optional formal parameter in _k_ which has the
 modifier `var` or the modifier `final` *(that is, `p` is a declaring
 parameter)*.
 
-Assume that the combined member signature for a getter with the same name
-as `p` from the superinterfaces of _D_ exists, and has return type `T`. In
-that case the parameter `p` has declared type `T` as well.
+Assume that `p` has no type annotation, and the combined member signature
+for a getter with the same name as `p` from the superinterfaces of _D_
+exists and has return type `T`. In that case the parameter `p` has declared
+type `T` as well.
 
 *In other words, an instance variable introduced by a declaring parameter
 is subject to override inference, just like an explicitly declared instance
 variable.*
 
-Otherwise, assume that `p` does not have a declared type, but it does have
-a default value whose static type in the empty context is a type (not a
-type schema) `T` which is not `Null`. In that case `p` is considered to
+Otherwise, assume that `p` does not have a type annotation, but it does
+have a default value whose static type in the empty context is a type (not
+a type schema) `T` which is not `Null`. In that case `p` is considered to
 have the declared type `T`. When `T` is `Null`, `p` is considered to have
 the declared type `Object?`. If `p` does not have a declared type nor a
 default value then `p` is considered to have the declared type `Object?`.
@@ -932,25 +934,25 @@ this by specifying the current scope explicitly as the body scope, in spite
 of the fact that the declaring constructor is actually placed outside the
 braces that delimit the class body.*
 
-Next, _k_ has the modifier `const` iff the keyword `const` occurs just
+Next, _k2_ has the modifier `const` iff the keyword `const` occurs just
 before the name of _D_ or before `this`, or if _D_ is an `enum`
 declaration.
 
-Consider the case where _D_ is a declaring header constructor. If the name
+Consider the case where _k_ is a declaring header constructor. If the name
 `C` in _D_ and the type parameter list, if any, is followed by `.id` where
-`id` is an identifier then _k_ has the name `C.id`. If it is followed by
-`.new` then _k_ has the name `C`. If it is not followed by `.`  then _k_
+`id` is an identifier then _k2_ has the name `C.id`. If it is followed by
+`.new` then _k2_ has the name `C`. If it is not followed by `.`  then _k2_
 has the name `C`. If it exists, _D2_ omits the part derived from
 `'.' <identifierOrNew>` that follows the name and type parameter list, if
 any, in _D_. Moreover, _D2_ omits the formal parameter list _L_ that
 follows the name, type parameter list, if any, and `.id`, if any.
 
 Otherwise, _D_ is a declaring body constructor. If the reserved word `this`
-is followed by `.id` where `id` is an identifier then _k_ has the name
-`C.id`. If it is followed by `.new` then _k_ has the name `C`. If it is not
-followed by `.` then _k_ has the name `C`.
+is followed by `.id` where `id` is an identifier then _k2_ has the name
+`C.id`. If it is followed by `.new` then _k2_ has the name `C`. If it is not
+followed by `.` then _k2_ has the name `C`.
 
-The formal parameter list _L2_ of _k_ is identical to _L_, except that each
+The formal parameter list _L2_ of _k2_ is identical to _L_, except that each
 formal parameter is processed as follows.
 
 The formal parameters in _L_ and _L2_ occur in the same order, and
@@ -972,18 +974,19 @@ positional or named parameter remains optional; if it has a default value
   instance variable declaration of the form `T p;` or `final T p;` is added
   to _D2_. The instance variable has the modifier `final` if the parameter
   in _L_ has the modifier `final`, or _D_ is an `extension type`
-  declaration, or _D_ is an `enum` declaration. In all cases, if `p` has
-  the modifier `covariant` then this modifier is removed from the parameter
-  in _L2_, and it is added to the instance variable declaration named `p`.
+  declaration and _k_ is a declaring header constructor. In all cases, if
+  `p` has the modifier `covariant` then this modifier is removed from the
+  parameter in _L2_, and it is added to the instance variable declaration
+  named `p`.
 
 In every case, any DartDoc comments are copied along with the formal
 parameter, and in the case where an instance variable is implicitly
 induced, the DartDoc comment is also added to that instance variable.
 
 If there is an initializer list following the formal parameter list _L_
-then _k_ has an initializer list with the same elements in the same order.
+then _k2_ has an initializer list with the same elements in the same order.
 
-Finally, _k_ is added to _D2_, and _D_ is replaced by _D2_.
+Finally, _k2_ is added to _D2_, and _D_ is replaced by _D2_.
 
 ### Discussion
 
