@@ -1,10 +1,10 @@
-# Declaring and Primary Constructors
+# Declaring Constructors
 
 Author: Erik Ernst
 
 Status: Accepted
 
-Version: 1.9
+Version: 1.10
 
 Experiment flag: declaring-constructors
 
@@ -1037,6 +1037,10 @@ far removed from any syntactic hint that the constructor must be constant
 of declaration, and the constructor might be non-const).
 
 ### Changelog
+
+1.10 - October 3, 2025
+
+* Rename the feature to 'declaring constructors'. Fix several small errors.
 
 1.9 - August 8, 2025
 
