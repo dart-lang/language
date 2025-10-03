@@ -125,7 +125,7 @@ unambiguously a declaring parameter. Developers who wish to maintain a
 style whereby formal parameters are never modified will have a
 [lint][parameter_assignments] to flag all such mutations.
 
-[parameter_assignments]: https://dart.dev/tools/linter-rules/parameter_assignmentshttps://dart.dev/tools/linter-rules/parameter_assignments
+[parameter_assignments]: https://dart.dev/tools/linter-rules/parameter_assignments
 
 Similarly, with this feature a regular (non-declaring) formal parameter can
 not use the syntax `var name`, it must have a type (`T name`) or the type
@@ -770,7 +770,7 @@ does not support declaring constructors, that is a syntax error)*. This
 declaration is treated as a class, enum, respectively extension type
 declaration without a declaring header constructor which is obtained as
 described in the following. This determines the dynamic semantics of a
-declaring header constructor, and simiarly for a declaring body
+declaring header constructor, and similarly for a declaring body
 constructor.
 
 A compile-time error occurs if the body of _D_ contains a non-redirecting
