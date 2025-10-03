@@ -132,7 +132,7 @@ The design goals and principles are:
     name conflicts between declarations in separate tree-branches of the
     library structure.
 
-*   *Import inheritance is a only suggestion*: Aka. ancestor files' imports
+*   *Import inheritance can be ignored*: Aka. ancestor files' imports
     shouldn't break your code (if you're not depending on them).
     A part file is never _restricted_ by the imports inherited from its parent file.
     It can ignore and override all of them with imports of its own, and by making
@@ -216,7 +216,7 @@ are considered to denote declarations in the library,
 and imported names are available from a scope which is the enclosing
 scope of the library scope.
 
-A _post-feature library_ splits the library scope into multiple scopes,
+A _post-feature library_ splits the library declaration scope into multiple scopes,
 to allow part files to inherit and override declarations from its parent file's
 imports separately from the shared top-level declarations.
 
@@ -239,51 +239,44 @@ The combined import scope of a Dart file *F* is defined as:
     compile-time error if an identifier denotes a conflicted namespace entry._
     _(This is the existing way to combine imported names from multiple imports
     into a single namespace, we're just giving it a name.)_
-
 *   Let *C* be the combined import scope of the parent file of *F*,
     or an empty scope if *F* is a library file.
-
 *   Let *I*, the *import scope* of *F*, be a scope with *C* as enclosing scope
     and _importsOf_(*NP*) as namespace, where *NP* is the set of unprefixed
     import directives of *F*.
     If *F* is a library file, and *F* does not contain any import of `dart:core`,
     a synthetic `import 'dart:core';` directive is added to *NP*.
-
     *   The import namespace is computed the same way as for a pre-feature
         library. The implicit import of `dart:core` only applies to the
         library file. _As usual, it's a **compile-time error** if any `import`‘s
         target URI does not resolve to a valid Dart library file._
-
 *   Let *P*, the *combined import scope* of *F*, be a scope with *I* as enclosing scope
     and a namespace containing every import prefix declared by an import
     declaration of *F*.
-
     *   The *P* scope contains an entry for each name where the current file
         has an `import` directive with that name as prefix. If an
         import is `deferred`, it's a **compile-time error** if more than one
         `import` directive in the same file has that prefix name, as usual.
         _It's not an error if two deferred import prefixes have the same name
         if they occur in different files, a file can use any name as an import prefix
-        for its own imports, as long as it's not the name of a library declaration._)
-
+        for its own imports, as long as it's not the name of a library declaration._
     *   The *P* scope binds each such name to a *prefix (import) scope*,
         *P*<sub>*name*</sub>, computed as *importsOf*(*S*<sub>*name*</sub>)
         where *S*<sub>*name*</sub> is the set of import directives of *F*
         with that prefix name.
-
     *   If an import is `deferred`, its *P*<sub>*name*</sub> is a *deferred
         scope* which has an extra `loadLibrary` member added, and the
         import implicitly hides any member named `loadLibrary` in the
         (singular) imported library's export scope _(as usual)_.
-
     *   If *P*<sub>*name*</sub> is _not_ `deferred`, and the enclosing scope in *C*
         has a non-deferred prefix import scope with the same *name*,
         *C*<sub>*name*</sub>, then the enclosing scope of *P*<sub>*name*</sub> is
         *C*<sub>*name*</sub>.
-        _A part file can use the same prefix as a prefix that it inherits,
-        because inherited imports are only suggestions.
-        If a file has imports with the same prefix as a parent file,
-        the imported declarations will shadow parent file's import scope
+        _A part file can have an import with the same prefix as a prefix
+        that it inherits. The new import's declarations will all be available
+        through the prefix, but any declaration of the inherited prefix which
+        isn't shadowed by a new import, will also be available._
+        The imported declarations will shadow the parent file's import scope
         declarations, just like imports in the top-level import scope
         will shadow top-level imports with the same name inherited from
         parent files._
