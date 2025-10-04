@@ -2,9 +2,9 @@
 
 Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com
 
-Version: 1.2 (See [Changelog](#Changelog) at end)
+Version: 1.3 (See [Changelog](#Changelog) at end)
 
-Experiment flag: parts-with-imports
+Experiment flag: enhanced-parts
 
 This is a standalone definition of _enhanced part files_, where the title of
 this document/feature is highlighting only the most prominent part of the
@@ -18,9 +18,10 @@ extension of the existing part files.
 Because of that, the motivation and design is based on the needs of
 meta-programming and augmentations. It's defined as a stand-alone feature, but
 design choices were made based on the augmentations and macro features,
+with concerns that still apply to other kinds of code-generation,
 combined with being backwards compatible.
 
-[Augmentations]: ../augmentations.md "Augmentations feature specification"
+[Augmentations]: ../augmentations/feature-specification.md "Augmentations feature specification"
 
 ## Motivation
 
@@ -49,7 +50,7 @@ this, users have asked for something like partial classes in C# ([#252][] 71 �
 [#678][] 18 👍). C# also supports splitting [the declaration and implementation
 of methods into separate files][partial]. Splitting classes, or other
 declarations, into separate parts is what the [Augmentations][] feature solves.
-The improved part files gives augmentations, and specifically macro generated
+The improved part files gives augmentations, and specifically code-generated
 augmentations, a structured and capable way to add new code, including new
 imports and new exports, to a library.
 
@@ -115,7 +116,7 @@ The design goals and principles are:
         `import`s back into its parent file.
 
     _(Augmentations modify both of these properties slightly, because order of
-    declarations also matter.)_
+    declarations may also matter.)_
 
 *   *Library member declarations are library-global*: All top-level declarations
     in the library file and all transitive part files are equal, and are all in
@@ -131,21 +132,32 @@ The design goals and principles are:
     name conflicts between declarations in separate tree-branches of the
     library structure.
 
-*   *Import inheritance is a only suggestion*: Aka. other files' imports cannot
-    break your code (at least if you're not depending on them). A part file is
-    never restricted by the imports it inherits from its parent file. It can
-    ignore and override all of them with imports of its own. That allows a
-    file, like a macro generated file, to import all its own dependencies and
-    be completely self-contained when it comes to imports. _It still needs to
-    fit into the library and not conflict with existing top-level names. That's
-    why a macro should document any non-fresh names it introduces, so a library
-    using the macro can rename any declarations that would conflict._
+*   *Import inheritance can be ignored*: Aka. ancestor files' imports
+    shouldn't break your code (if you're not depending on them).
+    A part file is never _restricted_ by the imports inherited from its parent file.
+    It can ignore and override all of them with imports of its own, and by making
+    explicit references to its own imported names.
+    That allows such a file, for example code-generated file, to import all its
+    own dependencies and be completely self-contained when it comes to imports.
+    _Generated code still needs to fit into the library and not conflict with existing
+    top-level names. A code generator should document any non-fresh names it
+    introduces, so the author of a library that will contain generated code
+    can rename any manually written declarations that would conflict._
+    Because adding more extension declarations can affect the resolution of
+    implicit extension applications, a part file that aims to be completely
+    independent of its parent imports should import its own extensions
+    *and* use only explicit extension applications of those.
+    _That is something code generation may want to do anyway. It doesn't care
+    about the verbosity, and the strategy is safe against any later changes._
 
-    *   Because of that, it's possible to convert an existing library into a
-        part file of another library. Since a library is self-contained and
-        imports all external names that it refers to, making it a part file will
-        not cause any conflict due to inherited imports. _(Obviously still need
-        to avoid conflicts with top-level declarations.)_
+    *   The ability to be independent of parent file imports should make it
+        possible to convert an existing library into a part file of another library.
+        Since a library is self-contained and imports all external names that it
+        refers to, making it a part file will not cause any conflict due to
+        inherited imports. _(The part will still need to avoid conflicts with existing
+        top-level declarations of the library, and it may need to make
+        extension applications explicit in the rare case when the library already
+        contains a different applicable extension that is equally or more specific.)_
     *   And similarly, if a part file *is* self-contained, it can be converted
         into a separate library and imported back into the original library, or
         it can be moved to another position in the part tree hierarchy. _(Again
@@ -155,13 +167,9 @@ The design goals and principles are:
 ### Grammar
 
 We extend the grammar of part files to allow `import`, `export` and `part` file
-directives. We allow `part` files directives to use a configurable URI like the
-other two. We restrict the `part of` directive to only allow the string version.
+directives. We restrict the `part of` directive to only allow the string version.
 
 ```ebnf
--- Changed "<uri>" to "<configurableUri>".
-<partDirective> ::= <metadata> `part' <configurableUri> `;'
-
 -- Removed "<dottedIdentifier>" as option, retaining only "<uri>".
 <partHeader> ::= <metadata> `part' `of' <uri> `;'
 
@@ -174,7 +182,7 @@ other two. We restrict the `part of` directive to only allow the string version.
 The grammar change is small, mainly adding `import`, `export` and `part`
 directives to part files.
 
-The change to `part of` directives to not allow a dotted name was made because
+The change to `part of` directives, to not allow a dotted name, was made because
 we want a part file of a part file to refer back to its parent part file, but a
 dotted library name can only refer to a library. _That doesn't mean that
 part-of-dotted-name cannot be supported for part files that are part files of a
@@ -183,115 +191,131 @@ been linting against its use for quite a while already. Dotted names in part-of
 being partially incompatible with the new feature just means that now is a good
 opportunity to get rid of them._
 
-The change to a configurable URI for `part` files was made because it can ease
-one of the shortcomings of using libraries for platform-dependent code: That
-other libraries cannot provide implementations for private members, or code
-that accesses private members, without duplicating the entire library. With
-part files having their own imports, adding configurable URIs for `part`
-directives gives a way to avoid that code duplication, possibly even more
-conveniently if also using augmentations.
-
-The configurable URI for a `part` works just as for imports and exports, it
-chooses the URI that the `part` directive refers to, and after that the
-included file works just as any other part file.
-
 It's a **compile-time error** if a Dart (parent) file with URI *P* has a `part`
 directive with a URI *U*, and the source content for the URI *U* does not parse
-as a `<partDirective>`, or if its leading `<partHeader>`'s `<uri>` string,
+as a `<partDeclaration>`, or if its leading `<partHeader>`'s `<uri>` string,
 resolved as a URI reference against the URI *U*, does not denote the library of
-*P*. _That is, if a Dart file has a part directive, its target must be a part
-file whose "part of" directive points back to the first Dart file. Nothing new,
-except that now the parent file may not be a library file._
+*P*. _That is, if a Dart file has a part directive, its target must be a Dart
+part file whose "part of" directive points back to the first Dart file.
+Nothing new, except that now the parent file may not be a library file._
 
 ### Resolution and scopes (part and import directives)
 
-A pre-feature library defines a *top-level scope* extending the import scope
-(all declarations imported by non-prefixed import directives) with a
-declaration scope containing all top-level declarations of the library file and
-all part files, and all import prefixes declared by the library file. The
-import prefixes are added to the same scope as library declarations, and there
-is a name conflict if a top-level declaration has the same base name as an
-import prefix.
+Imports and import prefixes of a parent file can now be shadowed by
+part files. To support that, each file gets its an import scope for
+unprefixed imports, a scope for prefix names, and a top-level scope.
 
-This feature splits the top-level declaration scope from the import prefix
-scope to allow a part file to override the import prefix, but not the top-level
-declaration.
+A *pre-feature library* has a single library scope as the outermost scope.
+Import prefix names and bindings imported without a prefix are added
+to this scope based on special rules about prefix names used by multiple imports,
+deferred or not, and clashing imported names with or without a prefix.
+
+Those rules are different from the rules for other scopes in Dart,
+but the resulting behavior is similar to a situation where the import prefixes
+are considered to denote declarations in the library,
+and imported names are available from a scope which is the enclosing
+scope of the library scope.
+
+A _post-feature library_ splits the library declaration scope into multiple scopes,
+to allow part files to inherit and override declarations from its parent file's
+imports separately from the shared top-level declarations.
 
 Each Dart file (library file or part file) defines a _combined import scope_
-which combines the combined import scope of its parent file with its own
-imports and import prefixes. The combined import scope of a dart files is
-defined as:
+which extends the scope chain of the parent file's combined import scope
+with its own imports and import prefixes.
+_It is this combined import scope that sub-parts inherit and override._
+The combined import scope of a Dart file *F* is defined as:
 
-*   Let *C* be the combined import scope of the parent file, or an empty scope
-    if the current file is a library file.
-*   Let *I*  be a scope containing all the imported declarations of all
-    non-prefixed `import` directives of the current file. The parent scope of
-    *I* is *C*.
-    *   The import scope are computed the same way as for a pre-feature
+*   First we'll give a name to a namespace created by import statements that
+    are imported into the same namespace.
+    Define *importsOf*(*S*), where *S* is a set of `import` directives from
+    a single Dart file, as the namespace containing the exported declarations
+    of each library imported by one of those directives, minus those hidden
+    by a `show` or `hide` operator on the import directive.
+    Solve name conflicts the same ways as today; different declarations
+    with the same name makes the name "conflicted" unless exactly one
+    of those declarations is a non-platform-library declaration, in which case
+    the name will denote that declaration in the namespace. _It's then a
+    compile-time error if an identifier denotes a conflicted namespace entry._
+    _(This is the existing way to combine imported names from multiple imports
+    into a single namespace, we're just giving it a name.)_
+*   Let *C* be the combined import scope of the parent file of *F*,
+    or an empty scope if *F* is a library file.
+*   Let *I*, the *import scope* of *F*, be a scope with *C* as enclosing scope
+    and _importsOf_(*NP*) as namespace, where *NP* is the set of unprefixed
+    import directives of *F*.
+    If *F* is a library file, and *F* does not contain any import of `dart:core`,
+    a synthetic `import 'dart:core';` directive is added to *NP*.
+    *   The import namespace is computed the same way as for a pre-feature
         library. The implicit import of `dart:core` only applies to the
         library file. _As usual, it's a **compile-time error** if any `import`‘s
         target URI does not resolve to a valid Dart library file._
-    *   Let's introduce *importsOf*(*S*), where *S* is a set of `import`
-        directives from a single Dart file, to refer to that computation, which
-        introduces a scope containing the declarations introduced by all the
-        `import` s (the declarations of the export scope of each imported
-        library, minus those hidden by a `show` or `hide` operator, combined
-        such that a name conflicts of different declarations is not an error,
-        but the name is marked as conflicted in the scope, and then referencing
-        it is an error.)
-*   Let *P* be a *prefix scope* containing all the import prefixes declared by
-    the current file. The parent scope of *P* is *I*.
+*   Let *P*, the *combined import scope* of *F*, be a scope with *I* as enclosing scope
+    and a namespace containing every import prefix declared by an import
+    declaration of *F*.
     *   The *P* scope contains an entry for each name where the current file
-        has an `import` directive with that name as prefix, `as name`. (If an
+        has an `import` directive with that name as prefix. If an
         import is `deferred`, it's a **compile-time error** if more than one
         `import` directive in the same file has that prefix name, as usual.
-        _It's not an error if two import deferred prefixes have the same name
-        if they occur in different files, other file's imports are only
-        suggestions._)
-    *   The *P* scope binds each such name to a *prefix import scope*,
+        _It's not an error if two deferred import prefixes have the same name
+        if they occur in different files, a file can use any name as an import prefix
+        for its own imports, as long as it's not the name of a library declaration._
+    *   The *P* scope binds each such name to a *prefix (import) scope*,
         *P*<sub>*name*</sub>, computed as *importsOf*(*S*<sub>*name*</sub>)
-        where *S*<sub>*name*</sub> is the set of import directives with that
-        prefix name.
+        where *S*<sub>*name*</sub> is the set of import directives of *F*
+        with that prefix name.
     *   If an import is `deferred`, its *P*<sub>*name*</sub> is a *deferred
-        scope* which has an extra `loadLibrary` member added, as usual, and the
-        import has an implicit `hide  loadLibrary` modifier.
-    *   If *P*<sub>*name*</sub> is not `deferred`, and the parent scope in *C*
-        has a non-deferred prefix import scope with the same name,
-        *C*<sub>*name*</sub>, then the parent scope of *P*<sub>*name*</sub> is
-        *C*<sub>*name*</sub>. _A part file can use the same prefix as a prefix
-        that it inherits, because inherited imports are only suggestions. If it
-        adds to that import scope, by importing into it, that can shadow
-        existing declarations, just like in the top-level declaration scope. A
-        deferred prefix import scope cannot be extended, and cannot extend
-        another prefix scope, deferred prefix scopes are always linked to a
-        single import directive._
-    *   _It's possible to look further up in the import chain *C* for a prefix
-        scope to extend. Here it's chosen that that importing parent file gets
-        to decide which names the part file has access to. If it wants to make
-        a transitive parent import prefix available, it should just not shadow
-        it._
+        scope* which has an extra `loadLibrary` member added, and the
+        import implicitly hides any member named `loadLibrary` in the
+        (singular) imported library's export scope _(as usual)_.
+    *   If *P*<sub>*name*</sub> is _not_ `deferred`, and the enclosing scope in *C*
+        has a non-deferred prefix import scope with the same *name*,
+        *C*<sub>*name*</sub>, then the enclosing scope of *P*<sub>*name*</sub> is
+        *C*<sub>*name*</sub>.
+        _A part file can have an import with the same prefix as a prefix
+        that it inherits. The new import's declarations will all be available
+        through the prefix, but any declaration of the inherited prefix which
+        isn't shadowed by a new import, will also be available._
+        The imported declarations will shadow the parent file's import scope
+        declarations, just like imports in the top-level import scope
+        will shadow top-level imports with the same name inherited from
+        parent files._
 
-That is: The combined import scope of a Dart file is a chain of the combined
-import scopes of the file and its parent files, each step adding two scopes:
-The (unnamed) import scope of the unprefixed imports and the prefix
-scope with prefixed imports, each shadowing names further up in the chain.
+        _Deferred prefix scopes always correspond to a single import
+        directive, in a single library, which can be loaded independently
+        of any other import._
 
-The *top-level scope* of a Dart file is a library *declaration scope*
+    *   Otherwise *P*<sub>*name*</sub> has no enclosing scope.
+        _If the the parent's combined import scope, *C*, has a non-prefix
+        declaration for a prefix name in *F*, it would be possible to look
+        further up in the import chain of *C*, past the shadowing import,
+        for a prefix scope to extend. We will not do that. A part file's
+        parent file's combined import scope is the abstraction that represents
+        every import above it in the tree._
+
+That is: The *combined import scope* of a Dart file is a scope chain of the imports
+and import prefixes of all the files from the current to the library file.
+Each Dart file adds two scopes to the chain of its parent, each scope able to
+shadow names of its enclosing scope.
+
+The *top-level namespace* of a Dart library is a *declaration namespace*
 containing every top-level library member declaration in every library or part
-file of the library. The parent scope of the top-level scope of a Dart file is
-the combined import scope of that Dart file. _Each Dart file has its own copy
-of the library declaration scope, all containing the same declarations, because
-the declaration scopes of different files have different parent scopes._
+file of the library.
+The *top-level scope* of *F* has the top-level namespace of _F_ as namespace,
+and the combined import scope of *F* as enclosing scope.
+_Each Dart file has its own scope for the single shared top-level namespace,
+but with different enclosing scopes for the imports available in that file._
 
-**It's a '** if any file declares an import prefix with the
+It's a **compile-time error** if any file declares an import prefix with the
 same base name as a top-level declaration of the library.
 
 _We have split the prefixes out of the top-level scope, but we maintain that
 they must not have the same names anyway. Not because it's a problem for the
 compiler or language, but because it's probably a sign of a user error.
 Any prefix that has the same name as a top-level declaration of the library
-is impossible to reference, because the library declaration scope
-always precedes the prefix scope in any scope chain lookup.
+is impossible to reference, because the top-level scope with the
+library namespace always precedes the combined import scope in any
+scope chain lookup.
 This does mean that adding a top-level declaration in one part file may
 conflict with a prefix name in another part file in a completely different
 branch of the library file tree. That is not a conflict with the "other file's
@@ -299,8 +323,8 @@ imports cannot break your code" principle, rather the error is in the file
 declaring the prefix. Other files' top-level declarations can totally break
 your code. Top-level declarations are global and the unit of ownership is the
 library, so the library author should fix the conflict by renaming the prefix.
-That such a name conflict is a ', makes it much easier to
-detect if it happens._
+That such a name conflict is a compile-time error, makes it easier to
+detect when it happens._
 
 #### Resolving implicitly applied extensions
 
@@ -327,15 +351,15 @@ is available *in a Dart file* if any of:
 * The extension is available *by import* in the Dart file.
 
 where an extension is available by import in a Dart file if any of:
-* That file contains an import directive which *imports the extension*
+* That file contains an import directive which *imports the extension*.
 * That file is a part file and the extension is (recursively) available
   by import in its parent file.
 
 (One way to visualize the availability is to associate declared
 or imported extensions with scopes. If a file has an import directive
 which imports an extension, the extension is associated with the
-import scope of that file, or with the prefix import scope
-if the import is prefixed. A declaration in the library itself
+import scope or combined import scope of that file, depending on
+whether the import is prefixed or not. A declaration in the library itself
 is associated with the top-level scope of each file.
 Then an extension is available in a file if it is associated with
 any scope in the top-level scope chain of that file.)
@@ -344,17 +368,37 @@ There is no attempt to *prioritize* available extensions based on
 where they are imported. Every extension imported or declared in the
 file's top-level scope chain is equally available.
 
+It is not possible to *hide* an extension from a part file, if
+the extension is available in the parent file.
+That means that a parent file import *can* break a part file
+by importing another applicable extension.
+
+_Conflicts must be resolved as usual: Avoid importing one extension,
+if it isn't used (which can now mean moving its import and use to a sibling
+part file), use a more precise receiver type if possible and it
+solves the problem, or use an explicit extension application._
+
+_It is possible for an extension declaration to be available,
+and not be accessible by name. An extension imported with a prefix
+in a parent file may have the entire prefix shadowed by an import
+in the current file. That does not make the extension unavailable.
+This is not new, extensions could always be shadowed by library
+declarations, or be imported with a name conflict,
+and they would still be available for implicit use._
+
 ### Export directives
 
 Any Dart file can contain an `export` directive. It makes no difference which
 file an `export` is in, its exported declarations (filtered by any `hide` or
 `show` combinators) are added to the library's single export scope,
 along with those of any other `export` directives in the library and
-the all non-private declarations of the library itself. Conflicts are handled
-as usual (as an error if it's not the *same* declaration).
+all non-private declarations of the library itself. Conflicts are handled
+as usual (as a compile-time error if it's not the *same* declaration).
 
-Allowing a part file to have its own export is mainly for consistency.
-Most libraries will likely keep all `export` directives in the library file.
+_Allowing a part file to have its own export is mainly for consistency.
+Most libraries will likely keep all `export` directives in the library file,
+but generated part files may want to, for example, re-export declarations of
+framework types that are exposed by their generated code._
 
 ## Terminology
 
@@ -427,6 +471,8 @@ files in the tree are in the sub-parts of.
 We say that a Dart file *contains* another Dart file if the latter file is in
 the sub-tree of the former (short for "the sub-tree set of the one file
 contains the other file").
+_A file containing another is equivalent to the former being an ancestor
+of the latter._
 
 The *least containing sub-tree* or *least containing file* of a number of
 Dart files from the same library, is the smallest sub-tree of the library
@@ -436,11 +482,10 @@ two files also contains the entire smallest sub-tree. _A tree always has a
 least containing sub-tree for any set of nodes._
 
 *   The least containing file of *two* distinct files is either one of those
-    two files, or the two files are contained in two *distinct* included part
-    files. The least containing file is the only file which contains *both*
-    files, and not in the *same* included file.
-*   Generally, the least containing file of any number of files
-*   is the *only* file which contains all the files, and which does not contain
+    two files, or it's the only file which contains *both* files,
+    and not in the *same* included part.
+*   Generally, the least containing file of any number of distinct files
+    is the *only* file which contains all the files, and which does not contain
     them all in one sub-part.
     _(If a file contains all the original files, then either they are in the
     same included part file, and then that part file is a lesser containing
@@ -526,7 +571,7 @@ explicit here, and will enforce the rules strictly for post-feature code, if we
 didn't already._
 
 *   It's a **compile-time error** if two Dart files of a library do not have the
-    same language version._All Dart files in a library must have the same
+    same language version. _All Dart files in a library must have the same
     language version._ Can be expressed locally as:
     *   It's a **compile-time error** if the associated language version of a part
         file is not the same as the language version of its parent file.
@@ -597,9 +642,9 @@ the other hand, users may choose to order source depending on properties that
 annotations apply to. _The analyzer may want to review annotations that apply to
 a library for whether they can reasonably apply to any sub-tree of parts. For
 example `@Deprecated(…)` could apply to every member in a sub-tree, allowing a
-library to keep its deprecated API, and its necessary imports, separate from the
-rest, so that it can all be removed as a single operation, and then marking all
-that API as deprecated with one annotation._
+library to keep its deprecated API, and that APIs necessary imports,
+separate from the rest, so that it can all be removed as a single operation,
+and then marking all that API as deprecated with one annotation._
 
 ##### An `// ignore` applying to a sub-tree
 
@@ -620,7 +665,7 @@ effect for a file.
 ##### Invalid part file structure correction
 
 When analyzing an incomplete or invalid Dart program, any and all of the
-'s above may apply.
+compile-time errors above may apply.
 
 It's possible to have part files with parent-file cycles, part files with a
 parent URI which doesn't denote any existing file, or files with a `part`
@@ -640,7 +685,7 @@ which doesn't point to an existing file (and maybe only if the name is
 
 ### Migration
 
-The only non-backwards compatible change is to disallow `part of dotted.name;`.
+The only non-backwards-compatible change is to disallow `part of dotted.name;`.
 That use has been discouraged by the
 [`use_string_in_part_of_directives`][string_part_of_lint] lint, which was
 introduced with Dart 2.19 in January 2023, and has been part of the official
@@ -657,20 +702,52 @@ All in all, there is very little expected migration since all actively
 developed code, which is expected to use and follow recommended or core lints,
 will already be compatible.
 
+All existing valid pre-feature code that is not affected by that
+`part of` change should also be valid post-feature code.
+
 [string_part_of_lint]: https://dart.dev/tools/linter-rules/use_string_in_part_of_directives "use_string_in_part_of_directives lint"
 
 ### Development
 
 The experiment name for this feature is `enhanced-parts`.
 
-The macro feature requires both this feature and the augmentations feature.
-Tools can choose to enable these features automatically when the macros feature
-is enabled, or they can enable it selectively only for code generated by macros.
+The augmentations feature does not depend on this feature,
+but may interact with it. It may be reasonable to enable this feature's
+experiment automatically if the augmentations experiment is enabled.
 
-The augmentations feature does not require enhanced parts, it can work
-within the existing part requirements.
+## Feature Summary
+
+*   **Breaking**: A `part of` file directive cannot use a library name any more.
+*   A part file can contain `import`, `export` and `part` directives.
+*   Part files of a library must form a tree.
+    _A part can, and must, only be part of one parent file._
+*   Exports are independent of where they occur, all works like today.
+*   Imports are local to the importing file and its subparts,
+    and can shadow imports inherited from the parent file.
+*   Import prefixes shadow normal imports. (_That is already true today._)
+    *   They can inherit parent file prefix scopes with the same name.
+*   Declarations of all files of a library are in scope in all files.
+    *   Shadows any imported name.
+    *   Must not shadow any import prefix.
+*   Extensions are available in a file if they are imported by the file,
+    or if they are available in its parent file.
+*   A part file and its parent must be in the same package,
+    or not in any package _(aka. "the default package")_.
+    *   Neither or both should be inside `lib/` of a Pub package.
+
+It was previously specified that `part` directives could use configurable URIs.
+This has been removed, and will be treated as a separate feature.
+_It's unclear whether it would require signficant work for the analyzer
+to recognize and handle part files that are not part of a parent file due
+to configuration, but which would be in another configuration._
 
 ## Changelog
+
+### 1.3
+
+*   Make _conditional part directives_ not part of the feature.
+    Keep it as an optional extra feature.
+*   The experiment flag name is now `enhanced-parts`.
 
 ### 1.2
 
