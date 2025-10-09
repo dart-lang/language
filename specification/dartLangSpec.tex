@@ -41,6 +41,11 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Oct 2025
+% - Simplify the member declaration grammar by using a single `memberDeclaration`
+%   to derive all kinds of member declarations (for a class, a mixin, etc),
+%   rather than having a dedicated `classMemberDeclaration`.
+%
 % Sep 2025
 % - Remove the rules about DartDoc comments. This topic is now handled by each
 %   of the tools that process those comments in any way.
@@ -2831,12 +2836,12 @@ or via mixin applications (\ref{mixinApplication}).
 <classDeclaration> ::=
   \ABSTRACT? \CLASS{} <typeIdentifier> <typeParameters>?
   \gnewline{} <superclass>? <interfaces>?
-  \gnewline{} `{' (<metadata> <classMemberDeclaration>)* `}'
+  \gnewline{} `{' (<metadata> <memberDeclaration>)* `}'
   \alt \ABSTRACT? \CLASS{} <mixinApplicationClass>
 
 <typeNotVoidList> ::= <typeNotVoid> (`,' <typeNotVoid>)*
 
-<classMemberDeclaration> ::= <declaration> `;'
+<memberDeclaration> ::= <declaration> `;'
   \alt <methodSignature> <functionBody>
 
 <methodSignature> ::= <constructorSignature> <initializers>?
@@ -2879,6 +2884,8 @@ The effect of doing this is described elsewhere
 
 \LMHash{}%
 A class has constructors, instance members and static members.
+The members are declared by
+\IndexCustom{member declarations}{member declaration}.
 The \IndexCustom{instance members}{members!instance} of a class
 are its instance methods, getters, setters and instance variables.
 The \IndexCustom{static members}{members!static} of a class
@@ -5963,7 +5970,7 @@ a compile-time error.
 
 \LMHash{}%
 A mixin defines zero or more
-\IndexCustom{mixin member declarations}{mixin!member declaration},
+\IndexCustom{member declarations}{member declaration},
 zero or more
 \IndexCustom{required superinterfaces}{mixin!required superinterface},
 one
@@ -5994,7 +6001,7 @@ for static member declarations.
 \begin{grammar}
 <mixinDeclaration> ::= \MIXIN{} <typeIdentifier> <typeParameters>?
   \gnewline{} (\ON{} <typeNotVoidList>)? <interfaces>?
-  \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
+  \gnewline{} `\{' (<metadata> <memberDeclaration>)* `\}'
 \end{grammar}
 
 \LMHash{}%
@@ -6081,7 +6088,7 @@ The mixin declaration $M$ introduces a mixin
 with the \NoIndex{required superinterface}s $T_1$, \ldots, $T_n$,
 the \NoIndex{combined superinterface} $M_S$,
 \NoIndex{implemented interface}s $I_1$, \ldots, $I_k$
-and the instance members declared in $M$ as \Index{mixin member declarations}.
+and the instance members declared in $M$ as \Index{member declarations}.
 
 
 \subsection{Mixin Application}
@@ -6095,7 +6102,7 @@ Let $S$ be a class,
 $M$ be a mixin with \NoIndex{required superinterface}s $T_1$, \ldots, $T_n$,
 \NoIndex{combined superinterface} $M_S$,
 \NoIndex{implemented interfaces} $I_1$, \ldots, $I_k$ and
-\metavar{members} as \NoIndex{mixin member declarations},
+\metavar{members} as \NoIndex{member declarations},
 and let $N$ be a name.
 
 \LMHash{}%
@@ -6224,7 +6231,7 @@ and whether the invocation satisfies several other requirements.
 \begin{grammar}
 <extensionDeclaration> ::= \gnewline{}
   \EXTENSION{} <typeIdentifierNotType>? <typeParameters>? \ON{} <type>
-  \gnewline{} `\{' (<metadata> <classMemberDeclaration>)* `\}'
+  \gnewline{} `\{' (<metadata> <memberDeclaration>)* `\}'
 \end{grammar}
 
 \LMHash{}%
