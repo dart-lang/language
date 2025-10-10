@@ -43,10 +43,24 @@ machine-generated code in separate files so that the code generator doesn't
 inadvertently erase a user's code. AngularDart generates a separate library for
 the component. The freezed and built_value packages generate part files.
 
-This approach works well when the generated code consists of completely separate
-declarations from the hand-authored code. But if a code generator wants to, say,
-add a method to a hand-authored class, then the language is of little help. This
-proposal addresses that limitation by adding *augmentations*.
+Note that the relationship between the hand-authored and generated code can go
+in both directions:
+
+*   Often, a user hand-authors a skeleton declaration and then a code generator
+    fills in implementation and adds capabilities to it. That's how freezed and
+    built_value work.
+
+*   Other times, a code generator produces code with default basic behavior and
+    that a human author then wants to tweak or refine it. You see this sometimes
+    with FFI where you a code generator provides a default API to some external
+    system but where you want to layer on hand-authored code to provide a more
+    natural Dart-like experience.
+
+Having a mixture of hand-authored and generated code works well when the
+generated code consists of completely separate declarations from the
+hand-authored code. But if a code generator wants to, say, add a method to a
+hand-authored class, then the language is of little help. This proposal
+addresses that limitation by adding *augmentations*.
 
 ### Augmentation declarations
 
@@ -80,7 +94,7 @@ to provide bodies for static methods and top-level functions, we allow
 declarations of those to be "abstract" and lack a body as long as a body is
 eventually provided by an augmenting declaration.
 
-#### Design principle
+### Design principle
 
 When designing this feature, a fundamental question is how much power to give
 augmentations. Giving them more ability to change the introductory declaration
