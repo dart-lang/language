@@ -1176,7 +1176,8 @@ and assume the third point is always true.
 
 ### 1.38
 
-*   Generalize the treatment of default values of optional parameters.
+*   Generalize the treatment of default values of optional parameters 
+    (addressing issue #4172).
 
 ### 1.37
 
