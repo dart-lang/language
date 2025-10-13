@@ -59,8 +59,9 @@ in both directions:
 Having a mixture of hand-authored and generated code works well when the
 generated code consists of completely separate declarations from the
 hand-authored code. But if a code generator wants to, say, add a method to a
-hand-authored class, then the language is of little help. This proposal
-addresses that limitation by adding *augmentations*.
+hand-authored class, or an author wants to add a method to a generated class,
+then the language is of little help. This proposal addresses that limitation by
+adding *augmentations*.
 
 ### Augmentation declarations
 
