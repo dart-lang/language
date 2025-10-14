@@ -11,6 +11,7 @@
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
 \usepackage{makeidx}
+\usepackage{tocloft}
 \makeindex
 \title{Dart Programming Language Specification\\
 {6th edition draft}\\
@@ -24,13 +25,7 @@
 % CHANGES
 % =======
 %
-% Significant changes to the specification. Note that the versions specified
-% below indicate the current tool chain version when those changes were made.
-% In practice, new features have always been integrated into the language
-% specification (this document) a while after the change was accepted into
-% the language and implemented. As of September 2022, the upcoming version of
-% the language which is being specified is indicated by a version number in
-% parentheses after the tool chain version.
+% Significant changes to the specification.
 %
 % Note that the version numbers used below (up to 2.15) were associated with
 % the currently released language and tools at the time of the spec change,
@@ -53,6 +48,8 @@
 % Jul 2025
 % - Clarify that operator `[]` and `[]=` are included in the `void` allowlist
 %   rule about formal parameters of type `void`, and so are setters.
+% - Integrate the subtyping rule updates that are needed in order to support
+%   null-safety.
 %
 % May 2025
 % - Add `s?.length` as a constant expression in the case where `s` satisfies
@@ -464,6 +461,9 @@
 
 \begin{document}
 \maketitle
+% Adjust the horizontal offset of section titles in the table of contents.
+\setlength{\cftsubsecnumwidth}{2.7em}
+\setlength{\cftsubsubsecnumwidth}{3.4em}
 \tableofcontents
 
 \newpage
@@ -2112,29 +2112,29 @@ if an \ASYNC, \code{\ASYNC*} or \code{\SYNC*} modifier is attached to
 the body of a setter or constructor.
 
 \rationale{%
-An asynchronous setter would be of little use,
-since setters can only be used in the context of an assignment
-(\ref{assignment}),
-and an assignment expression always evaluates to
-the value of the assignment's right hand side.
-If the setter actually did its work asynchronously,
-one might imagine that one would return a future that resolved to
-the assignment's right hand side after the setter did its work.
+  An asynchronous setter would be of little use,
+  since setters can only be used in the context of an assignment
+  (\ref{assignment}),
+  and an assignment expression always evaluates to
+  the value of the assignment's right hand side.
+  If the setter actually did its work asynchronously,
+  one might imagine that one would return a future that resolved to
+  the assignment's right hand side after the setter did its work.
 
-An asynchronous constructor would, by definition, never return
-an instance of the class it purports to construct,
-but instead return a future.
-Calling such a beast via \NEW{} would be very confusing.
-If you need to produce an object asynchronously, use a method.
+  An asynchronous constructor would, by definition, never return
+  an instance of the class it purports to construct,
+  but instead return a future.
+  Calling such a beast via \NEW{} would be very confusing.
+  If you need to produce an object asynchronously, use a method.
 
-One could allow modifiers for factories.
-A factory for \code{Future} could be modified by \ASYNC,
-a factory for \code{Stream} could be modified by \code{\ASYNC*},
-and a factory for \code{Iterable} could be modified by \code{\SYNC*}.
-No other scenario makes sense because
-the object returned by the factory would be of the wrong type.
-This situation is very unusual so it is not worth making an exception
-to the general rule for constructors in order to allow it.%
+  One could allow modifiers for factories.
+  A factory for \code{Future} could be modified by \ASYNC,
+  a factory for \code{Stream} could be modified by \code{\ASYNC*},
+  and a factory for \code{Iterable} could be modified by \code{\SYNC*}.
+  No other scenario makes sense because
+  the object returned by the factory would be of the wrong type.
+  This situation is very unusual so it is not worth making an exception
+  to the general rule for constructors in order to allow it.%
 }
 
 \LMHash{}%
@@ -2690,7 +2690,7 @@ they are considered to be the same type.
   different type parameters, F-bounds, and the types of formal parameters.
   However, we do not wish to distinguish between two function types
   if they have the same structure and only differ in the choice of names.
-  This treatment of names is also known as alpha-equivalence.%
+  This treatment of names is also known as alpha equivalence.%
 }
 
 \LMHash{}%
@@ -17506,10 +17506,10 @@ A \synt{typeIdentifier} is an identifier which can be used
 as the name of a type declaration.
 
 \commentary{%
-A \synt{qualifiedName} is not an identifier expression,
-but we specify its syntax here because it is used in several different contexts,
-and it is more closely related to the plain identifier
-than it is to any single one of those grammar rules where it is used.%
+  A \synt{qualifiedName} is not an identifier expression,
+  but we specify its syntax here because it is used in several different contexts,
+  and it is more closely related to the plain identifier
+  than it is to any single one of those grammar rules where it is used.%
 }
 
 \begin{grammar}
@@ -21839,128 +21839,188 @@ and type casts
 }
 
 \LMHash{}%
-%% TODO(eernst): Introduce these specialized intersection types
-%% in a suitable location where type promotion is specified.
-Types of the form
-\IndexCustom{$X \& S$}{type!of the form $X \& S$}%
-\IndexExtraEntry{\&@$X \& S$}
-arise during static analysis due to type promotion
+Intersection types
+(\commentary{types of the form \code{$X$\,\&\,$S$}}),
+may arise during static analysis due to type promotion
 (\ref{typePromotion}).
 They never occur during execution,
-they are never a type argument of another type,
-nor a return type or a formal parameter type,
-and it is always the case that $S$ is a subtype of the bound of $X$.
+and there are several other restrictions on where they can occur
+(\ref{intersectionTypes}).
+However, their subtype relations are specified without restrictions.
 \commentary{%
-  The motivation for $X \& S$ is that it represents
-  the type of a local variable $v$
-  whose type is declared to be the type variable $X$,
-  and which is known to have type $S$ due to promotion.
-  Similarly, $X \& S$ may be seen as an intersection type,
-  which is a subtype of $X$ and also a subtype of $S$.
-  Intersection types are \emph{not} supported in general,
-  only in this special case.%
+  It causes no problems that these rules will not be used
+  in their full generality.%
 }
-Every other form of type may occur during static analysis
-as well as during execution,
-and the subtype relationship is always determined in the same way.
 
 % Subtype Rule Numbering
 \newcommand{\SrnReflexivity}{1}
-\newcommand{\SrnTop}{2}
-\newcommand{\SrnBottom}{3}
-\newcommand{\SrnNull}{4}
-\newcommand{\SrnLeftTypeAlias}{5}
-\newcommand{\SrnRightTypeAlias}{6}
-\newcommand{\SrnLeftFutureOr}{7}
-\newcommand{\SrnTypeVariableReflexivityA}{8}
-\newcommand{\SrnRightPromotedVariable}{9}
-\newcommand{\SrnRightFutureOrA}{10}
-\newcommand{\SrnRightFutureOrB}{11}
-\newcommand{\SrnLeftPromotedVariable}{12}
-\newcommand{\SrnLeftVariableBound}{13}
-\newcommand{\SrnRightFunction}{14}
-\newcommand{\SrnPositionalFunctionType}{15}
-\newcommand{\SrnNamedFunctionType}{16}
-\newcommand{\SrnCovariance}{17}
-\newcommand{\SrnSuperinterface}{18}
+\newcommand{\SrnRightTop}{2}
+\newcommand{\SrnLeftTop}{3}
+\newcommand{\SrnBottom}{4}
+%\newcommand{\SrnRightObjectOne}{} Redundant
+%\newcommand{\SrnRightObjectTwo}{} Redundant
+%\newcommand{\SrnRightObjectThree}{} Redundant
+\newcommand{\SrnRightObjectFour}{5}
+\newcommand{\SrnNullOne}{6}
+\newcommand{\SrnNullTwo}{7}
+\newcommand{\SrnLeftFutureOr}{8}
+\newcommand{\SrnLeftNullable}{9}
+\newcommand{\SrnLeftPromotedVariableOne}{10}
+\newcommand{\SrnRightPromotedVariable}{11}
+\newcommand{\SrnRightFutureOrA}{12}
+\newcommand{\SrnRightFutureOrB}{13}
+\newcommand{\SrnRightNullableOne}{14}
+\newcommand{\SrnRightNullableTwo}{15}
+\newcommand{\SrnLeftPromotedVariableTwo}{16}
+\newcommand{\SrnLeftVariableBound}{17}
+\newcommand{\SrnRightFunction}{18}
+\newcommand{\SrnPositionalFunctionType}{19}
+\newcommand{\SrnNamedFunctionType}{20}
+\newcommand{\SrnCovariance}{21}
+\newcommand{\SrnNominal}{22}
 
 \begin{figure}[p]
   \def\VSP{\vspace{4mm}}
   \def\ExtraVSP{\vspace{2mm}}
-  \def\Axiom#1#2#3#4{\centerline{\inference[#1]{}{\SubtypeStd{#3}{#4}}}\VSP}
-  \def\Rule#1#2#3#4#5#6{\centerline{\inference[#1]{\SubtypeStd{#3}{#4}}{\SubtypeStd{#5}{#6}}}\VSP}
-  \def\RuleTwo#1#2#3#4#5#6#7#8{%
-    \centerline{\inference[#1]{\SubtypeStd{#3}{#4} & \SubtypeStd{#5}{#6}}{\SubtypeStd{#7}{#8}}}\VSP}
-  \def\RuleRaw#1#2#3#4#5{%
-    \centerline{\inference[#1]{#3}{\SubtypeStd{#4}{#5}}}\VSP}
-  \def\RuleRawRaw#1#2#3#4{\centerline{\inference[#1]{#3}{#4}}\VSP}
+  \def\Axiom#1#2#3{\centerline{\inference[#1]{}{\SubtypeStd{#2}{#3}}}\VSP}
+  \def\Rule#1#2#3#4#5{%
+    \centerline{\inference[#1]{\SubtypeStd{#2}{#3}}{\SubtypeStd{#4}{#5}}}\VSP}
+  \def\RuleTwo#1#2#3#4#5#6#7{%
+    \centerline{\inference[#1]{\SubtypeStd{#2}{#3} & %
+        \SubtypeStd{#4}{#5}}{\SubtypeStd{#6}{#7}}}\VSP}
+  \def\RuleRaw#1#2#3#4{%
+    \centerline{\inference[#1]{#2}{\SubtypeStd{#3}{#4}}}\VSP}
+  \def\RuleRawRaw#1#2#3{\centerline{\inference[#1]{#2}{#3}}\VSP}
   %
+  % ----------------------------------------------------------------------
+  % Omitted rules stated here, with justification for
+  % the omission.
+  % ------------------------------------------------ Right Object 1
+  % Not needed unless algorithmic: Instance of
+  % \SrnLeftVariableBound.
+  %   \RuleRaw{\SrnRightObjectOne}{%
+  %     \code{$X$\,\EXTENDS\,$B$} & \SubtypeStd{B}{\code{Object}}%
+  %   }{X}{\code{Object}}
+  % ------------------------------------------------ Right Object 2
+  % Not needed unless algorithmic: Instance of
+  % \SrnLeftPromotedVariableTwo.
+  %   \RuleRaw{\SrnRightObjectTwo}{%
+  %     \SubtypeStd{S}{\code{Object}}}{%
+  %       \code{$X$\,\&\,$S$}}{\code{Object}}
+  % ------------------------------------------------ Right Object 3
+  % Not needed unless algorithmic: Derivable from
+  % \SrnLeftFutureOr{} and \SrnRightObjectFour{} (to get
+  % Future<S> <: Object).
+  %   \RuleRaw{\SrnRightObjectThree}{%
+  %     \SubtypeStd{S}{\code{Object}}}{%
+  %       \code{FutureOr<$S$>}}{\code{Object}}
+  % ----------------------------------------------------------------------
   \begin{minipage}[c]{0.49\textwidth}
-    \Axiom{\SrnReflexivity}{Reflexivity}{S}{S}
-    \Axiom{\SrnBottom}{Left Bottom}{\bot}{T}
+    % ------------------------------------------------ Reflexivity
+    \Axiom{\SrnReflexivity}{T}{T}
+    % ------------------------------------------------ Left Top
+    % Non-algorithmic justification for this rule: Needed
+    % to prove dynamic/void <: FutureOr<Object>?.
+    \RuleRaw{\SrnLeftTop}{%
+      S \in \{\DYNAMIC, \VOID\}\\
+      \SubtypeStd{\code{Object?}}{T}}{S}{T}
+    % ------------------------------------------------ Left Bottom
+    \Axiom{\SrnBottom}{\code{Never}}{T}
+    % ------------------------------------------------ Left Null 1
+    \Axiom{\SrnNullOne}{\code{Null}}{\code{$T$?}}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
-    \RuleRaw{\SrnTop}{Right Top}{T \in \{\code{Object}, \DYNAMIC, \VOID\}}{S}{T}
-    \RuleRaw{\SrnNull}{Left Null}{T \not= \bot}{\code{Null}}{T}
+    % ------------------------------------------------ Right Top
+    \RuleRaw{\SrnRightTop}{%
+      T \in \{\code{Object?}, \DYNAMIC, \VOID\}}{S}{T}
+    % ------------------------------------------------ Right Object
+    % TODO(eernst): Comment out this rule as redundant and
+    % renumber, it is an instance of \SrnRightFutureOrB.
+    \RuleRaw{\SrnRightObjectFour}{%
+      \mbox{$S$ is an interface type or \FUNCTION}}{S}{\code{Object}}
+    % ------------------------------------------------ Left Null 2
+    \Rule{\SrnNullTwo}{\code{Null}}{T}{%
+      \code{Null}}{\code{FutureOr<$T$>}}
   \end{minipage}
 
-  \ExtraVSP
-  \RuleRaw{\SrnLeftTypeAlias}{Type Alias Left}{%
-    \code{\TYPEDEF{} $F$<\TypeParametersNoBounds{X}{s}> = U} &
-    \SubtypeStd{[S_1/X_1,\ldots,S_s/X_s]U}{T}}{\code{$F$<\List{S}{1}{s}>}}{T}
-  \RuleRaw{\SrnRightTypeAlias}{Type Alias Right}{%
-    \code{\TYPEDEF{} $F$<\TypeParametersNoBounds{X}{s}> = U} &
-    \SubtypeStd{S}{[T_1/X_1,\ldots,T_s/X_s]U}}{S}{\code{$F$<\List{T}{1}{s}>}}
-
   \begin{minipage}[c]{0.49\textwidth}
-    \RuleTwo{\SrnLeftFutureOr}{Left FutureOr}{S}{T}{%
-      \code{Future<$S$>}}{T}{\code{FutureOr<$S$>}}{T}
-    \RuleTwo{\SrnRightPromotedVariable}{Right Promoted Variable}{S}{X}{S}{T}{%
+    % ------------------------------------------------ Left FutureOr
+    \RuleTwo{\SrnLeftFutureOr}{%
+      \code{Future<$S$>}}{T}{S}{T}{%
+      \code{FutureOr<$S$>}}{T}
+    % ------------------------------------------------ Right Promoted Variable
+    \RuleTwo{\SrnRightPromotedVariable}{S}{X}{S}{T}{%
       S}{X \& T}
-    \Rule{\SrnRightFutureOrB}{Right FutureOr B}{S}{T}{S}{\code{FutureOr<$T$>}}
-    \Rule{\SrnLeftVariableBound}{Left Variable Bound}{\Delta(X)}{T}{X}{T}
+    % ------------------------------------------------ Right FutureOr B
+    \Rule{\SrnRightFutureOrB}{S}{T}{S}{%
+      \code{FutureOr<$T$>}}
+    % ------------------------------------------------ Right Nullable 2
+    \Rule{\SrnRightNullableTwo}{S}{\code{Null}}{S}{%
+      \code{$T$?}}
+    % ------------------------------------------------ Left Variable Bound
+    \Rule{\SrnLeftVariableBound}{\Delta(X)}{T}{X}{T}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
-    \Axiom{\SrnTypeVariableReflexivityA}{Left Promoted Variable A}{X \& S}{X}
-    \Rule{\SrnRightFutureOrA}{Right FutureOr A}{S}{\code{Future<$T$>}}{%
-      S}{\code{FutureOr<$T$>}}
-    \Rule{\SrnLeftPromotedVariable}{Left Promoted Variable B}{S}{T}{X \& S}{T}
-    \RuleRaw{\SrnRightFunction}{Right Function}{T\mbox{ is a function type}}{%
-      T}{\FUNCTION}
+    % ------------------------------------------------ Left Nullable
+    \RuleTwo{\SrnLeftNullable}{S}{T}{\code{Null}}{T}{%
+      \code{$S$?}}{T}
+    % ------------------------------------------------ Left Promoted Variable A
+    \Axiom{\SrnLeftPromotedVariableOne}{X \& S}{X}
+    % ------------------------------------------------ Right FutureOr A
+    \Rule{\SrnRightFutureOrA}{S}{%
+      \code{Future<$T$>}}{S}{\code{FutureOr<$T$>}}
+    % ------------------------------------------------ Right Nullable 1
+    \Rule{\SrnRightNullableOne}{S}{T}{S}{\code{$T$?}}
+    % ------------------------------------------------ Left Promoted Variable B
+    \Rule{\SrnLeftPromotedVariableTwo}{S}{T}{X \& S}{T}
+    % ------------------------------------------------ Right Function
+    \RuleRaw{\SrnRightFunction}{%
+      T\mbox{ is a function type}}{T}{\FUNCTION}
   \end{minipage}
   %
   \ExtraVSP
-  \RuleRawRaw{\SrnPositionalFunctionType}{Positional Function Types}{%
+  % ------------------------------------------------ Positional Function Type
+  \RuleRawRaw{\SrnPositionalFunctionType}{%
     \Delta' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \forall i \in 1..s\!:\;\MutualSubtype{\Delta'}{B_i}{B'\!_i} &
     \Subtype{\Delta'}{S_0}{T_0} \\
     n_1 \leq n_2 &
     n_1 + k_1 \geq n_2 + k_2 &
     \forall j \in 1 .. n_2 + k_2\!:\;\Subtype{\Delta'}{T_j}{S_j}}{%
     \begin{array}{c}
       \Delta\vdash\RawFunctionTypePositional{S_0}{X}{B}{s}{S}{n_1}{k_1}\;<:\;\\
-      \RawFunctionTypePositional{T_0}{X}{B}{s}{T}{n_2}{k_2}
+      \RawFunctionTypePositional{T_0}{X}{B'\!}{s}{T}{n_2}{k_2}
     \end{array}}
   \ExtraVSP\ExtraVSP
-  \RuleRawRaw{\SrnNamedFunctionType}{Named Function Types}{%
+  % ------------------------------------------------ Named Function Type
+  \RuleRawRaw{\SrnNamedFunctionType}{%
     \Delta' = \Delta\uplus\{X_i\mapsto{}B_i\,|\,1 \leq i \leq s\} &
+    \forall i \in 1..s\!:\;\MutualSubtype{\Delta'}{B_i}{B'\!_i} &
     \Subtype{\Delta'}{S_0}{T_0} &
-    \forall j \in 1 .. n\!:\;\Subtype{\Delta'}{T_j}{S_j} \\
-    \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\} \\
-    \forall p \in 1 .. k_2, q \in 1 .. k_1:\quad
-    y_{n+p} = x_{n+q}\quad\Rightarrow\quad\Subtype{\Delta'}{T_{n+p}}{S_{n+q}}}{%
+    \forall j \in 1 .. n\!:\;\Subtype{\Delta'}{T_j}{S_j}\\
+    \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\}\\
+    \forall p \in 1 .. k_2, q \in 1 .. k_1:\quad%
+    y_{n+p} = x_{n+q}\quad\Rightarrow\quad%
+    (\Subtype{\Delta'}{T_{n+p}}{S_{n+q}})\;\wedge\;%
+    (r_{n+q} = \REQUIRED{} \Rightarrow r'_{n+p} = \REQUIRED)}{%
     \begin{array}{c}
       \Delta\vdash\RawFunctionTypeNamed{S_0}{X}{B}{s}{S}{n}{x}{k_1}{r}\;<:\;\\
-      \RawFunctionTypeNamed{T_0}{X}{B}{s}{T}{n}{y}{k_2}{r}
+      \RawFunctionTypeNamed{T_0}{X}{B'\!}{s}{T}{n}{y}{k_2}{r'}
     \end{array}}
   %
   \ExtraVSP
-  \RuleRaw{\SrnCovariance}{Covariance}{%
-    \code{\CLASS{} $C$<\TypeParametersNoBounds{X}{s}>\,\ldots\,\{\}} &
-    \forall j \in 1 .. s\!:\;\SubtypeStd{S_j}{T_j}}{%
+  % ------------------------------------------------ Covariance
+  %% TODO(eernst): Type aliases have been expanded so there is no other
+  %% variance than covariance, but there will be in/out/inout in classes,
+  %% and then we'll need to handle variance here.
+  \RuleRaw{\SrnCovariance}{%
+    \mbox{$C$ is an interface type with $s$ type parameters.} &
+    \SubtypeStd{S_j}{T_j}\mbox{, for each $j \in 1..s$}}{%
     \code{$C$<\List{S}{1}{s}>}}{\code{$C$<\List{T}{1}{s}>}}
   \ExtraVSP
-  \RuleRaw{\SrnSuperinterface}{Superinterface}{%
-    \code{\CLASS{} $C$<\TypeParametersNoBounds{X}{s}>\,\ldots\,\{\}}\\
+  % ------------------------------------------------ Superinterface
+  \RuleRaw{\SrnNominal}{%
+    \mbox{$C$ is an interface type with type parameters \List{X}{1}{s}}\\
     \Superinterface{\code{$D$<\List{T}{1}{m}>}}{C} &
     \SubtypeStd{[S_1/X_1,\ldots,S_s/X_s]\code{$D$<\List{T}{1}{m}>}}{T}}{%
     \code{$C$<\List{S}{1}{s}>}\;}{\;T}
@@ -21990,15 +22050,17 @@ that satisfies some static semantic requirements.
 }
 
 \LMHash{}%
-In this section we use the following meta-variables:
+In this section (\ref{subtypes}) we use the following meta-variables,
+possibly with an index like $X_1$ or $S_j$:
 
 \begin{itemize}
 \item $X$ ranges over type variables.
 \item $C$ ranges over classes,
-\item $F$ ranges over type aliases.
-\item $T$ and $S$ range over types, possibly with an index like $T_1$ or $S_j$.
-\item $B$ ranges over types, again possibly with an index;
-  it is only used as a type variable bound.
+\item $T$ and $S$ range over types.
+\item $B$ ranges over types; it is only used as a type variable bound.
+\item $r$ and $r'$ range over \REQUIRED{} or empty;
+  it is used to enable the specification of a named parameter
+  which may or may not have the modifier \REQUIRED.
 \end{itemize}
 
 
@@ -22010,9 +22072,9 @@ We define several rules about subtyping in this section.
 Whenever a rule contains one or more meta-variables,
 that rule can be used by
 \IndexCustom{instantiating}{instantiation!subtype rule}
-it, that is, by consistently replacing
-each occurrence of a given meta-variable by
-concrete syntax denoting the same type.
+it, that is, by choosing a specific type $T$ and metavariable $\cal V$,
+and then consistently replacing all occurrences of $\cal V$ by
+concrete syntax denoting $T$.
 
 \commentary{%
   In general, this means that two or more occurrences of
@@ -22025,41 +22087,29 @@ concrete syntax denoting the same type.
   can be used to conclude
   \Subtype{\emptyset}{\code{int}}{\code{int}},
   where $\emptyset$ denotes the empty environment
-  (any environment would suffice because no type variables occur).
+  (any environment would suffice because no type variables occur).%
 
-  However, the wording `denoting the same type' above covers
-  additional situations as well:
-  For instance, we may use rule~\SrnReflexivity{}
-  to show that \code{p1.C} is a subtype of
-  \code{p2.C} when \code{C} is a class declared in a
-  library $L$ which is imported by libraries $L_1$ and $L_2$ and
-  used in declarations there,
-  when $L_1$ and $L_2$ are imported with prefixes
-  \code{p1} respectively \code{p2} by the current library.
-  The important point is that all occurrences of the same meta-variable
-  in a given rule instantiation stands for the same type,
-  even in the case where that type is not denoted by
-  the same syntax in both cases.
-
-  Conversely, we can \emph{not} use the same rule to conclude
-  that \code{C} is a subtype of \code{C}
-  in the case where the former denotes a class declared in library $L_1$
-  and the latter denotes a class declared in $L_2$, with $L_1 \not= L_2$.
-  This situation can arise without compile-time errors, e.g.,
-  if $L_1$ and $L_2$ are imported indirectly into the current library
-  and the two ``meanings'' of \code{C} are used
-  as type annotations on variables or formal parameters of functions
-  declared in intermediate libraries importing $L_1$ respectively $L_2$.
-  The failure to prove
-  ``\Subtype{\emptyset}{\code{C}}{\code{C}}''
-  will then occur, e.g., in a situation where we check whether
-  such a variable can be passed as an actual argument to such a function,
-  because the two occurrences of \code{C} do not denote the same type.%
+  However, we must eliminate the difficulties associated with
+  different syntax denoting the same type,
+  and different types denoted by the same syntax.
+  We do this by defining in detail what it means to be the same type
+  (\ref{sameType}).%
 }
 
 \LMHash{}%
-Every \synt{typeName} used in a type mentioned in this section is assumed to
-have no compile-time error and denote a type.
+In section~\ref{subtypes} and its subsections,
+all designations of types are considered to be the same
+type if{}f they satisfy the criteria in
+Section~\ref{sameType}.
+
+\LMHash{}%
+The subtype rules assume that all type aliases have been transitively expanded.
+
+\LMHash{}%
+Every \synt{typeName} used in a type mentioned
+in section~\ref{subtypes} and its subsections
+is assumed to have no compile-time error,
+and it is assumed to denote a type.
 
 \commentary{%
   That is, no subtyping relationship can be proven for
@@ -22109,9 +22159,11 @@ and gives priority to the right hand operand in case of conflicts.
   So
   $\{ \code{X} \mapsto \code{int}, \code{Y} \mapsto \code{double} \} \uplus
   \{ \code{Z} \mapsto \code{Object} \} =
-  \{ \code{X} \mapsto \code{int}, \code{Y} \mapsto \code{double}, \code{Z} \mapsto \code{Object} \}$
+  \{ \code{X} \mapsto \code{int}, \code{Y} \mapsto \code{double}, %
+  \code{Z} \mapsto \code{Object} \}$
   and
-  $\{ \code{X} \mapsto \code{int}, \code{Y} \mapsto \code{FutureOr<List<double>{}>} \} \uplus
+  $\{ \code{X} \mapsto \code{int}, \code{Y} \mapsto %
+  \code{FutureOr<List<double>{}>} \} \uplus
   \{ \code{Y} \mapsto \code{int} \} =
   \{ \code{X} \mapsto \code{int}, \code{Y} \mapsto \code{int} \}$.
   Note that operator $\uplus$ is concerned with scopes and shadowing,
@@ -22122,7 +22174,8 @@ and gives priority to the right hand operand in case of conflicts.
 In this specification we frequently refer to
 subtype relationships and assignability
 without mentioning the environment explicitly,
-as in \Index{\SubtypeNE{S}{T}}.
+as in
+\IndexCustom{\SubtypeNE{S}{T}}{$<:$@\SubtypeNE{S}{T}}.
 This is only done when a specific location in code is in focus,
 and it means that the environment is that which is obtained
 by mapping each type variable in scope at that location
@@ -22141,55 +22194,18 @@ which are typically also subtype judgments.
 When that is not the case for a given premise,
 we specify the meaning explicitly.
 
-\commentary{%
-  Instantiation of a rule, mentioned above,
-  denotes the consistent replacement of meta-variables
-  by actual syntactic terms denoting types everywhere in the rule,
-  that is, in the premises as well as in the conclusion, simultaneously.%
-}
 
-
-\subsubsection{Being a subtype}
+\subsubsection{Being a Subtype}
 \LMLabel{beingASubtype}
 
 \LMHash{}%
 A type $S$ is shown to be a \Index{subtype} of another type $T$
 in an environment $\Delta$ by providing
 an instantiation of a rule $R$ whose conclusion is
-\IndexCustom{\SubtypeStd{S}{T}}{$\Delta$@\SubtypeStd{S}{T}},
+\IndexCustom{\SubtypeStd{S}{T}}{$\Delta<:$@\SubtypeStd{S}{T}},
 along with rule instantiations showing
 each of the premises of $R$,
 continuing until a rule with no premises is reached.
-
-\commentary{%
-  For rule \SrnNull, note that the \code{Null} type
-  is a subtype of all non-$\bot$ types,
-  even though it doesn't actually extend or implement those types.
-  The other types are effectively treated as if they were nullable,
-  which makes the null object (\ref{null}) assignable to them.%
-}
-
-\LMHash{}%
-The first premise in the
-rules~\SrnLeftTypeAlias{} and~\SrnRightTypeAlias{}
-is a type alias declaration.
-This premise is satisfied in each of the following situations:
-
-\begin{itemize}
-\item A non-generic type alias named $F$ is declared.
-  In this case $s$ is zero,
-  no assumptions are made about the existence
-  of any formal type parameters,
-  and actual type argument lists are omitted everywhere in the rule.
-\item We may choose $s$ and \List{X}{1}{s} such that the following holds:
-  A generic type alias named $F$ is declared,
-  with formal type parameters \List{X}{1}{s}.
-  \commentary{%
-    Each formal type parameter $X_j$ may have a bound,
-    but the bounds are never used in this context,
-    so we do not introduce metavariables for them.%
-  }
-\end{itemize}
 
 \LMHash{}%
 Rule~\SrnRightFunction{} has as a premise that `$T$ is a function type'.
@@ -22203,28 +22219,14 @@ section~\ref{typeOfAFunction}.
 }
 
 \LMHash{}%
-In rules~\SrnCovariance{} and~\SrnSuperinterface,
-the first premise is a class declaration.
-This premise is satisfied in each of the following situations:
-
-\begin{itemize}
-\item A non-generic class named $C$ is declared.
-  In this case $s$ is zero,
-  no assumptions are made about the existence
-  of any formal type parameters,
-  and actual type argument lists are omitted everywhere in the rule.
-\item We may choose $s$ and \List{X}{1}{s} such that the following holds:
-  A generic class named $C$ is declared,
-  with formal type parameters \List{X}{1}{s}.
-  \commentary{%
-    Each formal type parameter $X_j$ may have a bound,
-    but the bounds are never used in this context,
-    so we do not introduce metavariables for them.%
-  }
-\end{itemize}
+In rules~\SrnCovariance{} and~\SrnNominal,
+the first premise is that the given name denotes an interface type
+(\ref{interfaceTypes})
+with the specified type parameters.
+The non-generic case is covered by having zero type parameters.
 
 \LMHash{}%
-The second premise of rule~\SrnSuperinterface{} specifies that
+The second premise of rule~\SrnNominal{} specifies that
 a parameterized type \code{$D$<\ldots{}>} belongs to
 \IndexCustom{\Superinterfaces{C}}{superinterfaces(C)@\Superinterfaces{C}}.
 The semantic function \Superinterfaces{\_} applied to a generic class $C$ yields
@@ -22242,21 +22244,10 @@ the set of direct superinterfaces of $C$
 }
 
 \commentary{%
-  The last premise of rule~\SrnSuperinterface{}
+  The last premise of rule~\SrnNominal{}
   substitutes the actual type arguments \List{S}{1}{s} for the
   formal type parameters \List{X}{1}{s},
   because \List{T}{1}{m} may contain those formal type parameters.%
-}
-
-\commentary{%
-  The rules~\SrnCovariance{} and~\SrnSuperinterface{}
-  are applicable to interfaces,
-  but they can be used with classes as well,
-  because a non-generic class $C$ which is used as a type
-  denotes the interface of $C$,
-  and similarly for a parameterized type
-  \code{$C$<\List{T}{1}{k}>}
-  where $C$ denotes a generic class.%
 }
 
 
@@ -22278,8 +22269,8 @@ the set of direct superinterfaces of $C$
   For example, rule~\SrnRightFutureOrA{} says that
   ``The type $S$ is a \ldots{} of \code{FutureOr<$T$>} \ldots'',
   and this is taken to mean that for any arbitrary types $S$ and $T$,
-  showing that $S$ is a subtype of $T$ is sufficient to show that $S$ is
-  a subtype of \code{FutureOr<$T$>}.
+  in order to show that $S$ is a subtype of \code{FutureOr<$T$>},
+  it is sufficient to show that $S$ is a subtype of $T$.
 
   Another example is the wording in rule~\SrnReflexivity{}:
   ``\ldots{} in any environment $\Delta$'',
@@ -22299,52 +22290,58 @@ the set of direct superinterfaces of $C$
     the rule is also valid in any environment
     and the environment is never used explicitly,
     so we will not repeat that.
-  \Item{\SrnTop}{Top}
-    Every type is a subtype of \code{Object},
+  \Item{\SrnRightTop}{Right Top}
+    Every type is a subtype of \code{Object?},
     every type is a subtype of \DYNAMIC,
     and every type is a subtype of \VOID.
     Note that this implies that these types are equivalent
     according to the subtype relation.
     We denote these types,
-    and others with the same property (such as \code{FutureOr<Object>}),
+    and others with the same property (such as \code{FutureOr<Object>?}),
     as top types
     (\ref{superBoundedTypes}).
+  \Item{\SrnLeftTop}{Left Top}
+    If \code{Object?} is a subtype of any given type $T$,
+    then \DYNAMIC{} and \VOID{} are subtypes of $T$, too.
   \Item{\SrnBottom}{Bottom}
-    Every type is a supertype of $\bot$.
-  \Item{\SrnNull}{Null}
-    Every type other than $\bot$ is a supertype of \code{Null}.
-  \Item{\SrnLeftTypeAlias}{Type Alias Left}
-    An application of a type alias to some actual type arguments is
-    a subtype of another type $T$
-    if the expansion of the type alias to the type that it denotes
-    is a subtype of $T$.
-    Note that a non-generic type alias is handled by letting $s = 0$.
-  \Item{\SrnRightTypeAlias}{Type Alias Right}
-    A type $S$ is a subtype of an application of a type alias
-    if $S$ is a subtype of
-    the expansion of the type alias to the type that it denotes.
-    Note that a non-generic type alias is handled by letting $s = 0$.
+    \code{Never} is a subtype of every type.
+  \Item{\SrnRightObjectFour}{Right Object}
+    Interface types and \FUNCTION{} are subtypes of \code{Object}.
+  \Item{\SrnNullOne}{Null Nullable}
+    \code{Null} is a subtype of every type of the form \code{$T$?}.
+  \Item{\SrnNullTwo}{Null FutureOr}
+    \code{Null} is a subtype of \code{FutureOr<$T$>}
+    if \code{Null} is a subtype of $T$.
   \Item{\SrnLeftFutureOr}{Left FutureOr}
     The type \code{FutureOr<$S$>} is a subtype of a given type $T$
-    if $S$ is a subtype of $T$ and \code{Future<$S$>} is a subtype of $T$,
+    if \code{Future<$S$>} is a subtype of $T$ and $S$ is a subtype of $T$,
     for every type $S$ and $T$.
-  \Item{\SrnTypeVariableReflexivityA}{Left Promoted Variable}
-    The type $X \& S$ is a subtype of $X$.
-  \Item{\SrnRightPromotedVariable}{Right Promoted Variable A}
-    The type $S$ is a subtype of $X \& T$ if
-    $S$ is a subtype of both $X$ and $T$.
+  \Item{\SrnLeftNullable}{Left Nullable}
+    A nullable type \code{$S$?} is a subtype of a given type $T$
+    if \code{$S$} is a subtype of $T$ and \code{Null} is a subtype of $T$.
+  \Item{\SrnLeftPromotedVariableOne}{Left Promoted Variable A}
+    The type \code{$X$\,\&\,$S$} is a subtype of $X$.
+  \Item{\SrnRightPromotedVariable}{Right Promoted Variable}
+    The type $S$ is a subtype of \code{$X$\,\&\,$T$}
+    if $S$ is a subtype of both $X$ and $T$.
   \Item{\SrnRightFutureOrA}{Right FutureOr A}
-    The type $S$ is a subtype of \code{FutureOr<$T$>} if
-    $S$ is a subtype of \code{Future<$T$>}.
+    The type $S$ is a subtype of \code{FutureOr<$T$>}
+    if $S$ is a subtype of \code{Future<$T$>}.
   \Item{\SrnRightFutureOrB}{Right FutureOr B}
-    The type $S$ is a subtype of \code{FutureOr<$T$>} if
-    $S$ is a subtype of $T$.
-  \Item{\SrnLeftPromotedVariable}{Left Promoted Variable B}
-    The type $X \& S$ is a subtype of $T$ if
-    $S$ is a subtype of $T$.
+    The type $S$ is a subtype of \code{FutureOr<$T$>}
+    if $S$ is a subtype of $T$.
+  \Item{\SrnRightNullableOne}{Right Nullable A}
+    The type $S$ is a subtype of \code{$T$?}
+    if $S$ is a subtype of $T$.
+  \Item{\SrnRightNullableTwo}{Right Nullable B}
+    The type $S$ is a subtype of \code{$T$?}
+    if $S$ is a subtype of \code{Null}.
+  \Item{\SrnLeftPromotedVariableTwo}{Left Promoted Variable B}
+    The type \code{$X$\,\&\,$S$} is a subtype of $T$
+    if $S$ is a subtype of $T$.
   \Item{\SrnLeftVariableBound}{Left Variable Bound}
-    The type variable $X$ is a subtype of a type $T$ if
-    the bound of $X$
+    The type variable $X$ is a subtype of a type $T$
+    if the bound of $X$
     (as specified in the current environment $\Delta$)
     is a subtype of $T$.
   \Item{\SrnRightFunction}{Right Function}
@@ -22381,8 +22378,9 @@ the set of direct superinterfaces of $C$
     and the set of names of named parameters for the latter is a subset
     of that for the former;
     the return type of $F_1$ is a subtype of that of $F_2$;
-    and each parameter type of $F_1$ is a \emph{supertype} of
-    the corresponding parameter type of $F_2$, if any.
+    each parameter type of $F_1$ is a \emph{supertype} of
+    the corresponding parameter type of $F_2$, if any;
+    and each required named parameter in $F_1$ is also required in $F_2$.
     Note that the relationship to function types with no optional parameters,
     and the relationship between function types with no optional parameters,
     is covered by letting $k_2 = 0$ respectively $k_1 = k_2 = 0$,
@@ -22401,11 +22399,13 @@ the set of direct superinterfaces of $C$
     This rule may have $s = 0$ and cover a non-generic class as well,
     but that is redundant because this is already covered by
     rule~\SrnReflexivity.
-  \Item{\SrnSuperinterface}{Superinterface}
+  \Item{\SrnNominal}{Nominal Subtyping}
     Considering the case where $s = 0$ and $m = 0$ first,
     a parameterized type based on a non-generic class $C$ is a subtype of
     a parameterized type based on a different non-generic class $D$ if
     $D$ is a direct superinterface of $C$.
+    Subtyping relations with indirect superinterfaces are shown by
+    using this rule repeatedly.
     When $s > 0$ or $m > 0$, this rule describes a subtype relationship
     which includes one or more generic classes,
     in which case we need to give names to the formal type parameters of $C$,
@@ -22423,7 +22423,7 @@ the set of direct superinterfaces of $C$
     (\ref{mixinApplication}),
     and this means that there may be multiple subtype steps from
     a given class declaration to the class specified in an \EXTENDS{} clause.
-  \end{itemize}%
+\end{itemize}%
 }
 
 
@@ -22432,33 +22432,33 @@ the set of direct superinterfaces of $C$
 
 \LMHash{}%
 $S$ is a \Index{supertype} of $T$ in a given environment $\Delta$,
-written \SupertypeStd{S}{T},
+written
+\IndexCustom{\SupertypeStd{S}{T}}{$\Delta:>$@\SupertypeStd{S}{T}},
 if{}f \SubtypeStd{T}{S}.
+
+\LMHash{}%
+$S$ and $T$ are \Index{mutual subtypes} of each other
+in a given environment $\Delta$,
+written
+\IndexCustom{\MutualSubtypeStd{S}{T}}{$\Delta<:>$@\MutualSubtypeStd{S}{T}},
+if{}f both \SubtypeStd{T}{S} and \SubtypeStd{S}{T}.
 
 \LMHash{}%
 A type $T$
 \Index{may be assigned}
-to a type $S$ in an environment $\Delta$,
-written \AssignableStd{S}{T},
-if{}f either \SubtypeStd{S}{T} or \SubtypeStd{T}{S}.
-In this case we say that the types $S$ and $T$ are
-\Index{assignable}.
+to a type $S$ in an environment $\Delta$
+if{}f $T$ is \DYNAMIC, or \SubtypeStd{T}{S}.
+In this case we also say that the type $T$ is \Index{assignable} to $S$.
 
 \rationale{%
-  This rule may surprise readers accustomed to conventional typechecking.
-  The intent of the \AssignableRelationSymbol{} relation
-  is not to ensure that an assignment is guaranteed to succeed dynamically.
-  Instead, it aims to only flag assignments
-  that are almost certain to be erroneous,
-  without precluding assignments that may work.
-
-  For example, assigning an object of static type \code{Object}
-  to a variable with static type \code{String},
-  while not guaranteed to be correct,
-  might be fine if the run-time value happens to be a string.
-
-  A static analyzer or compiler
-  may support more strict static checks as an option.%
+  The use of the type \DYNAMIC{} is intended to shift type checks from
+  compile time to run time,
+  thus allowing operations that are not statically safe,
+  but which may succeed or fail at run time.
+  This treatment of \DYNAMIC{} ensures that
+  expressions of type \DYNAMIC{} are treated
+  as if the compiler would implicitly insert a downcast whenever needed,
+  in order to make the program type correct.%
 }
 
 
@@ -22489,33 +22489,28 @@ come in two variants:
   coincide in this case.%
 }
 
-\LMHash{}%
-Two function types are considered equal if consistent renaming of type
-parameters can make them identical.
-
 \commentary{%
-  A common way to say this is that we do not distinguish
-  function types which are alpha-equivalent.
-  For the subtyping rule below this means we can assume that
-  a suitable renaming has already taken place.
-  In cases where this is not possible
-  because the number of type parameters in the two types differ
-  or the bounds are different,
-  no subtype relationship exists.%
+  Two function types are the same type
+  if, roughly, consistent renaming of type
+  parameters can make them identical.
+  This is also known as alpha equivalence.
+  The detailed rules are described in
+  Section~\ref{sameType}.%
 }
 
 \LMHash{}%
 A function object is always an instance of some class $C$ that implements
-the class \FUNCTION{} (\ref{functionType}),
-and which has a method named \CALL,
-whose signature is the function type $C$ itself.
+a function type $F$ which is a subtype of the class \FUNCTION{}
+(\ref{functionType}).
+The function object has a method named \CALL,
+whose signature has $F$ as its function type.
 \commentary{%
   Consequently, all function types are subtypes of \FUNCTION{}
   (\ref{subtypes}).%
 }
 
 
-\subsection{Type \FUNCTION}
+\subsection{Type Function}
 \LMLabel{functionType}
 
 \LMHash{}%
@@ -22529,7 +22524,7 @@ it instead uses \code{Object} as superclass.
 
 \LMHash{}%
 If a class or mixin declaration implements \FUNCTION, it has no effect.
-It is as if the \FUNCTION{} was removed from the \code{implements} clause
+It is as if the \FUNCTION{} was removed from the \IMPLEMENTS{} clause
 (and if it's the only implemented interface, the entire clause is removed).
 The resulting class or mixin interface
 does not have \FUNCTION{} as a superinterface.
@@ -22537,7 +22532,7 @@ does not have \FUNCTION{} as a superinterface.
 \LMHash{}%
 If a mixin application mixes \FUNCTION{} onto a superclass, it follows the
 normal rules for mixin-application, but since the result of that mixin
-application is equivalent to a class with \code{implements Function}, and
+application is equivalent to a class with \code{\IMPLEMENTS\,\,\FUNCTION}, and
 that clause has no effect, the resulting class also does not
 implement \FUNCTION.
 \commentary{%
@@ -22556,7 +22551,7 @@ implement \FUNCTION.
 }
 
 
-\subsection{Type \DYNAMIC}
+\subsection{Type dynamic}
 \LMLabel{typeDynamic}
 
 \LMHash{}%
@@ -22697,7 +22692,7 @@ whenever doing so is sound.
   \metavar{typeArguments} is a list of actual
   type arguments derived from \synt{typeArguments}, and
   \metavar{arguments} is an actual argument list derived from \synt{arguments}.
-  It is a compile-time error if \id{} is the name of
+  It is a \Error{compile-time error} if \id{} is the name of
   a non-generic method declared in \code{Object}.
   \commentary{%
     No generic methods are declared in \code{Object}.
@@ -22772,16 +22767,17 @@ which is regular-bounded for all $T$.
   That is, \code{FutureOr} is in a sense
   the union of $T$ and the corresponding future type.
   The last point guarantees that
-  \code{FutureOr<$T$>} <: \code{Object},
+  \SubtypeNE{\code{FutureOr<$T$>}}{\code{Object?}},
   and also that \code{FutureOr} is covariant in its type parameter,
   just like class types:
-  if $S$ <: $T$ then \code{FutureOr<$S$>} <: \code{FutureOr<$T$>}.%
+  if \SubtypeNE{S}{T} then
+  \SubtypeNE{\code{FutureOr<$S$>}}{\code{FutureOr<$T$>}}.%
 }
 
 \LMHash{}%
 If the type arguments passed to \code{FutureOr} would incur compile-time errors
 if applied to a normal generic class with one type parameter,
-the same compile-time errors are issued for \code{FutureOr}.
+the same \Error{compile-time errors} are issued for \code{FutureOr}.
 The name \code{FutureOr} as an expression
 denotes a \code{Type} object representing the type \code{FutureOr<dynamic>}.
 
@@ -22856,16 +22852,16 @@ that the value of an expression is meaningless and intended to be discarded.
 \commentary{%
   The type \VOID{} is a top type
   (\ref{superBoundedTypes}),
-  so \VOID{} and \code{Object} are subtypes of each other
+  so \VOID{} and \code{Object?} are subtypes of each other
   (\ref{subtypes}),
   which also implies that any object can be
   the value of an expression of type \VOID.
   %
   Consequently, any instance of type \code{Type} which reifies the type \VOID{}
   must compare equal (according to the \lit{==} operator \ref{equality})
-  to any instance of \code{Type} which reifies the type \code{Object}
+  to any instance of \code{Type} which reifies the type \code{Object?}
   (\ref{dynamicTypeSystem}).
-  It is not guaranteed that \code{identical(\VOID, Object)} evaluates to true.
+  It is not guaranteed that those two reified types are identical.
   In fact, it is not recommended that implementations strive to achieve this,
   because it may be more important to ensure that diagnostic messages
   (including stack traces and dynamic error messages)
@@ -22877,7 +22873,7 @@ that the value of an expression is meaningless and intended to be discarded.
 In support of the notion
 that the value of an expression with static type \VOID{} should be discarded,
 such objects can only be used in specific situations:
-The occurrence of an expression of type \VOID{} is a compile-time error
+The occurrence of an expression of type \VOID{} is a \Error{compile-time error}
 unless it is permitted according to one of the following rules.
 
 \begin{itemize}
@@ -22907,6 +22903,7 @@ unless it is permitted according to one of the following rules.
     where it is not an error to have it.%
   }
 \item
+  %% This relies on \IsMoreTopType{\VOID}{$T$} = \VOID.
   In a conditional expression \code{$e$\,?\,$e_1$\,:\,$e_2$},
   $e_1$ and $e_2$ may have type \VOID.
   \rationale{%
@@ -22916,19 +22913,12 @@ unless it is permitted according to one of the following rules.
     in some context where it is not an error to have it.%
   }
 \item
+  %% This relies on \IsMoreTopType{\VOID}{$T$} = \VOID.
   In a null coalescing expression \code{$e_1$\,??\,$e_2$},
   $e_2$ may have type \VOID.
   \rationale{%
     The static type of the null coalescing expression is then \VOID,
     which in turn restricts where it can occur.%
-  }
-\item
-  In an expression of the form \code{\AWAIT\,\,$e$}, $e$ may have type \VOID.
-  \rationale{%
-    This rule was adopted because it was a substantial breaking change
-    to turn this situation into an error
-    at the time where the treatment of \VOID{} was changed.
-    Tools may choose to give a hint in such cases.%
   }
 \item
   \commentary{%
@@ -23011,13 +23001,13 @@ unless it is permitted according to one of the following rules.
 Finally, we need to address situations involving implicit usage of
 an object whose static type can be \VOID.
 %
-It is a compile-time error for a for-in statement to have an iterator
+It is a \Error{compile-time error} for a for-in statement to have an iterator
 expression of type $T$ such that \code{Iterator<\VOID{}>}
 is the most specific instantiation of \code{Iterator}
 that is a superinterface of $T$, unless the
 iteration variable has type \VOID.
 %
-It is a compile-time error for an asynchronous for-in statement
+It is a \Error{compile-time error} for an asynchronous for-in statement
 to have a stream expression of type $T$
 such that \code{Stream<\VOID{}>} is the most specific
 instantiation of \code{Stream} that is a superinterface of $T$,
@@ -23026,7 +23016,7 @@ unless the iteration variable has type \VOID.
 \commentary{Here are some examples:}
 
 \begin{dartCode}
-\FOR{} (Object x in <\VOID>[]) \{\} // \comment{Error.}
+\FOR{} (Object? x in <\VOID>[]) \{\} // \comment{Error.}
 \AWAIT{} \FOR{} (int x \IN{} new Stream<\VOID{}>.empty()) \{\} // \comment{Error.}
 \FOR{} (\VOID{} x \IN{} <\VOID{}>[]) \{\ldots\} // \comment{OK.}
 \FOR (\VAR{} x \IN{} <\VOID{}>[]) \{\ldots\} // \comment{OK, type of x inferred.}
@@ -23074,22 +23064,22 @@ are not strictly enforced.
 \ABSTRACT{} \CLASS A<X> \{
   final X x;
   A(this.x);
-  Object foo(X x);
+  Object? foo(X x);
 \}
 \\
 \CLASS{} B<X> \EXTENDS{} A<X> \{
   B(X x): super(x);
-  Object foo(Object x) => x;
+  Object? foo(Object? x) => x;
 \}
 \\
-Object f<X>(X x) => x;
+Object? f<X>(X x) => x;
 \\
 \VOID{} main() \{
   \VOID x = 42;
   print(f(x)); // \comment{(1)}
   \\
   A<\VOID{}> a = B<\VOID{}>(x);
-  A<Object> aObject = a;
+  A<Object?> aObject = a;
   print(aObject.x); // \comment{(2)}
   print(a.foo(x)); // \comment{(3)}
 \}
@@ -23106,25 +23096,25 @@ Object f<X>(X x) => x;
   which is or contains a type variable whose value could be \VOID,
   so we are allowed to return \code{x} in the body of \code{f},
   even though this means that we indirectly get access to the value
-  of an expression of type \VOID, under the static type \code{Object}.
+  of an expression of type \VOID, under the static type \code{Object?}.
 
   At (2), we indirectly obtain access to the value of
   the variable \code{x} with type \VOID,
   because we use an assignment to get access to the instance of \code{B}
   which was created with type argument \VOID{} under the type
-  \code{A<Object>}.
-  Note that \code{A<Object>} and \code{A<\VOID{}>} are subtypes of each other,
+  \code{A<Object?>}.
+  Note that \code{A<Object?>} and \code{A<\VOID{}>} are subtypes of each other,
   that is, they are equivalent according to the subtype rules,
   so neither static nor dynamic type checks will fail.
 
   At (3), we indirectly obtain access to the value of
   the variable \code{x} with type \VOID{}
-  under the static type \code{Object},
+  under the static type \code{Object?},
   because the statically known method signature of \code{foo}
   has parameter type \VOID,
   but the actual implementation of \code{foo} which is invoked
-  is an override whose parameter type is \code{Object},
-  which is allowed because \code{Object} and \VOID{} are both top types.%
+  is an override whose parameter type is \code{Object?},
+  which is allowed because \code{Object?} and \VOID{} are both top types.%
 }
 
 \rationale{%
@@ -23145,7 +23135,7 @@ Object f<X>(X x) => x;
   from one variable or parameter to the next one, all with type \VOID,
   explicitly, or as the value of a type parameter.
   In particular, we could require that method overrides should
-  never override return type \code{Object} by return type \VOID,
+  never override return type \code{Object?} by return type \VOID,
   or parameter types in the opposite direction;
   parameterized types with type argument \VOID{} could not be assigned
   to variables where the corresponding type argument is anything other than
@@ -23193,7 +23183,7 @@ a generic type is applied to actual type arguments.
 Let $T$ be a parameterized type \code{$G$<$S_1, \ldots,\ S_n$>}.
 
 \LMHash{}%
-It is a compile-time error if $G$ is not a generic type,
+It is a \Error{compile-time error} if $G$ is not a generic type,
 or $G$ is a generic type,
 but the number of formal type parameters in the declaration of $G$ is not $n$.
 Otherwise, let
@@ -23208,7 +23198,7 @@ $S_i$ is malbounded for one or more $i \in 1 .. n$,
 or $T$ is not well-bounded (\ref{superBoundedTypes}).
 
 \LMHash{}%
-It is a compile-time error if $T$ is malbounded.
+It is a \Error{compile-time error} if $T$ is malbounded.
 
 \LMHash{}%
 $T$ is evaluated as follows.
@@ -23232,7 +23222,8 @@ where $X_1, \ldots, X_n$ are the formal type parameters of $G$.
 %% replaced by the bottom type (`Null`, for now) in locations of the member
 %% type where it occurs contravariantly. For instance, `c.f` should have
 %% static type `void Function(Null)` when `c` has static type `C<T>` for any
-%% `T`, and we have `class C<X> { void Function(X) f; }`.
+%% `T`, and we have `class C<X> { void Function(X) f; }`. Cf. issue
+%% https://github.com/dart-lang/language/issues/297.
 
 
 \subsubsection{Actual Types}
@@ -23392,6 +23383,154 @@ where $L_i$ is the least upper bound of $T_i$ and $S_i, i \in 0 .. r$
 }
 
 
+\subsection{Same Type}
+\LMLabel{sameType}
+
+\LMHash{}%
+This section specifies how to determine whether or not two types
+that are encountered during static analysis are the same type.
+
+\LMHash{}%
+Concrete syntax denoting types gives rise to difficulties
+when used to determine static semantic properties,
+like subtyping relationships
+(\ref{subtypes})
+or upper and lower bounds
+(\ref{standardUpperBoundsAndStandardLowerBounds}),
+because it is concerned with relationships among program elements
+that may occur in different binding environments.
+
+\commentary{%
+  The notion of being the same type at run time is different from
+  the notion of being the same type during static analysis.
+  For example, two distinct type variables \code{X} and \code{Y}
+  might at run time be bound to the same type, e.g.,
+  \code{List<int>}.
+  However, during static analysis we must maintain that
+  \code{X} and \code{Y} are different types
+  because there is no guarantee that they are always bound to
+  the same type at run time.%
+
+  The phrase `same type' deserves some extra scrutiny.
+  If a library $L$ imports the libraries $L_1$ and $L_2$,
+  and both $L_1$ and $L_2$ declare a class \code{C},
+  then the syntax \code{C} may occur as a type during static analysis of $L$
+  in situations where it refers to two distinct types.
+
+  For instance, $L_1$ could declare a variable \code{v}
+  of type \code{C}-in-$L_1$,
+  and $L_2$ could declare a function
+  \code{\VOID\,foo(C\,\,c)\,\,\{\ldots\}}
+  which refers to the type \code{C}-in-$L_2$,
+  and $L$ could contain the expression \code{foo(v)}.
+
+  Note that even though it would be a compile-time error to use \code{C} in $L$
+  (because it is ambiguous),
+  it is not an error to have an expression like \code{foo(v)},
+  and the static analysis of this expression \emph{must}
+  be able to determine that the two types whose name is \code{C} are
+  not the same type. The invocation may or may not be an error,
+  depending on the subtyping relations.%
+}
+
+\LMHash{}%
+Hence, when this specification refers to
+a type designated by a term
+that may seem to stand for concrete syntax,
+it is actually using \Index{resolved syntax}.
+Resolved syntax is syntax which is enhanced such that
+every \emph{applied} occurrence of an identifier
+(as opposed to a declaring occurrence)
+carries information about the declaration
+that it has been resolved to denote.
+
+\LMHash{}%
+Moreover, it is assumed that
+type inference and instantiation to bound has taken place 
+such that none of the types enountered are raw.
+
+\LMHash{}%
+We need one more mechanism:
+An \Index{alpha conversion} of a type is a consistent, non-capturing renaming
+of type variables declared in that type.
+
+\commentary{%
+  In Dart, a function type is
+  the only kind of type which can declare type variables,
+  so only a generic function type can be subjected to an alpha conversion.
+  For example,
+  \code{List<X>\,\,\FUNCTION<X>({X})}
+  can be turned into
+  \code{List<Y>\,\,\FUNCTION<Y>({Y})}
+  by alpha conversion.%
+}
+
+\LMHash{}%
+We can now define what it means to be the same type.
+Two types $S$ and $T$ are the same type when
+at least one of the following criteria holds:
+
+\begin{itemize}
+\item $S$ is \VOID{} and $T$ is \VOID.
+  \commentary{This is a reserved word and cannot be redefined.}
+\item $S$ is an identifier or a prefixed identifier which is resolved
+  to denote a declaration $D_S$,
+  and $T$ is an identifier or a prefixed identifier which is resolved
+  to denote a declaration $D_T$,
+  and $D_S$ is the same declaration as  $D_T$.
+  \commentary{%
+    This covers references to classes and other type-introducing declarations,
+    and it also covers type variables.%
+  }
+\item $S$ is of the form $S'?$ and $T$ is of the form $T'?$,
+  and $S'$ is the same type as $T'$.
+\item $S$ is of the form \code{$X$\,\&\,$U$}
+  and $T$ is of the form \code{$X$\,\&\,$V$},
+  and $U$ is the same type as $V$.
+\item $S$ is of the form \code{$C$<$U_1$, \ldots\ $U_s$>},
+  and $T$ is of the form \code{$D$<$V_1$, \ldots\ $V_s$>},
+  where $C$ and $D$ have been resolved to denote the same declaration,
+  and $U_j$ is the same type as $V_j$ for all $j \in 1 .. s$.
+%% TODO(eernst): When records are added, add a record type case here.
+\item (1) $S$ and $T$ are both positional function types with the same
+  number of mandatory parameters and the same number of optional parameters,
+  the same return type, and the same type for each of the parameters.
+  Otherwise (2), $S$ and $T$ are both named function types with the same
+  number of mandatory parameters and the same set of named parameters,
+  the same return type, and the same type for each of the parameters,
+  and the same subset of the named parameters marked as \REQUIRED.
+  %
+  For both (1) and (2), if at least one of the function types is generic
+  then they must both be generic,
+  and they must have the same names of type parameters in the same order,
+  and with the same types as bounds.
+  When satisfying these requirements,
+  the $j$th type parameter declaration from $S$ and from $T$
+  are considered to be the same declaration, for all $j \in 1 .. s$.
+\item There exists an alpha conversion of $S$ yielding $S'$, and
+  $S'$ and $T$ are the same type.
+  \commentary{%
+    This rule can be used to obtain type parameter declaration lists
+    with the same names in the same order, as required in the previous item.%
+  }
+\item (1) $S$ is of the form \code{$F$<$U_1$, \ldots\ $U_s$>} where $F$
+  denotes a type alias declaration,
+  the unfolding of the type alias yields $S'$,
+  and $S'$ is the same type as $T$.
+  Otherwise (2), $T$ is of the form \code{$G$<$V_1$, \ldots\ $V_s$>} where $G$
+  denotes a type alias declaration,
+  the unfolding of the type alias yields $T'$,
+  and $S$ is the same type as $T'$.
+\end{itemize}
+
+\LMHash{}%
+For the purpose of the above ruleset, \code{Object}, \code{dynamic},
+\code{Null}, \code{Never}, \code{Function},
+%% TODO(eernst): Add \code{Record},
+\code{Future}, and \code{FutureOr}
+are considered to be introduced by a declaration in \code{dart:core}.
+
+
 \section{Reference}
 \LMLabel{reference}
 
@@ -23413,7 +23552,7 @@ the longest possible token is recognized.
 \LMHash{}%
 A \Index{reserved word} can only be used in the syntactic positions
 specified by the grammar.
-In particular, a compile-time error occurs if a reserved word is used
+In particular, a \Error{compile-time error} occurs if a reserved word is used
 where an identifier is expected.
 
 \commentary{%
@@ -23529,157 +23668,266 @@ Operator precedence is given implicitly by the grammar.
 \section*{Appendix: Algorithmic Subtyping}
 \LMLabel{algorithmicSubtyping}
 
-% Subtype Rule Numbering
-\newcommand{\AppSrnReflexivity}{\ensuremath{1_{\scriptsize\mbox{algo}}}}
-\newcommand{\AppSrnTypeVariableReflexivityB}{\SrnTypeVariableReflexivityA.1}
-\newcommand{\AppSrnTypeVariableReflexivityC}{\SrnTypeVariableReflexivityA.2}
-\newcommand{\AppSrnTypeVariableReflexivityD}{\SrnTypeVariableReflexivityA.3}
-\newcommand{\AppSrnRightFutureOrC}{\SrnRightFutureOrB.1}
-\newcommand{\AppSrnRightFutureOrD}{\SrnRightFutureOrB.2}
-
-\begin{figure}[h!]
-  \def\VSP{\vspace{3mm}}
-  \def\ExtraVSP{\vspace{1mm}}
-  \def\Axiom#1#2#3#4{\centerline{\inference[#1]{}{\SubtypeStd{#3}{#4}}}\VSP}
-  \def\Rule#1#2#3#4#5#6{\centerline{\inference[#1]{\SubtypeStd{#3}{#4}}{\SubtypeStd{#5}{#6}}}\VSP}
-  \def\RuleTwo#1#2#3#4#5#6#7#8{%
-    \centerline{\inference[#1]{\SubtypeStd{#3}{#4} & \SubtypeStd{#5}{#6}}{\SubtypeStd{#7}{#8}}}\VSP}
-  \def\RuleRaw#1#2#3#4#5{%
-    \centerline{\inference[#1]{#3}{\SubtypeStd{#4}{#5}}}\VSP}
-  \def\RuleRawRaw#1#2#3#4{\centerline{\inference[#1]{#3}{#4}}\VSP}
-  %
-  \begin{minipage}[c]{0.49\textwidth}
-    \RuleRaw{\AppSrnReflexivity}{Reflexivity}{S\mbox{ not composite}}{S}{S}
-    \Rule{\AppSrnTypeVariableReflexivityC}{Type Variable Reflexivity B}{X}{T}{X}{X \& T}
-    \Rule{\AppSrnRightFutureOrC}{Right FutureOr C}{\Delta(X)}{\code{FutureOr<$T$>}}{X}{\code{FutureOr<$T$>}}
-  \end{minipage}
-  \begin{minipage}[c]{0.49\textwidth}
-    \Axiom{\AppSrnTypeVariableReflexivityB}{Type Variable Reflexivity}{X}{X}
-    \Rule{\AppSrnTypeVariableReflexivityD}{Type Variable Reflexivity C}{X \& S}{T}{X \& S}{X \& T}
-    \Rule{\AppSrnRightFutureOrD}{Right FutureOr D}{S}{\code{FutureOr<$T$>}}{X \& S}{\code{FutureOr<$T$>}}
-  \end{minipage}
-  %
-  \caption{Algorithmic subtype rules.
-    Rules \SrnTop--\SrnSuperinterface{} are unchanged and hence omitted here.}
-  \label{fig:algorithmicSubtypeRules}
-\end{figure}
+\LMHash{}%
+The following algorithm computes the same relation as
+the one which is specified in Fig.~\ref{fig:subtypeRules}.
+It shows that Dart subtyping relationships can be decided
+with good performance.
 
 \LMHash{}%
-The text in this appendix is not part of the specification of the Dart language.
-However, we still use the notation where precise information
-uses the style associated with normative text in the specification (this style),
-\commentary{whereas examples and explanations use commentary style (like this)}.
+The algorithm must be performed such that the first case that matches
+is always the case which is performed.
+The algorithm produces results which are both positive and negative
+(\commentary{%
+  that is, in some situations the subtype relation is determined to be false%
+}),
+which is important for performance because
+it is then unnecessary to consider any subsequent cases.
 
 \LMHash{}%
-This appendix presents a variant of the subtype rules given
-in Figure~\ref{fig:subtypeRules} on page~\pageref{fig:subtypeRules}.
+A type $S$ is a subtype of a type $T$ in the environment $\Delta$
+(written \SubtypeStd{S}{T},
+abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
 
-\commentary{%
-  The rules will prove the same set of subtype relationships,
-  but the rules given here show that there is an efficient implementation
-  that will determine whether \SubtypeStd{S}{T} holds,
-  for any given types $S$ and $T$.
-  It is easy to see that the algorithmic rules will prove at most
-  the same subtype relationships,
-  because all rules given here can be proven
-  by means of rules in Figure~\ref{fig:subtypeRules}.
-  It is also relatively straightforward to sketch out proofs
-  that the algorithmic rules can prove at least the same subtype relationships,
-  also when the following ordering and termination constraints are observed.%
-}
+\begin{itemize}
+\item
+  \textbf{Reflexivity (\SrnReflexivity):}
+  if $T_0$ and $T_1$ are the same type (\ref{sameType})
+  then \SubtypeNE{T_0}{T_1}.
+
+  \commentary{%
+    Note that this check is necessary as the base case for atomic types
+    and for type variables, but not for composite types.
+    In particular, a structural equality check is admissible,
+    but not required here.
+    Pragmatically, non-constant time equality checks here are
+    counter-productive.
+    Hence, this rule is only used when $T$ is atomic.%
+  }
+\item
+  \textbf{Right Top (\SrnRightTop):}
+  if $T$ is \code{Object?}, \DYNAMIC, or \VOID{} then \SubtypeNE{S}{T}.
+\item
+  \textbf{Left Top (\SrnLeftTop):}
+  if $S$ is \DYNAMIC{} or \VOID{}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{\code{Object?}}{T}.
+\item
+  \textbf{Left Bottom (\SrnBottom):}
+  if $S$ is \code{Never} then \SubtypeNE{S}{T}.
+\item
+  \textbf{Right Object (\SrnLeftVariableBound*, \SrnLeftPromotedVariableTwo*, %
+    \SrnLeftFutureOr*, \SrnRightObjectFour):}
+  if $T$ is \code{Object} then:
+  \begin{itemize}
+  \item
+    if $S$ is an unpromoted type variable with bound $B$
+    then \SubtypeNE{S}{T} if{}f \SubtypeNE{B}{\code{Object}}.
+  \item
+    if $S$ is a promoted type variable \code{$X$\,\&\,$S$}
+    then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{\code{Object}}.
+  \item
+    if $S$ is \code{FutureOr<$U$>} for some $U$,
+    then \SubtypeNE{S}{T} if{}f \SubtypeNE{U}{\code{Object}}.
+  \item
+    if $S$ is \code{Null}, \DYNAMIC, \VOID, or \code{$S$?} for any $S$,
+    then the subtyping does not hold
+    (\commentary{%
+      i.e., the result of the subtyping query is known to be false%
+    }).
+  \item
+    Otherwise \SubtypeNE{S}{T} is true.
+  \end{itemize}
+\item
+  \textbf{Left Null (\SrnRightFutureOrB*, \SrnNullTwo, \SrnNullOne):}
+  if $S$ is \code{Null} then:
+  \begin{itemize}
+  \item
+    if $T$ is a type variable (promoted or not) the query is false.
+  \item
+    if $T$ is \code{FutureOr<$U$>} for some $U$,
+    then the query is true if{}f \SubtypeNE{\code{Null}}{U}.
+  \item
+    if $T$ is \code{$U$?} for some $U$ then the query is true.
+  \item
+    Otherwise, the query is false.
+  \end{itemize}
+\item
+  \textbf{Left FutureOr (\SrnLeftFutureOr):}
+  if $S$ is \code{FutureOr<$U$>}
+  then \SubtypeNE{S}{T} if{}f
+  \SubtypeNE{\code{Future<$U$>}}{T} and \SubtypeNE{U}{T}.
+\item
+  \textbf{Left Nullable (\SrnLeftNullable):}
+  if $S$ is \code{$U$?} then \SubtypeNE{S}{T} if{}f
+  \SubtypeNE{U}{T} and \SubtypeNE{\code{Null}}{T}.
+\item
+  \textbf{Type Variable Reflexivity 1 %
+    (\SrnLeftPromotedVariableOne, \SrnReflexivity*):}
+  if $S$ is a type variable $X$
+  or a promoted type variable \code{$X$\,\&\,$U$} and $T$ is $X$
+  then \SubtypeNE{S}{T}.
+
+  \commentary{%
+    Note that this rule is admissible, and can be safely elided if desired.%
+  }
+\item
+  \textbf{Type Variable Reflexivity 2 (\SrnRightPromotedVariable*):}
+  if $S$ is a type variable $X$
+  or a promoted type variable \code{$X$\,\&\,$U$}
+  and $T$ is \code{$X$\,\&\,$V$}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{V}.
+
+  \commentary{%
+    Note that this rule is admissible, and can be safely elided if desired.%
+  }
+\item
+  \textbf{Right Promoted Variable (\SrnRightPromotedVariable):}
+  if $T$ is a promoted type variable \code{$X$\,\&\,$U$}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{X} and \SubtypeNE{S}{U}.
+\item
+  \textbf{Right FutureOr (\SrnRightFutureOrA, \SrnRightFutureOrB, %
+    \SrnLeftVariableBound*, \SrnLeftPromotedVariableTwo*):}
+  if $T$ is \code{FutureOr<$U$>}
+  then \SubtypeNE{S}{T} if{}f any of the following hold:
+  \begin{itemize}
+  \item either \SubtypeNE{S}{\code{Future<$U$>}}.
+  \item or \SubtypeNE{S}{U}.
+  \item or $S$ is $X$ and $X$ has bound $B$ and \SubtypeNE{B}{T}.
+  \item or $S$ is \code{$X$\,\&\,$V$} and \SubtypeNE{V}{T}.
+  \end{itemize}
+\item
+  \textbf{Right Nullable (\SrnRightNullableOne, \SrnRightNullableTwo, %
+    \SrnLeftVariableBound*, \SrnLeftPromotedVariableTwo*):}
+  if $T$ is \code{$U$?}
+  then \SubtypeNE{S}{T} if{}f any of the following hold:
+  \begin{itemize}
+  \item either \SubtypeNE{S}{U}.
+  \item or \SubtypeNE{S}{\code{Null}}.
+  \item or $S$ is $X$ and $X$ has bound $B$ and \SubtypeNE{B}{T}.
+  \item or $S$ is \code{$X$\,\&\,$V$} and \SubtypeNE{V}{T}.
+  \end{itemize}
+\item
+  \textbf{Left Promoted Variable (\SrnLeftPromotedVariableTwo):}
+  If $S$ is a promoted type variable \code{$X$\,\&\,$U$}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{U}{T}.
+\item
+  \textbf{Left Type Variable Bound (\SrnLeftVariableBound):}
+  If $S$ is a type variable $X$ with bound $B$
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{B}{T}.
+\item
+  \textbf{Function Type/Function (\SrnRightFunction):}
+  $S$ is a function type and $T$ is \FUNCTION.
+%% TODO(eernst): Come records, include this rule, and add an
+%% inference rule for this in the 'Subtype rules' figure:
+%% \item
+%%   \textbf{Record Type/Record ():}
+%%   $S$ is a record type and $T$ is \RECORD.
+\item
+  \textbf{Covariance (\SrnCovariance):}
+  If $S$ is an interface type \code{$C$<$S_1$, \ldots, $S_s$>}
+  and $T$ is \code{$C$<$T_1$, \ldots, $T_s$>}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S_i}{T_i} for each $i$.
+\item
+  \textbf{Nominal subtyping (\SrnNominal):}
+  If $S$ is an interface type with super-interfaces \List{S}{0}{n}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{S_i}{T} for some $i$.
+\item
+  \textbf{Positional Function Types (\SrnPositionalFunctionType):}
+  If $S$ is
+
+  \code{$U_0$ \FUNCTION<%
+    $X_0$\,\EXTENDS\,$B_{00}$, \ldots, $X_k$\,\EXTENDS\,$B_{0k}$>(%
+    $V_0$\,$x_0$, \ldots, $V_n$ $x_n$, %
+    [$V_{n+1}$\,\,$x_{n+1}$, \ldots, $V_m$\,\,$x_m$])}
+
+  and $T$ is
+
+  \code{$U_1$ \FUNCTION<%
+    $Y_0$\,\EXTENDS\,$B_{10}$, \ldots, $Y_k$\,\EXTENDS\,$B_{1k}$>(%
+    $S_0$\,$y_0$, \ldots, $S_p$\,$y_p$, %
+    [$S_{p+1}$\,$y_{p+1}$, \ldots, $S_q$\,$y_q$])}
+
+  then \SubtypeNE{S}{T} if{}f each of the following criteria is satisfied,
+  where the $Z_i$ are fresh type variables with bounds
+  $[Z_0/X_0, \ldots, Z_k/X_k]B_{0i}$:
+
+  \begin{itemize}
+  \item $p \geq n$.
+  \item $m \geq q$.
+  \item \SubtypeNE{[Z_0/Y_0, \ldots, Z_k/Y_k]S_i}{[Z_0/X_0, \ldots, Z_k/X_k]V_i}
+    for $i \in 0 .. q$.
+  \item \SubtypeNE{[Z_0/X_0, \ldots, Z_k/X_k]U_0}{[Z_0/Y_0, \ldots, Z_k/Y_k]U_1}.
+  \item
+    \MutualSubtypeNE{%
+      [Z_0/X_0, \ldots, Z_k/X_k]B_{0i}}{%
+      [Z_0/Y_0, \ldots, Z_k/Y_k]B_{1i}},
+    for $i \in 0 .. k$.
+  \end{itemize}
+\item
+  \textbf{Named Function Types (\SrnNamedFunctionType):}
+  If $S$ is
+
+  \code{%
+    $U_0$ \FUNCTION<$X_0$\,\EXTENDS\,$B_{00}$, \ldots, %
+      $X_k$\,\EXTENDS\,$B_{0k}$>(%
+        $V_0$\,$x_0$, \ldots, $V_n$\,$x_n$, %
+          \{$r_{0,n+1}$\,$V_{n+1}$\,$x_{n+1}$, \ldots, $r_{0m}$\,$V_m$\,$x_m$\})}
+
+  where $r_{0j}$ is empty or \REQUIRED{} for $j \in n+1 .. m$
+  and $T$ is
+
+  \code{%
+    $U_1$ \FUNCTION<$Y_0$\,\EXTENDS\,$B_{10}$, \ldots, %
+      $Y_k$\,\EXTENDS\,$B_{1k}$>(%
+        $S_0$\,$y_0$, \ldots, $S_n$\,$y_n$, %
+          \{$r_{1,n+1}$\,$S_{n+1}$\,$y_{n+1}$, \ldots, $r_{1q}$\,$S_q$\,$y_q$\})}
+
+  where $r_{1j}$ is empty or \REQUIRED{} for $j \in n+1 .. q$
+  then \SubtypeNE{S}{T} if{}f the following criteria are all satisfied,
+  where \List{Z}{1}{k} are fresh type variables with bounds
+  $[Z_0/X_0, \ldots, Z_k/X_k]B_{0i}$:
+
+  \begin{itemize}
+  \item
+    $\{ y_{n+1}, \ldots, y_q \} \subseteq \{ x_{n+1}, \ldots , x_m \}$.
+  \item
+    \SubtypeNE{[Z_0/Y_0, \ldots, Z_k/Y_k]S_i}{[Z_0/X_0, \ldots, Z_k/X_k]V_i}
+    for $i \in 0 .. n$.
+  \item \SubtypeNE{[Z_0/Y_0, \ldots, Z_k/Y_k]S_i}{[Z_0/X_0, \ldots, Z_k/X_k]V_j}
+    for $i \in n+1 .. q$, and $y_j = x_i$.
+  \item
+    for each $j$ such that $r_{0j}$ is \REQUIRED, there exists an
+    $i \in n+1 .. q$ such that $x_j = y_i$, and $r_{1i}$ is \REQUIRED.
+  \item
+    \SubtypeNE{[Z_0/X_0, \ldots, Z_k/X_k]U_0}{[Z_0/Y_0, \ldots, Z_k/Y_k]U_1}.
+  \item
+    \MutualSubtypeNE{%
+      [Z_0/X_0, \ldots, Z_k/X_k]B_{0i}}{%
+      [Z_0/Y_0, \ldots, Z_k/Y_k]B_{1i}},
+    for each $i \in 0 .. k$.
+  \end{itemize}
+
+  \commentary{%
+    The requirement that \List{Z}{1}{k} are fresh names is as usual required
+    such that type variable names do not get captured.
+    It is valid to choose $Z_i$ to be $X_i$ or $Y_i$,
+    so long as capture is avoided.%
+  }
+
+\item
+  If $S$ is \code{($V_0$, \ldots, $V_n$, \{$V_{n+1} d_{n+1}$, \ldots, $V_m d_m$\})}
+  and $T$ is \code{($S_0$, \ldots, $S_n$, \{$S_{n+1} d_{n+1}$, \ldots, $S_m d_m$\})}
+  then \SubtypeNE{S}{T} if{}f \SubtypeNE{V_i}{S_i} for each $i \in 0 .. m$.
+\end{itemize}
 
 \LMHash{}%
-The only rule which is modified is number~\SrnReflexivity,
-which is modified to \AppSrnReflexivity.
-This only changes the applicability of the rule:
-This rule is only used for types which are not atomic.
-An \IndexCustom{atomic type}{type!atomic}
-is a type which is not a type variable,
-not a promoted type variable,
-not a function type,
-and not a parameterized type.
-
-\commentary{%
-  In other words, rule \AppSrnReflexivity{} is used for
-  special types like \DYNAMIC, \VOID, and \FUNCTION,
-  and it is used for non-generic classes,
-  but it is not used for any type where it is an operation
-  that takes more than one comparison to detect whether
-  it is the same as some other type.
-  %
-  The point is that the remaining rules will force
-  a structural traversal anyway, as far as needed,
-  and we may hence just as well omit the initial structural traversal
-  which might take many steps only to report that two large type terms
-  are not quite identical.%
-}
-
-\LMHash{}%
-The rules are ordered by means of their rule numbers:
-A rule given here numbered $N.1$ is inserted immediately after rule $N$,
-followed by rule $N.2$, and so on,
-followed by the rule whose number is $N+1$.
-\commentary{%
-  So the order is
-  \AppSrnReflexivity, \SrnTop--\SrnTypeVariableReflexivityA,
-  \AppSrnTypeVariableReflexivityB, \AppSrnTypeVariableReflexivityC,
-  \AppSrnTypeVariableReflexivityD,
-  \SrnRightPromotedVariable, and so on.%
-}
-
-\LMHash{}%
-We now specify the procedure which is used to determine whether
-\SubtypeStd{S}{T} holds,
-for some specific types $S$ and $T$:
-Select the first rule $R$ whose syntactic constraints are satisfied
-by the given types $S$ and $T$,
-and proceed to show that its premises hold.
-If so, we terminate and conclude that the subtype relationship holds.
-Otherwise we terminate and conclude
-that the subtype relationship does not hold,
-except if $R$ is
-\SrnRightFutureOrA, \SrnRightFutureOrB,
-\AppSrnRightFutureOrC, or \AppSrnRightFutureOrD.
-\commentary{%
-  In particular, for the original query \SubtypeStd{S}{T},
-  we do not backtrack into trying to use a rule that has
-  a higher rule number than that of $R$,
-  except that we may try all of
-  the rules with \code{FutureOr<$T$>} to the right.%
-}
-
-\commentary{%
-  Apart from the fact that the full complexity of subtyping
-  is potentially incurred each time it is checked whether a premise holds,
-  the checks applied for each rule is associated with an amount of work
-  which is constant for all rules except the following:
-  First, the group of rules
-  \SrnRightFutureOrA, \SrnRightFutureOrB,
-  \AppSrnRightFutureOrC, and \AppSrnRightFutureOrD{}
-  may cause backtracking to take place.
-  Next, rules \SrnPositionalFunctionType--\SrnCovariance{}
-  require work proportional to the size of $S$ and $T$,
-  due to the number of premises that must be checked.
-  Finally, rule~\SrnSuperinterface{} requires work
-  proportional to the size of $S$,
-  and it may also incur the cost of searching up to the entire set of
-  direct and indirect superinterfaces of the candidate subtype $S$,
-  until the corresponding premise for one of them is shown to hold,
-  if any.
-
-  Additional optimizations are applicable.
-  For instance,
-  we can immediately conclude that the subtype relationship does not hold
-  when we are about to check rule~\SrnSuperinterface{}
-  if $T$ is a type variable or a function type.
-  For several other forms of type, e.g.,
-  a promoted type variable,
-  \code{Object}, \DYNAMIC, \VOID,
-  \code{FutureOr<$T$>} for any $T$, or \FUNCTION,
-  it is known that it will never occur as $T$ for rule~\SrnSuperinterface,
-  which means that this seemingly expensive step
-  can be confined to some extent.%
-}
+In these rules, the numbers in parentheses refer to the derivation rules in
+Fig.~\ref{fig:subtypeRules} with the given number.
+A number with an asterisk indicates that
+a special case of said derivation rule is used.
+A number with no asterisk indicates that the textual rule above
+(or part of it) corresponds more directly to
+the derivation rule with the specified number.
 
 
 \section*{Appendix: Integer Implementations}
