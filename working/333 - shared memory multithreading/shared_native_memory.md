@@ -214,27 +214,27 @@ will cause `FieldAccessError` to be thrown.
 ```dart
   /// Constructs a [NativeCallable] that can be invoked from any thread.
   ///
-  /// When the native code invokes the function [nativeFunction], 
+  /// When the native code invokes the function [nativeFunction],
   /// the [callback] will be executed within the isolate group
-  /// of the [Isolate] which originally constructed the callable. 
-  /// Specifically, this means that an attempt to access any 
-  /// static or global field which is not shared between 
+  /// of the [Isolate] which originally constructed the callable.
+  /// Specifically, this means that an attempt to access any
+  /// static or global field which is not shared between
   /// isolates in a group will result in a [FieldAccessError].
   ///
-  /// If an exception is thrown by the [callback], the 
-  /// native function will return the `exceptionalReturn`, 
-  /// which must be assignable to the return type of 
+  /// If an exception is thrown by the [callback], the
+  /// native function will return the `exceptionalReturn`,
+  /// which must be assignable to the return type of
   /// the [callback].
   ///
-  /// [callback] and [exceptionalReturn] must be 
+  /// [callback] and [exceptionalReturn] must be
   /// _trivially shareable_.
   ///
-  /// This callback must be [close]d when it is no longer 
-  /// needed. An [Isolate] that created the callback will 
+  /// This callback must be [close]d when it is no longer
+  /// needed. An [Isolate] that created the callback will
   /// be kept alive until [close] is called.
   ///
-  /// After [NativeCallable.close] is called, invoking 
-  /// the [nativeFunction] from native code will cause 
+  /// After [NativeCallable.close] is called, invoking
+  /// the [nativeFunction] from native code will cause
   /// undefined behavior.
   factory NativeCallable.isolateGroupBound(
     @DartRepresentationOf("T") Function callback, {
@@ -244,7 +244,7 @@ will cause `FieldAccessError` to be thrown.
   }
 ```
 
-#### Core library API behavior 
+#### Core library API behavior
 
 All APIs that directly or indirectly depend on microtask queue and event loop
 should throw easy to understand errors when invoked from `isolateGroupBound`
@@ -266,38 +266,39 @@ appropriate errors.
 * `dart:mirrors` - is allowed to not work
 
 **TODO**: do we need a blocking version of `ReceivePort` which could be used
-from `isolateGroupBound` context?
+from `isolateGroupBound` context? Maybe something closer to Go's channels.
 
 ### Additional Isolate APIs
 
-We should facilitate synchronously entering `Isolate` when necessary. 
+We should facilitate synchronously entering `Isolate` when necessary.
 
 ```dart
 class Isolate {
-  // Execute the given function in the context of the given isolate.
-  // 
-  // [f] must be trivially shareable. Result
-  // returned by [f] must be trivially shareable.
-  R runSync<R>(R Function() f);
+  /// Execute the given function in the context of the given isolate.
+  ///
+  /// This function will block until it acquires exclusive access to the
+  /// target isolate. Isolate can only be entered for synchronous execution
+  /// between turns of its event loop, when no other thread is
+  /// executing code in the target isolate.
+  ///
+  /// Throws [TimeoutException] if [timeout] has been reached while waiting
+  /// to acquire exclusive access to the isolate.
+  ///
+  /// Throws [StateError] if target isolate is owned by another thread and
+  /// thus can't be entered from a different thread.
+  ///
+  /// Throws [ArgumentError] if [f] is not trivially shareable.
+  ///
+  /// Throws [StateError] if result returned by [f] is not trivially shareable.
+  R runSync<R>(R Function() f, {Duration? timeout});
 }
 ```
-
-Note that `runSync` can only enter an `Isolate` when it is not used by
-another thread.
 
 **TODO**: Furthermore we might want to facilitate integration with third-party
 event-loops: e.g. allow to create isolate without scheduling its event loop on
 our own thread pool and provide equivalents of `Dart_SetMessageNotifyCallback`
 and `Dart_HandleMessage`. Though maybe we should not bundle this all together
 into one update.
-
-**TODO**: Should we facilitate execution of asynchronous code inside a target
-isolate e.g. something like `T runAsync<T>(FutureOr<T> Function() f)`. When
-you invoke this function `f` will be executed in the context of the given
-isolate and then if it produced a `Future` we exit the isolate and block
-the current thread, while allowing the event loop for that isolate to run
-normally until returned future produces result.
-
 
 ### Scoped thread local values
 
@@ -310,17 +311,21 @@ final class ScopedThreadLocal<T> {
   external factory ScopedThreadLocal([T Function()? initializer]);
 
   /// Execute [f] binding this [ScopedThreadLocal] to the given [value] for the duration of the execution.
-  external R with<R>(T value, R Function(T) f);
-  
+  external R runWith<R>(T value, R Function(T) f);
+
   /// Execute [f] initializing this [ScopedThreadLocal] using default initializer if needed.
-  /// Throws [NotBoundError] if this [ScopedThreadLocal] does not have an initializer.
-  external void withInitialized<R>(R Function(T) f);
+  ///
+  /// If this [ScopedThreadLocal] was uninitialized then it will be reset to this state
+  /// when execution of [f] completes.
+  ///
+  /// Throws [StateError] if this [ScopedThreadLocal] does not have an initializer.
+  external void runInitialized<R>(R Function(T) f);
 
 	/// Returns the value specified by the closest enclosing invocation of [with] or
-	/// throws [NotBoundError] if this [ScopedThreadLocal] is not bound to a value. 
+	/// throws [StateError] if this [ScopedThreadLocal] is not bound to a value.
   external T get value;
-  
-  /// Returns `true` if this [ScopedThreadLocal] is bound to a value.
+
+  /// Returns whether this [ScopedThreadLocal] is bound to a value.
   external bool get isBound;
 }
 ```
@@ -352,7 +357,7 @@ static String iterableToShortString(
   }
   toStringVisiting.add(iterable);
   try {
-    // ... 
+    // ...
   } finally {
     toStringVisiting.removeLast();
   }
@@ -366,7 +371,7 @@ This makes `Iterable.toString` unusable outside of an isolate (i.e. within
 ```dart
 /// A collection used to identify cyclic lists during `toString` calls.
 @pragma('vm:shared')
-final ScopedThreadLocal<List<Object>> toStringVisiting = ScopedThreadLocal<List<Object>>(() => <List<Object>>[]);
+final ScopedThreadLocal<List<Object>> toStringVisiting = ScopedThreadLocal<List<Object>>(() => <Object>[]);
 
 /// Check if we are currently visiting [object] in a `toString` call.
 bool isToStringVisiting(List<Object> toStringVisitingValue, Object object) {
@@ -381,13 +386,13 @@ static String iterableToShortString(
   String leftDelimiter = '(',
   String rightDelimiter = ')',
 ]) {
-  return toStringVisiting.use((toStringVisitingValue) {
+  return toStringVisiting.withInitialized((toStringVisitingValue) {
     if (isToStringVisiting(toStringVisitingValue, iterable)) {
       return "$leftDelimiter...$rightDelimiter";
     }
     toStringVisitingValue.add(iterable);
     try {
-      // ... 
+      // ...
     } finally {
       toStringVisitingValue.removeLast();
     }
@@ -484,8 +489,8 @@ final class Foo implements Struct {
 }
 ```
 
-> [!IMPORTANT] 
-> 
+> [!IMPORTANT]
+>
 > We expect compiler to optimize temporary intermediary `AtomicInt` objects away.
 
 > [!IMPORTANT]
@@ -494,7 +499,7 @@ final class Foo implements Struct {
 > or not?
 >
 > **TODO**: should we provide `AtomicPointer` class?
-> 
+>
 > **TODO**: should we support _futex_ like API (e.g. provide an operation to
 > wait on an address and associated wake-up operation)? JavaScript chooses to
 > provide `Atomics.wait` which is effectively futex-like instead of providing
@@ -562,6 +567,9 @@ Write(e) & \triangleq Loc_w(e) \neq \emptyset \\
 Unordered(e) & \triangleq \neg(\mathtt{Atomic(e)} \vee \mathtt{Init}(e))
 \end{align*}
 $$
+
+Here and below we write $A \triangleq B$ meaning
+_A is defined to be equal to B_.
 
 > [!NOTE]
 >
@@ -715,11 +723,12 @@ programs behave in sequentially consistent way.
 When object is constructed all field initializers (i.e. those provided in the
 body of the class or in the initializer list) result in $\mathtt{Init}$
 write events. The same applies to initialization of individual elements of
-`TypedData` objects with `0`.
+lists with their initial values or `TypedData` objects with `0`.
 
 #### Isolates
 
-Every `SendPort.send` generates a numbered event $\mathtt{Send}(p, i)$.
+Every `SendPort.send` generates a sequentially numbered event
+$\mathtt{Send}(p, i)$.
 
 Receiving a message (e.g. invoking callback attached to  `ReceivePort`)
 generates a corresponding $\mathtt{Recv}(p, i)$ event.
@@ -730,10 +739,18 @@ $$
 \forall p\,i . \mathtt{Send}(p, i) \leq_\mathtt{asw}\mathtt{Recv}(p, i)
 $$
 
+Note that we expect _sequenced-before_ order to be consistent: if two sends
+are ordered, corresponding receives must have the same ordering.
+
+$$
+\forall p, i, j . (\mathtt{Send}(p, i) \leq_\mathtt{sb} \mathtt{Send}(p, j) \rightarrow \mathtt{Receive}(p, i) \leq_\mathtt{sb} \mathtt{Receive}(p, j))
+$$
+
 ##### Locks
 
-Every `Lock.acquireSync` and `Lock.releaseSync` call results in a numbered
-acquire/release event $\mathtt{Acq}(l, 0), \mathtt{Rel}(l, 0), \mathtt{Acq}(l, 1), \mathtt{Rel}(l, 1), ...$
+Every `Lock.acquireSync` and `Lock.releaseSync` call results in a sequentially
+numbered acquire/release events
+$\mathtt{Acq}(l, 0), \mathtt{Rel}(l, 0), \mathtt{Acq}(l, 1), \mathtt{Rel}(l, 1), ...$
 
 These events are explicitly ordered:
 
