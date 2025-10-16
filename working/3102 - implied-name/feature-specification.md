@@ -222,6 +222,8 @@ or can be pre-used/modified using cascade invocations, but none of those
 operations change the value from evaluating the identifier, only, potentially,
 whether it evaluates to a value at all.
 
+### Cascades
+
 The cascade sections are the most syntactically intrusive. They can contain
 any other expression, including other identifiers.
 However, the places where cascades are used are often in argument position.
@@ -246,6 +248,18 @@ which would become:
 
 It is the use that has the biggest risk of being confusing to read,
 but you can always write the identifier if you prefer it.
+
+### Assignments
+
+An expression of the form `id1 = id2` is an expression which has the same
+value as a single identifier, `id2`.
+(We don't know what assigning to `id1` means, or if it can even be read,
+but the value of the expression is the value of evaluating `id2`.)
+
+It's not included because that identifier is not the next identifier
+of the expression, and because it can easily be confusing which identifier
+defines the name. (And more so for more steps, like `:foo = bar = baz`.)
+
 
 ### Future additions.
 
