@@ -71,16 +71,16 @@ an *introductory declaration*.
 
 An augmentation declaration doesn't create a new entity in the program. Instead,
 it adds to some existing introductory declaration with the same name.
-Augmentation declarations can modify types, functions, members, and almost any
-other kind of declaration in Dart. They can add new members to, add new values
-to enums, or to the `with` or `implements` clauses, fill in function bodies,
-etc.
+Augmentation declarations can affect types, functions, members, and almost any
+other kind of declaration in Dart. They can add members to classes, append
+values to enums, append types to `with` or `implements` clauses, fill in missing
+function bodies, etc.
 
 An augmentation can be in the same file as the introductory declaration it
 applies to, or in separate part files, but they must both be in the same
 library. Augmentations allow authoring a library in multiple separate pieces or
-files (some of which are likely generated) in a flexible manner, but they aren't
-for injecting new behavior into libraries outside of the author's control.
+files (some of which are likely generated) in a flexible manner, but they can't
+inject new behavior into libraries outside of the library author's control.
 
 ### Design principle
 
@@ -265,6 +265,9 @@ Note that only extensions *with names* allow a leading `augment`. Since
 augmentations are matched with their introductory declaration by name, unnamed
 extensions can't be augmented. *Doing so wouldn't accomplish anything anyway.
 Just make two separate unnamed extensions.*
+
+Also note that an augmentation of an extension can't specify an `on` clause. It
+always uses the same `on` clause as the introductory declaration.
 
 ## Static semantics
 
@@ -452,6 +455,17 @@ ones must be.*
 An augmentation declaration does not introduce a new name into the surrounding
 scope. *We could say that it attaches itself to the existing name.*
 
+It's a **compile-time error** if an augmentation doesn't have the same kind as
+the introductory declaration. For example, augmenting a `class` with a `mixin`,
+an `enum` with a function, a method with a getter, etc.
+
+The exception is that a variable declaration (introductory or augmenting) is
+treated as a getter declaration (and a setter declaration if non-final) for
+purposes of augmentation. These implicit declarations can augment and be
+augmented by other explicit getter and setter declarations. *In other words,
+variables are never augmented or augmenting, only the getters and possibly
+setters that they induce are.*
+
 ### Complete and incomplete declarations
 
 Augmentations aren't allowed to *replace* code, so they mostly add entirely new
@@ -461,13 +475,14 @@ augmentations can fill in a body for an augmented declaration that lacks one.
 More precisely, a function or constructor declaration (introductory or
 augmenting) is *incomplete* if all of:
 
-*   The body syntax is `;`.
+*   It has no body. *That means no `{ ... }` or `=> ...;` but only `;`.*
 
 *   The function is not marked `external`. *An `external` function is considered
     to have a body, just not one that is visible as Dart code.*
 
-*   There is no redirection, initializer list, initializing formals, or super
-    parameters. *Obviously, this only applies to constructor declarations.*
+*   There is no redirection, initializer list, initializing formals, field
+    parameters, or super parameters. *Obviously, this only applies to
+    constructor declarations.*
 
 If a declaration is not *incomplete* then it is *complete*.
 
@@ -605,8 +620,8 @@ augment enum E { v5 }
 *The resulting enum has values `v1`, `v2`, `v3`, `v4`, and `v5`, in that order.*
 
 *A consequence of application order is that an augmentation in one part file can
-augment an introductory declaration in a sibling part file. This is intuitively
-confusing. The augmentation is referring to a declaration that can't be found
+augment an introductory declaration in a sibling part file. This may be
+confusing since the augmentation affects a declaration that can't be found
 anywhere in its `part of` chain.*
 
 *However, restricting augmentations to only apply to declarations _above_ (not
@@ -629,13 +644,18 @@ augment class SomeClass {
 }
 ```
 
-Mixin application classes can't be augmented.
+Mixin application classes can't be augmented:
 
-A class, enum, extension type, mixin, or mixin class augmentation may
-specify `extends`, `implements` and `with` clauses (when generally
-supported). The types in these clauses are appended to the introductory
-declarations' clauses of the same kind, and if that clause did not exist
-previously, then it is added with the new types.
+```dart
+class C = S with M;
+augment class C = S with N; // Error.
+```
+
+A class, enum, extension type, mixin, or mixin class augmentation may specify
+`extends`, `implements` and `with` clauses (when otherwise supported). The types
+in these clauses are appended to the introductory declarations' clauses of the
+same kind, and if that clause did not exist previously, then it is added with
+the new types.
 
 *Example:*
 
@@ -652,16 +672,12 @@ including enum values, are added to the instance or static namespace of the
 corresponding type in the introductory declaration. *In other words, the
 augmentation can add new members to an existing type.*
 
-Instance and static members inside a class-like declaration may themselves
-be augmentations. In that case, they augment the corresponding members in
-the same augmentation context, according to the rules in the following
-subsections.
+An instance or static member inside a class-like declaration may itself be an
+augmentation. In that case, it augments the corresponding member (the
+introducing member with the same name) in the same augmentation context,
+according to the rules in the following subsections.
 
 It's a **compile-time** error if:
-
-*   An augmentation declaration is applied to a declaration of a different kind.
-    For example, augmenting a `class` with a `mixin`, an `enum` with a function,
-    etc.
 
 *   An augmenting class declaration has an `extends` clause and any prior
     declaration for the same class also has an `extends` clause.
@@ -679,8 +695,7 @@ It's a **compile-time** error if:
     type parameters with the exact same type parameter names (same identifiers)
     and bounds if any (same *types*, even if they may not be written exactly the
     same in case one of the declarations needs to refer to a type using an
-    import prefix). The augmenting declaration may choose to omit bounds in
-    which case they will be inherited from the augmented declaration.
+    import prefix).
 
     *Since repeating the type parameters is, by definition, redundant, this
     restriction doesn't accomplish anything semantically. It ensures that
@@ -688,6 +703,18 @@ It's a **compile-time** error if:
     parameters that it uses in its body and avoids potential confusion with
     other top-level variables that might be in scope in the library
     augmentation.*
+
+    The augmenting declaration may choose to omit the bound on any type
+    parameter, in which case it will be inherited from the augmented
+    declaration.
+
+    ```dart
+    foo<X extends num, Y extends X>();
+    augment foo<X extends num, Y>() { ... }
+    ```
+
+    *Here, `Y` in the augmentation inherits `extends X` from the introductory
+    declaration.*
 
 ### Augmenting function and constructor signatures
 
@@ -703,8 +730,8 @@ signature *matches* if:
     (same *types*, even if they may not be written exactly the same in case one
     of the declarations needs to refer to a type using an import prefix).
 
-*   The return type (after type annotation inheritance) is the same as the
-    augmented declaration's return type.
+*   The return type (if not omitted) is the same as the augmented declaration's
+    return type.
 
 *   It has the same number of positional and optional parameters as the
     augmented declaration.
@@ -713,7 +740,7 @@ signature *matches* if:
 
 *   For all corresponding pairs of parameters:
 
-    *   They have the same type (after type annotation inheritance).
+    *   They have the same type (if not omitted in the augmenting declaration).
 
     *   They have the same `required` and `covariant` modifiers.
 
@@ -740,10 +767,10 @@ signature *matches* if:
 
     ```dart
     f1(int _) {}
-    augment f1(int x) {} // OK.
-    augment f1(int _) {} // OK.
-    augment f1(int y) {} // Error, can't change name.
-    augment f1(int _) {} // OK.
+    augment f1(int x); // OK, first declaration to introduce name.
+    augment f1(int _); // OK.
+    augment f1(int y); // Error, can't change name.
+    augment f1(int _); // OK.
     ```
 
     *Note that this is a transitive property.*
@@ -804,16 +831,6 @@ has a nullable declared type, and no default values for that parameter are
 specified in the augmentation chain.
 
 It's a **compile-time** error if:
-
-*   An augmentation declaration is applied to a declaration of a different kind.
-    For example, augmenting a function with a `class`, a method with a getter, a
-    constructor with a static method, etc.
-
-    The exception is that a variable declaration (introductory or augmenting) is
-    treated as a getter declaration (and a setter declaration if non-final) for
-    purposes of augmentation. These implicit declarations can augment and be
-    augmented by other explicit getter and setter declarations. See the next
-    section.
 
 *   The signature of the augmenting function does not [match][signature
     matching] the signature of the augmented function.
