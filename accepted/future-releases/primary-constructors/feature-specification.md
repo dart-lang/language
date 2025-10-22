@@ -575,63 +575,80 @@ constructors as well.
 ```ebnf
 <classDeclaration> ::= // First alternative modified.
      (<classModifiers> | <mixinClassModifiers>)
-     'class' <classNamePart> <superclass>? <interfaces>? <classBody>
+     'class' <classNameMaybePrimary> <superclass>? <interfaces>? <classBody>
    | ...;
 
-<primaryConstructorNoConst> ::= // New rule.
-     <typeIdentifier> <typeParameters>?
-     ('.' <identifierOrNew>)? <declaringParameterList>
+<primaryConstructor> ::= // New rule.
+     'const'? <typeWithParameters> ('.' <identifierOrNew>)?
+     <declaringParameterList>;
 
-<classNamePart> ::= // New rule.
-     'const'? <primaryConstructorNoConst>
+<classNameMaybePrimary> ::= // New rule.
+     <primaryConstructor>
    | <typeWithParameters>;
 
 <typeWithParameters> ::= <typeIdentifier> <typeParameters>?
 
 <classBody> ::= // New rule.
-     '{' (<metadata> <classMemberDeclaration>)* '}'
+     '{' (<metadata> <memberDeclaration>)* '}'
    | ';';
 
 <extensionTypeDeclaration> ::= // Modified rule.
-     'extension' 'type' <classNamePart> <interfaces>?
+     'extension' 'type' <classNameMaybePrimary> <interfaces>?
      <extensionTypeBody>;
 
-<extensionTypeMemberDeclaration> ::= <classMemberDeclaration>;
-
 <extensionTypeBody> ::=
-     '{' (<metadata> <extensionTypeMemberDeclaration>)* '}'
+     '{' (<metadata> <memberDeclaration>)* '}'
    | ';';
 
 <enumType> ::= // Modified rule.
-     'enum' <classNamePart> <mixins>? <interfaces>? '{'
-        <enumEntry> (',' <enumEntry>)* (',')?
-        (';' (<metadata> <classMemberDeclaration>)*)?
+     'enum' <classNameMaybePrimary> <mixins>? <interfaces>? '{'
+        <enumEntry> (',' <enumEntry>)* ','?
+        (';' (<metadata> <memberDeclaration>)*)?
      '}';
 
 <constructorSignature> ::= // Modified rule.
-     <constructorName> <formalParameterList>
+     <constructorName> <formalParameterList> // Old form.
+   | <constructorHead> <formalParameterList> // New form.
    | <declaringConstructorSignature>;
 
 <declaringConstructorSignature> ::= // New rule.
-     'this' ('.' <identifierOrNew>)? <declaringParameterList>?;
+     'this' <identifier>? <declaringParameterList>?;
 
 <constantConstructorSignature> ::= // Modified rule.
-     'const' <constructorName> <formalParameterList>
+     'const' <constructorName> <formalParameterList> // Old form.
+   | 'const' <constructorHead> <formalParameterList> // New form.
    | <declaringConstantConstructorSignature>;
 
 <constructorName> ::= // Modified rule.
-     <typeIdentifierOrNew> ('.' identifierOrNew)?;
-
-<typeIdentifierOrNew> ::= // New rule.
-     <typeIdentifier>
-   | 'new';
+     <typeIdentifier> ('.' identifierOrNew)?;
 
 <declaringConstantConstructorSignature> ::= // New rule.
-     'const' 'this' ('.' <identifierOrNew>)? <declaringParameterList>;
+     'const' 'this' <identifier>? <declaringParameterList>;
+
+<constructorHead> ::= // New rule.
+     'new' <identifier>?;
+
+<factoryConstructorHead> ::= // New rule.
+     'factory' <identifier>?;
 
 <identifierOrNew> ::=
      <identifier>
    | 'new'
+
+<factoryConstructorSignature> ::= // Modified rule.
+     'const'? 'factory' <constructorName> <formalParameterList> // Old form.
+   | 'const'? <factoryConstructorHead> <formalParameterList>; // New form.
+ 
+<redirectingFactoryConstructorSignature> ::= // Modified rule.
+     'const'? 'factory' <constructorName> <formalParameterList> '='
+     <constructorDesignation> // Old form.
+   | 'CONST'? <factoryConstructorHead> <formalParameterList> '='
+     <constructorDesignation>; // New form.
+ 
+<constantConstructorSignature> ::= // Modified rule.
+   : 'const' <constructorName> <formalParameterList> // Old form.
+   | 'const' <constructorHead> <formalParameterList> // New form.
+   | <declaringConstantConstructorSignature>;
 
 <simpleFormalParameter> ::= // Modified rule.
      'covariant'? <type>? <identifier>;
@@ -685,6 +702,13 @@ constructors as well.
      ('=' <expression>)?;
 ```
 
+The word `factory` is added to the set of reserved words. 
+
+*This allows the new constructor declaration syntax such as `factory();` to
+be unambiguous.  It is also a breaking change because `factory` can no
+longer be the name of a declaration. However, this occurs only infrequently
+today.*
+
 A _declaring constructor_ declaration is a declaration that contains a
 `<declaringConstructorSignature>` with a `<declaringParameterList>`, or a
 declaration that contains a `<declaringConstantConstructorSignature>`, or
@@ -698,7 +722,7 @@ a declaration whose body is `{}`.
 
 Let _D_ be a class, extension type, or enum declaration.
 
-A compile-time error occurs if _D_ includes a `<classNamePart>` that
+A compile-time error occurs if _D_ includes a `<classNameMaybePrimary>` that
 contains a `<primaryConstructorNoConst>`, and the body of _D_ contains a
 `<declaringConstructorSignature>` that contains a
 `<declaringParameterList>`.
@@ -706,7 +730,7 @@ contains a `<primaryConstructorNoConst>`, and the body of _D_ contains a
 *It is an error to have a declaring parameter list both in the header and
 in the body.*
 
-A compile-time error occurs if _D_ includes a `<classNamePart>` that
+A compile-time error occurs if _D_ includes a `<classNameMaybePrimary>` that
 does not contain a `<primaryConstructorNoConst>`, and the body of _D_
 contains a `<declaringConstructorSignature>` that does not
 contain a `<declaringParameterList>`.
