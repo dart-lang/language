@@ -702,7 +702,8 @@ constructors as well.
      ('=' <expression>)?;
 ```
 
-The word `factory` is added to the set of reserved words. 
+The word `factory` is removed from the set of built-in identifiers and
+added to the set of reserved words.
 
 *This allows the new constructor declaration syntax such as `factory();` to
 be unambiguous.  It is also a breaking change because `factory` can no
@@ -712,9 +713,9 @@ today.*
 A _declaring constructor_ declaration is a declaration that contains a
 `<declaringConstructorSignature>` with a `<declaringParameterList>`, or a
 declaration that contains a `<declaringConstantConstructorSignature>`, or
-it is a `<primaryConstructorNoConst>` in the header of a class, enum, or
-extension type declaration, together with a declaration in the body that
-contains a `<declaringConstructorSignature>` *(which does not contain a
+it is a `<primaryConstructor>` in the header of a class, enum, or extension
+type declaration, together with a declaration in the body that contains a
+`<declaringConstructorSignature>` *(which does not contain a
 `<declaringParameterList>`, because that's an error)*.
 
 A class or extension type declaration whose class body is `;` is treated as
@@ -722,18 +723,18 @@ a declaration whose body is `{}`.
 
 Let _D_ be a class, extension type, or enum declaration.
 
-A compile-time error occurs if _D_ includes a `<classNameMaybePrimary>` that
-contains a `<primaryConstructorNoConst>`, and the body of _D_ contains a
+A compile-time error occurs if _D_ includes a `<classNameMaybePrimary>`
+that contains a `<primaryConstructor>`, and the body of _D_ contains a
 `<declaringConstructorSignature>` that contains a
 `<declaringParameterList>`.
 
 *It is an error to have a declaring parameter list both in the header and
 in the body.*
 
-A compile-time error occurs if _D_ includes a `<classNameMaybePrimary>` that
-does not contain a `<primaryConstructorNoConst>`, and the body of _D_
-contains a `<declaringConstructorSignature>` that does not
-contain a `<declaringParameterList>`.
+A compile-time error occurs if _D_ includes a `<classNameMaybePrimary>`
+that does not contain a `<primaryConstructor>`, and the body of _D_
+contains a `<declaringConstructorSignature>` that does not contain a
+`<declaringParameterList>`.
 
 *It is an error to have a declaring constructor in the class body, but
 no declaring parameter list, neither in the header nor in the body.*
