@@ -2,7 +2,7 @@
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com
 
-Version: 1.38 (see [Changelog](#Changelog) at end)
+Version: 1.40 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
@@ -1003,6 +1003,43 @@ the combined declaration.*
 
 [analyzer package]: https://pub.dev/packages/analyzer
 
+### Compile errors with augmentations
+
+Many existing compile-time errors in the language specification are only
+meaningful after semantic analysis so only make sense to check after
+augmentations are applied. For example:
+
+> Let `C` be a concrete class declared in library `L`, with interface `I`.
+> Assume that `I` has a member signature `m` which is accessible to `L`. It is a
+> compile-time error if `C` does not have a concrete member with the same name as
+> `m` and accessible to `L`, ...
+
+This error says that a non-abstract class must fully implement its interface.
+We don't know what methods a class even has until semantic analysis lets us
+see inherited methods, and that happens after augmentation. Thus this error is
+checked after augmentations have been applied. Therefore, there is no error in:
+
+```dart
+abstract class I {
+  m();
+}
+
+class C implements I {}
+
+augment class C {
+  m() {}
+}
+```
+
+The general rule is that compile-time errors should be checked after
+augmentations are applied when possible to do so. In other words, if the
+library is well-formed enough that augmentations *can* be applied, then they
+should be. And if doing so eliminates what would otherwise be a compile-time
+error, then that error should not be reported.
+
+Put another way, moving code out of an introductory declaration into an
+augmentation of it should not cause new errors to appear.
+
 ## Dynamic semantics
 
 The application of augmentation declarations to an augmented declaration
@@ -1215,6 +1252,11 @@ fully captured by that paragraph). It's probably safest to be pessimistic
 and assume the third point is always true.
 
 ## Changelog
+
+### 1.40
+
+*   Clarify how applying augmentations interacts with compile-time errors
+    (#3690).
 
 ### 1.39
 
