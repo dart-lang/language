@@ -16,7 +16,7 @@ named arguments:
 ```
 
 To avoid redundant repetition, Dart will allow you to omit the
-argument name if it's the same name as the value.
+argument name if it's the same name as the expression providing the value.
 
 ```dart
   var subscription = stream.listen(
@@ -31,20 +31,17 @@ Same applies to record literal fields, where we have nice syntax
 for destructuring, but not for re-creating:
 ```dart
 typedef Color = ({int red, int green, int blue, int alpha});
-extension on Color {
-  Color withAlpha(int alpha) {
-    var (:red, :green, :blue, alpha: _) = this;
-    return (red: red, green: green, blue: blue, alpha: alpha);
-  }
+
+Color colorWithAlpha(Color color, int newAlpha) {
+  var (:red, :green, :blue, alpha: _) = color;
+  return (red: red, green: green, blue: blue, alpha: newAlpha);
 }
 ```
 will become
 ```dart
-extension on Color {
-  Color withAlpha(int alpha) {
-    var (:red, :green, :blue, alpha: _) = this;
-    return (:red, :green, :blue, :alpha);
-  }
+Color colorWithAlpha(Color color, int alpha) {
+  var (:red, :green, :blue, alpha: _) = color;
+  return (:red, :green, :blue, :alpha);
 }
 ```
 
@@ -80,53 +77,39 @@ not.)
 
 As a non-grammatical restriction, it's a **compile-time error**
 if a `<namedExpression>` omits the leading`<identifier>`, and the following
-expressions is not a _single identifier expression_, as defined below.
+expression is not a _single identifier expression_, as defined below.
 
-In short, an expression is a _single identifier expression_
-which has a specific single _identifier_ if and only if
-it is one of the following:
-*   An identifier, with that identifier.
-*   `s!`, `s as T`, `(s)`, `s..cascadeSection`/`s?..cascadeSection`
-    where `s` is a single identifier expression,
-    and then it has the same identifier as `s`.
-
-More formally, An expression `e` is a single identifier expression with a certain identifier if and only if it is defined as such by the following:
+An expression `e` is a _single identifier expression with identifier *I*_ if
+and only if it is defined as such by one of the following rules,
+where `s` is, inductively, a single identifier expression with identifier *I*:
 
 *   If `e` is a `<primary>` expression which is an `<identifier>`,
     it is a single identifier expression with that `<identifier>` as identifier.
-*   `s!`: If `e` is  a `<primary> <selector>*` production where `<selector>*`
-    is the single `<selector>` `` `!' ``, and `<primary>` is
-    a single identifier expression, then `e` is a single identifier expression
-    with the same identifier as the `<primary>`,
+*   `s!`: If `e` is a `<primary> <selector>*` production where `<selector>*`
+    is the single selector `` `!' ``, and `<primary>` is `s`,
+    then `e` is a single identifier expression with identifier *I*.
 *   `s as T`: If `e` is a `<relationalExpression>` of the form
-    `<bitwiseOrExpression> <typeCast>` and the `<bitwiseOrExpression>`
-    is a single identifier expression,
-    then `e` is a single identifier expression with the same identifier as
-    the `<bitwiseOrExpression>`.
+    `<bitwiseOrExpression> <typeCast>` and the `<bitwiseOrExpression>` is `s`
+    then `e` is a single identifier expression with identifier *I*.
 *   `(s)`: If `e` is a `<primary>` production of the form
-    `` `(' <expression> `)' `` and the `<expression>`
-    is a single-identifier expression,
-    then `e` is a single identifier expression with the same identifier as
+    `` `(' <expression> `)' `` and the `<expression>` is `s`, then `e` is a single identifier expression with the same identifier as
     the `<expression>`.
-*   `s..cascade`:
-    *   If `e` a `<cascade>` of the form ``<cascade> `..' <cascadeSection>``
-        and the `<cascade>` is a single identifier expression,
-        then `e` is a single identifier expression with the same identifier as
-        the `<cascade>`.
-    *   If `e` a `<cascade>` of the form
-        ``<conditionalExpression> (`?..' | `..') <cascadeSection>``
-        and the `<conditionalExpression>` is a single identifier expression,
-        then `e` is a single identifier expression with the same identifier as
-        the `<conditionalExpression>`.
 
-The _name of a named expression_ is then:
-* If the named expression has a leading identifier, then that identifier.
+_In short, an identifier expression is a single identifier expression,
+and you can then wrap it in null-assertions, parentheses, or casts,
+and it will still be a single identifier expression with the same identifier. The value if `id` is the same as the value of
+`(id! as List<num>)` &mdash; if it has a value._
+_The resulting expression still evaluates to the value of the original
+identifier, if it doesn't throw first._
+
+The _name of a `<namedExpression>`_ is then:
+* If the named expression has a leading identifier before the colon,
+  then that identifier.
 * Otherwise the following expression must be a single identifier expression
   with an identifier *I*, and then the name of the named expression is *I*.
 
 The name of a `<namedArgument>` or a named `<recordField>` is the name of
 its `<namedExpression>`.
-
 
 Where the language specification refers to a named argument's name,
 it now uses this definition of the name of a `<namedArgument>`.
@@ -215,18 +198,50 @@ can be tweaked.
 
 It's currently restricted to expressions where the value of the expression
 is always the value of evaluating a single identifier.
-That identifier is always the *next* identifier, and the next non-`(` token.
+Also, that identifier is always the *only* identifier of the expression,
+and can only be preceded by `(`s.
 
-The identifier expression can be wrapped in casts `!` or `as T`, in parentheses,
-or can be pre-used/modified using cascade invocations, but none of those
-operations change the value from evaluating the identifier, only, potentially,
-whether it evaluates to a value at all.
+The identifier expression can be wrapped in casts `!` or `as T`
+or in parentheses, but none of those operations change the value
+of the expression away from the value of evaluating the identifier,
+only, potentially, whether it evaluates to a value at all.
+
+Those are properties chosen to make it easier to read and understand
+a missing name, but nothing is technically necessary,
+we could allow any expression where we can, somehow, derive a significant
+identifier.
+The limitation to the name being the next non-`(` token should hopefully make it
+*very easy* to find the name.
+
+Possible additions, initially or in the future, could include the following
+expression forms.
 
 ### Cascades
 
-The cascade sections are the most syntactically intrusive. They can contain
-any other expression, including other identifiers.
-However, the places where cascades are used are often in argument position.
+A cascade expression like `e..selector` or `e?..selector` also satisfies
+that the value of the expression is the value of the leading sub-expression.
+It could be made a single identifier expression, and since cascades are
+often used in argument position, that is exactly where we would *want*
+to use the shorter syntax.
+
+The rule for single identifier expressions would add another rule:
+
+> *   `s..cascade`:
+>    *   If `e` a `<cascade>` of the form ``<cascade> `..' <cascadeSection>``
+>        and the `<cascade>` is `s`,
+>        then `e` is a single identifier expression with identifier *I*.
+>    *   If `e` a `<cascade>` of the form
+>        ``<conditionalExpression> (`?..' | `..') <cascadeSection>``
+>        and the `<conditionalExpression>` is `s`,
+>        then `e` is a single identifier expression with identifier *I*.
+
+The other cases do not contain any other identifier than the one that
+provides the value of the expression. A cascade could have any expression
+after the `..`, so it would be even more important for readability that
+the reader knows to look at the very next identifier for the name.
+
+However, the places where cascades are used are often in argument position,
+which
 
 Examples of uses that could be made shorter (from `package:csslib`):
 ```dart
@@ -246,26 +261,115 @@ which would become:
  TextSpan(text: offScreenText, :recognizer..onTap = () {})
 ```
 
-It is the use that has the biggest risk of being confusing to read,
-but you can always write the identifier if you prefer it.
+Also, if we *ever* want to allow a prefixed identifier, making it possible
+to abbreviate `foo(bar: source.bar)` to `foo(:source.bar)`, then it's confusing
+that the very syntactically similar `(:a.b)`and  `(:a..b)` mean
+`(b: a.b)` and `(a:..b)` respectively. Not surprising since the *value* of the
+expression comes from something named `b` in one case and something names `a`
+in the other, but does make it easier to lose track of which name goes where.
+_(With `(:a.b)` meaning `(b: a.b)`, it's more like the *last* identifier is
+the one that provides the name, and a cascade would break that, leaving the
+reader with no easy rule for where to find the significant identifier.)_
+
+Another example simplified from actual code:
+```dart
+  static Uri addQueryParameters(
+      Uri uri,
+      Map<String, String> queryParameters,
+  ) => uri.replace(:queryParameters..addAll(uri.queryParameters));
+```
+
+And from a Flutter program using a null-aware cascade:
+```dart
+        child: TextField(
+          :controller?..text = initialValue,
+          maxLines: 5,
+          :onChanged,
+        ),
+```
+
+### Increments
+
+Expressions of the form `++id`/`--id` or `id++`/`id--` also evaluate to
+the value of `id`, either as it was when read for `id++`, or what it is
+now for `++id`, and the `id` is the first identifier of the expression.
+
+As such, they are within the design parameters that are otherwise used,
+and could be allowed. _They'd only be valid directly on the identifier,
+not after wrapping with `!`, `as T` or `(...)`._
+
+Increments are also often used in argument position, so it would fit
+in that way too.
+
+I'd expect it to be less common that a *counter* has the same
+name as the *value*. Passing the value of a mutable variable as
+an argument means that the are less likely to have the *same meaning*,
+even if they have the same value.
+
+For now, it's not included. It can easily be added if an real need
+is discovered.
 
 ### Assignments
 
 An expression of the form `id1 = id2` is an expression which has the same
-value as a single identifier, `id2`.
-(We don't know what assigning to `id1` means, or if it can even be read,
-but the value of the expression is the value of evaluating `id2`.)
+value as the identifier, `id2`.
+(We don't know for sure what assigning to `id1` means,
+or if it can even be read, but we know that the value of the expression
+is the value of evaluating `id2`.)
 
-It's not included because that identifier is not the next identifier
+Assignments are not included because that identifier is not the next identifier
 of the expression, and because it can easily be confusing which identifier
 defines the name. (And more so for more steps, like `:foo = bar = baz`.)
 
+It would be *more consistent* to use the identifier `id1`.
+If assignment behaves *as it looks like it should*, then `id1` is a name for
+the value of the expression. It is also the first identifier, which makes
+it easy to find, and it would also open the door to `id += 2` &mdash;
+to generalize `id++` &mdash; or to `id ??= 42`, where the latter makes good
+sense in a parameter position.
+
+The most generally useful choice would be that `id = e` and `id op= e`
+would count as `id`, since the value of the expression is the (new) value
+of `id`, and `id` is the first identifier of the expression.
+
+Probably likely to be confusing.
+The expression occurs in parameter or record-field position,
+which means that there is *another* implicit assignment going on.
+
+_If we also want to allow `:a.b` to be short for `b:a.b`, then allowing
+assignment puts the significant identifier in the middle: `:e1.id = e2`,
+which can make it hard to find.
+
+### Property access
+
+As alluded to above, we could allow `(:e.b)` to mean `(b: e.b)`,
+using the name of a final selector to represent the value it
+evaluates to.
+
+That is consistent with using plain identifiers that refer to instance getters
+inside the declaring context.
+It would allow referring to identifiers imported with a prefix
+or accessing an identifier from outside of its scope just as briefly
+as inside its scope.
+
+It would mean that the operative identifier is no longer the *first*
+identifier of the expression. Rather, it would be the last one,
+which conflicts with allowing cascades or assignments, that both
+add something after the identifier. A `(:a.b..c.d)` or `(:a.b=c.d)` would
+have the missing name somewhere in the middle of the expression,
+and not necessarily easy to find.
 
 ### Future additions.
 
-It's possible to extend the "single identifier expression" definition
-to more expressions in the future without breaking any code existing
-at that point.
+Extending the "single identifier expression" to more syntaxes is non-breaking.
+It turns something that would be a compile-time error into something else.
+
+That means that we can always add more cases later.
+The initially proposed expressions are only the simplest of cases,
+where there is only one identifier in the expression at all,
+so no choice of it being the first or last identifier has been made.
+(And increments are omitted because they are similar to assignments,
+and it feels like half a feature to only handle increments by themselves.)
 
 ## Revision history
 
