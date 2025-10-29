@@ -15,7 +15,7 @@ named arguments:
   );
 ```
 
-To avoid redundant repetition, Dart will allow you to omit the
+To avoid redundant repetition, this feature will allow you to omit the
 argument name if it's the same name as the expression providing the value.
 
 ```dart
@@ -37,7 +37,7 @@ Color colorWithAlpha(Color color, int newAlpha) {
   return (red: red, green: green, blue: blue, alpha: newAlpha);
 }
 ```
-will become
+which this feature will allow to be written as:
 ```dart
 Color colorWithAlpha(Color color, int alpha) {
   var (:red, :green, :blue, alpha: _) = color;
@@ -115,7 +115,7 @@ Where the language specification refers to a named argument's name,
 it now uses this definition of the name of a `<namedArgument>`.
 
 Where the Record specification for a record literal refers to a field name,
-it now uses to this definition.
+it now uses this definition.
 
 ## Semantics
 
@@ -239,9 +239,6 @@ The other cases do not contain any other identifier than the one that
 provides the value of the expression. A cascade could have any expression
 after the `..`, so it would be even more important for readability that
 the reader knows to look at the very next identifier for the name.
-
-However, the places where cascades are used are often in argument position,
-which
 
 Examples of uses that could be made shorter (from `package:csslib`):
 ```dart
