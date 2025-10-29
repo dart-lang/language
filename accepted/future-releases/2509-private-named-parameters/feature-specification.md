@@ -422,7 +422,7 @@ If there is no error then:
 ```dart
 // Note: Also uses an in-body primary constructor.
 class Id {
-  late final int _region = 0;
+  late final int _region;
 
   this({this._region, final int _value}) : assert(_region > 0 && _value > 0);
 
