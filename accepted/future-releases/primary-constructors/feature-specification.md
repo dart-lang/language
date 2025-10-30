@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Accepted
 
-Version: 1.10
+Version: 1.11
 
 Experiment flag: declaring-constructors
 
@@ -638,13 +638,13 @@ constructors as well.
 <factoryConstructorSignature> ::= // Modified rule.
      'const'? 'factory' <constructorName> <formalParameterList> // Old form.
    | 'const'? <factoryConstructorHead> <formalParameterList>; // New form.
- 
+
 <redirectingFactoryConstructorSignature> ::= // Modified rule.
      'const'? 'factory' <constructorName> <formalParameterList> '='
      <constructorDesignation> // Old form.
    | 'CONST'? <factoryConstructorHead> <formalParameterList> '='
      <constructorDesignation>; // New form.
- 
+
 <constantConstructorSignature> ::= // Modified rule.
    : 'const' <constructorName> <formalParameterList> // Old form.
    | 'const' <constructorHead> <formalParameterList> // New form.
@@ -702,14 +702,6 @@ constructors as well.
      ('=' <expression>)?;
 ```
 
-The word `factory` is removed from the set of built-in identifiers and
-added to the set of reserved words.
-
-*This allows the new constructor declaration syntax such as `factory();` to
-be unambiguous.  It is also a breaking change because `factory` can no
-longer be the name of a declaration. However, this occurs only infrequently
-today.*
-
 A _declaring constructor_ declaration is a declaration that contains a
 `<declaringConstructorSignature>` with a `<declaringParameterList>`, or a
 declaration that contains a `<declaringConstantConstructorSignature>`, or
@@ -720,6 +712,25 @@ type declaration, together with a declaration in the body that contains a
 
 A class or extension type declaration whose class body is `;` is treated as
 a declaration whose body is `{}`.
+
+The grammar is ambiguous with regard to the keyword `factory`.  *For
+example, `factory() => C();` could be a method named `factory` with an
+implicitly inferred return type, or it could be a factory constructor.*
+
+This ambiguity is resolved as follows: When a Dart parser expects to parse
+a `<memberDeclaration>`, and the first token is `factory`, it proceeds to
+parse the following input as a factory constructor.
+
+*Another special exception is introduced with factory constructors in order
+to avoid breaking existing code:*
+
+A factory constructor declaration of the form `factory C(...` where `C`
+is the name of the enclosing class, mixin class, enum, or extension type is
+treated as if `C` had been omitted.
+
+*Without this special rule, such a declaration would declare a constructor
+named `C.C`. With this rule it declares a constructor named `C`, which
+is the same as today.*
 
 Let _D_ be a class, extension type, or enum declaration.
 
@@ -1029,6 +1040,15 @@ then _k2_ has an initializer list with the same elements in the same order.
 
 Finally, _k2_ is added to _D2_, and _D_ is replaced by _D2_.
 
+### Language versioning
+
+This feature is language versioned.
+
+*It introduces a breaking change in the grammar, which implies that
+developers must explicitly enable it. In particular, `factory() {}` in a
+class body used to be a method declaration. With this feature it will be
+a factory constructor declaration.*
+
 ### Discussion
 
 This proposal includes support for adding the declaring header parameters to
@@ -1060,6 +1080,13 @@ far removed from any syntactic hint that the constructor must be constant
 of declaration, and the constructor might be non-const).
 
 ### Changelog
+
+1.11 - October 30, 2025
+
+* Introduce the new syntax for the beginning of a constructor declaration
+  (`new();` rather than `ClassName();`). Specify how to handle the
+  ambiguity involving the keyword `factory`. Clarify that this feature is
+  language versioned.
 
 1.10 - October 3, 2025
 
