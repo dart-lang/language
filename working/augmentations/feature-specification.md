@@ -1005,40 +1005,54 @@ the combined declaration.*
 
 ### Compile errors with augmentations
 
-Many existing compile-time errors in the language specification are only
-meaningful after semantic analysis so only make sense to check after
-augmentations are applied. For example:
+Prior to augmentations, the definition of a semantic entity is produced by a
+single syntactic declaration. That allows the language specification to refer to
+those entities interchangeably. With augmentations, that is no longer the case.
+A single semantic entity may be the product of multiple syntactic declarations
+(an introductory and any number of augmentations). This raises the question of
+whether existing compile errors apply to syntactic declarations or semantic
+definitions. For example, the specification says:
 
-> Let `C` be a concrete class declared in library `L`, with interface `I`.
-> Assume that `I` has a member signature `m` which is accessible to `L`. It is a
-> compile-time error if `C` does not have a concrete member with the same name as
-> `m` and accessible to `L`, ...
+> It is a compile-time error if two elements in the type list of the
+> `implements` clause of a class `C` specifies the same type `T`.
 
-This error says that a non-abstract class must fully implement its interface.
-We don't know what methods a class even has until semantic analysis lets us
-see inherited methods, and that happens after augmentation. Thus this error is
-checked after augmentations have been applied. Therefore, there is no error in:
+Thus this is an error:
 
 ```dart
-abstract class I {
-  m();
-}
-
-class C implements I {}
-
-augment class C {
-  m() {}
-}
+class C implements I, I {}
 ```
 
-The general rule is that compile-time errors should be checked after
-augmentations are applied when possible to do so. In other words, if the
-library is well-formed enough that augmentations *can* be applied, then they
-should be. And if doing so eliminates what would otherwise be a compile-time
-error, then that error should not be reported.
+But what about:
 
-Put another way, moving code out of an introductory declaration into an
-augmentation of it should not cause new errors to appear.
+```dart
+class C implements I {}
+
+augment class C implements I {}
+```
+
+Each syntactic declaration of `C` only mentions the interface once. But the
+resulting definition produced by applying augmentations has an `implements`
+clause with `I` in it twice. To which entity does the error apply?
+
+The general rule is that **compile-time errors apply to semantic definitions
+whenever possible.** In other words, if the library is syntactically well-formed
+enough that augmentations *can* be applied, then they should be. And if doing so
+eliminates what would otherwise be a compile-time error, then that error should
+not be reported.
+
+In the example above, there is an error because the resulting definition does
+have the same interface twice in the `implements` clause. *(Though note that
+[#4542](https://github.com/dart-lang/language/issues/4542) tracks whether we
+want to change this specific error.)*
+
+The motivation for this principle is that reorganizing code into or out of
+augmentations shouldn't affect the errors that are reported as much as possible.
+Augmentations are a syntactic tool for organizing code, but what the user cares
+about -- and what static analysis should thus focus on -- is the semantics of
+the resulting definitions. Also, in most cases the error relies on semantic
+information that isn't even well defined for syntactic entities and is only
+known from the resolved semantic definition which can't be produced without
+applying augmentations.
 
 ## Dynamic semantics
 
