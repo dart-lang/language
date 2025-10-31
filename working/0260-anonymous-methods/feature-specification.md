@@ -5,7 +5,162 @@ Version: 1.0
 
 ## Introduction
 
+An anonymous method is an expression that allows for an object (the
+_receiver_) to be captured and made available to an expression or a block
+of statements (the _body_).
 
+Consider the following example:
+
+```dart
+void main() {
+  final String halfDone, result;
+  final sb = StringBuffer('Hello');
+  sb.write(',');
+  halfDone = sb.toString();
+  sb.write(' ');
+  sb.write('world!');
+  result = sb.toString();
+  print('Creating an important string: $halfDone then $result');
+}
+```
+
+This example could have been expressed nicely as a cascade, except for the
+fact that we need to do something which is not an invocation of a member of
+`sb`:
+
+```dart
+void main() {
+  final String halfDone, result;
+  final sb = StringBuffer('Hello')
+    ..write(',')
+    // halfDone = sb.toString(); // Oops, can't do this!
+    ..write(' ')
+    ..write('world!');
+  result = sb.toString();
+  print('Creating an important string: $halfDone then $result');
+}
+```
+
+Anonymous methods can be used to do this. First, an anonymous method with
+an expression body (recognizable because it has an `=>`) can be used to
+"inject" expressions into a cascade:
+
+```dart
+void main() {
+  final String halfDone, result;
+  final sb = StringBuffer('Hello')
+    ..write(',')
+    ..=> halfDone = toString()
+    ..write(' ')
+    ..write('world!')
+    ..=> result = toString();
+  print('Creating an important string: $halfDone then $result');
+}
+```
+
+Next, we could also use a single anonymous method with a block body to do
+all of it:
+
+```dart
+void main() => StringBuffer('Hello').{
+  final String halfDone, result;
+  write(',');
+  halfDone = toString();
+  write(' ');
+  write('world!');
+  result = toString();
+  print('Creating an important string: $halfDone then $result');
+};
+```
+
+The code has now been reorganized because there is no need to have the
+variable `sb` any more: All the work which is done with the string buffer
+is now handled in the body of the anonymous method, and the two other
+variables `halfDone` and `result` have been moved into the same body.
+
+This illustrates that it is possible to do work in a single expression
+which would currently be expressed using several statements, and it also
+illustrates that all the work on the string buffer is gathered into a
+single block, which can make the code easier to understand at a glance.
+
+The semantics of an anonymous method of the form `e.{ S }` where `e` is an
+expression and `S` is a sequence of statements is that `e` is evaluated to
+an object `o` and then `S` is executed with `this` bound to `o`. Note that
+it is possible to get `this.` prepended to an identifier which is not
+otherwise in scope, just like `foo()` may mean `this.foo()` when it occurs
+in an instance method of a class. (Hence the name 'anonymous _methods_'.)
+
+In `e.{ S }`, `S` may contain return statements, and the returned value is
+the value of the expression as a whole. For example:
+
+```dart
+void main() {
+  StringBuffer('Hello').{
+    write(', world!');
+    return toString();
+  }.{
+    // `this` is the string returned by `toString()`.
+    print(length); // Prints '13'.
+    return length > 10;
+  }.=> print('That was a ${this ? 'very' : '') long string!');
+}
+```
+
+To avoid name clashes and preserve access to an enclosing `this`, it is
+possible to give a name to the captured object. In this case there is no
+change to the value of `this` (if any):
+
+```dart
+class A {
+  void bar() {}
+  void foo() {
+    StringBuffer('Hello').(sb) {
+      sb.write(', world!');
+      this.bar(); // `this` refers to the current instance of `A`.
+      return sb.toString();
+    }.(s) {
+      print(s.length);
+      bar(); // An implicit `this` also refers to the current `A`.
+      return s.length > 10;
+    }.(cond) => print('That was a ${cond ? 'very' : '') long string!');
+  }
+}
+```
+
+A useful example is where we have an expression whose value is needed
+several times:
+
+```dart
+void main() {
+  // Current code could be like this:
+  if (e.one && e.two && e.three) {...}
+  
+  // However, it may be slow or even wrong to execute `e` thrice.
+  
+  // With an anonymous method, we can do this:
+  if (e.=> one && two && three) {...}
+}
+```
+
+Another example which may be quite useful is that we can use an anonymous
+method to do or not do something, based on whether a given expression has
+the value null:
+
+```dart
+void main() {
+  // Current approach:
+  final x = e;
+  if (x != null) {
+    foo(x);
+  }
+  
+  // With anonymous methods we can do this:
+  e?.=> foo(this);
+}
+```
+
+This rewrite works quite nicely in the case where we aren't using `x` for
+anything else.
 
 ## Proposal
 
