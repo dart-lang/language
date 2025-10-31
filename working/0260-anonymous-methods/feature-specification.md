@@ -73,6 +73,12 @@ void main() => StringBuffer('Hello').{
 };
 ```
 
+A crucial point in both forms of anonymous methods shown above is that they
+evaluate the receiver (the expression before the `.`) and make it available
+as the value of `this` in the body. As usual, members of `this` can be
+accessed with an implicit receiver (for example, `write(...)` will call the
+`write` method of the `StringBuffer` which is the value of `this`).
+
 The code has now been reorganized because there is no need to have the
 variable `sb` any more: All the work which is done with the string buffer
 is now handled in the body of the anonymous method, and the two other
