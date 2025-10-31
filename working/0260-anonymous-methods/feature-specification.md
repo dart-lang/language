@@ -5,7 +5,7 @@ Version: 1.0
 
 ## Introduction
 
-TODO
+
 
 ## Proposal
 
@@ -58,12 +58,12 @@ is considered to have the type `T`, and `S` has access to `this`.
 an anonymous method, and it is also possible that `this` does not have a
 meaning at all outside the anonymous method. Moreover, an anonymous method
 can be nested inside another anonymous method, which will generally cause
-`this` to have different meanings *
+`this` to have different meanings.*
 
 During this analysis, a name `n` is resolved by a lexical lookup following
 the existing rules. In particular, if no declaration whose basename is the
 basename of `n` is found in an enclosing scope then the name is
-treated as it had been prepended by `this.`.
+treated as if it had been prepended by `this.`.
 
 Consider the situation where lexical lookup finds a declaration whose
 basename is the basename of `n`, and it occurs in the body scope of an
@@ -121,7 +121,8 @@ method invocation.
 
 The static type of the anonymous method invocation is computed from the
 static types of the returned expressions, following the same rules as for
-the return type inference on a synchronous non-generator function literal.
+the return type inference on a synchronous non-generator function literal
+with body `{ S }`.
 
 #### Expression bodied anonymous methods
 
@@ -149,11 +150,11 @@ single parameter which is declared by `P`.
 
 Next, `e` is subject to static analysis. Let `T` be the static type of
 `e`. If `p` has a type annotation `U`, a compile-time error occurs if `T`
-is not assignable to `U`. If `p` has no type annotation, the declared type
-of `p` is `T`.
+is not assignable to `U`. If `p` has no type annotation then the declared
+type of `p` is `T`, otherwise it is said type annotation `U`.
 
-Next, `S` is subject to static analysis in a scope where `p` is defined and
-has its declared type, and the enclosing scope is the current scope for the
+Next, `S` is subject to static analysis in a scope where `p` is bound to
+its declared type, and the enclosing scope is the current scope for the
 anonymous method invocation as a whole.
 
 During the static analysis, the context type for `r` in each statement of
@@ -163,7 +164,8 @@ method invocation.
 
 The static type of the anonymous method invocation is computed from the
 static types of the returned expressions, following the same rules as for
-the return type inference on a synchronous non-generator function literal.
+the return type inference on a synchronous non-generator function literal
+with body `{ S }`.
 
 #### Expression bodied anonymous methods with a parameter
 
@@ -176,12 +178,12 @@ single parameter which is declared by `P`.
 
 First, `e1` is subject to static analysis. Let `T` be the static type of
 `e1`. If `p` has a type annotation `U`, a compile-time error occurs if `T`
-is not assignable to `U`. If `p` has no type annotation, the declared type
-of `p` is `T`.
+is not assignable to `U`. If `p` has no type annotation then the declared
+type of `p` is `T`, otherwise it is said type annotation `U`.
 
-Next, `e2` is subject to static analysis in a scope where `p` is defined
-and has its declared type, and the enclosing scope is the current scope for
-the anonymous method invocation as a whole.
+Next, `e2` is subject to static analysis in a scope where `p` is bound to
+its declared type, and the enclosing scope is the current scope for the
+anonymous method invocation as a whole.
 
 During the static analysis, the context type schema for `e2` is the context
 type of the entire anonymous method invocation.
