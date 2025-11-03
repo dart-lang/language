@@ -73,6 +73,12 @@ void main() => StringBuffer('Hello').{
 };
 ```
 
+A crucial point in both forms of anonymous method shown above is that they
+evaluate the receiver (the expression before the `.`) and make it available
+as the value of `this` in the body. As usual, members of `this` can be
+accessed with an implicit receiver (for example, `toString()` will call the
+`toString` method of the `StringBuffer` which is the value of `this`).
+
 The code has now been reorganized because there is no need to have the
 variable `sb` any more: All the work which is done with the string buffer
 is now handled in the body of the anonymous method, and the two other
@@ -127,8 +133,8 @@ class A {
 }
 ```
 
-A useful example is where we have an expression whose value is needed
-several times:
+A useful example is where we have an expression `e` whose value is used
+multiple times:
 
 ```dart
 void main() {
@@ -149,8 +155,7 @@ the value null:
 ```dart
 void main() {
   // Current approach:
-  final x = e;
-  if (x != null) {
+  if (e case final x?) {
     foo(x);
   }
   
@@ -159,8 +164,62 @@ void main() {
 }
 ```
 
-This rewrite works quite nicely in the case where we aren't using `x` for
-anything else.
+Consider another example where we use the explicitly named form in order to
+have access to more than one captured object in the same expression:
+
+```dart
+void main() {
+  // Using anonymous methods.
+  e1.foo(e2, e3?.(x) => e4?.(y) => bar(x, 42, y));
+  
+  // Expressing the same thing today, assuming that
+  // we can change the evaluation order slightly.
+  SomeType? arg;
+  if (e3 case final x?) {
+    if (e4 case final y?) {
+      arg = bar(x, 42, y);
+    }
+  }
+  e1.foo(e2, arg);
+}
+```
+
+### Reading anonymous method invocations
+
+In order to grasp the meaning of an expression that uses an anonymous method,
+the following reading technique can be helpful:
+
+To recognize an anonymous method at a glance, note that it has a period
+immediately followed by a parameter list (look for `.(`, or a conditional
+and/or cascaded form like `?.(`, `..(`, or `?..(`). Otherwise, it has a
+period immediately followed by a function body (look for `.{` or `.=>`, or
+a conditional/cascaded variant).
+
+For an anonymous method invocation as a whole, it may be helpful to read it
+as follows:
+
+```dart
+e.=> one && two && three
+```
+
+reads as "evaluate `e`; call it `this`; then evaluate `one && two && three`.
+
+```dart
+e?.=> foo(this)
+
+```
+
+reads as "evaluate `e`; bail out if null, otherwise call it `this`; then
+evaluate `foo(this)`.
+
+```dart
+e3?.(x) => e4?.(y) => bar(x, 42, y)
+```
+
+reads as "evaluate `e3`; bail out if null, otherwise call it `x`; then
+evaluate `e4`; bail out if null, otherwise call it `y`; then evaluate
+`bar(x, 42, y)`".
+
 
 ## Proposal
 
@@ -375,6 +434,19 @@ this.
 as `let v = e1, _  = v.{ S } in v`, and `e1?..{ S }` is treated as
 `let v = e1 in v != null ? (let _  = v.{ S } in v) : null`.*
 
+#### Flow analysis
+
+The flow analysis of an anonymous method invocation recognizes that the code in
+the body of the anonymous method will be executed exactly once for the
+unconditional variants, at most once for the conditional variants, and it
+is recognized that the execution takes place immediately after the
+evaluation of the receiver.
+
+*This implies that an assignment to a local variable `v` in the body of an
+anonymous method does not cause `v` to be considered non-promotable, which
+makes anonymous methods more convenient to work with than function
+literals.*
+
 ### Dynamic semantics
 
 Consider an anonymous method invocation of one of the forms
@@ -414,5 +486,8 @@ This feature does not introduce any breaking changes, hence there is no
 need to consider breakage management.
 
 ### Revisions
+
+- 1.1, 2025-Nov-3: Add a section in the introduction about how to read the
+  code, and a section in the proposal about flow analysis.
 
 - 1.0, 2025-Oct-31: Initial version of this feature specification.
