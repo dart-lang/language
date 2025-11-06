@@ -176,7 +176,7 @@ declaration, which may be helpful when reading the code.
 
 With the primary constructor, the modifier `const` could have been
 placed on the class (`const class`) rather than on the class name. This
-proposal puts it on the class name because the notion of a "constant class"
+feature puts it on the class name because the notion of a "constant class"
 conflicts with with actual semantics: It is the constructor which is
 constant because it is able to be invoked during constant expression
 evaluation; it can also be invoked at run time, and there could be other
@@ -243,7 +243,8 @@ where there is no primary constructor:
 
 ```dart
 // Current syntax.
-class D<TypeVariable extends Bound> extends A with M implements B, C {
+class D<TypeVariable extends Bound> 
+    extends A with M implements B, C {
   final int x;
   final int y;
   const D.named(this.x, [this.y = 0]);
@@ -274,9 +275,9 @@ class Point(var int x, var int y) {
 }
 ```
 
-When using a primary it is possible to use an initializer list in order to
-invoke a superconstructor and/or initialize some explicitly declared
-instance variables with a computed value.
+When using a primary constructor it is possible to use an initializer list
+in order to invoke a superconstructor and/or initialize some explicitly
+declared instance variables with a computed value.
 
 ```dart
 // Current syntax.
@@ -298,7 +299,7 @@ class const A.someName(final int x);
 
 class const B(int x, int y, {required final String s2}) extends A {
   final String s1;
-  const this : s1 = y.toString(), assert(s2.isNotEmpty), super.someName(x + 1);
+  this : s1 = y.toString(), super.someName(x + 1);
 }
 ```
 
@@ -326,9 +327,8 @@ any.
 In other words, when a class has a primary constructor, each of the
 initializing expressions of a non-late instance variable has the same
 declarations in scope as the initializer list would have if it had been a
-regular (non-declaring) constructor in the body. This is convenient, and it
-makes refactorings from one to another kind of constructor simpler and
-safer.
+regular constructor in the body. This is convenient, and it makes
+refactorings from one to another kind of constructor simpler and safer.
 
 ```dart
 // Current syntax.
@@ -361,11 +361,6 @@ This can only work if the primary constructor is guaranteed to be
 executed. Hence the rule, mentioned above, that there cannot be any other
 non-redirecting generative constructors in a class that has a primary
 constructor.
-
-This further motivates the special terminology where a declaring header
-constructor is known as a primary constructor as well: The _primary_
-constructor is more powerful than other constructors because it
-changes the scoping for specific locations in the entire class body.
 
 Finally, here is an example that illustrates how much verbosity this
 feature tends to eliminate:
@@ -437,7 +432,7 @@ because `y` isn't in scope. Moreover, there cannot be other non-redirecting
 generative constructors when there is a primary constructor, but in the
 other version we could add another non-redirecting generative constructor
 which could initialize `w` with some other value, in which case we must
-also initialize `w` as shown in both cases.
+also initialize `w` as shown.
 
 As an aside, we may get rid of all those occurrences of `required` in the
 situation where it is a compile-time error to not have them, but that is a
@@ -517,7 +512,7 @@ constructors as well.
 <redirectingFactoryConstructorSignature> ::= // Modified rule.
      'const'? 'factory' <constructorName> <formalParameterList> '='
      <constructorDesignation> // Old form.
-   | 'CONST'? <factoryConstructorHead> <formalParameterList> '='
+   | 'const'? <factoryConstructorHead> <formalParameterList> '='
      <constructorDesignation>; // New form.
 
 <constantConstructorSignature> ::= // Modified rule.
@@ -873,7 +868,7 @@ a factory constructor declaration.*
 
 ### Discussion
 
-This proposal includes support for adding the primary constructor
+This design includes support for adding the primary constructor
 parameters to the scope of the class, as proposed by Slava Egorov.
 
 The scoping structure is highly unusual because the formal parameter list
