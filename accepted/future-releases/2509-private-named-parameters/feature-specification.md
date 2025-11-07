@@ -228,9 +228,9 @@ encapsulation.
 
 The basic idea is simple. We let users use a private name in a named parameter
 when the parameter also initializes or declares a field. The compiler removes
-the `_` from the argument name but keeps it for the corresponding field. In
-other words, we do exactly what users are doing by hand when they write an
-initializer like:
+the `_` from the argument name at call sites but keeps it for the corresponding
+field. In other words, we do exactly what users are doing by hand when they
+write an initializer like:
 
 ```dart
 class House {
