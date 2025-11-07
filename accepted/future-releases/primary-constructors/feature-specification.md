@@ -616,10 +616,10 @@ modifier `required` as well as a default value.
 
 ### Static processing
 
-The ability to use `new` rather than the class name in declarations of
-ordinary (non-declaring) constructors is purely syntactic. The static
-analysis and meaning of such constructors is identical to the form that
-uses the class name.
+The ability to use `new` or `factory` as a keyword and omitting the class
+name in declarations of ordinary (non-primary) constructors is purely
+syntactic. The static analysis and meaning of such constructors is
+identical to the form that uses the class name.
 
 The name of a primary constructor of the form
 `'const'? id1 <typeParameters>? <declaringParameterList>` is `id1` *(that
@@ -646,8 +646,8 @@ generative constructor, unless _D_ is an extension type.
 *For a class, mixin class, or enum declaration, this ensures that every
 generative constructor invocation will invoke the primary constructor,
 either directly or via a series of generative redirecting constructors.
-This is required in order to allow initializers with no access to `this` to
-use the parameters.*
+This is required in order to allow non-late instance variable initializers
+to access the parameters.*
 
 If _D_ is an extension type, it is a compile-time error if the primary
 constructor that _D_ contains does not have exactly one parameter.
@@ -752,12 +752,6 @@ A compile-time error occurs if _p_ contains a term of the form `this.v`, or
 reason for this error is that the modifier `covariant` must be specified on
 the declaration of `v` which is known to exist, not on the parameter.*
 
-A compile-time error occurs if _p_ has both of the modifiers `covariant`
-and `final`, also if the latter is implicitly induced *(which can occur in a
-primary constructor of an extension type declaration)*. *A final instance
-variable cannot be covariant, because being covariant is a property of the
-setter.*
-
 A compile-time error occurs if _p_ has the modifier `covariant`, but
 not `var`. *This parameter does not induce a setter.*
 
@@ -813,8 +807,7 @@ fact that the primary constructor is actually placed outside the braces
 that delimit the class body.*
 
 Next, _k2_ has the modifier `const` iff the keyword `const` occurs just
-before the name of _D_ or before `this`, or if _D_ is an `enum`
-declaration.
+before the name of _D_, or _D_ is an `enum` declaration.
 
 Consider the case where _k_ is a primary constructor. If the name `C` in
 _D_ and the type parameter list, if any, is followed by `.id` where `id` is
@@ -846,8 +839,9 @@ positional or named parameter remains optional; if it has a default value
   in _L2_ by `this.p`, along with its default value, if any.  Next, a
   semantic instance variable declaration corresponding to the syntax `T p;`
   or `final T p;` is added to _D2_. It includes the modifier `final` if the
-  parameter in _L_ has the modifier `final`, or _D_ is an `extension type`
-  declaration and _k_ is a declaring header constructor. In all cases, if
+  parameter in _L_ has the modifier `final` and _D_ is not an `extension
+  type` decaration; if _D_ is an `extension type` declaration then the name
+  of `p` specifies the name of the representation variable. In all cases, if
   `p` has the modifier `covariant` then this modifier is removed from the
   parameter in _L2_, and it is added to the instance variable declaration
   named `p`.
@@ -863,8 +857,9 @@ This feature is language versioned.
 
 *It introduces a breaking change in the grammar, which implies that
 developers must explicitly enable it. In particular, `factory() {}` in a
-class body used to be a method declaration. With this feature it will be
-a factory constructor declaration.*
+class body used to be a method declaration whose name is `factory`. With
+this feature, it is a factory constructor declaration whose name is the
+name of the enclosing class, enum, or extension type declaration.*
 
 ### Discussion
 
@@ -881,7 +876,7 @@ variables, and that allows us to move code from an initializer list to a
 variable initializer and vice versa without worrying about changing the
 meaning of the code. This in turn makes it easier to change a regular
 (non-primary) constructor to a primary constructor, or vice versa. So we
-assume that the unusual scoping structure will make sense in practice.
+expect the unusual scoping structure to work reasonably well in practice.
 
 The proposal allows an `enum` declaration to include the modifier `const`
 just before the name of the declaration when it has a primary constructor,
