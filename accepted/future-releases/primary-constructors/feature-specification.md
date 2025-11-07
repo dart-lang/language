@@ -485,15 +485,16 @@ constructors as well.
 
 <constructorSignature> ::= // Modified rule.
      <constructorName> <formalParameterList> // Old form.
-   | <constructorHead> <formalParameterList> // New form.
-   | 'this';
+   | <constructorHead> <formalParameterList>; // New form.
 
 <constantConstructorSignature> ::= // Modified rule.
-     'const' <constructorName> <formalParameterList> // Old form.
-   | 'const' <constructorHead> <formalParameterList>; // New form.
+     'const' <constructorSignature>;
 
 <constructorName> ::= // Modified rule.
      <typeIdentifier> ('.' identifierOrNew)?;
+
+<constructorTwoPartName> ::= // New rule.
+     <typeIdentifier> '.' identifierOrNew;
 
 <constructorHead> ::= // New rule.
      'new' <identifier>?;
@@ -506,18 +507,24 @@ constructors as well.
    | 'new'
 
 <factoryConstructorSignature> ::= // Modified rule.
-     'const'? 'factory' <constructorName> <formalParameterList> // Old form.
-   | 'const'? <factoryConstructorHead> <formalParameterList>; // New form.
+     'const'? 'factory' <constructorTwoPartName> 
+      <formalParameterList> // Old form.
+   | 'const'? <factoryConstructorHead> 
+      <formalParameterList>; // New form.
 
 <redirectingFactoryConstructorSignature> ::= // Modified rule.
-     'const'? 'factory' <constructorName> <formalParameterList> '='
-     <constructorDesignation> // Old form.
-   | 'const'? <factoryConstructorHead> <formalParameterList> '='
-     <constructorDesignation>; // New form.
+     <factoryConstructorSignature> '=' <constructorDesignation>;
 
-<constantConstructorSignature> ::= // Modified rule.
-   : 'const' <constructorName> <formalParameterList> // Old form.
-   | 'const' <constructorHead> <formalParameterList>; // New form.
+<primaryConstructorBodySignature> ::= // New rule.
+     'this' initializers?;
+
+<methodSignature> ::= // Add one new alternative.
+     ... 
+   | <primaryConstructorBodySignature>;
+
+<declaration> ::= // Add one new alternative.
+     ...
+   | <primaryConstructorBodySignature>;
 
 <simpleFormalParameter> ::= // Modified rule.
      'covariant'? <type>? <identifier>;
@@ -590,10 +597,14 @@ or one or more of the modifiers `const`, `augment`, or `external` followed
 by `factory`, it proceeds to parse the following input as a factory
 constructor.
 
+*This is similar to how a statement starting with `switch` or `{` are
+parsed as a switch statement or a block, never as an expression statement.*
+
 *Another special exception is introduced with factory constructors in order
 to avoid breaking existing code:*
 
-A factory constructor declaration of the form `factory C(...` where `C`
+A factory constructor declaration of the form `factory C(...` including
+zero or more of the modifiers `const`, `augment`, or `external` where `C`
 is the name of the enclosing class, mixin class, enum, or extension type is
 treated as if `C` had been omitted.
 
@@ -856,7 +867,9 @@ Finally, _k2_ is added to _D2_, and _D_ is replaced by _D2_.
 This feature is language versioned.
 
 *It introduces a breaking change in the grammar, which implies that
-developers must explicitly enable it. In particular, `factory() {}` in a
+developers must explicitly enable it. In particular, the feature disallows
+`var x`, `final x`, and `final T x` as formal parameter declarations in all
+functions that are not primary constructors. Moreover, `factory() {}` in a
 class body used to be a method declaration whose name is `factory`. With
 this feature, it is a factory constructor declaration whose name is the
 name of the enclosing class, enum, or extension type declaration.*
