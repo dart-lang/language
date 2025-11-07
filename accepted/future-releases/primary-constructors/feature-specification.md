@@ -579,8 +579,8 @@ constructors as well.
 ```
 
 A _primary constructor_ declaration consists of a `<primaryConstructor>` in
-the declaration header plus optionally a declaration in the body starting
-with a `<constructorSignature>` which is `this`.
+the declaration header plus optionally a member declaration in the body
+that starts with a `<primaryConstructorBodySignature>`.
 
 A class, mixin class, or extension type declaration whose class body is `;`
 is treated as the corresponding declaration whose body is `{}` and
@@ -603,10 +603,10 @@ parsed as a switch statement or a block, never as an expression statement.*
 *Another special exception is introduced with factory constructors in order
 to avoid breaking existing code:*
 
-A factory constructor declaration of the form `factory C(...` including
-zero or more of the modifiers `const`, `augment`, or `external` where `C`
-is the name of the enclosing class, mixin class, enum, or extension type is
-treated as if `C` had been omitted.
+A factory constructor declaration of the form `factory C(...` optionally
+starting with zero or more of the modifiers `const`, `augment`, or
+`external` where `C` is the name of the enclosing class, mixin class, enum,
+or extension type is treated as if `C` had been omitted.
 
 *Without this special rule, such a declaration would declare a constructor
 named `C.C`. With this rule it declares a constructor named `C`, which
@@ -616,8 +616,8 @@ Let _D_ be a class, extension type, or enum declaration.
 
 A compile-time error occurs if _D_ includes a `<classNameMaybePrimary>`
 that does not contain a `<primaryConstructor>`, and the body of _D_
-contains a declaration that starts with a `<constructorSignature>` which is
-`this`.
+contains a member declaration that starts with a
+`<primaryConstructorBodySignature>`.
 
 *It is an error to have the body part of a primary constructor in the  class
 body, but no primary constructor in the header.*
