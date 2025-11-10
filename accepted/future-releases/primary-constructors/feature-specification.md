@@ -10,11 +10,9 @@ Experiment flag: declaring-constructors
 
 This document specifies _primary constructors_. This is a feature that allows
 one constructor and a set of instance variables to be specified in a concise
-form in the header of the declaration. Some elements can still be specified in
-the class body: The primary constructor can have an initializer list, which must
-then be specified in the body. It can include assertions, instance variable
-initializers, and/or a superinitializer. The primary constructor can also have a
-constructor body, which is also specified in the class body.
+form in the header of the declaration of a class or a similar entity. If the
+primary constructor also needs an initializer list or body, those can be
+specified inside the class body.
 
 One variant of this feature has been proposed in the [struct proposal][],
 several other proposals have appeared elsewhere, and prior art exists in
@@ -55,13 +53,13 @@ class Point(var int x, var int y);
 ```
 
 A class that has a primary constructor cannot have any other
-non-redirecting generative constructors. This requirement must be upheld
-because it must be guaranteed that the primary constructor is executed on
-every newly created instance of this class.
+non-redirecting generative constructors. This ensures that the primary
+constructor is executed on every newly created instance of this class,
+which is necessary for reasons that are discussed later.
 
-In particular, every generative constructor in a declaration that has a
-primary constructor must be redirecting, and it must invoke the primary
-constructor (directly or indirectly). This can be seen as a motivation for
+In particular, every other generative constructor in a declaration that has
+a primary constructor must be redirecting, and it must invoke the primary
+constructor, directly or indirectly. This can be seen as a motivation for
 the word _primary_ because it makes all other generative constructors
 secondary in the sense that they depend on the primary one.
 
@@ -122,14 +120,16 @@ There is no way to indicate that the implicitly induced instance variable
 declarations should have the modifiers `late` or `external`. This omission
 is not seen as a problem in this proposal: They can be declared using the
 same syntax as today, and initialization, if any, can be done in a
-constructor body.
+constructor body. Note that it does not make sense to declare an instance
+variable as `late` if it is always initialized in the very first phase of
+the constructor execution.
 
 ```dart
 // Current syntax.
 class ModifierClass {
   late int x;
   external double d;
-  ModifierClass(this.x);
+  ModifierClass(this.x); // Can initialize `x`, but it preempts `late`.
 }
 
 // Using a primary constructor.
@@ -243,7 +243,7 @@ where there is no primary constructor:
 
 ```dart
 // Current syntax.
-class D<TypeVariable extends Bound> 
+class D<TypeVariable extends Bound>
     extends A with M implements B, C {
   final int x;
   final int y;
@@ -252,8 +252,8 @@ class D<TypeVariable extends Bound>
 
 // Using a primary constructor.
 class const D<TypeVariable extends Bound>.named(
-  var int x, [
-  var int y = 0,
+  final int x, [
+  final int y = 0,
 ]) extends A with M implements B, C;
 ```
 
@@ -426,27 +426,22 @@ class E({
 ```
 
 Note that the version with a primary constructor can initialize `z` in the
-declaration itself, whereas the other version need to use an element in the
-initializer list of the constructor to initialize `z`. This is necessary
-because `y` isn't in scope. Moreover, there cannot be other non-redirecting
-generative constructors when there is a primary constructor, but in the
-other version we could add another non-redirecting generative constructor
-which could initialize `w` with some other value, in which case we must
-also initialize `w` as shown.
-
-As an aside, we may get rid of all those occurrences of `required` in the
-situation where it is a compile-time error to not have them, but that is a
-separate proposal, [here][inferred-required] or [here][simpler-parameters].
-
-[inferred-required]: https://github.com/dart-lang/language/blob/main/working/0015-infer-required/feature-specification.md
-[simpler-parameters]: https://github.com/dart-lang/language/blob/main/working/simpler-parameters/feature-specification.md
+declaration itself, whereas the other version needs to use an element in
+the initializer list of the constructor to initialize `z`. This is
+necessary because `y` isn't in scope in the initializer list element in the
+non-primary-constructor class. Moreover, there cannot be other
+non-redirecting generative constructors when there is a primary
+constructor, but in the class that does not have a primary constructor we
+could add another non-redirecting generative constructor which could
+initialize `w` with some other value, in which case we must also initialize
+`w` as shown.
 
 ## Specification
 
 ### Syntax
 
-The grammar is modified as follows. Note that the changes include rules
-about extension type declarations because they're using primary
+The grammar is modified as follows. Note that the changes include grammar
+rules for extension type declarations because they're using primary
 constructors as well.
 
 ```ebnf
@@ -490,11 +485,11 @@ constructors as well.
 <constantConstructorSignature> ::= // Modified rule.
      'const' <constructorSignature>;
 
-<constructorName> ::= // Modified rule.
-     <typeIdentifier> ('.' identifierOrNew)?;
+<constructorName> ::=
+     <typeIdentifier> ('.' <identifierOrNew>)?;
 
 <constructorTwoPartName> ::= // New rule.
-     <typeIdentifier> '.' identifierOrNew;
+     <typeIdentifier> '.' <identifierOrNew>;
 
 <constructorHead> ::= // New rule.
      'new' <identifier>?;
@@ -507,19 +502,19 @@ constructors as well.
    | 'new'
 
 <factoryConstructorSignature> ::= // Modified rule.
-     'const'? 'factory' <constructorTwoPartName> 
+     'const'? 'factory' <constructorTwoPartName>
       <formalParameterList> // Old form.
-   | 'const'? <factoryConstructorHead> 
+   | 'const'? <factoryConstructorHead>
       <formalParameterList>; // New form.
 
 <redirectingFactoryConstructorSignature> ::= // Modified rule.
      <factoryConstructorSignature> '=' <constructorDesignation>;
 
 <primaryConstructorBodySignature> ::= // New rule.
-     'this' initializers?;
+     'this' <initializers>?;
 
 <methodSignature> ::= // Add one new alternative.
-     ... 
+     ...
    | <primaryConstructorBodySignature>;
 
 <declaration> ::= // Add one new alternative.
@@ -582,11 +577,12 @@ A _primary constructor_ declaration consists of a `<primaryConstructor>` in
 the declaration header plus optionally a member declaration in the body
 that starts with a `<primaryConstructorBodySignature>`.
 
-A class, mixin class, or extension type declaration whose class body is `;`
-is treated as the corresponding declaration whose body is `{}` and
-otherwise the same.
+A class, mixin class, or extension type declaration whose body is `;` is
+treated as the corresponding declaration whose body is `{}` and otherwise
+the same. This rule is not applicable to a `<mixinApplicationClass>` *(for
+instance, `class B = A with M;`)*.
 
-The grammar is ambiguous with regard to the keyword `factory`.  *For
+The grammar is ambiguous with regard to the keyword `factory`. *For
 example, `factory() => C();` could be a method named `factory` with an
 implicitly inferred return type, or it could be a factory constructor whose
 name is the name of the enclosing class.*
@@ -597,16 +593,17 @@ or one or more of the modifiers `const`, `augment`, or `external` followed
 by `factory`, it proceeds to parse the following input as a factory
 constructor.
 
-*This is similar to how a statement starting with `switch` or `{` are
-parsed as a switch statement or a block, never as an expression statement.*
+*This is similar to how a statement starting with `switch` or `{` is parsed
+as a switch statement or a block, never as an expression statement.*
 
 *Another special exception is introduced with factory constructors in order
 to avoid breaking existing code:*
 
-A factory constructor declaration of the form `factory C(...` optionally
-starting with zero or more of the modifiers `const`, `augment`, or
-`external` where `C` is the name of the enclosing class, mixin class, enum,
-or extension type is treated as if `C` had been omitted.
+Consider a factory constructor declaration of the form `factory C(...`
+optionally starting with zero or more of the modifiers `const`, `augment`,
+or `external`. Assume that `C` is the name of the enclosing class, mixin
+class, enum, or extension type. In this situation, the declaration declares
+a constructor whose name is `C`.
 
 *Without this special rule, such a declaration would declare a constructor
 named `C.C`. With this rule it declares a constructor named `C`, which
@@ -619,7 +616,7 @@ that does not contain a `<primaryConstructor>`, and the body of _D_
 contains a member declaration that starts with a
 `<primaryConstructorBodySignature>`.
 
-*It is an error to have the body part of a primary constructor in the  class
+*It is an error to have the body part of a primary constructor in the class
 body, but no primary constructor in the header.*
 
 A compile-time error occurs if a `<defaultDeclaringNamedParameter>` has the
@@ -641,7 +638,8 @@ The name of a primary constructor of the form
 
 A compile-time error occurs if a class, mixin class, enum, or extension
 type has a primary constructor whose name is also the name of a constructor
-declared in the body.
+declared in the body, or if it declares a primary constructor whose name is
+`C.n`, and the body declares a static member whose basename is `n`.
 
 Consider a class, mixin class, enum, or extension type declaration _D_ with
 a primary constructor *(note that it cannot be a `<mixinApplicationClass>`,
@@ -672,21 +670,15 @@ there is no conflict about the meaning of names in such initializing
 expressions. This means that we can allow those other non-redirecting
 generative constructors to coexist with a primary constructor.*
 
-A compile-time error occurs if the name of the primary constructor is the
-same as the name of a constructor in the body.
-
-*Moreover, it is an error if two constructor declarations in the body have
-the same name. This is just restating a compile-time error that we already
-have.*
-
 The declaring parameter list of the primary constructor introduces a new
 scope, the _primary initializer scope_, whose enclosing scope is the body
-scope of _D_. Every primary parameter is entered into this scope.
+scope of _D_. Each of the parameters in said parameter list is introduced
+into this scope.
 
 The same parameter list also introduces the _primary parameter scope_,
 whose enclosing scope is also the body scope of the class. Every primary
 parameter which is not declaring, not initializing, and not a super
-parameter is entered into this scope.
+parameter is introduced into this scope.
 
 The primary initializer scope is the current scope for the initializing
 expression, if any, of each non-late instance variable declaration. It is
@@ -799,7 +791,8 @@ Consider the situation where `p` has no type annotation:
   inference, just like an explicitly declared instance variable.*
 - otherwise, if `p` is optional and has a default value whose static type
   in the empty context is a type `T` which is not `Null` then `p` has
-  declared type `T`. When `T` is `Null`, `p` has declared type `Object?`.
+  declared type `T`. When `T` is `Null`, `p` instead has declared type
+  `Object?`.
 - otherwise, if `p` does not have a default value then `p` has declared
   type `Object?`.
 
@@ -823,7 +816,7 @@ before the name of _D_, or _D_ is an `enum` declaration.
 Consider the case where _k_ is a primary constructor. If the name `C` in
 _D_ and the type parameter list, if any, is followed by `.id` where `id` is
 an identifier then _k2_ has the name `C.id`. If it is followed by `.new`
-then _k2_ has the name `C`. If it is not followed by `.`  then _k2_ has the
+then _k2_ has the name `C`. If it is not followed by `.` then _k2_ has the
 name `C`. _D2_ omits the part derived from `'.' <identifierOrNew>` that
 follows the name and type parameter list in _D_, if said part exists.
 Moreover, _D2_ omits the formal parameter list _L_ that follows the name,
@@ -834,7 +827,7 @@ formal parameter is processed as follows.
 
 The formal parameters in _L_ and _L2_ occur in the same order, and
 mandatory positional parameters remain mandatory, and named parameters
-preserve the name and the modifier `required`, if any.  An optional
+preserve the name and the modifier `required`, if any. An optional
 positional or named parameter remains optional; if it has a default value
 `d` in _L_ then it has the default value `d` in _L2_ as well.
 
@@ -847,7 +840,7 @@ positional or named parameter remains optional; if it has a default value
   unchanged from _L_ to _L2_ *(this is a plain, non-declaring parameter)*.
 - Otherwise, a formal parameter (named or positional) of the form `var T p`
   or `final T p` where `T` is a type and `p` is an identifier is replaced
-  in _L2_ by `this.p`, along with its default value, if any.  Next, a
+  in _L2_ by `this.p`, along with its default value, if any. Next, a
   semantic instance variable declaration corresponding to the syntax `T p;`
   or `final T p;` is added to _D2_. It includes the modifier `final` if the
   parameter in _L_ has the modifier `final` and _D_ is not an `extension
