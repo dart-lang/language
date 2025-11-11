@@ -143,54 +143,75 @@ We propose to reduce the distance between native code and Dart by:
   which utilizes **shared _native_ memory** without breaking existing
   Dart-level isolation boundaries.
 
-### Trivially shareable objects
+### Deeply immutable instances
 
-_Trivially shareable objects_ are objects which can be shared across isolate
-boundaries (within an isolate group) without breaking isolation of mutable
-Dart state.
+VM recognizes certain instances as [deeply immutable][] and supports sending
+these instances over isolate boundaries without copying because sharing
+such instances does not break the isolation guarantees. These instances are
+by construction guaranteed to neither contain nor reference (directly or
+indirectly) any mutable Dart state.
 
-- Instances of `String`, `int`, `double`, `bool` and `Null` are trivially shareable.
-- Instances of [deeply immutable][] types.
-- Instances of internal implementation of `SendPort`.
-- Functions which only capture variables annotated with `@pragma('vm:shared')`
-  (this includes function which do not capture any variables e.g. tear-offs of
-  static methods).
-- Compile time constants (instances produced by evaluation of `const` expressions).
-- Instances of `TypedData`.
-- Instances of `Pointer` and `Struct`.
+However current definition of deeply immutable types is not general enough to
+support all interesting patterns, so we need to expand it to cover additional
+cases.
 
-> [!WARNING]
->
-> Not all _trivially shareable objects_ can be purely distinguished by their
-> static type - `SendPort` is an example which requires runtime checking.
+A _deeply immutable type_ is a type for which all instances of this type
+are _deeply immutable_.
+
+The following builtin types are deeply immutable: `bool`, `double`, `int`,
+`Null`, `String`, `Float32x4`, `Float64x2`, `Int32x4`, `Pointer`.
+
+Classes providing builtin implementations of the following public core library
+classes are also deeply immutable: `SendPort`, `Capability`, `RegExp`,
+`StackTrace`, `Type`.
+
+All compile time constants are deeply immutable instances.
+
+`TypedData` and `Struct` instances are deeply immutable when backed by native
+(external) memory.
+
+Unmodifiable lists (`List.unmodifiable`) which contain deeply immutable
+instances are deeply immutable.
+
+Closures which capture only `final` variables containing deeply immutable
+instances are deeply immutable.
+
+Finally, instances of classes annotated with `@pragma('vm:deeply-immutable')`
+are deeply immutable. It is a compile error if classes annotated with this
+pragma contain non-`final` fields. It is an compile time error if static
+type of field within annotated class excludes deeply immutable instances.
+If the static type of a field in a deeply immutable class is not
+deeply immutable type - then compiler must insert checks in the constructor to
+guarantee that this field is initialized to a deeply immutable value.
 
 > [!IMPORTANT]
 >
-> **TODO** should we allow sharing of all `TypedData` objects? This seems very
-> convenient. There is a consideration here that not all `TypedData` instances
-> can be shared on the Web, where there is separation between `ArrayBuffer`
-> and `SharedArrayBuffer` exists.
->
-> **TODO** should we allow sharing instances of immutable `List`s which only
-> contain trivially shareable objects? This in general case requires `O(1)`
-> check, but might be very convenient as well.
+> **TODO** should we allow sharing of all `TypedData` (and by extension
+> `Struct`) objects? This seems very convenient. There is a consideration
+> here that not all `TypedData` instances can be shared on the Web, where
+> there is separation between `ArrayBuffer` and `SharedArrayBuffer` exists.
 
 [deeply immutable]: https://github.com/dart-lang/sdk/blob/bb59b5c72c52369e1b0d21940008c4be7e6d43b3/runtime/docs/deeply_immutable.md
 
 ### Shared fields and variables (`@pragma('vm:shared')`).
 
 Static fields and global variables annotated with `@pragma('vm:shared')` are
-shared across all isolates in the isolate group - updating a field from one
-isolate.
+shared across all isolates in the isolate group.
 
 A field or variable annotated with `@pragma('vm:shared')` can only contain
-values which are trivially shareable objects.
+values which are deeply immutable objects.
 
 * It is a compile time error to annotate a field or variable the static type of
-  which excludes trivially shareable objects;
-* If static type of a field is a super-type for both trivially shareable and
-  non-trivially shareable objects then compiler will insert a runtime check
-  which ensures that values assigned to such field is trivially shareable.
+  which excludes deeply immutable objects;
+* If static type of a field is a super-type for both deeply immutable and
+  non-deeply immutable objects then compiler will insert a runtime check
+  which ensures that values assigned to such field are deeply immutable.
+* A field or variable annotated with `@pragma('vm:shared')` must be `final`.
+
+> [!NOTE]
+>
+> Restrictions imposed above are the same as ones imposed on field in deeply
+> immutable classes.
 
 Shared fields must guarantee atomic initialization: if multiple threads
 access the same uninitialized field then only one thread will invoke the
@@ -227,7 +248,7 @@ will cause `FieldAccessError` to be thrown.
   /// the [callback].
   ///
   /// [callback] and [exceptionalReturn] must be
-  /// _trivially shareable_.
+  /// _deeply immutable_.
   ///
   /// This callback must be [close]d when it is no longer
   /// needed. An [Isolate] that created the callback will
@@ -287,9 +308,9 @@ class Isolate {
   /// Throws [StateError] if target isolate is owned by another thread and
   /// thus can't be entered from a different thread.
   ///
-  /// Throws [ArgumentError] if [f] is not trivially shareable.
+  /// Throws [ArgumentError] if [f] is not deeply immutable.
   ///
-  /// Throws [StateError] if result returned by [f] is not trivially shareable.
+  /// Throws [StateError] if result returned by [f] is not deeply immutable.
   R runSync<R>(R Function() f, {Duration? timeout});
 }
 ```
@@ -307,7 +328,7 @@ into one update.
 final class ScopedThreadLocal<T> {
   /// Creates scoped thread local value with the given [initializer] function.
   ///
-  /// [initializer] must be trivially shareable.
+  /// [initializer] must be deeply immutable.
   external factory ScopedThreadLocal([T Function()? initializer]);
 
   /// Execute [f] binding this [ScopedThreadLocal] to the given [value] for the duration of the execution.
@@ -769,7 +790,7 @@ observe object in partially initialized state. Implementations can choose to
 guarantee this property by inserting appropriate barriers when creating objects,
 however that would be a waste for objects that are mostly used in an
 isolate-local manner. Instead, given current restriction that only
-trivially-shareable (deeply immutable objects) can be placed into shared-fields
+deeply immutable objects can be placed into shared-fields
 implementations can instead choose to implement shared fields using
 _store-release_ and _load-acquire_ atomic operations. This would guarantee
 happens-before ordering for initializing stores. We however do not _require_
