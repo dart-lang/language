@@ -2,7 +2,7 @@
 
 Author: rnystrom@google.com, jakemac@google.com, lrn@google.com
 
-Version: 1.38 (see [Changelog](#Changelog) at end)
+Version: 1.40 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
@@ -1003,6 +1003,57 @@ the combined declaration.*
 
 [analyzer package]: https://pub.dev/packages/analyzer
 
+### Compile errors with augmentations
+
+Prior to augmentations, the definition of a semantic entity is produced by a
+single syntactic declaration. That allows the language specification to refer to
+those entities interchangeably. With augmentations, that is no longer the case.
+A single semantic entity may be the product of multiple syntactic declarations
+(an introductory and any number of augmentations). This raises the question of
+whether existing compile errors apply to syntactic declarations or semantic
+definitions. For example, the specification says:
+
+> It is a compile-time error if two elements in the type list of the
+> `implements` clause of a class `C` specifies the same type `T`.
+
+Thus this is an error:
+
+```dart
+class C implements I, I {}
+```
+
+But what about:
+
+```dart
+class C implements I {}
+
+augment class C implements I {}
+```
+
+Each syntactic declaration of `C` only mentions the interface once. But the
+resulting definition produced by applying augmentations has an `implements`
+clause with `I` in it twice. To which entity does the error apply?
+
+The general rule is that **compile-time errors apply to semantic definitions
+whenever possible.** In other words, if the library is syntactically well-formed
+enough that augmentations *can* be applied, then they should be. And if doing so
+eliminates what would otherwise be a compile-time error, then that error should
+not be reported.
+
+In the example above, there is an error because the resulting definition does
+have the same interface twice in the `implements` clause. *(Though note that
+[#4542](https://github.com/dart-lang/language/issues/4542) tracks whether we
+want to change this specific error.)*
+
+The motivation for this principle is that reorganizing code into or out of
+augmentations shouldn't affect the errors that are reported as much as possible.
+Augmentations are a syntactic tool for organizing code, but what the user cares
+about -- and what static analysis should thus focus on -- is the semantics of
+the resulting definitions. Also, in most cases the error relies on semantic
+information that isn't even well defined for syntactic entities and is only
+known from the resolved semantic definition which can't be produced without
+applying augmentations.
+
 ## Dynamic semantics
 
 The application of augmentation declarations to an augmented declaration
@@ -1215,6 +1266,11 @@ fully captured by that paragraph). It's probably safest to be pessimistic
 and assume the third point is always true.
 
 ## Changelog
+
+### 1.40
+
+*   Clarify how applying augmentations interacts with compile-time errors
+    (#3690).
 
 ### 1.39
 
