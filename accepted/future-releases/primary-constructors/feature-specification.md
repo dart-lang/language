@@ -748,8 +748,10 @@ main() {
 ```
 
 It is a compile-time error if an assignment to a primary parameter occurs
-in the initializing expression of a non-late instance variable or in the
+in the initializing expression of a non-late instance variable, or in the
 initializer list of the body part of a primary constructor.
+
+*This includes expressions like `p++` where the assignment is implicit.*
 
 The following errors apply to formal parameters of a primary constructor.
 Let _p_ be a formal parameter of a primary constructor in a class, mixin
