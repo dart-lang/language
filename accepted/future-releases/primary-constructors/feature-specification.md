@@ -910,7 +910,8 @@ of declaration, and the constructor might be non-const).
 
 1.13 - November 25, 2025
 
-* TODO
+* Specify that assignments to primary parameters in initialization code is
+  an error.
 
 1.12 - November 6, 2025
 
