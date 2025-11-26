@@ -747,11 +747,15 @@ main() {
 }
 ```
 
-It is a compile-time error if an assignment to a primary parameter occurs
-in the initializing expression of a non-late instance variable, or in the
-initializer list of the body part of a primary constructor.
+Consider an assignment to a primary parameter which occurs in the
+initializing expression of a non-late instance variable, or in the
+initializer list of the body part of a primary constructor. In this
+situation, it is a compile-time error if the parameter is an initializing
+formal, a super parameter, or a declaring parameter.
 
-*This includes expressions like `p++` where the assignment is implicit.*
+*This includes expressions like `p++` where the assignment is implicit.
+The rule only applies for non-late variables because the primary parameters
+are not in scope in the initializing expression of a late variable.*
 
 The following errors apply to formal parameters of a primary constructor.
 Let _p_ be a formal parameter of a primary constructor in a class, mixin
