@@ -750,8 +750,7 @@ main() {
 Consider an assignment to a primary parameter which occurs in the
 initializing expression of a non-late instance variable, or in the
 initializer list of the body part of a primary constructor. In this
-situation, it is a compile-time error if the parameter is an initializing
-formal, a super parameter, or a declaring parameter.
+situation, a compile-time error occurs.
 
 *This includes expressions like `p++` where the assignment is implicit.
 The rule only applies for non-late variables because the primary parameters
@@ -914,8 +913,8 @@ of declaration, and the constructor might be non-const).
 
 1.13 - November 25, 2025
 
-* Specify that an assignment to a specialized primary parameter (that is,
-  an initializing, declaring, or super parameter) is an error.
+* Specify that an assignment to a primary parameter in initialization code
+  is an error.
 
 1.12 - November 6, 2025
 
