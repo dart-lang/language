@@ -747,10 +747,9 @@ main() {
 }
 ```
 
-Consider an assignment to a primary parameter which occurs in the
-initializing expression of a non-late instance variable, or in the
-initializer list of the body part of a primary constructor. In this
-situation, a compile-time error occurs.
+A compile-time error occurs if an assignment to a primary parameter occurs
+in the initializing expression of a non-late instance variable, or in the
+initializer list of the body part of a primary constructor.
 
 *This includes expressions like `p++` where the assignment is implicit.
 The rule only applies for non-late variables because the primary parameters
