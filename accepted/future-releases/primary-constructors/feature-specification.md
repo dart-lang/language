@@ -914,8 +914,8 @@ of declaration, and the constructor might be non-const).
 
 1.13 - November 25, 2025
 
-* Specify that assignments to primary parameters in initialization code is
-  an error.
+* Specify that an assignment to a specialized primary parameter (that is,
+  an initializing, declaring, or super parameter) is an error.
 
 1.12 - November 6, 2025
 
