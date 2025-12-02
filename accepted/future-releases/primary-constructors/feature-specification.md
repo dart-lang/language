@@ -755,6 +755,19 @@ initializer list of the body part of a primary constructor.
 The rule only applies for non-late variables because the primary parameters
 are not in scope in the initializing expression of a late variable.*
 
+Consider a class with a primary constructor that also has a body part with
+an initializer list. A compile-time error occurs if an instance variable
+declaration has an initializing expression, and it is also initialized by
+an element in the initializer list of the body port.
+
+*This is already an error when the instance variable is final, but no such
+error is raised when the instance variable is mutable and the initializer
+list is part of a non-primary constructor. However, with a primary
+constructor this situation will always cause the value of the initializing
+expression in the variable declaration to be overwritten by the value in
+the initializer list, which makes the situation more confusing than
+useful.*
+
 The following errors apply to formal parameters of a primary constructor.
 Let _p_ be a formal parameter of a primary constructor in a class, mixin
 class, enum, or extension type declaration _D_ named `C`:
@@ -913,7 +926,9 @@ of declaration, and the constructor might be non-const).
 1.13 - November 25, 2025
 
 * Specify that an assignment to a primary parameter in initialization code
-  is an error.
+  is an error. Specify an error for double initialization of a mutable
+  instance variable in the declaration and in a primary constructor
+  initializer list.
 
 1.12 - November 6, 2025
 
