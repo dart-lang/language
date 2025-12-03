@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Accepted
 
-Version: 1.12
+Version: 1.13
 
 Experiment flag: declaring-constructors
 
@@ -191,10 +191,12 @@ that the instance variable declaration which is induced by this declaring
 constructor parameter is `final`.
 
 In the case where the declaration is an `extension type`, the modifier
-`final` on the representation variable can be specified or omitted. Note
-that an extension type declaration is specified to use a primary
-constructor (it is not supported to declare the representation variable
-using a normal instance variable declaration):
+`final` on the representation variable can be specified or omitted. It is
+an error to specify the modifier `var` on the representation variable.
+
+An extension type declaration must have a primary constructor and its
+single parameter is always declaring. The representation variable cannot be
+declared using a normal instance variable declaration:
 
 ```dart
 // Using a primary constructor.
@@ -220,7 +222,7 @@ We can omit the type of an optional parameter with a default value,
 in which case the type is inferred from the default value:
 
 ```dart
-// Infer the declared type from default value.
+// Infers the declared type from the default value.
 class Point(var int x, [var y = 0]);
 ```
 
@@ -695,10 +697,10 @@ latter is the current scope for the initializing expressions of all
 non-late instance variable declarations, in addition to the initializer
 list of the body part of the constructor.*
 
-*The point is that the body part of the primary constructor should have
-access to the "regular" parameters, but it should have access to the
-instance variables rather than the declaring or initializing parameters
-with the same names. For example:*
+*The point is that the function body of the body part of the primary
+constructor should have access to the "regular" parameters, but it should
+have access to the instance variables rather than the declaring or
+initializing parameters with the same names. For example:*
 
 ```dart
 class C(var String x) {
@@ -745,15 +747,32 @@ main() {
 }
 ```
 
+A compile-time error occurs if an assignment to a primary parameter occurs
+in the initializing expression of a non-late instance variable, or in the
+initializer list of the body part of a primary constructor.
+
+*This includes expressions like `p++` where the assignment is implicit.
+The rule does not apply to late instance variables or (late or non-late)
+static variables. The primary constructor parameters are not in scope for
+initializer expressions of those variables.*
+
+Consider a class with a primary constructor that also has a body part with
+an initializer list. A compile-time error occurs if an instance variable
+declaration has an initializing expression, and it is also initialized by
+an element in the initializer list of the body part, or by an initializing
+formal parameter of the primary constructor.
+
+*This is already an error when the instance variable is final, but no such
+error is raised when the instance variable is mutable and the initializer
+list is part of a non-primary constructor. However, with a primary
+constructor this situation will always cause the value of the initializing
+expression in the variable declaration to be overwritten by the value in
+the initializer list, which makes the situation more confusing than
+useful.*
+
 The following errors apply to formal parameters of a primary constructor.
 Let _p_ be a formal parameter of a primary constructor in a class, mixin
 class, enum, or extension type declaration _D_ named `C`:
-
-A compile-time error occurs if _p_ contains a term of the form `this.v`, or
-`super.v` where `v` is an identifier, and _p_ has the modifier
-`covariant`. *For example, `required covariant int this.v` is an error. The
-reason for this error is that the modifier `covariant` must be specified on
-the declaration of `v` which is known to exist, not on the parameter.*
 
 A compile-time error occurs if _p_ has the modifier `covariant`, but
 not `var`. *This parameter does not induce a setter.*
@@ -782,13 +801,13 @@ Let `p` be a formal parameter in _k_ which has the modifier `var` or the
 modifier `final` *(that is, `p` is a declaring parameter)*.
 
 Consider the situation where `p` has no type annotation:
-- if combined member signature for a getter with the same name as `p` from
-  the superinterfaces of _D_ exists and has return type `T`, the parameter
-  `p` has declared type `T`. If no such getter exists, but a setter with
-  the same basename exists, with a formal parameter whose type is `T`, the
-  parameter `p` has declared type `T`. *In other words, an instance
-  variable introduced by a declaring parameter is subject to override
-  inference, just like an explicitly declared instance variable.*
+- if the combined member signature for a getter with the same name as `p`
+  from the superinterfaces of _D_ exists and has return type `T`, the
+  parameter `p` has declared type `T`. If no such getter exists, but a
+  setter with the same basename exists, with a formal parameter whose type
+  is `T`, the parameter `p` has declared type `T`. *In other words, an
+  instance variable introduced by a declaring parameter is subject to
+  override inference, just like an explicitly declared instance variable.*
 - otherwise, if `p` is optional and has a default value whose static type
   in the empty context is a type `T` which is not `Null` then `p` has
   declared type `T`. When `T` is `Null`, `p` instead has declared type
@@ -810,8 +829,10 @@ specifying the current scope explicitly as the body scope, in spite of the
 fact that the primary constructor is actually placed outside the braces
 that delimit the class body.*
 
-Next, _k2_ has the modifier `const` iff the keyword `const` occurs just
-before the name of _D_, or _D_ is an `enum` declaration.
+Next, _k2_ has the modifier `const` if and only if the keyword `const`
+occurs just before the name of _D_ or _D_ is an `enum` declaration. In any
+case, such an occurrence of `const` in the header of _D_ is omitted in
+_D2_.
 
 Consider the case where _k_ is a primary constructor. If the name `C` in
 _D_ and the type parameter list, if any, is followed by `.id` where `id` is
@@ -832,26 +853,32 @@ positional or named parameter remains optional; if it has a default value
 `d` in _L_ then it has the default value `d` in _L2_ as well.
 
 - An initializing formal parameter *(e.g., `T this.x`)* is copied from _L_
-  to _L2_, along with the default value, if any, and is otherwise unchanged.
-- A super parameter is copied from _L_ to _L2_ along with the default
-  value, if any, and is otherwise unchanged.
+  to _L2_, with no changes.
+- A super parameter is copied from _L_ to _L2_ any, with no changes.
 - A formal parameter which is not covered by the previous two cases and
   which does not have the modifier `var` or the modifier `final` is copied
   unchanged from _L_ to _L2_ *(this is a plain, non-declaring parameter)*.
-- Otherwise, a formal parameter (named or positional) of the form `var T p`
-  or `final T p` where `T` is a type and `p` is an identifier is replaced
-  in _L2_ by `this.p`, along with its default value, if any. Next, a
+- Otherwise, it is a declaring parameter. A formal parameter (named or
+  positional) of the form `var T p` or `final T p` where `T` is a type and
+  `p` is an identifier is replaced in _L2_ by `this.p`, along with its
+  default value, if any. The same is done in the case where the formal
+  parameter has the form `var p` or `final p`, and `T` is the declared type
+  of `p` which was obtained by inference. If the parameter has the modifier
+  `var` and _D_ is an extension type declaration then a compile-time error
+  occurs. Otherwise, if _D_ is not an extension type declaration, a
   semantic instance variable declaration corresponding to the syntax `T p;`
-  or `final T p;` is added to _D2_. It includes the modifier `final` if the
-  parameter in _L_ has the modifier `final` and _D_ is not an `extension
-  type` decaration; if _D_ is an `extension type` declaration then the name
-  of `p` specifies the name of the representation variable. In all cases, if
-  `p` has the modifier `covariant` then this modifier is removed from the
-  parameter in _L2_, and it is added to the instance variable declaration
-  named `p`.
+  or `final T p;` is added to _D2_. It includes the modifier `final` if and
+  only if the parameter in _L_ has the modifier `final` and _D_ is not an
+  `extension type` decaration.  Otherwise, if _D_ is an `extension type`
+  declaration then the name of `p` specifies the name of the representation
+  variable. In all cases, if `p` has the modifier `covariant` then this
+  modifier is removed from the parameter in _L2_, and it is added to the
+  instance variable declaration named `p`.
 
-If there is an initializer list following the formal parameter list _L_
-then _k2_ has an initializer list with the same elements in the same order.
+If there is a primary constructor body part that contains an initializer
+list then _k2_ has an initializer list with the same elements in the same
+order. If that body part has a function body then _k2_ has the same
+function body.
 
 Finally, _k2_ is added to _D2_, and _D_ is replaced by _D2_.
 
@@ -898,6 +925,13 @@ far removed from any syntactic hint that the constructor must be constant
 of declaration, and the constructor might be non-const).
 
 ### Changelog
+
+1.13 - November 25, 2025
+
+* Specify that an assignment to a primary parameter in initialization code
+  is an error. Specify an error for double initialization of a mutable
+  instance variable in the declaration and in a primary constructor
+  initializer list.
 
 1.12 - November 6, 2025
 
