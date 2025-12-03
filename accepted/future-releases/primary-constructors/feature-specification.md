@@ -222,7 +222,7 @@ We can omit the type of an optional parameter with a default value,
 in which case the type is inferred from the default value:
 
 ```dart
-// Infer the declared type from default value.
+// Infer the declared type from the default value.
 class Point(var int x, [var y = 0]);
 ```
 
@@ -805,13 +805,13 @@ Let `p` be a formal parameter in _k_ which has the modifier `var` or the
 modifier `final` *(that is, `p` is a declaring parameter)*.
 
 Consider the situation where `p` has no type annotation:
-- if combined member signature for a getter with the same name as `p` from
-  the superinterfaces of _D_ exists and has return type `T`, the parameter
-  `p` has declared type `T`. If no such getter exists, but a setter with
-  the same basename exists, with a formal parameter whose type is `T`, the
-  parameter `p` has declared type `T`. *In other words, an instance
-  variable introduced by a declaring parameter is subject to override
-  inference, just like an explicitly declared instance variable.*
+- if the combined member signature for a getter with the same name as `p`
+  from the superinterfaces of _D_ exists and has return type `T`, the
+  parameter `p` has declared type `T`. If no such getter exists, but a
+  setter with the same basename exists, with a formal parameter whose type
+  is `T`, the parameter `p` has declared type `T`. *In other words, an
+  instance variable introduced by a declaring parameter is subject to
+  override inference, just like an explicitly declared instance variable.*
 - otherwise, if `p` is optional and has a default value whose static type
   in the empty context is a type `T` which is not `Null` then `p` has
   declared type `T`. When `T` is `Null`, `p` instead has declared type
