@@ -854,7 +854,7 @@ positional or named parameter remains optional; if it has a default value
 
 - An initializing formal parameter *(e.g., `T this.x`)* is copied from _L_
   to _L2_, with no changes.
-- A super parameter is copied from _L_ to _L2_ any, with no changes.
+- A super parameter is copied from _L_ to _L2_, with no changes.
 - A formal parameter which is not covered by the previous two cases and
   which does not have the modifier `var` or the modifier `final` is copied
   unchanged from _L_ to _L2_ *(this is a plain, non-declaring parameter)*.
@@ -869,7 +869,7 @@ positional or named parameter remains optional; if it has a default value
   semantic instance variable declaration corresponding to the syntax `T p;`
   or `final T p;` is added to _D2_. It includes the modifier `final` if and
   only if the parameter in _L_ has the modifier `final` and _D_ is not an
-  `extension type` decaration.  Otherwise, if _D_ is an `extension type`
+  `extension type` declaration.  Otherwise, if _D_ is an `extension type`
   declaration then the name of `p` specifies the name of the representation
   variable. In all cases, if `p` has the modifier `covariant` then this
   modifier is removed from the parameter in _L2_, and it is added to the
