@@ -920,8 +920,8 @@ implement the constructor by adding a redirection or a body.*
 
 It's a **compile-time error** if:
 
-*   The signature of the augmenting function does not [match][signature
-    matching] the signature of the augmented function.
+*   The signature of the augmenting constructor does not [match][signature
+    matching] the signature of the augmented constructor.
 
 *   More than one declaration in the augmentation chain specifies a default
     value for the same optional parameter. This is an error even in the
