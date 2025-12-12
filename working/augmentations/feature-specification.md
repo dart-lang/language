@@ -173,7 +173,7 @@ extensionTypeDeclaration ::=
     'extension' 'type' 'const'? typeIdentifier
     typeParameters? representationDeclaration interfaces?
     memberedDeclarationBody
-  | 'augment' 'extension' 'type' 'const'? typeIdentifier
+  | 'augment' 'extension' 'type' typeIdentifier
     typeParameters? interfaces?
     memberedDeclarationBody
 
