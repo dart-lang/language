@@ -852,36 +852,28 @@ preserve the name and the modifier `required`, if any. An optional
 positional or named parameter remains optional; if it has a default value
 `d` in _L_ then it has the default value `d` in _L2_ as well.
 
-If _D_ is an extension type declaration, then it's an error if
-_L_ does not have a single formal parameter (positional or named),
-or if that parameter does not have the form `T p` or `final T p`
-where `T` is a type and `p` is an identifier.
-_It's an error if the parameter declaration uses `var` or has a
-`covariant` modifier._
-The parameter is replaced by `this.p` in _L2_.
-The extension type has a representation type of `T` and
-a representation value getter with signature `T get p;`.
-
-Otherwise _D_ is a class, mixin class or enum declaration:
 - An initializing formal parameter *(e.g., `T this.x`)* is copied from _L_
   to _L2_, with no changes.
 - A super parameter is copied from _L_ to _L2_ any, with no changes.
 - A formal parameter which is not covered by the previous two cases and
-  which does not have the modifier `var` or the modifier `final`,
-  is copied unchanged from _L_ to _L2_
-  *(this is a plain, non-declaring parameter)*.
-- Otherwise, it is a declaring parameter, a formal parameter (named or positional)
-  of the form `final T p`, `final p`, `var T p` or `var p`, the last two optionally
-  prefixed by `covariant`, where `T` is a type and `p` is an identifier.
-  It is replaced in _L2_ by `this.p`, along with its default value, if any.
-  Let `T` be the type of the formal parameter, whether declared explicitly
-  or inferred.
-  A semantic instance variable declaration corresponding to the syntax `T p;`,
-  `covariant T p;` or `final T p;` is added to _D2_.
-  It includes the modifier `final` if and only if the parameter in _L_ has
-  the modifier `final`. It includes the `covariant` modifier if the
-  parameter in _L_ has the modifier `covariant`, or if the instance variable
-  overrides an instance setter with a covariant parameter, and otherwise not.
+  which does not have the modifier `var` or the modifier `final` is copied
+  unchanged from _L_ to _L2_ *(this is a plain, non-declaring parameter)*.
+- Otherwise, it is a declaring parameter. A formal parameter (named or
+  positional) of the form `var T p` or `final T p` where `T` is a type and
+  `p` is an identifier is replaced in _L2_ by `this.p`, along with its
+  default value, if any. The same is done in the case where the formal
+  parameter has the form `var p` or `final p`, and `T` is the declared type
+  of `p` which was obtained by inference. If the parameter has the modifier
+  `var` and _D_ is an extension type declaration then a compile-time error
+  occurs. Otherwise, if _D_ is not an extension type declaration, a
+  semantic instance variable declaration corresponding to the syntax `T p;`
+  or `final T p;` is added to _D2_. It includes the modifier `final` if and
+  only if the parameter in _L_ has the modifier `final` and _D_ is not an
+  `extension type` decaration.  Otherwise, if _D_ is an `extension type`
+  declaration then the name of `p` specifies the name of the representation
+  variable. In all cases, if `p` has the modifier `covariant` then this
+  modifier is removed from the parameter in _L2_, and it is added to the
+  instance variable declaration named `p`.
 
 If there is a primary constructor body part that contains an initializer
 list then _k2_ has an initializer list with the same elements in the same
