@@ -1981,12 +1981,16 @@ Functions abstract over executable actions.
 
 \LMHash{}%
 Functions can be introduced by function declarations
-(\ref{functionDeclarations}),
+(\ref{functionDeclarations}).
+\commentary{%
+This includes
 method declarations (\ref{instanceMethods}, \ref{staticMethods}),
 getter declarations (\ref{getters}),
 setter declarations (\ref{setters}),
-and constructor declarations (\ref{constructors});
-and they can be introduced by function literals (\ref{functionExpressions}).
+and constructor declarations (\ref{constructors}).%
+}
+Moreover, functions can be introduced by function literals
+(\ref{functionExpressions}).
 
 \LMHash{}%
 A function is \IndexCustom{asynchronous}{function!asynchronous}
@@ -2191,45 +2195,26 @@ then the element type of $f$ is \DYNAMIC.
 \LMLabel{functionDeclarations}
 
 \LMHash{}%
-A \Index{function declaration} is a function that
-is neither a member of a class nor a function literal.
-Function declarations include exactly the following:
-\IndexCustom{library functions}{function!library},
-which are function declarations
-%(including getters and setters)
-at the top level of a library, and
-\IndexCustom{local functions}{function!local},
-which are function declarations declared inside other functions.
-Library functions are often referred to simply as top-level functions.
+A \Index{function declaration} is a library declaration derived from
+
+\noindent
+\syntax{%
+  (<getterSignature> | <setterSignature> | <functionSignature>) %
+  <functionBody>},
+
+\noindent
+a \synt{localFunctionDeclaration},
+or a class member declaration or a constructor declaration derived from
+\syntax{<methodSignature> <functionBody>}.
+Moreover, function declarations include
+\EXTERNAL{} declarations corresponding to the above forms.
 
 \LMHash{}%
 A function declaration consists of an identifier indicating the function's name,
-possibly prefaced by a return type.
-The function name is followed by a signature and body.
-For getters, the signature is empty.
-The body is empty for functions that are external.
-
-\LMHash{}%
-The scope of a library function is the scope of the enclosing library.
-The scope of a local function is described
-in section~\ref{localFunctionDeclaration}.
-In both cases, the name of the function is in scope
-in its formal parameter scope
-(\ref{formalParameters}).
-
-\LMHash{}%
-It is a compile-time error to preface a function declaration
-with the built-in identifier \STATIC.
-
-\LMHash{}%
-When we say that a function $f_1$ \Index{forwards} to another function $f_2$,
-we mean that invoking $f_1$ causes $f_2$ to be executed
-with the same arguments and/or receiver as $f_1$,
-and returns the result of executing $f_2$ to the caller of $f_1$,
-unless $f_2$ throws an exception,
-in which case $f_1$ throws the same exception.
-Furthermore, we only use the term for
-synthetic functions introduced by the specification.
+possibly prefaced by a return type and/or some modifiers.
+The function name is followed by a formal parameter part and a body,
+except that getters omit the formal parameter part,
+and external functions omit the body.
 
 
 \subsection{Formal Parameters}
@@ -2300,7 +2285,28 @@ the scope where $f$ is declared.
 The formal parameter scope of a generic function $f$ is enclosed in
 the type parameter scope of $f$.
 Every formal parameter introduces a local variable into
-the formal parameter scope.
+the formal parameter scope,
+with the declared type which is the declared type of the formal parameter.
+If no type annotation is given for the formal parameter,
+the declared type is considered to be the type \DYNAMIC.
+
+\commentary{%
+Type inference is not yet specified in this document,
+and is assumed to have taken place already
+(\ref{overview}).
+In particular, a formal parameter that has no type annotation in the source
+may have received a type by inference,
+and in this situation the type is not considered to be omitted.
+%% TODO(eernst): Change to \ref{} when inference spec is added.
+One such case is override inference,
+where the type of a formal parameter of an instance method
+is obtained from overridden declarations;
+another case is initializing formal parameters
+(\ref{generativeConstructors}),
+where the type is obtained from the associated instance variable.%
+}
+
+\LMHash{}%
 The current scope for the function's signature is
 the scope that encloses the formal parameter scope.
 
@@ -2320,7 +2326,7 @@ the formal parameter scope of $f$.
 
 \LMHash{}%
 It is a compile-time error if a formal parameter
-is declared as a constant variable (\ref{variables}).
+has the modifier \CONST.
 
 \begin{grammar}
 <formalParameterList> ::= `(' `)'
@@ -2630,7 +2636,8 @@ if $p$ is covariant-by-declaration or $p$ is covariant-by-class.
 
 \LMHash{}%
 This section specifies the static type which is ascribed to
-the function denoted by a function declaration,
+the function denoted by a function declaration
+(\ref{functionDeclarations}),
 and the dynamic type of the corresponding function object.
 
 \LMHash{}%
@@ -2678,6 +2685,7 @@ in which case its return type is \VOID.
 A function declaration may declare formal type parameters.
 The type of the function includes the names of the type parameters
 and for each type parameter the upper bound,
+%% TODO(eernst): With null safety, use `Object?`.
 which is considered to be the built-in class \code{Object}
 if no bound is specified.
 When consistent renaming of type parameters
@@ -2694,9 +2702,26 @@ they are considered to be the same type.
 }
 
 \LMHash{}%
-In the following three paragraphs,
-if the number \DefineSymbol{s} of formal type parameters is zero then
+If the number of formal type parameters is zero then
 the type parameter list in the function type is omitted.
+If the declared type of a formal parameter is omitted,
+it is considered to be the type \DYNAMIC.
+
+\commentary{%
+Type inference is not yet specified in this document,
+and is assumed to have taken place already
+(\ref{overview}).
+In particular, a formal parameter that has no type annotation in the source
+may have received a type by inference,
+and in this situation the type is not considered to be omitted.
+%% TODO(eernst): Change to \ref{} when inference spec is added.
+One such case is override inference,
+where the type of a formal parameter of an instance method
+is obtained from overridden declarations;
+another case is initializing formal parameters
+(\ref{generativeConstructors}),
+where the type is obtained from the associated instance variable.%
+}
 
 \LMHash{}%
 Let $F$ be a function with
