@@ -173,14 +173,14 @@ All compile time constants are deeply immutable instances.
 Unmodifiable lists (`List.unmodifiable`) which contain deeply immutable
 instances are deeply immutable.
 
-Closures which capture only `final` variables containing deeply immutable
-instances are deeply immutable.
+Closures which capture only `final`, non-`late` variables containing deeply
+immutable instances are deeply immutable.
 
 Finally, instances of classes annotated with `@pragma('vm:deeply-immutable')`
 are deeply immutable. It is a compile error if classes annotated with this
-pragma contain non-`final` fields. It is an compile time error if static
-type of field within annotated class excludes deeply immutable instances.
-If the static type of a field in a deeply immutable class is not
+pragma contain non-`final` or `late final` fields. It is an compile time error
+if static type of field within annotated class excludes deeply immutable
+instances. If the static type of a field in a deeply immutable class is not
 deeply immutable type - then compiler must insert checks in the constructor to
 guarantee that this field is initialized to a deeply immutable value.
 
@@ -206,7 +206,8 @@ values which are deeply immutable objects.
 * If static type of a field is a super-type for both deeply immutable and
   non-deeply immutable objects then compiler will insert a runtime check
   which ensures that values assigned to such field are deeply immutable.
-* A field or variable annotated with `@pragma('vm:shared')` must be `final`.
+* A field or variable annotated with `@pragma('vm:shared')` must be `final` and
+  non-`late`.
 
 > [!NOTE]
 >
