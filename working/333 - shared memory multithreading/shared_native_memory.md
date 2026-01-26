@@ -307,20 +307,102 @@ class Isolate {
   /// to acquire exclusive access to the isolate.
   ///
   /// Throws [StateError] if target isolate is owned by another thread and
-  /// thus can't be entered from a different thread.
+  /// thus can't be entered from a different thread. See
+  /// [markOwnedByCurrentThread] and [isOwnedByCurrentThread].
+  ///
+  /// Throws [ArgumentError] if the target isolate belongs to another
+  /// isolate group.
   ///
   /// Throws [ArgumentError] if [f] is not deeply immutable.
   ///
   /// Throws [StateError] if result returned by [f] is not deeply immutable.
-  R runSync<R>(R Function() f, {Duration? timeout});
+  external R runSync<R>(R Function() f, {Duration? timeout});
+
+  /// Create a new isolate in the current isolate group.
+  ///
+  /// Similar to `Dart_CreateIsolateInGroup` Dart VM C API.
+  ///
+  /// Created isolate is in runnable state, but its event loop is not running.
+  ///
+  /// To start processing isolate's messages:
+  ///
+  /// * start isolate's event loop synchronously on the current thread
+  ///   by calling [Isolate.runEventLoopSync]
+  /// * integrate isolate's event loop with other event loop by registering
+  ///   message callback ([Isolate.onMessage]) and draining pending messages
+  ///   ([Isolate.handleMessage]).
+  external static Isolate fork({String? debugName});
+
+  /// Shutdown target isolate.
+  ///
+  /// This function will block until it acquires exclusive access to the
+  /// target isolate. Isolate can only be entered for synchronous execution
+  /// between turns of its event loop, when no other thread is
+  /// executing code in the target isolate.
+  external void shutdown();
+
+  /// Set current OS thread as owner of the isolate.
+  ///
+  /// Once an isolate is owned by some OS thread it can not be
+  /// entered by any other OS thread. An attempt to acquire
+  /// exclusive access to it from another thread will fail with
+  /// an error.
+  ///
+  /// Equivalent to `Dart_SetCurrentThreadOwnsIsolate` Dart VM C API.
+  ///
+  /// Throws [ArgumentError] if `this` is not `Isolate.current`.
+  ///
+  /// Throws [StateError] if target isolate is already owned by another thread.
+  external void markOwnedByCurrentThread();
+
+  /// Returns `true` if the isolate is owned by the current OS thread.
+  ///
+  /// Equivalent to `Dart_GetCurrentThreadOwnsIsolate` Dart VM C API.
+  external bool get isOwnedByCurrentThread;
+
+  /// Run event loop for the target isolate synchronously on the current thread.
+  ///
+  /// This function will block until it acquires exclusive access to the
+  /// target isolate. Isolate can only be entered for synchronous execution
+  /// between turns of its event loop, when no other thread is
+  /// executing code in the target isolate.
+  ///
+  /// The isolate will be marked as owned by the current thread.
+  ///
+  /// Similar to `Dart_RunLoop` Dart VM C API, but unlike `Dart_RunLoop` this
+  /// function executes isolate's event loop on the current thread instead
+  /// of delegating it into the thread-pool.
+  ///
+  /// Throws [StateError] if target isolate is owned by another thread.
+  external static void runEventLoopSync();
+
+  /// Set message notify callback for the isolate.
+  ///
+  /// Provided callback will be called once for every message added to the
+  /// isolates message queue. Pending messages can be then later be drained
+  /// by calling [Isolate.handleMessage].
+  ///
+  /// Provided [callback] must be deeply immutable and will be called
+  /// on an arbitrary thread and not necessarily within some isolate. See
+  /// [NativeCallable.isolateGroupBound].
+  ///
+  /// IMPORTANT: [Isolate.handleMessage] must *not* be called from the
+  /// `callback`.
+  ///
+  /// Similar to `Dart_SetMessageNotifyCallback` Dart VM C API.
+  external void set onMessage(void Function(Isolate) callback);
+
+  /// Handle a single pending message from isolate's message queue.
+  ///
+  /// This function will block until it acquires exclusive access to the
+  /// target isolate. Isolate can only be entered for synchronous execution
+  /// between turns of its event loop, when no other thread is
+  /// executing code in the target isolate.
+  ///
+  /// Similar to `Dart_HandleMessage` Dart VM C API.
+  external void handleMessage();
 }
 ```
-
-**TODO**: Furthermore we might want to facilitate integration with third-party
-event-loops: e.g. allow to create isolate without scheduling its event loop on
-our own thread pool and provide equivalents of `Dart_SetMessageNotifyCallback`
-and `Dart_HandleMessage`. Though maybe we should not bundle this all together
-into one update.
 
 ### Scoped thread local values
 

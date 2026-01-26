@@ -1111,9 +1111,6 @@ abstract interface class Coroutine {
   external static Coroutine create(void Function() body);
 
   /// Suspends the given currently running coroutine.
-  ///
-  /// This makes `resume` return with
-  /// Expects resumer to pass back a value of type [R].
   external static void suspend();
 
   /// Resumes previously suspended coroutine.
