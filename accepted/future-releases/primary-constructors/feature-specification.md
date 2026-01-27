@@ -177,7 +177,7 @@ declaration, which may be helpful when reading the code.
 With the primary constructor, the modifier `const` could have been
 placed on the class (`const class`) rather than on the class name. This
 feature puts it on the class name because the notion of a "constant class"
-conflicts with actual semantics: It is the constructor which is
+conflicts with the actual semantics: It is the constructor which is
 constant because it is able to be invoked during constant expression
 evaluation; it can also be invoked at run time, and there could be other
 (non-constant) constructors. This means that it is at least potentially
