@@ -6,7 +6,7 @@ Status: Accepted
 
 Version: 1.13
 
-Experiment flag: declaring-constructors
+Experiment flag: primary-constructors
 
 This document specifies _primary constructors_. This is a feature that allows
 one constructor and a set of instance variables to be specified in a concise
@@ -177,7 +177,7 @@ declaration, which may be helpful when reading the code.
 With the primary constructor, the modifier `const` could have been
 placed on the class (`const class`) rather than on the class name. This
 feature puts it on the class name because the notion of a "constant class"
-conflicts with with actual semantics: It is the constructor which is
+conflicts with actual semantics: It is the constructor which is
 constant because it is able to be invoked during constant expression
 evaluation; it can also be invoked at run time, and there could be other
 (non-constant) constructors. This means that it is at least potentially
@@ -869,7 +869,7 @@ positional or named parameter remains optional; if it has a default value
   semantic instance variable declaration corresponding to the syntax `T p;`
   or `final T p;` is added to _D2_. It includes the modifier `final` if and
   only if the parameter in _L_ has the modifier `final` and _D_ is not an
-  `extension type` decaration.  Otherwise, if _D_ is an `extension type`
+  `extension type` declaration.  Otherwise, if _D_ is an `extension type`
   declaration then the name of `p` specifies the name of the representation
   variable. In all cases, if `p` has the modifier `covariant` then this
   modifier is removed from the parameter in _L2_, and it is added to the
