@@ -179,21 +179,22 @@ extensionTypeDeclaration ::=
 
 memberedDeclarationBody ::= '{' memberDeclarations '}'
 
-memberDeclarations ::= (metadata memberDeclaration)*
+memberDeclarations ::= (metadata 'augment'? memberDeclaration)*
 
 memberDeclaration ::= declaration
-  | 'augment'? methodSignature functionBody
+  | methodSignature functionBody
 
 declaration ::=
-    'augment'? 'external'? factoryConstructorSignature ';'
-  | 'augment'? 'external' constantConstructorSignature ';'
-  | 'augment'? 'external' constructorSignature ';'
-  | 'augment'? 'external'? 'static'? getterSignature ';'
-  | 'augment'? 'external'? 'static'? setterSignature ';'
-  | 'augment'? 'external'? 'static'? functionSignature ';'
-  | 'augment'? 'external'? operatorSignature ';'
-  | 'external' ('static'? finalVarOrType | 'covariant' varOrType) identifierList ';'
-  | 'augment'? 'abstract' (finalVarOrType | 'covariant' varOrType) identifierList ';'
+    'external'? factoryConstructorSignature ';'
+  | 'external' constantConstructorSignature ';'
+  | 'external' constructorSignature ';'
+  | 'external'? 'static'? getterSignature ';'
+  | 'external'? 'static'? setterSignature ';'
+  | 'external'? 'static'? functionSignature ';'
+  | 'external'? operatorSignature ';'
+  | 'external' ('static'? finalVarOrType | 'covariant' varOrType) 
+    identifierList ';'
+  | 'abstract' (finalVarOrType | 'covariant' varOrType) identifierList ';'
   | 'static' 'const' type? initializedIdentifierList ';'
   | 'static' 'final' type? initializedIdentifierList ';'
   | 'static' 'late' 'final' type? initializedIdentifierList ';'
@@ -202,9 +203,9 @@ declaration ::=
   | 'covariant' 'late'? varOrType initializedIdentifierList ';'
   | 'late'? 'final' type? initializedIdentifierList ';'
   | 'late'? varOrType initializedIdentifierList ';'
-  | 'augment'? redirectingFactoryConstructorSignature ';'
-  | 'augment'? constantConstructorSignature (redirection | initializers)? ';'
-  | 'augment'? constructorSignature (redirection | initializers)? ';'
+  | redirectingFactoryConstructorSignature ';'
+  | constantConstructorSignature (redirection | initializers)? ';'
+  | constructorSignature (redirection | initializers)? ';'
 ```
 
 As with top-level declarations, we also reuse the abstract member syntax with a
@@ -951,7 +952,7 @@ It's a **compile-time error** if:
     augmentation to fill in a more interesting body if it wants to. But Dart
     also allows a generative constructor to have a body of `;` which is treated
     as equivalent to `{}`. Thus it is not an error for a _generative_
-    constructor to be incomplete after all augmentation are applied. It is
+    constructor to be incomplete after all augmentations are applied. It is
     simply treated as having an empty body.*
 
 An incomplete constructor can be completed by adding an initializer list and/or
