@@ -617,9 +617,13 @@ A compile-time error occurs if _D_ includes a `<classNameMaybePrimary>`
 that does not contain a `<primaryConstructor>`, and the body of _D_
 contains a member declaration that starts with a
 `<primaryConstructorBodySignature>`.
+A compile-time error occurs if the body of _D_ contains two or more member
+declarations starting with a `<primaryConstructorBodySignature>`.
 
-*It is an error to have the body part of a primary constructor in the class
-body, but no primary constructor in the header.*
+*It is an error to have a body part of a primary constructor in the class
+body, but no primary constructor in the header. Also, it's an error to have
+multiple body parts, whether or not there is a primary constructor in the
+header.*
 
 A compile-time error occurs if a `<defaultDeclaringNamedParameter>` has the
 modifier `required` as well as a default value.
