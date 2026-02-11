@@ -1,16 +1,60 @@
 # Lifecycle of a language feature
 
-This document describes the process from creation to the shipping and release of
-a language feature. This document serves as a walkthrough for what's needed to
-build a language feature.
+This document describes how a language change goes from a vague description of a
+user problem to a shipped language feature.
 
-1. [User issues and feature requests](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#user-issues-and-feature-requests)
-2. [Design, feedback, and iteration](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#design-feedback-and-iteration)
-3. [Acceptance](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#acceptance)
-4. [Team communication](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#team-communication) (eg. kick-off meetings) 
-5. [Implementation and testing](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#implementation-and-testing)
-6. [Migrations](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#migrations)
-7. [Shipping](https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md#shipping)
+At a high level, for a language change to ship, it needs to have all of:
+
+*   **Enthusiasm about the problem and solution.** The language team and larger
+    Dart team needs to be convinced that this feature will be a big enough
+    improvement for Dart users to be worth the engineering cost to build it and
+    the cognitive load for users to learn and understand it. We need at least
+    enough informal enthusiasm to commit to the long work of designing the
+    feature.
+
+*   **A complete specification.** Even a seemingly simple language feature can
+    have subtle problematic interactions with other corners of the language.
+    Users rightly expect programming languages to be internally consistent and
+    easy to understand. To do that, we need well-thought out, detailed feature
+    specification. It needs to explain how the feature interacts with the
+    language's grammar, static type system, type inference, runtime semantics,
+    and other tools.
+
+*   **Priority over other features.** A programming language is a product and we
+    don't have unlimited resources to spend on it. Even a good feature may be
+    paused if the Dart team feels there are other areas that are more important
+    to focus on.
+
+    Once we begin working on a feature, that incomplete implementation is
+    [technical debt][] until the feature is complete and ships. We don't want to
+    leave a half-complete feature in our codebase, even if it's disabled behind
+    an experiment flag. So before implementation begins, we want some confidence
+    that we will be able to complete and ship the feature.
+
+*   **A robust implementation.** Users rightly expect a programming language
+    implementation [to be rock solid][never the compiler]. A bug in the compiler
+    or runtime can break the workflow of thousands of Dart developers and
+    millions of end users. When we decide to ship a feature, we commit to
+    writing a robust implementation with very thorough tests.
+
+    It's not enough for the compiler and runtime to do the right thing. "Dart"
+    encompasses an entire developer user experience: IDEs, automated
+    refactoring, formatting, debugging, documentation, etc. All of that needs to
+    be carefully updated to support the new feature.
+
+[technical debt]: https://en.wikipedia.org/wiki/Technical_debt
+[never the compiler]: https://blog.codinghorror.com/the-first-rule-of-programming-its-always-your-fault/
+
+We work through this list roughly in order. At any point in the process, we may
+decide to not move forward with a feature (or to not move forward with it *right
+now*). Designing a language is hard and many features that seem worthwhile at
+first end up not holding together. The process here lets us incrementally commit
+to a feature and minimize spending time on dead ends.
+
+It does mean that contributing to the language process can be challenging. We
+welcome the help, but it requires patience before reaching the point where
+anyone gets to write some code, and the willingness to accept that many
+proposals won't work out.
 
 ## User issues and feature requests
 
@@ -18,8 +62,11 @@ Features arise from perceived user issues or feature requests. These issues are
 documentation of the user issue to be solved.
 
 > [!NOTE]
-> These feature requests are filed in the [language repo](https://github.com/dart-lang/language/issues/new?labels=request),
-> and are labelled [`request`](https://github.com/dart-lang/language/labels/request).
+> These [feature requests][] are filed in the language repo, and are labelled
+> [`request`][request].
+
+[feature requests]: https://github.com/dart-lang/language/issues/new?labels=request
+[request]: https://github.com/dart-lang/language/labels/request
 
 We may close issues that we believe we won't address for whatever reason. We may
 also keep issues open indefinitely if we believe they are something that we
@@ -257,31 +304,33 @@ tries to use a disabled language feature, they receive an error explaining that
 they need to enable it, rather than, say, a confusing set of parse errors.
 
 #### To enable the feature in a language test
+
 ```dart
 // SharedOptions=--enable-experiment=$FEATURE
 ```
-Include this comment near the top of the test (before the
-first directive), where `$FEATURE` is replaced with the feature name. 
+
+Include this comment near the top of the test (before the first directive),
+where `$FEATURE` is replaced with the feature name.
 
 #### To disable the feature in a language test
+
 ```dart
 // @dart=$VERSION
 ```
+
 Include this comment near the top of the test (before the first directive),
 where `$VERSION` is the current stable release of Dart (and therefore is the
 largest version that is guaranteed _not_ to contain the feature).
 
 ### Google3 testing
 
-New features should be tested in Google's internal code base before they are
-switched on.
-
-Details of how to do this will be described in a separate (Google internal)
-document.
+A new feature should be tested in Google's internal codebase before its
+experiment flag is permanentantly switched on. Details of how to do this will be
+described in a separate (Google internal) document.
 
 ### Implementation work
 
-This is the bulk of creating a new language feature and this stage will take the
+This is the bulk of creating a new language feature and this stage takes the
 most time.
 
 Here are some tips for the implementation stage:
