@@ -325,7 +325,7 @@ largest version that is guaranteed _not_ to contain the feature).
 ### Google3 testing
 
 A new feature should be tested in Google's internal codebase before its
-experiment flag is permanentantly switched on. Details of how to do this will be
+experiment flag is permanently switched on. Details of how to do this will be
 described in a separate (Google internal) document.
 
 ### Implementation work
