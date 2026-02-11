@@ -2,54 +2,64 @@
 
 [![Dart CI](https://github.com/dart-lang/language/actions/workflows/dart.yml/badge.svg)](https://github.com/dart-lang/language/actions/workflows/dart.yml)
 
-This repository is a place for the [Dart][website] language team to work on
-[language changes and features][language funnel], and to solicit and accept
-[feedback and requests](https://github.com/dart-lang/language/issues).
+This repository is the home for the design and evolution of the [Dart][website]
+programming language. While the natural of language evolution is somewhat
+unstructured, we follow [a defined process][process] to design and ship language
+changes.
 
-# Dart language team
+The [language funnel][] shows the features that are being actively worked on.
 
-As of January 2024, the Dart language team consists of:
+[website]: https://www.dartlang.org
+[process]: https://github.com/dart-lang/language/blob/main/doc/life_of_a_language_feature.md
+[language funnel]: https://github.com/orgs/dart-lang/projects/90
 
-* Leaf Petersen ([@leafpetersen](https://github.com/leafpetersen)), language engineer
-* Lasse R.H. Nielsen ([@lrhn](https://github.com/lrhn)), language engineer
-* Bob Nystrom
- ([@munificent](https://github.com/munificent)), language engineer
-* Erik Ernst ([@eernstg](https://github.com/eernstg)), language engineer, [specification][specification] maintainer
-* Nate Bosch ([@natebosch](https://github.com/natebosch)), language engineer
-* Jake MacDonald ([@jakemac53](https://github.com/jakemac53)), language engineer
-* Paul Berry ([@stereotype441](https://github.com/stereotype441)), language engineer
-* Michael Thomsen ([@mit-mit](https://github.com/mit-mit)), product manager
-* Kallen Tu ([@kallentu](https://github.com/kallentu)), language engineer
-* David Morgan ([@davidmorgan](https://github.com/davidmorgan)), language engineer
+## Dart language team
 
-# Organization
+As of February 2026, the Dart language team consists of:
 
-We follow [this process](https://github.com/dart-lang/language/blob/master/doc/life_of_a_language_feature.md)
-for planning and rolling out language changes.
+* Leaf Petersen ([@leafpetersen](https://github.com/leafpetersen))
+* Lasse R.H. Nielsen ([@lrhn](https://github.com/lrhn))
+* Bob Nystrom ([@munificent](https://github.com/munificent))
+* Erik Ernst ([@eernstg](https://github.com/eernstg))
+* Nate Bosch ([@natebosch](https://github.com/natebosch))
+* Jake MacDonald ([@jakemac53](https://github.com/jakemac53))
+* Paul Berry ([@stereotype441](https://github.com/stereotype441))
+* Kallen Tu ([@kallentu](https://github.com/kallentu))
+* David Morgan ([@davidmorgan](https://github.com/davidmorgan))
 
-Features currently being worked on are listed in the [language funnel][].
+Michael Thomsen ([@mit-mit](https://github.com/mit-mit)) is the product manager
+for Dart. Erik Ernst also maintains the [official language specification][spec].
+
+[spec]: https://dart.dev/guides/language/spec
 
 ## Contributing
 
-Anyone can participate in the discussion about language changes
-by participating on the dart language mailing list,
-by replying to issues in this repository,
-and by uploading documents, tests or other resources.
+We discuss language problems and potential features using the [issue tracker][]
+on this repo. We welcome your participation! Please keep in mind:
 
-When commenting on issues in this repository, keep in mind:
+*   If you want to show support for a proposed change, a :+1: reaction is more
+    helpful than a comment because it's easier for us to aggregate demand that
+    way. Comments that provide additional context are still useful, though.
 
--   :+1: reactions are more useful than comments to show support.
--   Motivating examples help us understand why you want new features more than
-    pointers to other languages which have them. We love hearing feedback about
-    your experiences with other languages, but we also want to know why they are
-    right for Dart in particular.
+*   Before filing a new issue describing a problem or language change, see if
+    there is already an existing issue that's close to yours. Duplicate or
+    near-duplicates tend to divide attention and make both of them less visible.
 
-## License & patents
+*   When discussing a language change, motivating examples from real world code
+    are very helpful for the team and others following along to see how the
+    change would be helpful in a concrete context.
+
+*   While other languages often have excellent beloved features, those features
+    don't always translate well to Dart (and vice versa). When proposing that
+    we borrow some feature from another language, try to articulate why you
+    think that feature would be right for Dart in particular. We want Dart to be
+    the best Dart, not the second-best Rust/Haskell/TypeScript/etc.
+
+[issue tracker]: https://github.com/dart-lang/language/issues
+
+## License and patents
 
 See [LICENSE][license] and [PATENTS][patents].
 
-[website]: https://www.dartlang.org
 [license]: https://github.com/dart-lang/language/blob/master/LICENSE
 [patents]: https://github.com/dart-lang/language/blob/master/PATENTS
-[specification]: https://dart.dev/guides/language/spec
-[language funnel]: https://github.com/orgs/dart-lang/projects/90
