@@ -3,7 +3,7 @@
 [![Dart CI](https://github.com/dart-lang/language/actions/workflows/dart.yml/badge.svg)](https://github.com/dart-lang/language/actions/workflows/dart.yml)
 
 This repository is the home for the design and evolution of the [Dart][website]
-programming language. While the natural of language evolution is somewhat
+programming language. While the nature of language evolution is somewhat
 unstructured, we follow [a defined process][process] to design and ship language
 changes.
 
