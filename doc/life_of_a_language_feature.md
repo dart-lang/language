@@ -7,10 +7,10 @@ At a high level, for a language change to ship, it needs to have all of:
 
 *   **Enthusiasm about the problem and solution.** The language team and larger
     Dart team needs to be convinced that this feature will be a big enough
-    improvement for Dart users to be worth the engineering cost to build it and
-    the cognitive load for users to learn and understand it. We need at least
-    enough informal enthusiasm to commit to the long work of designing the
-    feature.
+    improvement for Dart users to be worth the engineering cost to build and
+    maintain it and the cognitive load for users to learn and understand it. We
+    need at least enough informal enthusiasm to commit to the long work of
+    designing the feature.
 
 *   **A complete specification.** Even a seemingly simple language feature can
     have subtle problematic interactions with other corners of the language.
