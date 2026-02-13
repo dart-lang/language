@@ -41,9 +41,13 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Jan 2026
+% - Specify that collection elements are allowed to have type `void` in a
+%   collection literal where the corresponding actual type argument is `void`.
+%
 % Oct 2025
-% - Simplify the member declaration grammar by using a single `memberDeclaration`
-%   to derive all kinds of member declarations (for a class, a mixin, etc),
+% - Simplify the member declaration grammar by using a `memberDeclaration` to
+%   derive all kinds of member declarations (for a class, a mixin, etc),
 %   rather than having a dedicated `classMemberDeclaration`.
 %
 % Sep 2025
@@ -22879,6 +22883,7 @@ that the value of an expression with static type \VOID{} should be discarded,
 such objects can only be used in specific situations:
 The occurrence of an expression of type \VOID{} is a compile-time error
 unless it is permitted according to one of the following rules.
+In the rules, every type under consideration is a static type.
 
 \begin{itemize}
 \item
@@ -22949,8 +22954,7 @@ unless it is permitted according to one of the following rules.
   \rationale{Usages of that variable are constrained.}
 \item
   An actual argument expression corresponding to a formal parameter
-  whose statically known type annotation is \VOID{}
-  may have type \VOID.
+  whose statically known type is \VOID{} may have type \VOID.
   \rationale{%
     Usages of that parameter in the body of the callee
     are statically expected to be constrained by having type \VOID.
@@ -22970,6 +22974,64 @@ unless it is permitted according to one of the following rules.
     which denotes a setter invocation whose
     statically known parameter type is \VOID,
     $e_2$ may have type \VOID{}.%
+  }
+\item
+  In a list or set literal
+  (\ref{collectionLiterals})
+  $C$ whose actual type argument is \VOID{},
+  an element at the top level in $C$ may have element type \VOID{}.
+  In a map literal $M$ whose first actual type argument is \VOID{},
+  an element at the top level in $M$ may have key type \VOID{}.
+  In a map literal $M$ whose second actual type argument is \VOID{},
+  an element at the top level in $M$ may have value type \VOID{}.
+  \commentary{%
+    For example, if \code{v} has type \VOID{} then
+    \code{<\VOID>[v]} and \code{<int, \VOID>\{1:\,\,v\}} are allowed.
+    This rule is only concerned with top-level elements, that is,
+    elements which are not nested inside other elements.
+    Nesting of elements is handled via the following rule.%
+  }
+\item
+  The expression in an \synt{expressionElement} may have type \VOID{}.
+  \commentary{%
+    The element type of the expression element is then \VOID{}, too,
+    which may or may not be an error in the given context.
+    The same is true for the other kinds of elements
+    which are covered below.%
+  }
+
+  In a \synt{mapElement} of the form \code{$e_1$:\,\,$e_2$},
+  $e_1$ may have type \VOID{} and $e_2$ may have type \VOID{}.
+  In a \synt{nullAwareMapElement} of the form \code{?$e_1$:\,\,$e_2$},
+  $e_2$ may have type \VOID{}.
+  In a \synt{nullAwareMapElement} of the form \code{$e_1$:\,\,?$e_2$},
+  $e_1$ may have type \VOID{}.
+
+  In an \synt{ifElement} $I$ of the form
+  \code{\IF\,\,($c$)\,\,$e_1$} or \code{\IF\,\,($c$)\,\,$e_1$\,\,\ELSE\,\,$e_2$},
+  $e_1$ may have element type, key type, or value type \VOID{},
+  and so may $e_2$.
+
+  In a \synt{forElement} $F$ of the form
+  \code{\FOR\,\,(\metavar{forLoopParts})\,\,$e$}, $e$ can have
+  element type, key type, or value type \VOID{}.
+
+  \commentary{%
+    Consider a \synt{spreadElement} $S$
+    of the form \code{...$e$} or \code{...?$e$}.
+    Assume that $e$ has a static type that implements
+    \code{Iterable<$T$>}, \code{Map<$T$, $S$>}, or \code{Map<$S$, $T$>}
+    for some types $S$ and $T$.
+    In the case where $T$ is \VOID, $S$ will have \VOID{}
+    as its element, key, or value type.
+    This may or may not be an error in the given context.
+    On the other hand, it is an error if $e$ has type \VOID.
+    So there is no need for a rule about spread elements here.
+
+    Note there is no exception for a \synt{nullAwareExpressionElement},
+    and for some locations in a \synt{nullAwareMapElement}.
+    The reason is that these element kinds will use the expression value,
+    and hence it is an error if the expression has type \VOID.%
   }
 \item
   In an expression of the form \code{$e_1$\,=\,$e_2$}
