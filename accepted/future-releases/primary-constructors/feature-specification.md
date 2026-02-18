@@ -858,7 +858,7 @@ positional or named parameter remains optional; if it has a default value
 
 - An initializing formal parameter *(e.g., `T this.x`)* is copied from _L_
   to _L2_, with no changes.
-- A super parameter is copied from _L_ to _L2_ any, with no changes.
+- A super parameter is copied from _L_ to _L2_, with no changes.
 - A formal parameter which is not covered by the previous two cases and
   which does not have the modifier `var` or the modifier `final` is copied
   unchanged from _L_ to _L2_ *(this is a plain, non-declaring parameter)*.
