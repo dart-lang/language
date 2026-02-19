@@ -146,7 +146,8 @@ topLevelDeclaration ::= classDeclaration
   | 'augment'? getterSignature (functionBody | ';')
   | 'augment'? setterSignature (functionBody | ';')
   | 'augment'? functionSignature (functionBody | ';')
-  | 'augment'? ('final' | 'const') type? initializedIdentifierList ';'
+  | 'augment'? 'const' type? staticFinalDeclarationList ';'
+  | 'augment'? 'final' type? initializedIdentifierList ';'
   | 'augment'? 'late' 'final' type? initializedIdentifierList ';'
   | 'augment'? 'late'? varOrType initializedIdentifierList ';'
 ```
@@ -192,9 +193,10 @@ declaration ::=
   | 'external'? 'static'? setterSignature ';'
   | 'external'? 'static'? functionSignature ';'
   | 'external'? operatorSignature ';'
-  | 'external' ('static'? finalVarOrType | 'covariant' varOrType) 
+  | 'external' ('static'? finalVarOrType | 'covariant' varOrType)
     identifierList ';'
   | 'abstract' (finalVarOrType | 'covariant' varOrType) identifierList ';'
+  | 'static' 'abstract' finalVarOrType identifierList ';'
   | 'static' 'const' type? initializedIdentifierList ';'
   | 'static' 'final' type? initializedIdentifierList ';'
   | 'static' 'late' 'final' type? initializedIdentifierList ';'
@@ -734,16 +736,21 @@ signature *matches* if:
 *   The return type (if not omitted) is the same as the augmented declaration's
     return type.
 
-*   It has the same number of positional and optional parameters as the
-    augmented declaration.
+*   It has the same number of positional parameters as the augmented
+    declaration, and the same number of those are optional.
 
 *   It has the same set of named parameter names as the augmented declaration.
 
-*   For all corresponding pairs of parameters:
+*   For each corresponding pair of parameters:
+
+    *   They have the same name. _This is trivial for named parameters, but may
+        fail to hold for positional parameters._
 
     *   They have the same type (if not omitted in the augmenting declaration).
 
-    *   They have the same `required` and `covariant` modifiers.
+    *   If named, they both have the `required` modifier, or both don't have it.
+
+    *   They both have the `covariant` modifier, or both don't have it.
 
     *For constructors, we do not require parameters to match in uses of
     initializing formals or super parameters. In fact, they are implicitly
@@ -753,38 +760,6 @@ signature *matches* if:
     Instead, at most only one of the constructors can use initializing formals
     or super parameters and all other declarations for the same constructor
     must declare the corresponding parameters as regular parameters.*
-
-*   For all positional parameters:
-
-    *   The augmenting function's parameter name is `_`, or
-
-    *   The augmenting function's parameter name is the same as the name of the
-        corresponding positional parameter in every preceding declaration that
-        doesn't have `_` as its name.
-
-    *In other words, a declaration can ignore a positional parameter's name by
-    using `_`, but all declarations in the chain that specify a name have to
-    agree on it.*
-
-    ```dart
-    f1(int _) {}
-    augment f1(int x); // OK, first declaration to introduce name.
-    augment f1(int _); // OK.
-    augment f1(int y); // Error, can't change name.
-    augment f1(int _); // OK.
-    ```
-
-    *Note that this is a transitive property.*
-
-    *If an augmentation uses `_` for a parameter name, the name is not
-    "inherited" from a preceding declaration for use in the augmentation's
-    body. The name of the parameter for that augmentation is `_`, which can't
-    be used because it's a wildcard:*
-
-    ```dart
-    f(int x);
-    augment f(int _) { print(x); } // Error.
-    ```
 
 ### Augmenting functions
 
@@ -1010,6 +985,46 @@ the combined declaration.*
 
 [analyzer package]: https://pub.dev/packages/analyzer
 
+### Compile-time errors which are eliminated
+
+With this feature, it is **no longer an error** to have the following
+situations:
+
+* An `implements` clause contains two or more type operands denoting the same
+  type. _For example, `class A implements I, I;` is no longer an error_.
+
+* An `implements` clause of a declaration _D_ contains an operand `T`, and an
+  `extends` or `with` clause of _D_ contains an operand `S`, and `T` and `S`
+  denote the same type. _For example, `class A extends I implements I;` is no
+  longer an error_.
+
+* An `implements` clause of a mixin declaration _D_ contains an operand `T`, and
+  an `on` clause of _D_ contains an operand `S`, and `T` and `S` denote the same
+  type. _For example `mixin M on I implements I;` is no longer an error_.
+
+An operand of an `extends`, `with`, `on`, or `implements` clause is a
+top-level construct in the type or list of types specified by the clause.
+_In particular, these changes have no effect on situations like
+`class A extends B<I> implements C<I, I Function(String)>;`
+(which were not errors, anyway)._
+
+The motivation for these changes is mainly that, in general, compile-time errors
+are reported for code constructs whose semantics cannot reasonably be
+determined, and hence no program containing this code can be compiled and
+executed.
+
+In contrast, redundant implemented interfaces do not give rise to any
+ambiguities or inconsistencies. The errors were only reported because the
+situation was considered useless and confusing, and it was assumed to arise only
+by mistake.
+
+*It is outside the scope of a language specification document like this one, but
+it may well be useful for tools like the analyzer or linter to report a warning
+if this kind of redundancy is detected. They might treat redundancies in the
+same syntactic construct more severely than redundancies that only exist in the
+semantic declaration, but are syntactically located in different elements of
+an augmentation chain.*
+
 ### Compile errors with augmentations
 
 [compile-time error principle]: #compile-errors-with-augmentations
@@ -1020,28 +1035,29 @@ those entities interchangeably. With augmentations, that is no longer the case.
 A single semantic entity may be the product of multiple syntactic declarations
 (an introductory and any number of augmentations). This raises the question of
 whether existing compile errors apply to syntactic declarations or semantic
-definitions. For example, the specification says:
+definitions.
 
-> It is a compile-time error if two elements in the type list of the
-> `implements` clause of a class `C` specifies the same type `T`.
+For example, it is an error according to the language specification if a
+concrete class has an abstract instance member declaration _D_, and there is no
+implementation inherited from a superclass which is a correct override of the
+member signature of _D_.
 
-Thus this is an error:
-
-```dart
-class C implements I, I {}
-```
-
-But what about:
+Thus this is an error in Dart without augmentations:
 
 ```dart
-class C implements I {}
-
-augment class C implements I {}
+class C {
+  int get g;
+}
 ```
 
-Each syntactic declaration of `C` only mentions the interface once. But the
-resulting definition produced by applying augmentations has an `implements`
-clause with `I` in it twice. To which entity does the error apply?
+However, when augmentations are supported it is possible to provide the
+missing implementation in an augmenting declaration:
+
+```dart
+augment class C {
+  augment get g => 0;
+}
+```
 
 The general rule is that **compile-time errors apply to semantic definitions
 whenever possible.** In other words, if the library is syntactically well-formed
@@ -1049,19 +1065,30 @@ enough that augmentations *can* be applied, then they should be. And if doing so
 eliminates what would otherwise be a compile-time error, then that error should
 not be reported.
 
-In the example above, there is an error because the resulting definition does
-have the same interface twice in the `implements` clause. *(Though note that
-[#4542](https://github.com/dart-lang/language/issues/4542) tracks whether we
-want to change this specific error.)*
-
 The motivation for this principle is that reorganizing code into or out of
-augmentations shouldn't affect the errors that are reported as much as possible.
-Augmentations are a syntactic tool for organizing code, but what the user cares
-about -- and what static analysis should thus focus on -- is the semantics of
-the resulting definitions. Also, in most cases the error relies on semantic
-information that isn't even well defined for syntactic entities and is only
-known from the resolved semantic definition which can't be produced without
-applying augmentations.
+augmentations shouldn't affect the errors that are reported. Augmentations are
+a syntactic tool for organizing code, but what the user cares about -- and what
+static analysis should thus focus on -- is the semantics of the resulting
+definitions. Also, in most cases the error relies on semantic information that
+isn't even well defined for syntactic entities and is only known from the
+resolved semantic definition which can't be produced without applying
+augmentations.
+
+Finally, a few errors need to be stated because they are no longer syntax
+errors: A **compile-time error** occurs if...
+
+*   a top-level function, getter, setter, or variable declaration is incomplete
+    after application of all augmentations.
+
+*   a top-level variable declaration which is not `external` and not `late`, but
+    which is `final`, has no initializing expression after application of all
+    augmentations.
+
+*Note that it is already a non-syntax error for a non-`late`, non-`external`
+top-level variable declaration whose type is non-nullable to have no
+initializing expression after application of all augmentations, based on the
+general principle defined above.*
+
 
 ## Dynamic semantics
 
