@@ -146,8 +146,7 @@ topLevelDeclaration ::= classDeclaration
   | 'augment'? getterSignature (functionBody | ';')
   | 'augment'? setterSignature (functionBody | ';')
   | 'augment'? functionSignature (functionBody | ';')
-  | 'augment'? 'const' type? staticFinalDeclarationList ';'
-  | 'augment'? 'final' type? initializedIdentifierList ';'
+  | 'augment'? ('const' | 'final') type? staticFinalDeclarationList ';'
   | 'augment'? 'late' 'final' type? initializedIdentifierList ';'
   | 'augment'? 'late'? varOrType initializedIdentifierList ';'
 ```
