@@ -1,8 +1,8 @@
 # Augmentations
 
-Author: rnystrom@google.com, jakemac@google.com, lrn@google.com
+Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com, eernst@google.com
 
-Version: 1.40 (see [Changelog](#Changelog) at end)
+Version: 1.41 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
@@ -745,11 +745,10 @@ signature *matches* if:
     *   They have the same name. _This is trivial for named parameters, but may
         fail to hold for positional parameters._
 
-    *   They have the same type (if not omitted in the augmenting declaration).
+    *   They have the same type (if not omitted).
 
-    *   If named, they both have the `required` modifier, or both don't have it.
-
-    *   They both have the `covariant` modifier, or both don't have it.
+    *   They agree on having or not having the modifier `covariant` and, if
+        named, the modifier `required`.
 
     *For constructors, we do not require parameters to match in uses of
     initializing formals or super parameters. In fact, they are implicitly
@@ -1073,22 +1072,6 @@ isn't even well defined for syntactic entities and is only known from the
 resolved semantic definition which can't be produced without applying
 augmentations.
 
-Finally, a few errors need to be stated because they are no longer syntax
-errors: A **compile-time error** occurs if...
-
-*   a top-level function, getter, setter, or variable declaration is incomplete
-    after application of all augmentations.
-
-*   a top-level variable declaration which is not `external` and not `late`, but
-    which is `final`, has no initializing expression after application of all
-    augmentations.
-
-*Note that it is already a non-syntax error for a non-`late`, non-`external`
-top-level variable declaration whose type is non-nullable to have no
-initializing expression after application of all augmentations, based on the
-general principle defined above.*
-
-
 ## Dynamic semantics
 
 The application of augmentation declarations to an augmented declaration
@@ -1301,6 +1284,22 @@ fully captured by that paragraph). It's probably safest to be pessimistic
 and assume the third point is always true.
 
 ## Changelog
+
+### 1.41
+
+*   Adjust the grammar to enforce that some top-level constant and final
+    variable declarations have an initializing expression.
+
+*   Add support for static abstract variable declarations in the grammar.
+
+*   Adjust the definition of signature matching (using `_` as "don't care"
+    parameter names is no longer supported).
+    
+*   Add a section to say that certain redundant superinterfaces are no longer an
+    error.
+    
+*   
+
 
 ### 1.40
 
