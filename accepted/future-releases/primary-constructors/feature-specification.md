@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Accepted
 
-Version: 1.13
+Version: 1.14
 
 Experiment flag: primary-constructors
 
@@ -946,6 +946,11 @@ far removed from any syntactic hint that the constructor must be constant
 of declaration, and the constructor might be non-const).
 
 ### Changelog
+
+1.14 - February 24, 2025
+
+* Adjust the grammar to allow empty membered bodies to be specified as a
+  semicolon.
 
 1.13 - November 25, 2025
 
