@@ -1300,8 +1300,8 @@ and assume the third point is always true.
 
 ### 1.42
 
-*   Adjust the grammar such that all membered declarations have the ability to
-    use `;` to specify the empty body.
+*   Adjust the grammar to allow empty membered bodies to be specified as
+    a semicolon.
 
 ### 1.41
 
