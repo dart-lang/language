@@ -2,7 +2,7 @@
 
 Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com, eernst@google.com
 
-Version: 1.41 (see [Changelog](#Changelog) at end)
+Version: 1.42 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
@@ -177,7 +177,9 @@ extensionTypeDeclaration ::=
     typeParameters? interfaces?
     memberedDeclarationBody
 
-memberedDeclarationBody ::= '{' memberDeclarations '}'
+memberedDeclarationBody ::=
+    '{' memberDeclarations '}'
+  | ';'
 
 memberDeclarations ::= (metadata 'augment'? memberDeclaration)*
 
@@ -242,10 +244,11 @@ member to avoid ambiguity.
 
 ```
 enumType ::= 'augment'? 'enum' typeIdentifier typeParameters?
-    mixins? interfaces? '{' enumBody? '}'
+    mixins? interfaces? enumBody
 
-enumBody ::= enumEntry (',' enumEntry)* (',')? (';' memberDeclarations)?
-    | ';' memberDeclarations
+enumBody ::= 
+    '{' (enumEntry (',' enumEntry)* (',')?)? (';' memberDeclarations)? '}'
+  | ';'
 ```
 
 *Note that an enum can also have neither values nor members and both `{}` and
@@ -1294,6 +1297,11 @@ fully captured by that paragraph). It's probably safest to be pessimistic
 and assume the third point is always true.
 
 ## Changelog
+
+### 1.42
+
+*   Adjust the grammar such that all membered declarations have the ability to
+    use `;` to specify the empty body.
 
 ### 1.41
 
