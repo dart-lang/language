@@ -449,8 +449,7 @@ constructors as well.
 ```ebnf
 <classDeclaration> ::= // First alternative modified.
      (<classModifiers> | <mixinClassModifiers>)
-     'class' <classNameMaybePrimary> <superclass>? <interfaces>?
-     <memberedDeclarationBody>
+     'class' <classNameMaybePrimary> <superclass>? <interfaces>? <classBody>
    | ...;
 
 <primaryConstructor> ::= // New rule.
@@ -463,36 +462,23 @@ constructors as well.
 
 <typeWithParameters> ::= <typeIdentifier> <typeParameters>?
 
-<memberedDeclarationBody> ::= // New rule.
+<classBody> ::= // New rule.
      '{' (<metadata> <memberDeclaration>)* '}'
    | ';';
 
-<mixinDeclaration> ::= // Modified rule.
-     'base'? 'mixin' <typeWithParameters>
-     ('on' <typeNotVoidNotFunctionList>)? <interfaces>?
-     <memberedDeclarationBody>
-   | 'augment' 'base'? 'mixin' <typeWithParameters> <interfaces>?
-     <memberedDeclarationBody>;
-
 <extensionTypeDeclaration> ::= // Modified rule.
      'extension' 'type' <primaryConstructor> <interfaces>?
-     <memberedDeclarationBody>;
+     <extensionTypeBody>;
 
-<enumType> ::= // Modified rule.
-     'enum' <classNameMaybePrimary> <mixins>? <interfaces>?
-     <enumBody>;
-
-<enumBody> ::= // Modified rule.
-     '{' (<enumEntry> (',' <enumEntry>)* ','?)?
-        (';' (<metadata> <memberDeclaration>)*)?
-     '}'
+<extensionTypeBody> ::=
+     '{' (<metadata> <memberDeclaration>)* '}'
    | ';';
 
-<extensionDeclaration> ::=
-     'extension' <typeIdentifierNotType>? <typeParameters>? 'on' <type>
-     <memberedDeclarationBody>
-   | 'augment' 'extension' <typeIdentifierNotType> <typeParameters>?
-     <memberedDeclarationBody>;
+<enumType> ::= // Modified rule.
+     'enum' <classNameMaybePrimary> <mixins>? <interfaces>? '{'
+        <enumEntry> (',' <enumEntry>)* ','?
+        (';' (<metadata> <memberDeclaration>)*)?
+     '}';
 
 <constructorSignature> ::= // Modified rule.
      <constructorName> <formalParameterList> // Old form.
