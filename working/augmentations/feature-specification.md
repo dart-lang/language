@@ -246,7 +246,7 @@ member to avoid ambiguity.
 enumType ::= 'augment'? 'enum' typeIdentifier typeParameters?
     mixins? interfaces? enumBody
 
-enumBody ::= 
+enumBody ::=
     '{' (enumEntry (',' enumEntry)* (',')?)? (';' memberDeclarations)? '}'
   | ';'
 ```

@@ -463,8 +463,11 @@ constructors as well.
 
 <typeWithParameters> ::= <typeIdentifier> <typeParameters>?
 
+<memberDeclarations> :: // New rule.
+     (<metadata> <memberDeclaration>)*
+
 <memberedDeclarationBody> ::= // New rule.
-     '{' (<metadata> <memberDeclaration>)* '}'
+     '{' <memberDeclarations> '}'
    | ';';
 
 <mixinDeclaration> ::= // Modified rule.
@@ -483,8 +486,8 @@ constructors as well.
      <enumBody>;
 
 <enumBody> ::= // Modified rule.
-     '{' (<enumEntry> (',' <enumEntry>)* ','?)?
-        (';' (<metadata> <memberDeclaration>)*)?
+     '{'
+     (<enumEntry> (',' <enumEntry>)* ','?)? (';' <memberDeclarations>)?
      '}'
    | ';';
 
