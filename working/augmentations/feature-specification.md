@@ -692,12 +692,12 @@ It's a **compile-time** error if:
     what is known from reading the introductory declaration will still be true
     after augmentation.*
 
-*   The type parameters of the augmenting declaration do not match the augmented
-    declarations's type parameters. This means there must be the same number of
-    type parameters with the exact same type parameter names (same identifiers)
-    and bounds if any (same *types*, even if they may not be written exactly the
-    same in case one of the declarations needs to refer to a type using an
-    import prefix).
+*   The type parameters of the augmenting declaration do not match the
+    introductory declarations's type parameters. This means there must be the
+    same number of type parameters with the exact same type parameter names
+    (same identifiers) and bounds if any (same *types*, even if they may not be
+    written exactly the same in case one of the declarations needs to refer to a
+    type using an import prefix).
 
     *Since repeating the type parameters is, by definition, redundant, this
     restriction doesn't accomplish anything semantically. It ensures that
@@ -707,7 +707,7 @@ It's a **compile-time** error if:
     augmentation.*
 
     The augmenting declaration may choose to omit the bound on any type
-    parameter, in which case it will be inherited from the augmented
+    parameter, in which case it will be inherited from the introductory
     declaration.
 
     ```dart
@@ -725,30 +725,32 @@ It's a **compile-time** error if:
 When augmenting a function (top level, static method, instance method, etc.) or
 constructor (generative, factory, etc.) the parameter lists must be the same in
 all meaningful ways. We say that an augmenting function or constructor's
-signature *matches* if:
+signature *matches* an introductory signature if:
 
 *   It has the same number of type parameters with the same type parameter names
     (same identifiers) and bounds (after type annotation inheritance), if any
     (same *types*, even if they may not be written exactly the same in case one
     of the declarations needs to refer to a type using an import prefix).
 
-*   The return type (if not omitted) is the same as the augmented declaration's
-    return type.
+*   The return type (if not omitted) is the same as the introductory
+    declaration's return type.
 
-*   It has the same number of positional parameters as the augmented
+*   It has the same number of positional parameters as the introductory
     declaration, and the same number of those are optional.
 
-*   It has the same set of named parameter names as the augmented declaration.
+*   It has the same set of named parameter names as the introductory
+    declaration.
 
 *   For each corresponding pair of parameters:
 
     *   They have the same name. _This is trivial for named parameters, but may
         fail to hold for positional parameters._
 
-    *   They have the same type (if not omitted).
+    *   They have the same type (or the augmenting declaration omits the type).
 
-    *   They agree on having or not having the modifier `covariant` and, if
-        named, the modifier `required`.
+    *   They both have the modifier `covariant`, or none of them have it.
+
+    *   They both have the modifier `required`. or none of them have it.
 
     *For constructors, we do not require parameters to match in uses of
     initializing formals or super parameters. In fact, they are implicitly
@@ -758,6 +760,11 @@ signature *matches* if:
     Instead, at most only one of the constructors can use initializing formals
     or super parameters and all other declarations for the same constructor
     must declare the corresponding parameters as regular parameters.*
+
+In this definition, the properties of the introductory declaration may
+correspond to an explicitly declared property _(such as an explicitly stated
+return type)_ or an inferred property _(such as a parameter type which has been
+obtained by override inference)_.
 
 ### Augmenting functions
 
@@ -807,7 +814,7 @@ specified in the augmentation chain.
 It's a **compile-time** error if:
 
 *   The signature of the augmenting function does not [match][signature
-    matching] the signature of the augmented function.
+    matching] the signature of the corresponding introductory declaration.
 
 *   More than one declaration in the augmentation chain specifies a default
     value for the same optional parameter. This is an error even in the
@@ -849,7 +856,7 @@ setter with a non-abstract variable declaration.*
 It's a **compile-time error** if:
 
 *   The signature of the augmenting getter or setter does not [match][signature
-    matching] the signature of the augmented getter or setter.
+    matching] the signature of the corresponding introductory getter or setter.
 
 *   A `const` variable declaration is augmented or augmenting.
 
@@ -901,7 +908,7 @@ implement the constructor by adding a redirection or a body.*
 It's a **compile-time error** if:
 
 *   The signature of the augmenting constructor does not [match][signature
-    matching] the signature of the augmented constructor.
+    matching] the signature of the corresponding introductory constructor.
 
 *   More than one declaration in the augmentation chain specifies a default
     value for the same optional parameter. This is an error even in the
@@ -1001,9 +1008,9 @@ situations:
   type. _For example `mixin M on I implements I;` is no longer an error_.
 
 An operand of an `extends`, `with`, `on`, or `implements` clause is a
-top-level construct in the type or list of types specified by the clause.
-_In particular, these changes have no effect on situations like
-`class A extends B<I> implements C<I, I Function(String)>;`
+type that occurs in the clause which is not a subterm of another type.
+_In particular, these changes have no relevance to nested occurrences like
+`I` in `class A extends B<I> implements C<I, I Function(String)>;`
 (which were not errors, anyway)._
 
 The motivation for these changes is mainly that, in general, compile-time errors
@@ -1037,8 +1044,8 @@ definitions.
 
 For example, it is an error according to the language specification if a
 concrete class has an abstract instance member declaration _D_, and there is no
-implementation inherited from a superclass which is a correct override of the
-member signature of _D_.
+implementation inherited from a superclass whose signature is a correct override
+of the member signature of _D_.
 
 Thus this is an error in Dart without augmentations:
 
@@ -1053,15 +1060,18 @@ missing implementation in an augmenting declaration:
 
 ```dart
 augment class C {
-  augment get g => 0;
+  augment int get g => 0;
 }
 ```
 
 The general rule is that **compile-time errors apply to semantic definitions
-whenever possible.** In other words, if the library is syntactically well-formed
-enough that augmentations *can* be applied, then they should be. And if doing so
-eliminates what would otherwise be a compile-time error, then that error should
-not be reported.
+whenever possible.** For this example it is *the class as a whole*, as defined
+by all its introducing and augmenting declarations, which must have a concrete
+member whose signature is a valid override for its interface member signature.
+Having some individual member declarations which do not introduce an
+implementation does not mean that the class does not introduce an implementation
+of that member, as long as there is one concrete member declaration for the
+member.
 
 The motivation for this principle is that reorganizing code into or out of
 augmentations shouldn't affect the errors that are reported. Augmentations are
@@ -1294,12 +1304,9 @@ and assume the third point is always true.
 
 *   Adjust the definition of signature matching (using `_` as "don't care"
     parameter names is no longer supported).
-    
+
 *   Add a section to say that certain redundant superinterfaces are no longer an
     error.
-    
-*   
-
 
 ### 1.40
 
