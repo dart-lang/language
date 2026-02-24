@@ -177,7 +177,9 @@ extensionTypeDeclaration ::=
     typeParameters? interfaces?
     memberedDeclarationBody
 
-memberedDeclarationBody ::= '{' memberDeclarations '}'
+memberedDeclarationBody ::=
+    '{' memberDeclarations '}'
+  | ';'
 
 memberDeclarations ::= (metadata 'augment'? memberDeclaration)*
 
@@ -242,10 +244,11 @@ member to avoid ambiguity.
 
 ```
 enumType ::= 'augment'? 'enum' typeIdentifier typeParameters?
-    mixins? interfaces? '{' enumBody? '}'
+    mixins? interfaces? enumBody
 
-enumBody ::= enumEntry (',' enumEntry)* (',')? (';' memberDeclarations)?
-    | ';' memberDeclarations
+enumBody ::= 
+    '{' (enumEntry (',' enumEntry)* (',')?)? (';' memberDeclarations)? '}'
+  | ';'
 ```
 
 *Note that an enum can also have neither values nor members and both `{}` and
