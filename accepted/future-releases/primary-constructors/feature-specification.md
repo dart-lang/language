@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Accepted
 
-Version: 1.13
+Version: 1.14
 
 Experiment flag: primary-constructors
 
@@ -449,7 +449,8 @@ constructors as well.
 ```ebnf
 <classDeclaration> ::= // First alternative modified.
      (<classModifiers> | <mixinClassModifiers>)
-     'class' <classNameMaybePrimary> <superclass>? <interfaces>? <classBody>
+     'class' <classNameMaybePrimary> <superclass>? <interfaces>?
+     <memberedDeclarationBody>
    | ...;
 
 <primaryConstructor> ::= // New rule.
@@ -462,23 +463,39 @@ constructors as well.
 
 <typeWithParameters> ::= <typeIdentifier> <typeParameters>?
 
-<classBody> ::= // New rule.
-     '{' (<metadata> <memberDeclaration>)* '}'
+<memberDeclarations> :: // New rule.
+     (<metadata> <memberDeclaration>)*
+
+<memberedDeclarationBody> ::= // New rule.
+     '{' <memberDeclarations> '}'
    | ';';
+
+<mixinDeclaration> ::= // Modified rule.
+     'base'? 'mixin' <typeWithParameters>
+     ('on' <typeNotVoidNotFunctionList>)? <interfaces>?
+     <memberedDeclarationBody>
+   | 'augment' 'base'? 'mixin' <typeWithParameters> <interfaces>?
+     <memberedDeclarationBody>;
 
 <extensionTypeDeclaration> ::= // Modified rule.
      'extension' 'type' <primaryConstructor> <interfaces>?
-     <extensionTypeBody>;
-
-<extensionTypeBody> ::=
-     '{' (<metadata> <memberDeclaration>)* '}'
-   | ';';
+     <memberedDeclarationBody>;
 
 <enumType> ::= // Modified rule.
-     'enum' <classNameMaybePrimary> <mixins>? <interfaces>? '{'
-        <enumEntry> (',' <enumEntry>)* ','?
-        (';' (<metadata> <memberDeclaration>)*)?
-     '}';
+     'enum' <classNameMaybePrimary> <mixins>? <interfaces>?
+     <enumBody>;
+
+<enumBody> ::= // Modified rule.
+     '{'
+     (<enumEntry> (',' <enumEntry>)* ','?)? (';' <memberDeclarations>)?
+     '}'
+   | ';';
+
+<extensionDeclaration> ::=
+     'extension' <typeIdentifierNotType>? <typeParameters>? 'on' <type>
+     <memberedDeclarationBody>
+   | 'augment' 'extension' <typeIdentifierNotType> <typeParameters>?
+     <memberedDeclarationBody>;
 
 <constructorSignature> ::= // Modified rule.
      <constructorName> <formalParameterList> // Old form.
@@ -929,6 +946,11 @@ far removed from any syntactic hint that the constructor must be constant
 of declaration, and the constructor might be non-const).
 
 ### Changelog
+
+1.14 - February 24, 2025
+
+* Adjust the grammar to allow empty membered bodies to be specified as a
+  semicolon.
 
 1.13 - November 25, 2025
 
