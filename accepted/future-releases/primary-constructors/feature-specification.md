@@ -473,8 +473,6 @@ constructors as well.
 <mixinDeclaration> ::= // Modified rule.
      'base'? 'mixin' <typeWithParameters>
      ('on' <typeNotVoidNotFunctionList>)? <interfaces>?
-     <memberedDeclarationBody>
-   | 'augment' 'base'? 'mixin' <typeWithParameters> <interfaces>?
      <memberedDeclarationBody>;
 
 <extensionTypeDeclaration> ::= // Modified rule.
@@ -491,10 +489,8 @@ constructors as well.
      '}'
    | ';';
 
-<extensionDeclaration> ::=
+<extensionDeclaration> ::= // Modified rule.
      'extension' <typeIdentifierNotType>? <typeParameters>? 'on' <type>
-     <memberedDeclarationBody>
-   | 'augment' 'extension' <typeIdentifierNotType> <typeParameters>?
      <memberedDeclarationBody>;
 
 <constructorSignature> ::= // Modified rule.
@@ -947,10 +943,10 @@ of declaration, and the constructor might be non-const).
 
 ### Changelog
 
-1.14 - February 24, 2025
+1.14 - March 4, 2026
 
 * Adjust the grammar to allow empty membered bodies to be specified as a
-  semicolon.
+  semicolon (`mixin`, `enum`, and `extension` were missing).
 
 1.13 - November 25, 2025
 
