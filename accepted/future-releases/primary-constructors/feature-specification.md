@@ -666,9 +666,8 @@ variable declaration in the body of _D_ has an initializing expression which is
 not potentially constant when the primary parameters are considered to be
 potentially constant. An error also occurs if the body of _D_ contains a body
 part for the primary constructor, and it has an initializer list, and the
-initializer list contains an element of the form `this.v = e` or `v = e`, and
-`e` is not a potentially constant expression when the primary parameters are
-considered to be potentially constant.
+initializer list contains an expression which is not potentially constant when
+the primary parameters are considered to be potentially constant.
 
 *This is a relaxation of the existing rule which says that the initializing
 expressions in variable declarations must be constant when a class contains any
