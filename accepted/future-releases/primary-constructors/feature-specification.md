@@ -660,23 +660,30 @@ type has a primary constructor whose name is also the name of a constructor
 declared in the body, or if it declares a primary constructor whose name is
 `C.n`, and the body declares a static member whose basename is `n`.
 
-A compile-time error occurs if a class, mixin class, enum, or extension type
-declaration _D_ has a constant primary constructor, and a non-late instance
-variable declaration in the body of _D_ has an initializing expression which is
-not potentially constant when the primary parameters are considered to be
-potentially constant. An error also occurs if the body of _D_ contains a body
-part for the primary constructor, and it has an initializer list, and the
-initializer list contains an expression which is not potentially constant when
-the primary parameters are considered to be potentially constant.
+The definition of a _potentially constant_ expression is extended with a new
+case: An identifier expression denoting a parameter of a constant primary
+constructor that occurs in the initializer list of the body part of the primary
+constructor, or in an initializing expression of a non-late instance variable
+declaration, is potentially constant.
 
-*This is a relaxation of the existing rule which says that the initializing
-expressions in variable declarations must be constant when a class contains any
-constant constructors. However, with support for primary constructors it is
-possible to refer to the primary parameters in those initializing expressions,
-and this should be equally expressive as the corresponding declaration that uses
-a non-primary constructor and an initializer list. The rule about initializer
-lists just spells out explicitly that they should be treated "the same" as the
-initializer lists of non-primary constructors.*
+The language previously had a rule that it is a compile-time error if in a
+class, mixin class, enum, or extension type declaration that has one or more
+constant generative constructors, the initializing expression of a non-late
+instance variable declaration is not a constant expression. This rule is
+removed, and the following added instead:
+
+A compile-time error occurs if a class, mixin class, enum, or extension type
+declaration _D_ has a constant generative constructor, and a non-late instance
+variable declaration in the body of _D_ has an initializing expression which is
+not potentially constant. A compile-time error also occurs if the body of _D_
+contains a body part for the primary constructor, and it has an initializer
+list, and the initializer list contains an expression which is not potentially
+constant.
+
+Moreover, for every `<constObjectExpression>` invoking a constructor of _D_, a
+compile-time error occurs if the result of substituting actual arguments of the
+constructor invocation into one of the above mentioned initializing expressions
+or initializer list elements yields an expression which is not constant.
 
 Consider a class, mixin class, enum, or extension type declaration _D_ with
 a primary constructor *(note that it cannot be a `<mixinApplicationClass>`,
