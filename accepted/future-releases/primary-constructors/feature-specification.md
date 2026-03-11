@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Accepted
 
-Version: 1.14
+Version: 1.15
 
 Experiment flag: primary-constructors
 
@@ -660,6 +660,35 @@ type has a primary constructor whose name is also the name of a constructor
 declared in the body, or if it declares a primary constructor whose name is
 `C.n`, and the body declares a static member whose basename is `n`.
 
+The definition of a _potentially constant_ expression is extended with a new
+case: An identifier expression denoting a parameter of a constant primary
+constructor that occurs in the initializer list of the body part of the primary
+constructor, or in an initializing expression of a non-late instance variable
+declaration, is potentially constant.
+
+The language previously had a rule that it is a compile-time error if in a
+class, mixin class, enum, or extension type declaration that has one or more
+constant generative constructors, the initializing expression of a non-late
+instance variable declaration is not a constant expression. This rule is
+removed, and the following added instead:
+
+A compile-time error occurs if a class, mixin class, enum, or extension type
+declaration _D_ has a constant generative constructor, and a non-late instance
+variable declaration in the body of _D_ has an initializing expression which is
+not potentially constant. A compile-time error also occurs if the body of _D_
+contains a body part for the primary constructor, and it has an initializer
+list, and the initializer list contains an expression which is not potentially
+constant.
+
+Moreover, for every constant expression which is an instance creation that
+invokes a constructor of _D_, a compile-time error occurs if the result of
+substituting actual arguments of the constructor invocation into one of the
+above mentioned initializing expressions or initializer list elements yields an
+expression which is not constant.
+
+*This is the same as the existing check on constant constructor invocations, but
+it applies to two new pieces of syntax.*
+
 Consider a class, mixin class, enum, or extension type declaration _D_ with
 a primary constructor *(note that it cannot be a `<mixinApplicationClass>`,
 because that kind of declaration does not syntactically support primary
@@ -942,6 +971,11 @@ far removed from any syntactic hint that the constructor must be constant
 of declaration, and the constructor might be non-const).
 
 ### Changelog
+
+1.15 - March 11, 2026
+
+* Generalize potentially constant expressions. Specify compile-time errors
+  associated with constant expressions and initialization expressions.
 
 1.14 - March 4, 2026
 
