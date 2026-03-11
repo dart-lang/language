@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Accepted
 
-Version: 1.14
+Version: 1.15
 
 Experiment flag: primary-constructors
 
@@ -680,10 +680,14 @@ contains a body part for the primary constructor, and it has an initializer
 list, and the initializer list contains an expression which is not potentially
 constant.
 
-Moreover, for every `<constObjectExpression>` invoking a constructor of _D_, a
-compile-time error occurs if the result of substituting actual arguments of the
-constructor invocation into one of the above mentioned initializing expressions
-or initializer list elements yields an expression which is not constant.
+Moreover, for every constant expression which is an instance creation that
+invokes a constructor of _D_, a compile-time error occurs if the result of
+substituting actual arguments of the constructor invocation into one of the
+above mentioned initializing expressions or initializer list elements yields an
+expression which is not constant.
+
+*This is the same as the existing check on constant constructor invocations, but
+it applies to two new pieces of syntax.*
 
 Consider a class, mixin class, enum, or extension type declaration _D_ with
 a primary constructor *(note that it cannot be a `<mixinApplicationClass>`,
@@ -967,6 +971,11 @@ far removed from any syntactic hint that the constructor must be constant
 of declaration, and the constructor might be non-const).
 
 ### Changelog
+
+1.15 - March 11, 2026
+
+* Generalize potentially constant expressions. Specify compile-time errors
+  associated with constant expressions and initialization expressions.
 
 1.14 - March 4, 2026
 
