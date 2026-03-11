@@ -9036,7 +9036,8 @@ are the following:
   if $e$ is a potentially constant expression
   and $T$ is a potentially constant type
   (\ref{constantTypes}),
-  and it is further constant if $e$ is constant.
+  and it is further constant if $e$ is constant
+  and $T$ is a constant type.
   \commentary{%
     It is a \Error{compile-time error} to evaluate this constant expression
     if the cast operation would throw, that is,
@@ -9045,9 +9046,10 @@ are the following:
 \item
   An expression of the form \code{$e$\,\,\IS\,\,$T$} is potentially constant
   if $e$ is a potentially constant expression
-  and $T$ is a constant type
+  and $T$ is a potentially constant type
   (\ref{constantTypes}),
-  and it is further constant if $e$ is constant.
+  and it is further constant if $e$ is constant
+  and $T$ is a constant type.
 \item
   An expression of the form \code{$e$\,\,is!\,\,$T$}
   is equivalent to \code{!($e$\,\,is\,\,$T$)} in every way,
@@ -9095,7 +9097,7 @@ depends on itself.
 A \Index{potentially constant type} respectively \Index{constant type}
 is a term derived from \synt{type} which is used as a type
 \commentary{(not as an expression that yields an instance of \code{Type})}
-that satisfy the following criteria:
+that satisfy one of the following criteria:
 \begin{itemize}
 \item
   Consider a type $T$
