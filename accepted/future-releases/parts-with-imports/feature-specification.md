@@ -4,6 +4,8 @@ Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com
 
 Version: 1.3 (See [Changelog](#Changelog) at end)
 
+Status: Accepted
+
 Experiment flag: enhanced-parts
 
 This is a standalone definition of _enhanced part files_, where the title of
