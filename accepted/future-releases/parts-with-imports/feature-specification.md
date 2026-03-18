@@ -23,7 +23,7 @@ design choices were made based on the augmentations and macro features,
 with concerns that still apply to other kinds of code-generation,
 combined with being backwards compatible.
 
-[Augmentations]: ../augmentations/feature-specification.md "Augmentations feature specification"
+[Augmentations]: ../../working/augmentations/feature-specification.md "Augmentations feature specification"
 
 ## Motivation
 
