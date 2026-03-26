@@ -2,7 +2,7 @@
 
 Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com, eernst@google.com
 
-Version: 1.42 (see [Changelog](#Changelog) at end)
+Version: 1.43 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
@@ -764,6 +764,38 @@ signature *matches* an introductory signature if:
     or super parameters and all other declarations for the same constructor
     must declare the corresponding parameters as regular parameters.*
 
+*   For all positional parameters:
+
+    *   The augmenting function's parameter name is `_`, or
+
+    *   The augmenting function's parameter name is the same as the name of the
+        corresponding positional parameter in every preceding declaration that
+        doesn't have `_` as its name.
+
+    *In other words, a declaration can ignore a positional parameter's name by
+    using `_`, but all declarations in the chain that specify a name have to
+    agree on it.
+
+    ```dart
+    f1(int _) {} // OK, this declaration doesn't care about the name.
+    augment f1(int x); // OK, first declaration to introduce a name.
+    augment f1(int _); // OK.
+    augment f1(int y); // Error, can't change the name.
+    augment f1(int _); // OK.
+    ```
+
+    *Note that this is a transitive property.*
+
+    *If an augmentation uses `_` for a parameter name, the name is not
+    "inherited" from a preceding declaration for use in the augmentation's
+    body. The name of the parameter for that augmentation is `_`, which can't be
+    used because it's a wildcard:
+
+    ```dart
+    f(int x);
+    augment f(int _) { print(x); } // Error.
+    ```
+
 In this definition, the properties of the introductory declaration may
 correspond to an explicitly declared property _(such as an explicitly stated
 return type)_ or an inferred property _(such as a parameter type which has been
@@ -1297,6 +1329,12 @@ fully captured by that paragraph). It's probably safest to be pessimistic
 and assume the third point is always true.
 
 ## Changelog
+
+### 1.43
+
+*   Restore the rule about the use of `_` as a "don't care" name in the
+    augmentation chain for a formal parameter, using the same text as in
+    version 1.37.
 
 ### 1.42
 
