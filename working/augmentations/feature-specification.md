@@ -801,6 +801,17 @@ correspond to an explicitly declared property _(such as an explicitly stated
 return type)_ or an inferred property _(such as a parameter type which has been
 obtained by override inference)_.
 
+In a declaration where a parameter named `n` is declared using `_`, the
+name `n` is not in scope and may be resolved elsewhere. *For example:*
+
+```dart
+int y = 42;
+void g(int y);
+augment g(_) {
+  print(y); // OK, prints '42'.
+}
+```
+
 ### Augmenting functions
 
 A top-level function, static method, instance method, operator, getter, or
