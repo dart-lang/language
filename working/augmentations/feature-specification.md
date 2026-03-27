@@ -753,7 +753,7 @@ signature *matches* an introductory signature if:
 
     *   They both have the modifier `covariant`, or none of them have it.
 
-    *   They both have the modifier `required`. or none of them have it.
+    *   They both have the modifier `required`, or none of them have it.
 
     *For constructors, we do not require parameters to match in uses of
     initializing formals or super parameters. In fact, they are implicitly
@@ -766,15 +766,15 @@ signature *matches* an introductory signature if:
 
 *   For all positional parameters:
 
-    *   The augmenting function's parameter name is `_`, or
+    *   The name of the augmenting parameter declaration is `_`, or
 
-    *   The augmenting function's parameter name is the same as the name of the
-        corresponding positional parameter in every preceding declaration that
-        doesn't have `_` as its name.
+    *   The name of the augmenting parameter declaration is the same as the name
+        of the corresponding parameter declaration in every preceding
+        declaration that doesn't have `_` as its name.
 
     *In other words, a declaration can ignore a positional parameter's name by
-    using `_`, but all declarations in the chain that specify a name have to
-    agree on it.
+    using `_`, but all declarations in the chain that specify a name which is
+    not `_` must agree on it.*
 
     ```dart
     f1(int _) {} // OK, this declaration doesn't care about the name.
@@ -784,12 +784,10 @@ signature *matches* an introductory signature if:
     augment f1(int _); // OK.
     ```
 
-    *Note that this is a transitive property.*
-
-    *If an augmentation uses `_` for a parameter name, the name is not
-    "inherited" from a preceding declaration for use in the augmentation's
-    body. The name of the parameter for that augmentation is `_`, which can't be
-    used because it's a wildcard:
+    *If an augmentation specifies `_` as the name of a parameter, a non-`_` name
+    is not "inherited" from a preceding declaration for use in the
+    augmentation's body. The name of the parameter for that augmentation is `_`,
+    which can't be accessed because it's a wildcard:
 
     ```dart
     f(int x);
@@ -806,7 +804,9 @@ name `n` is not in scope and may be resolved elsewhere. *For example:*
 
 ```dart
 int y = 42;
+
 void g(int y);
+
 augment g(_) {
   print(y); // OK, prints '42'.
 }
