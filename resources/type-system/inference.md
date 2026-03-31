@@ -291,23 +291,24 @@ having type `dynamic`.
 The return type of the context function type is used at several points during
 inference.  We refer to this type as the **imposed return type
 schema**. Inference for each returned or yielded expression in the body of the
-function literal is done using a context type derived from the imposed return
-type schema `S` as follows:
+function literal is done using a context type schema derived from the imposed
+return type schema `S` as follows:
+
   - If the function expression is neither `async` nor a generator, then the
-    context type is `S`.
-  - If the function expression is declared `async*` and the element type of
-    `S` as the return type of an asynchronous function is `S1`, then the
-    context type is `S1`.
-  - If the function expression is declared `sync*` and the element type of
-    `S` as the return type of a synchronous function is `S1`, then the
-    context type is `S1`.
+    context type schema is `S`.
+  - If the function expression is declared `async*` and the element type 
+    schema of `S` as the return type schema of an asynchronous function is
+    `S1`, then the context type schema is `S1`.
+  - If the function expression is declared `sync*` and the element type 
+    schema of `S` as the return type schema of a synchronous function is
+    `S1`, then the context type schema is `S1`.
   - If the function expression is declared `async`, without null safety, the
     context type is `FutureOr<flatten(T)>` where `T` is the imposed return
-    type schema; with null safety, the context type is
+    type schema; with null safety, the context type schema is
     `FutureOr<futureValueTypeSchema(S)>`.
-  - Otherwise, the context type is `_`. *For example, a `sync*` function
-    literal could have an imposed return type schema `S` which is `int`,
-    and `int` doesn't have an element type.*
+  - Otherwise, the context type schema is `_`. *For example, a `sync*` 
+    function literal could have an imposed return type schema `S` which
+    is `int`, and `int` doesn't have an element type.*
 
 The function **futureValueTypeSchema** is defined as follows:
 
