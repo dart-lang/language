@@ -660,6 +660,20 @@ type has a primary constructor whose name is also the name of a constructor
 declared in the body, or if it declares a primary constructor whose name is
 `C.n`, and the body declares a static member whose basename is `n`.
 
+A compile-time error occurs if a class, mixin class, enum, or extension type has
+a constant primary constructor which has a body part that has a body.
+*For example:*
+
+```dart
+class const A() {
+  this {} // Error because the body part has a body.
+}
+```
+
+A compile-time error occurs if a class, mixin class, enum, or extension type has
+a primary constructor which has a body part that includes any of the modifiers
+`async`, `async*`, or `sync*`, or if it uses `=>` rather than a block.
+
 The definition of a _potentially constant_ expression is extended with a new
 case: An identifier expression denoting a parameter of a constant primary
 constructor that occurs in the initializer list of the body part of the primary
