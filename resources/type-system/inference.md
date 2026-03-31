@@ -6,6 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
+2026.03.31
+  - Change the function literal return type inference rules to handle
+    generator return types which are not of the form `Iterable<...>`
+    or `Stream<...>`.
+
 2024.12.17
   - Change the function literal return type inference rules to ignore
     `return;` statements in generators (it doesn't actually cause null to be
@@ -268,6 +273,9 @@ has no declared type, it is treated as if it was declared with type `dynamic`.
 Inference for each returned expression in the body of the function literal is
 done in an empty typing context (see below).
 
+Function literals which are inferred in a non-empty typing context where the
+context type is not a function type are inferred in the empty typing context.
+
 Function literals which are inferred in an non-empty typing context where the
 context type is a function type are inferred as described below.
 
@@ -287,13 +295,19 @@ function literal is done using a context type derived from the imposed return
 type schema `S` as follows:
   - If the function expression is neither `async` nor a generator, then the
     context type is `S`.
-  - If the function expression is declared `async*` and `S` is of the form
-    `Stream<S1>` for some `S1`, then the context type is `S1`.
-  - If the function expression is declared `sync*` and `S` is of the form
-    `Iterable<S1>` for some `S1`, then the context type is `S1`.
-  - Otherwise, without null safety, the context type is `FutureOr<flatten(T)>`
-    where `T` is the imposed return type schema; with null safety, the context
-    type is `FutureOr<futureValueTypeSchema(S)>`.
+  - If the function expression is declared `async*` and the element type of
+    `S` as the return type of an asynchronous function is `S1`, then the
+    context type is `S1`.
+  - If the function expression is declared `sync*` and the element type of
+    `S` as the return type of a synchronous function is `S1`, then the
+    context type is `S1`.
+  - If the function expression is declared `async`, without null safety, the
+    context type is `FutureOr<flatten(T)>` where `T` is the imposed return
+    type schema; with null safety, the context type is
+    `FutureOr<futureValueTypeSchema(S)>`.
+  - Otherwise, the context type is `_`. *For example, a `sync*` function
+    literal could have an imposed return type schema `S` which is `int`,
+    and `int` doesn't have an element type.*
 
 The function **futureValueTypeSchema** is defined as follows:
 
