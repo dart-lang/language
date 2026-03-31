@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Accepted
 
-Version: 1.15
+Version: 1.16
 
 Experiment flag: primary-constructors
 
@@ -674,6 +674,11 @@ A compile-time error occurs if a class, mixin class, enum, or extension type has
 a primary constructor which has a body part that includes any of the modifiers
 `async`, `async*`, or `sync*`, or if it uses `=>` rather than a block.
 
+A compile-time error occurs if a mixin class declaration has a primary
+constructor which is not trivial, that is, it declares one or more 
+parameters, or it has a body part that has an initializer list or
+a body.
+
 The definition of a _potentially constant_ expression is extended with a new
 case: An identifier expression denoting a parameter of a constant primary
 constructor that occurs in the initializer list of the body part of the primary
@@ -985,6 +990,11 @@ far removed from any syntactic hint that the constructor must be constant
 of declaration, and the constructor might be non-const).
 
 ### Changelog
+
+1.16 - March 31, 2026
+
+* Add rules to specify compile-time errors for primary constructors
+  corresponding to the errors that apply to other constructors.
 
 1.15 - March 11, 2026
 
