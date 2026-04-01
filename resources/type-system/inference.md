@@ -291,12 +291,17 @@ type of _D_ is `R`. The imposed return type schema of _D_ is
 The function **futureValueTypeSchema** is defined as follows:
 
 - **futureValueTypeSchema**(`S?`) = **futureValueTypeSchema**(`S`), for all `S`.
-- **futureValueTypeSchema**(`Future<S>`) = `S`, for all `S`.
-- **futureValueTypeSchema**(`FutureOr<S>`) = `S`, for all `S`.
+- **futureValueTypeSchema**(`Future<S>`) = **eraseDynamic**(`S`), for all `S`.
+- **futureValueTypeSchema**(`FutureOr<S>`) = **eraseDynamic**(`S`), for all `S`.
 - **futureValueTypeSchema**(`void`) = `void`.
-- **futureValueTypeSchema**(`dynamic`) = `_`.
+- **futureValueTypeSchema**(`dynamic`) = **eraseDynamic**(`dynamic`).
 - **futureValueTypeSchema**(`_`) = `_`.
 - Otherwise, for all `S`, **futureValueTypeSchema**(`S`) = `Object?`.
+
+where
+
+- **eraseDynamic**(`dynamic`) = `_`.
+- Otherwise, for all `S`, **eraseDynamic**(`S`) = `S`.
 
 _Note that it is a compile-time error unless the return type of an asynchronous
 non-generator function is a supertype of `Future<Never>`, which means that
