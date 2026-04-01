@@ -265,13 +265,72 @@ Note that `late` fields are inferred exactly as non-`late` fields.  However,
 unlike normal fields, the initializer for a `late` field may reference `this`.
 
 
-## Function literal return type inference.
+## The imposed return type schema
 
-Function literals which are inferred in an empty typing context (see below) are
-inferred using the declared type for all of their parameters.  If a parameter
-has no declared type, it is treated as if it was declared with type `dynamic`.
-Inference for each returned expression in the body of the function literal is
-done in an empty typing context (see below).
+*This section assumes that Dart has null safety (older versions of the
+language are ignored).*
+
+In the following we refer to the asynchronous or synchronous element type
+schema of a type. This is defined from the asynchronous respectively
+synchronous element type of a type by treating `_` as a type.
+
+Assume that _D_ is a top-level, static, or instance declaration of a
+synchronous non-generator function, method, getter, setter, or constructor;
+or it is a local synchronous non-generator function declaration; assume
+that the return type of _D_ is `R`. If `R` is `dynamic`, the _imposed
+return type schema_ of _D_ is `_`.  Otherwise, the imposed return type
+schema of _D_ is `R`.
+
+Assume that _D_ is a top-level, static, or instance declaration of an
+asynchronous non-generator function, method, or getter; or it is a local
+asynchronous non-generator function declaration; assume that the return
+type of _D_ is `R`. The imposed return type schema of _D_ is
+`FutureOr<futureValueTypeSchema(S)>`.
+
+The function **futureValueTypeSchema** is defined as follows:
+
+- **futureValueTypeSchema**(`S?`) = **futureValueTypeSchema**(`S`), for all `S`.
+- **futureValueTypeSchema**(`Future<S>`) = `S`, for all `S`.
+- **futureValueTypeSchema**(`FutureOr<S>`) = `S`, for all `S`.
+- **futureValueTypeSchema**(`void`) = `void`.
+- **futureValueTypeSchema**(`dynamic`) = `_`.
+- **futureValueTypeSchema**(`_`) = `_`.
+- Otherwise, for all `S`, **futureValueTypeSchema**(`S`) = `Object?`.
+
+_Note that it is a compile-time error unless the return type of an asynchronous
+non-generator function is a supertype of `Future<Never>`, which means that
+the last case will only be applied when `S` is `Object` or a top type._
+
+Assume that _D_ is a top-level, static, or instance declaration of a
+synchronous respectively asynchronous generator function, method, or
+getter; or it is a local synchronous respectively asynchronous generator
+function declaration; assume that the return type of _D_ is `R`.
+
+Let `S` be the synchronous respectively asynchronous element type of `R`.
+If `S` is `dynamic`, the imposed return type schema of _D_ is `_`.
+Otherwise, the imposed return type schema of _D_ is `S`.
+
+Assume that _D_ is a non-generator function literal which is being inferred
+with context type schema `T`.
+
+If `T` is not a function type schema, or `T` is a function type schema with
+return type `dynamic`, the imposed return type schema of _D_ is `_`.
+Otherwise, let `S` be the return type schema of `T`. *Note that `S` may
+contain references to type variables declared by _D_ itself, which is not a
+problem.* In this case the imposed return type schema of _D_ is `S`.
+
+Any imposed return type schema can be designated as the _imposed return
+type_ in a situation where it is a type.
+
+
+## Function literal return type inference
+
+Function literals which are inferred in an empty typing context (see below)
+are inferred using the declared type for all of their parameters.  If a
+parameter has no declared type, it is treated as if it was declared with
+type `dynamic`.  Inference for each returned or yielded expression in the
+body of the function literal is done in an empty typing context (see
+below).
 
 Function literals which are inferred in a non-empty typing context where the
 context type is not a function type are inferred in the empty typing context.
@@ -288,49 +347,16 @@ with null safety `T` is `Object?`. Otherwise, `T` is `S`. If there is no
 corresponding parameter in the context type schema, the variable is treated as
 having type `dynamic`.
 
-The return type of the context function type is used at several points during
-inference.  We refer to this type as the **imposed return type
-schema**. Inference for each returned or yielded expression in the body of the
-function literal is done using a context type schema derived from the imposed
-return type schema `S` as follows:
-
-  - If the function expression is neither `async` nor a generator, then the
-    context type schema is `S`.
-  - If the function expression is declared `async*` and the element type 
-    schema of `S` as the return type schema of an asynchronous function is
-    `S1`, then the context type schema is `S1`.
-  - If the function expression is declared `sync*` and the element type 
-    schema of `S` as the return type schema of a synchronous function is
-    `S1`, then the context type schema is `S1`.
-  - If the function expression is declared `async`, without null safety, the
-    context type is `FutureOr<flatten(T)>` where `T` is the imposed return
-    type schema; with null safety, the context type schema is
-    `FutureOr<futureValueTypeSchema(S)>`.
-  - Otherwise, the context type schema is `_`. *For example, a `sync*` 
-    function literal could have an imposed return type schema `S` which
-    is `int`, and `int` doesn't have an element type.*
-
-The function **futureValueTypeSchema** is defined as follows:
-
-- **futureValueTypeSchema**(`S?`) = **futureValueTypeSchema**(`S`), for all `S`.
-- **futureValueTypeSchema**(`S*`) = **futureValueTypeSchema**(`S`), for all `S`.
-- **futureValueTypeSchema**(`Future<S>`) = `S`, for all `S`.
-- **futureValueTypeSchema**(`FutureOr<S>`) = `S`, for all `S`.
-- **futureValueTypeSchema**(`void`) = `void`.
-- **futureValueTypeSchema**(`dynamic`) = `dynamic`.
-- **futureValueTypeSchema**(`_`) = `_`.
-- Otherwise, for all `S`, **futureValueTypeSchema**(`S`) = `Object?`.
-
-_Note that it is a compile-time error unless the return type of an asynchronous
-non-generator function is a supertype of `Future<Never>`, which means that
-the last case will only be applied when `S` is `Object` or a top type._
+Inference for each returned or yielded expression in the body of the
+function literal is done using the imposed return type schema of the
+function literal.
 
 In order to infer the return type of a function literal, we first infer the
 **actual returned type** of the function literal.
 
 The actual returned type of a function literal with an expression body is the
 inferred type of the expression body, using the local type inference algorithm
-described below with a typing context as computed above.
+described below with a context type schema `K` as computed above.
 
 The actual returned type of a function literal with a block body is computed as
 follows.  Let `T` be `Never` if every control path through the block exits the
@@ -368,8 +394,8 @@ body.
 The **actual returned type** of the function literal is the value of `T` after
 all `return` and `yield` statements in the block body have been considered.
 
-Let `T` be the **actual returned type** of a function literal as computed above.
-Let `R` be the greatest closure of the typing context `K` as computed above.
+Let `T` be the **actual returned type** of a function literal as computed
+above.  Let `R` be the greatest closure of the context type schema `K`.
 
 With null safety: if `R` is `void`, or the function literal is marked `async`
 and `R` is `FutureOr<void>`, let `S` be `void` (without null-safety: no special
