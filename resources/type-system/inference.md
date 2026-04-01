@@ -8,8 +8,9 @@ Status: Draft
 
 2026.03.31
   - Change the function literal return type inference rules to handle
-    generator return types which are not of the form `Iterable<...>`
-    or `Stream<...>`.
+    generator return types which are not of the form `Iterable<...>` or
+    `Stream<...>`. To do this, the definition of the imposed return type
+    schema was moved to a separate section.
 
 2024.12.17
   - Change the function literal return type inference rules to ignore
