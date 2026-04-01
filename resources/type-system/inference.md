@@ -298,14 +298,14 @@ The function **futureValueTypeSchema** is defined as follows:
 - **futureValueTypeSchema**(`_`) = `_`.
 - Otherwise, for all `S`, **futureValueTypeSchema**(`S`) = `Object?`.
 
-where
-
-- **eraseDynamic**(`dynamic`) = `_`.
-- Otherwise, for all `S`, **eraseDynamic**(`S`) = `S`.
-
 _Note that it is a compile-time error unless the return type of an asynchronous
 non-generator function is a supertype of `Future<Never>`, which means that
 the last case will only be applied when `S` is `Object` or a top type._
+
+The helper function **eraseDynamic** is defined as follows:
+
+- **eraseDynamic**(`dynamic`) = `_`.
+- Otherwise, for all `S`, **eraseDynamic**(`S`) = `S`.
 
 Assume that _D_ is a top-level, static, or instance declaration of a
 synchronous respectively asynchronous generator function, method, or
