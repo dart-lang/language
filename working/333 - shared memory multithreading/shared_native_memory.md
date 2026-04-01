@@ -26,9 +26,11 @@ Porting this code to Dart using `dart:ffi` is currently impossible, as FFI only
 supports two specific callback types:
 
 - [`NativeCallable.isolateLocal`][native-callable-isolate-local]: native caller
-  must have an exclusive access to an isolate in which callback was created.
-  This type of callback works if Dart calls C and C calls back into Dart
-  synchronously. It also works if caller uses VM C API for entering isolates
+  must have an exclusive access to an isolate in which callback was created - or
+  isolate must be pinned (owned) by a thread which invokes the callback. In the
+  later case FFI trampoline will take care of entering the target isolate even
+  if needed. This type of callback works if Dart calls C and C calls back into
+  Dart synchronously. It also works if caller uses VM C API for entering isolates
   (e.g.`Dart_EnterIsolate`/`Dart_ExitIsolate`).
 - [`NativeCallable.listener`][native-callable-listener]: native caller
   effectively sends a message to the isolate which created the callback and does
@@ -167,59 +169,65 @@ classes are also deeply immutable: `SendPort`, `Capability`, `RegExp`,
 
 All compile time constants are deeply immutable instances.
 
-`TypedData` and `Struct` instances are deeply immutable when backed by native
-(external) memory.
+`TypedData` and `Struct` instances are considered deeply immutable.
+
+> [!IMPORTANT]
+>
+> There is a consideration here that not all `TypedData` instances can be
+> shared on the Web, where there is separation between `ArrayBuffer` and
+> `SharedArrayBuffer` exists.
+
+[deeply immutable]: https://github.com/dart-lang/sdk/blob/bb59b5c72c52369e1b0d21940008c4be7e6d43b3/runtime/docs/deeply_immutable.md
+
 
 Unmodifiable lists (`List.unmodifiable`) which contain deeply immutable
 instances are deeply immutable.
 
-Closures which capture only `final` variables containing deeply immutable
-instances are deeply immutable.
+Closures which capture only `final`, non-`late` variables containing deeply
+immutable instances are deeply immutable.
 
-Finally, instances of classes annotated with `@pragma('vm:deeply-immutable')`
-are deeply immutable. It is a compile error if classes annotated with this
-pragma contain non-`final` fields. It is an compile time error if static
-type of field within annotated class excludes deeply immutable instances.
-If the static type of a field in a deeply immutable class is not
-deeply immutable type - then compiler must insert checks in the constructor to
-guarantee that this field is initialized to a deeply immutable value.
+Finally, instances of classes _marked as deeply immutable_ by being annotated
+with `@pragma('vm:deeply-immutable')` are deeply immutable. For any class
+which is marked as deeply immutable it is a compile time error if:
 
-> [!IMPORTANT]
->
-> **TODO** should we allow sharing of all `TypedData` (and by extension
-> `Struct`) objects? This seems very convenient. There is a consideration
-> here that not all `TypedData` instances can be shared on the Web, where
-> there is separation between `ArrayBuffer` and `SharedArrayBuffer` exists.
+* a subclass of such class which is not itself marked as deeply immutable.
+* a superclass of such class is not `Object` or a class itself marked as
+deeply immutable.
+* such class contains contains non-`final` or `late final` instance variables.
 
-[deeply immutable]: https://github.com/dart-lang/sdk/blob/bb59b5c72c52369e1b0d21940008c4be7e6d43b3/runtime/docs/deeply_immutable.md
+Compiler must ensure that instance variables in deeply immutable instances
+are initialized with deeply immutable values. If this can't be guarateed
+statically then compiler must insert appropriate checks into the constructor
+to guarantee this invariant.
 
-### Shared fields and variables (`@pragma('vm:shared')`).
+### Shared variables (`@pragma('vm:shared')`).
 
-Static fields and global variables annotated with `@pragma('vm:shared')` are
+Static and global variables annotated with `@pragma('vm:shared')` are
 shared across all isolates in the isolate group.
 
-A field or variable annotated with `@pragma('vm:shared')` can only contain
-values which are deeply immutable objects.
+A variable annotated with `@pragma('vm:shared')` can only contain values
+which are deeply immutable objects.
 
-* It is a compile time error to annotate a field or variable the static type of
+* It is a compile time error to annotate a variable the static type of
   which excludes deeply immutable objects;
-* If static type of a field is a super-type for both deeply immutable and
+* If static type of a variable is a super-type for both deeply immutable and
   non-deeply immutable objects then compiler will insert a runtime check
-  which ensures that values assigned to such field are deeply immutable.
-* A field or variable annotated with `@pragma('vm:shared')` must be `final`.
+  which ensures that values assigned to such variable are deeply immutable.
+* A variable annotated with `@pragma('vm:shared')` must be `final` and
+  non-`late`.
 
 > [!NOTE]
 >
-> Restrictions imposed above are the same as ones imposed on field in deeply
-> immutable classes.
+> Restrictions imposed above are the same as ones imposed on instance
+> variables in deeply immutable classes.
 
-Shared fields must guarantee atomic initialization: if multiple threads
-access the same uninitialized field then only one thread will invoke the
-initializer and initialize the field, all other threads will block until
-initialization is complete.
+Shared static and global variables must guarantee atomic initialization: if
+multiple threads access the same uninitialized variable then only one
+thread will invoke the initializer and initialize the variable, all other
+threads will block until initialization is complete.
 
 Outside of initialization we however do **not** require strong (e.g.
-sequentially consistent) atomicity when reading or writing shared fields.
+sequentially consistent) atomicity when reading or writing shared variables.
 We only require that no thread can ever observe a partially initialized Dart
 object. See [Memory Model](#memory-model) for more details.
 
@@ -230,7 +238,7 @@ Today Dart runtime always executes Dart code within a specific isolate.
 within specific _isolate group_ but outside of a specific isolate. When Dart
 code is executed in such a way it can only access static state which is shared
 between isolates (`@pragma('vm:shared')`) and attempts to access isolated state
-will cause `FieldAccessError` to be thrown.
+will cause `AccessError` to be thrown.
 
 ```dart
   /// Constructs a [NativeCallable] that can be invoked from any thread.
@@ -239,8 +247,8 @@ will cause `FieldAccessError` to be thrown.
   /// the [callback] will be executed within the isolate group
   /// of the [Isolate] which originally constructed the callable.
   /// Specifically, this means that an attempt to access any
-  /// static or global field which is not shared between
-  /// isolates in a group will result in a [FieldAccessError].
+  /// static or global variable which is not shared between
+  /// isolates in a group will result in a [AccessError].
   ///
   /// If an exception is thrown by the [callback], the
   /// native function will return the `exceptionalReturn`,
@@ -305,21 +313,114 @@ class Isolate {
   /// Throws [TimeoutException] if [timeout] has been reached while waiting
   /// to acquire exclusive access to the isolate.
   ///
-  /// Throws [StateError] if target isolate is owned by another thread and
-  /// thus can't be entered from a different thread.
+  /// Throws an error if target isolate is pinned to another thread and
+  /// thus can't be entered from this threadn. See [pinToCurrentThread] and
+  /// [isPinnedToCurrentThread].
   ///
-  /// Throws [ArgumentError] if [f] is not deeply immutable.
+  /// Throws an error if the target isolate belongs to another
+  /// isolate group.
   ///
-  /// Throws [StateError] if result returned by [f] is not deeply immutable.
-  R runSync<R>(R Function() f, {Duration? timeout});
+  /// Throws an error if [f] is not deeply immutable.
+  ///
+  /// Throws an error if result returned by [f] is not deeply immutable.
+  external R runSync<R>(R Function() f, {Duration? timeout});
+
+  /// Create a new isolate in the current isolate group.
+  ///
+  /// Similar to `Dart_CreateIsolateInGroup` Dart VM C API.
+  ///
+  /// The isolate has been created, but its event loop is not running.
+  ///
+  /// To start processing isolate's messages:
+  ///
+  /// * start isolate's event loop synchronously on the current thread
+  ///   by calling [Isolate.runEventLoopSync]
+  /// * integrate isolate's event loop with an external event loop by
+  ///   registering event callback ([Isolate.onEvent]) to forward
+  ///   event notifications to an external event loop and then draining
+  ///   pending events ([Isolate.handleEvent]) from that event loop.
+  external static Isolate create({String? debugName});
+
+  /// Shut down target isolate.
+  ///
+  /// Shutting down the isolate stops its event loop without processing
+  /// any pending messages and closes all open receive ports owned by the
+  /// isolate.
+  ///
+  /// This function will block until it acquires exclusive access to the
+  /// target isolate. Isolate can only be entered for synchronous execution
+  /// between turns of its event loop, when no other thread is
+  /// executing code in the target isolate.
+  external void shutDown();
+
+  /// Pin current isolate to the current OS thread.
+  ///
+  /// Once an isolate is pinned to an OS thread it cannot be
+  /// entered by any other OS thread. An attempt to acquire
+  /// exclusive access to it from another thread will fail with
+  /// an error.
+  ///
+  /// Equivalent to `Dart_SetCurrentThreadOwnsIsolate` Dart VM C API.
+  ///
+  /// Returns `true` on success and `false` otherwise (e.g. if target isolate
+  /// is already pinned to another thread).
+  external static bool pinToThread();
+
+  /// Whether the isolate is pinned to the current OS thread.
+  ///
+  /// Equivalent to `Dart_GetCurrentThreadOwnsIsolate` Dart VM C API.
+  external bool get isPinnedToCurrentThread;
+
+  /// Run event loop for the target isolate synchronously on the current thread.
+  ///
+  /// This function will block until it acquires exclusive access to the
+  /// target isolate. Isolate can only be entered for synchronous execution
+  /// between turns of its event loop, when no other thread is
+  /// executing code in the target isolate.
+  ///
+  /// This function will return once the isolate has no open keep-alive
+  /// receive ports.
+  ///
+  /// The isolate will be marked as pinned to the current thread.
+  ///
+  /// Similar to `Dart_RunLoop` Dart VM C API, but unlike `Dart_RunLoop` this
+  /// function executes isolate's event loop on the current thread instead
+  /// of delegating it into the thread-pool.
+  ///
+  /// Throws an error if target isolate is pinned to another thread or already
+  /// has an event loop running.
+  external static void runEventLoopSync();
+
+  /// Event notify callback for the isolate.
+  ///
+  /// Provided callback will be called once for every new event which isolate
+  /// needs to react to. Pending events can be then later be drained
+  /// by calling [Isolate.handleEvent].
+  ///
+  /// Provided [callback] must be deeply immutable and will be called
+  /// on an arbitrary thread and not necessarily within any isolate. See
+  /// [NativeCallable.isolateGroupBound].
+  ///
+  /// IMPORTANT: [Isolate.handleEvent] *MUST NOT* be called from the
+  /// `callback` as this will cause a dead-locks of the Dart execution
+  /// environment.
+  ///
+  /// Similar to `Dart_SetMessageNotifyCallback` Dart VM C API.
+  external void set onEvent(void Function(Isolate) callback);
+
+  /// Handle at most one pending event for the isolate.
+  ///
+  /// This function does nothing if there are no pending events.
+  ///
+  /// This function will block until it acquires exclusive access to the
+  /// target isolate. Isolate can only be entered for synchronous execution
+  /// between turns of its event loop, when no other thread is
+  /// executing code in the target isolate.
+  ///
+  /// Similar to `Dart_HandleMessage` Dart VM C API.
+  external void handleEvent();
 }
 ```
-
-**TODO**: Furthermore we might want to facilitate integration with third-party
-event-loops: e.g. allow to create isolate without scheduling its event loop on
-our own thread pool and provide equivalents of `Dart_SetMessageNotifyCallback`
-and `Dart_HandleMessage`. Though maybe we should not bundle this all together
-into one update.
 
 ### Scoped thread local values
 
@@ -339,11 +440,11 @@ final class ScopedThreadLocal<T> {
   /// If this [ScopedThreadLocal] was uninitialized then it will be reset to this state
   /// when execution of [f] completes.
   ///
-  /// Throws [StateError] if this [ScopedThreadLocal] does not have an initializer.
+  /// Throws an error if this [ScopedThreadLocal] does not have an initializer.
   external void runInitialized<R>(R Function(T) f);
 
 	/// Returns the value specified by the closest enclosing invocation of [with] or
-	/// throws [StateError] if this [ScopedThreadLocal] is not bound to a value.
+	/// throws an error if this [ScopedThreadLocal] is not bound to a value.
   external T get value;
 
   /// Returns whether this [ScopedThreadLocal] is bound to a value.
@@ -529,10 +630,10 @@ final class Foo implements Struct {
 > [!CAUTION]
 >
 > Support for `AtomicInt` in FFI structs is meant to enable atomic access to
-> fields without requiring developers to go through `Pointer` based atomic APIs.
-> It is **not** meant as a way to interoperate with structs that contain
-> `std::atomic<int32_t>` (C++) or `_Atomic int32_t` (C11) because these types
-> don't have a defined ABI.
+> instance variables without requiring developers to go through `Pointer` based
+> atomic APIs. It is **not** meant as a way to interoperate with structs that
+> contain `std::atomic<int32_t>` (C++) or `_Atomic int32_t` (C11) because these
+> types don't have a defined ABI.
 
 ### Memory Model
 
@@ -779,19 +880,19 @@ $$
 \forall i\leq j . \mathtt{Rel}(l, i) \leq_\mathtt{asw} \mathtt{Acq}(l, j)
 $$
 
-##### Shared fields
+##### Shared instance variables
 
-There can only be a single initializing store for any shared field. All other
-accesses are _not_ required to be atomic. However per definition of
+There can only be a single initializing store for any shared instance variable.
+All other accesses are _not_ required to be atomic. However per definition of
 $\leq_\mathtt{hb}$ relation all initializing stores happen-before other accesses
 to the overlapping locations. This means that if one thread creates an object
-and publishes it to another thread via a shared field - another thread can't
-observe object in partially initialized state. Implementations can choose to
-guarantee this property by inserting appropriate barriers when creating objects,
-however that would be a waste for objects that are mostly used in an
-isolate-local manner. Instead, given current restriction that only
-deeply immutable objects can be placed into shared-fields
-implementations can instead choose to implement shared fields using
+and publishes it to another thread via a shared instance variable - another
+thread can't observe object in partially initialized state. Implementations can
+choose to guarantee this property by inserting appropriate barriers when
+creating objects, however that would be a waste for objects that are mostly
+used in an isolate-local manner. Instead, given current restriction that only
+deeply immutable objects can be placed into shared instance variables
+implementations can instead choose to implement shared instance variables using
 _store-release_ and _load-acquire_ atomic operations. This would guarantee
 happens-before ordering for initializing stores. We however do not _require_
 such implementation and consequently developers can't rely on this in their
