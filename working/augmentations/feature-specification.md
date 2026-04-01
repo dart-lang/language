@@ -746,9 +746,6 @@ signature *matches* an introductory signature if:
 
 *   For each corresponding pair of parameters:
 
-    *   They have the same name. _This is trivial for named parameters, but may
-        fail to hold for positional parameters._
-
     *   They have the same type (or the augmenting declaration omits the type).
 
     *   They both have the modifier `covariant`, or none of them have it.
