@@ -389,7 +389,7 @@ class Isolate {
   ///
   /// Throws an error if target isolate is pinned to another thread or already
   /// has an event loop running.
-  external static void runEventLoopSync();
+  external void runEventLoopSync();
 
   /// Event notify callback for the isolate.
   ///
