@@ -41,6 +41,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Mar 2026
+% - Define the (a)synchronous element type of a type (so we can use that
+%   concept in feature specifications).
+%
 % Jan 2026
 % - Specify that collection elements are allowed to have type `void` in a
 %   collection literal where the corresponding actual type argument is `void`.
@@ -2168,27 +2172,44 @@ Otherwise, the union-free type derived from $T$ is $T$.
 }
 
 \LMHash{}%
-We define the
-\IndexCustom{element type of a generator function}{%
-    function!generator!element type}
-$f$ as follows:
+We define two variants of the element type of a type $T$:
+Let $S$ be the union-free type derived from $T$.
 %
-Let $S$ be the union-free type derived from the declared return type of $f$.
-%
-If $f$ is a synchronous generator and
-$S$ implements \code{Iterable<$U$>} for some $U$
+If $S$ implements \code{Iterable<$U$>} for some $U$
 (\ref{interfaceSuperinterfaces})
-then the element type of $f$ is $U$.
+then the
+\IndexCustom{synchronous element type}{%
+  type!synchronous element type}
+of $T$ is $U$.
+Similarly, if $S$ implements \code{Stream<$U$>} for some $U$
+then the
+\IndexCustom{asynchronous element type}{%
+  type!asynchronous element type}
+of $T$ is $U$.
 %
-If $f$ is an asynchronous generator and
-$S$ implements \code{Stream<$U$>} for some $U$
-then the element type of $f$ is $U$.
-%
-Otherwise, if $f$ is a generator (synchronous or asynchronous)
-and $S$ is a supertype of \code{Object}
+Otherwise, if $S$ is a supertype of \code{Object}
 \commentary{(which includes \code{Object} itself)}
-then the element type of $f$ is \DYNAMIC.
-\commentary{No further cases are possible.}
+then the synchronous as well as the asynchronous
+element type of $T$ is \DYNAMIC.
+Otherwise, both kinds of element type is undefined.
+
+\LMHash{}%
+The
+\IndexCustom{element type of a generator function}{%
+  function!generator!element type}
+$f$ is defined as follows:
+%
+If $f$ is a synchronous generator function with return type $T$, 
+and the synchronous element type of $T$ is $U$,
+then the element type of $f$ is $U$.
+%
+Similarly, if $f$ is an asynchronous generator function with return type $T$,
+and the asynchronous element type of $T$ is $U$,
+then the element type of $f$ is $U$.
+\commentary{%
+  The element type of a generator function declaration which is not
+  a compile-time error is always defined.%
+}
 
 
 \subsection{Function Declarations}
