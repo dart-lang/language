@@ -879,8 +879,9 @@ It's a **compile-time** error if:
 For purposes of augmentation, a variable declaration is treated as implicitly
 defining a getter whose return type is the type of the variable. If the variable
 is not `final`, or is `late` without an initializer, then the variable
-declaration also implicitly defines a setter with a parameter named `_` whose
-type is the type of the variable.
+declaration also implicitly defines a setter with a single required positional
+parameter whose type is the type of the variable. The variable declaration does
+not determine the name of that parameter.
 
 If the variable is `abstract`, then the getter and setter are incomplete,
 otherwise they are complete. *For non-abstract variables, the compiler
