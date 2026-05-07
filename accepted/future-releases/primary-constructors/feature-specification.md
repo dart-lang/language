@@ -440,11 +440,10 @@ initialize `w` with some other value, in which case we must also initialize
 
 ### Abbreviations of in-body constructor declarations
 
-This feature includes an element which is technically independent of
-primary constructors, but it is related in that it also allows for
-declaring constructors more concisely, except that this is concerned with
-regular (non-primary) constructors in the body of the enclosing
-declaration.
+This feature includes a subfeature which is technically independent of
+primary constructors, but it is related in that it also allows for more
+concise constructor declarations. This subfeature is concerned with regular
+(non-primary) constructors in the body of the enclosing declaration.
 
 Here are some examples of today's constructor declaration syntax:
 
@@ -454,7 +453,7 @@ class MyClass {
   MyClass.name();
   MyClass.redir(): this.name();
   factory MyClass.fact() => .new();
-  factory MyClass.redirFact() = MyClass;
+  const factory MyClass.redirFact() = MyClass;
 }
 ```
 
@@ -467,18 +466,16 @@ class MyClass {
   new name();
   new redir(): this.name();
   factory fact() => .new();
-  factory redirFact() = MyClass;
+  const factory redirFact() = MyClass;
 }
 ```
 
 In short, the class name and the period are replaced my the keyword `new`
-(in a generative constructor) or `factory` (in a factory constructor).
+(in a generative constructor) or simply removed (in a factory constructor).
 
 *As a matter of formatting, note that the keyword `new` and the formal
 parameter list `()` are separated by a space to indicate that `new` is a
-keyword rather than an identifer. Similarly for `factory`. This is in line
-with the convention to write `if (cond) ...` and `while (cond) ...` rather
-than `if(cond) ...`  and `while(cond) ...`.*
+keyword rather than an identifer. Similarly for `factory`.*
 
 ## Specification
 
