@@ -438,6 +438,48 @@ could add another non-redirecting generative constructor which could
 initialize `w` with some other value, in which case we must also initialize
 `w` as shown.
 
+### Abbreviations of in-body constructor declarations
+
+This feature includes an element which is technically independent of
+primary constructors, but it is related in that it also allows for
+declaring constructors more concisely, except that this is concerned with
+regular (non-primary) constructors in the body of the enclosing
+declaration.
+
+Here are some examples of today's constructor declaration syntax:
+
+```dart
+class MyClass {
+  const MyClass();
+  MyClass.name();
+  MyClass.redir(): this.name();
+  factory MyClass.fact() => .new();
+  factory MyClass.redirFact() = MyClass;
+}
+```
+
+With the new, abbreviated syntax the following declarations can be used to
+declare constructors that work exactly the same:
+
+```dart
+class MyClass {
+  const new ();
+  new name();
+  new redir(): this.name();
+  factory fact() => .new();
+  factory redirFact() = MyClass;
+}
+```
+
+In short, the class name and the period are replaced my the keyword `new`
+(in a generative constructor) or `factory` (in a factory constructor).
+
+*As a matter of formatting, note that the keyword `new` and the formal
+parameter list `()` are separated by a space to indicate that `new` is a
+keyword rather than an identifer. Similarly for `factory`. This is in line
+with the convention to write `if (cond) ...` and `while (cond) ...` rather
+than `if(cond) ...`  and `while(cond) ...`.*
+
 ## Specification
 
 ### Syntax
@@ -587,6 +629,23 @@ constructors as well.
      <metadata> 'required'? <declaringFormalParameterNoMetadata>
      ('=' <expression>)?;
 ```
+
+The grammar rules above introduce abbreviated constructor declarations
+which are derived using the rule `<constructorHead>` and
+`<factoryConstructorHead>`. Those declarations have the same meaning as the
+constructor declarations available in pre-feature Dart and are subject to
+the same rules and static analysis and semantics, except for how the name
+of the constructor is determined:
+
+A constructor declaration containing tokens `new id` derived from
+`<constructorHead>` *(i.e., `id` is an `<identifier>` or absent)* in a
+membered, type introducing declaration named `C` has the name `C.id` when
+`id` is present, and `C` when it is absent.
+
+Similarly, a constructor declaration containing tokens `factory id` derived
+from `<factoryConstructorHead>` in a membered, type introducing declaration
+named `C` has the name `C.id` when `id` is present, and `C` when it is
+absent.
 
 A _primary constructor_ declaration consists of a `<primaryConstructor>` in
 the declaration header plus optionally a member declaration in the body
