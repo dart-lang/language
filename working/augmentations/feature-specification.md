@@ -2,7 +2,7 @@
 
 Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com, eernst@google.com
 
-Version: 1.43 (see [Changelog](#Changelog) at end)
+Version: 1.44 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
@@ -159,9 +159,17 @@ and extensions are discussed in subsequent sections.)*
 ```
 classDeclaration ::=
     'augment'? (classModifiers | mixinClassModifiers)
-    'class' typeWithParameters superclass? interfaces?
+    'class' classNameMaybePrimary superclass? interfaces?
     memberedDeclarationBody
   | classModifiers 'mixin'? 'class' mixinApplicationClass
+
+primaryConstructor ::= // From primary constructors specification.
+     'const'? typeWithParameters ('.' identifierOrNew)?
+     declaringParameterList;
+
+classNameMaybePrimary ::= // From primary constructors specification.
+     primaryConstructor
+   | typeWithParameters;
 
 mixinDeclaration ::=
     'base'? 'mixin' typeIdentifier typeParameters?
@@ -182,6 +190,9 @@ memberedDeclarationBody ::=
   | ';'
 
 memberDeclarations ::= (metadata 'augment'? memberDeclaration)*
+
+primaryConstructorBodySignature ::= // From primary constructors specification
+     'augment'? 'this' initializers?;
 
 memberDeclaration ::= declaration
   | methodSignature functionBody
@@ -243,8 +254,8 @@ When there are no values, the enum still requires a leading `;` before the first
 member to avoid ambiguity.
 
 ```
-enumType ::= 'augment'? 'enum' typeIdentifier typeParameters?
-    mixins? interfaces? enumBody
+enumType ::= 'augment'? 'enum' classNameMaybePrimary typeParameters?
+    mixins? interfaces? enumBody?
 
 enumBody ::=
     '{' (enumEntry (',' enumEntry)* (',')?)? (';' memberDeclarations)? '}'
@@ -273,6 +284,60 @@ Just make two separate unnamed extensions.*
 
 Also note that an augmentation of an extension can't specify an `on` clause. It
 always uses the same `on` clause as the introductory declaration.
+
+## Primary constructors
+
+Both `class` and `enum` declarations can use the primary constructor syntax
+for declaring an initializing _(non-redirecting generative)_ constructor.
+
+The primary constructor syntax does not allow an extra `augment` to be added
+to the class header. As an exception, a primary constructor declaration does
+not need an extra `augment`, on top of the one on the class or enum declaration
+itself, if it declares an augmenting constructor using the primary constructor
+syntax, and it does not have an in-body part. If the declaration _does_ haven
+an in-body part (`this;` or `this: ...`), that in-body part must be prefixed by
+`augment` if the constructor declaration is augmenting.
+
+A primary constructor declaration introduces or augments an initializing
+constructor, and makes it so that that constructor is a primary constructor
+for the entire class or enum.
+
+If a complete primary constructor has a declaring parameter, that parameter
+declaration introduces a complete introducing or augmenting variable
+declaration, which is `final` if the declaring parameter has the `final`
+modifier, and is implicitly augmenting if there is a prior declaration of
+the same getter and/or setter. *(The `augment` modifier does not apply
+to parameters, so the declaring parameter cannot be marked as augmenting
+a variable.)*
+
+It's a **compile-time error** if a class or enum has two distinct
+initializing constructors, and either of them is declared as a
+primary constructor.
+*If the class or enum has a primary constructor, it cannot have any other
+initializing constructors, and therefore no other primary constructors,
+since those are always initializing.*
+That also implies that it is a compile-time error if a class or enum has two
+distinct constructors which are both declared as primary.
+
+The declarations of a class or enum can contain both primary and non-primary
+declarations of the same constructor. The class has a primary constructor
+if at least one declaration uses the primary constructor syntax.
+
+### Instance variable initializer expressions
+
+If a class or enum has a primary constructor, then the scope of non-`late`
+instance variable initializer expressions are the initializer list scope
+of that constructor.
+
+It's a compile-time error if a non-`late` instance variable initializer
+expressions refers to a varible introduced by the constructor's
+initializer list scope if the surrounding class/enum declaration does
+_not_ have a primary constructor declaration which declares the
+corresponding parameter's name.
+_The scope exists and is used whether this particular declaration writes
+a primary constructor or not, but for readability reasons, code can only
+refer to veriables of that scope if there appears to be a declaration of
+the variable's name in the surrounding code._
 
 ## Static semantics
 
@@ -550,42 +615,80 @@ files.
 
 Some terminology:
 
+*   The *source code* of a declaration is the span of character from the
+    first non-whitspace character of the declaration to the last non-whitspace
+    character of the declaration, as matched by the relevant grammar production.
+    *Metadata is not considered part of the declaration, it precedes the
+    declaration in the source.*
+
 *   A syntactic declaration *occurs in* a Dart file if the declaration's source
     code occurs in that file.
 
-*   A Dart file *includes* a part file, if the Dart file has a `part` directive
-    with a URI denoting that part file.
+*   A Dart file *includes* a part file if the Dart file has a `part` directive
+    with a URI denoting another part file.
+
+*   A Dart file *contains* (aka. transitively includes) a part file
+    if the Dart file includes the part file, or if the Dart file includes
+    another part file, and that other part file contains the part file.
 
 *   A Dart file *contains* a declaration if the declaration occurs in the file
-    itself or any of the part files it transitively includes.
+    itself or in any of the part files that the Dart file contains.
 
-For any two syntactic declarations *A*, and *B*:
+For any two distinct syntactic declarations *A* and *B*:
 
 *   If *A* and *B* occur in the same file:
 
-    *   If *A*'s declared name is syntactically before *B*'s declared name,
-        in source order, then *A* is before *B.* *This rule wouldn't work for
-        unnamed extensions since there is no identifier to look at, but
-        unnamed declarations can't be augmented, so this isn't a problem.*
+    *   If *A*'s _position_ is before *B*'s position in the source code
+        of the file, then *A* is before *B*.
 
-    *   Otherwise *B* is before *A*.
+        The _position_ of a declaration is defined by the first of these rules
+        that apply:
 
-*   Else if the file where *A* occurs includes the file where *B* occurs then
+        *   If the declaration is a constructor declaration with no
+            class name, its position is the start position of the `new` or
+            `factory` keyword in the source.
+        *   If the declaration contains an identifier for the declared name,
+            or a qualified identifier for a constructor name,
+            the position is the start position of that identifier
+            in the source.
+            *(Includes an unnamed local variable declared with a `_` as
+            identifier.)*
+        *   If the declaration is an unnamed `extension` declaration,
+            its position is the position of the `on` keyword.
+
+        _You cannot augment an unnamed `extension` declaration, because
+        an augmentation needs to repeat the same name._
+
+    *   If *B*'s position is before *A*'s position, then *B* is before *A*.
+
+    *   If *A*'s and *B*'s position are the same, but they are not the same
+        declaration, then *A* and *B* must be a primary constructor declaration
+        and its surrounding type-introducing declaration.
+        In that case, the type introducing declaration is before the
+        primary constructor declaration.
+        *(The same effect can be achieved by making the position of a
+        primary constructor be at the end of the class name identifier
+        instead of at the start.)*
+
+*   Else if the file where *A* occurs contains the file where *B* occurs then
     *A* is before *B*.
 
-*   Else if the file where *B* occurs includes the file where *A* occurs then
+*   Else if the file where *B* occurs contains the file where *A* occurs then
     *B* is before *A*.
 
     *In other words, if there is a `part` chain from the file where one
-    augmentation is declared to the file where the other is, then the outer one
+    declaration occurs to the file where the other occurs, then the outer one
     comes first.*
 
 *   Otherwise, *A* and *B* are in sibling branches of the part tree:
 
-    *   Let *F* be the least containing file for those two files. *Find the
-        nearest root file in the part subtree that contains both A and B.
-        Neither A nor B will occur directly in F because if it did, then the
-        previous clauses would have handled it.*
+    *   Let *F* be the unique Dart file which contains both *A* and *B*,
+        but which does not include a part file which also contains both
+        *A* and *B*. _Such a file must exist for any two declarations
+        because a declaration only exists in one file, and the part files
+        form a tree._
+        Neither *A* nor *B* will occur directly in *F* because if they did,
+        then the previous clauses would have handled it.*
 
     *   If the `part` directive in *F* including the file that contains *A* is
         syntactically before the `part` directive in *F* including the file that
@@ -924,13 +1027,23 @@ enum values. Enum values are appended in augmentation application order.
 Enum values themselves can't be augmented since they are essentially constant
 variables and constant variables can't be augmented.
 
-It's a **compile-time error** if:
+An introductory `enum` declaration introduces implicit introductory and
+complete declarations of:
+ * `String toString()`
+ * `int get index`
+ * `int get hashCode`
+ * `bool operator ==(Object)`
+ * `static const List<E> values;` where `E` is the enum type.
 
-*   A declaration inside an augmenting enum declaration has the name `values`,
-    `index`, `hashCode`, or `==`. *It has always been an error for an enum
-    declaration to declare a member named `index`, `hashCode`, `==`, or
-    `values`, and this rule just clarifies that this error is applicable for
-    augmenting declarations as well.*
+For ordering purposes, these implicit declarations are _before_ any members
+declared in the declaration.
+
+*Any declaration of the same members must be augmenting (they are not
+introdoctory) and must not be complete.*
+*Declaring an instance member named `values` will conflict with the
+static `values` declaration as a normal scope name conflict.*
+
+It's a **compile-time error** if:
 
 *   An enum doesn't have any values after all augmentations are applied. *The
     grammar allows an enum declaration to not have any values so that other
@@ -941,7 +1054,7 @@ It's a **compile-time error** if:
 
 Augmenting constructors works similar to augmenting a function, with some extra
 rules to handle features unique to constructors like redirections and
-initializer lists.
+initializer lists, and special handling of primary constructors.
 
 It is **not** a compile-time error for an incomplete factory constructor to
 omit default values. *That is, they are treated similarly to abstract
@@ -952,6 +1065,10 @@ It's a **compile-time error** if:
 
 *   The signature of the augmenting constructor does not [match][signature
     matching] the signature of the corresponding introductory constructor.
+
+*   A `class` or `enum` constructor is declared as a primary constructor,
+    using primary constructor syntax for at least one declaration of that
+    constructor, and the class or enum has any other initializing constructor.
 
 *   More than one declaration in the augmentation chain specifies a default
     value for the same optional parameter. This is an error even in the
@@ -970,23 +1087,91 @@ It's a **compile-time error** if:
     constructor is const because that affects whether users are allowed to use
     the constructor in a const context.*
 
+*   A redirecting generative constructor augments an initializing generative
+    constructor.
+
+*   An initializing generative constructor augments a redirecting generative
+    constructor.
+
 *   The introductory constructor is marked `factory` and the augmenting
     constructor is not, or vice versa. *An augmentation can't change whether or
     not a constructor is generative because that affects whether users are
     allowed to call the constructor in a subclass's initializer list.*
 
-*   A factory constructor is incomplete after all augmentations are applied.
+*   A factory constructor has no complete declaration.
 
-    *A constructor whose body is `;` is considered incomplete. This allows an
-    augmentation to fill in a more interesting body if it wants to. But Dart
-    also allows a generative constructor to have a body of `;` which is treated
-    as equivalent to `{}`. Thus it is not an error for a _generative_
-    constructor to be incomplete after all augmentations are applied. It is
-    simply treated as having an empty body.*
+    *A factory constructor which has `;` instead of a body or redirection,
+    is incomplete. This allows, and requires, an augmentation to fill in an
+    implementation.
+    A valid non-redirecting generative constructor can have no body,
+    also written as `;`. Thus it is not an error for a _generative_
+    constructor to be incomplete after all augmentation are applied. It is
+    simply an initializing constructor with no body.*
 
-An incomplete constructor can be completed by adding an initializer list and/or
-a body, or by adding a redirection:
+#### Factory constructors
+A factory constructor has a `factory` modifier in its declaration.
 
+A factory constructor declaration is incomplete if it has no body,
+and is ended by a `;`.
+
+A factory contructor is complete if it has a redirection, `= ConstructorName;`,
+in which case it's a redirecting factory constructor,
+or it has a function body, `=> expression` or `{...}`, in which case
+it's a non-redirecting factory constructor.
+
+It's a **compile-time error** if:
+
+* All declarations of a factory constructor are incomplete.
+
+#### Generative constructors
+
+A generative constructor is _complete_ and _redirecting_ if contains
+a redirection clause, like `: this.name(...);`.
+
+A generatice constructor is _complete_ and _initializing_ if it contains
+any of:
+
+* An initializing formal parameter (`this.name`).
+
+* A `super` parameter (`super.name`).
+
+* A declaring parameter (`final int name`), only valid in a primary constructor.
+
+* An initializer list (like `: param = expr, ...` or `: super(args)`).
+
+* A body (does not end in `;`).
+
+_This applies both to primary constructor declarations and
+non-primary constructor declarations, where the primary constructor
+declaration declares its initializer list and body in an in-body
+constructor part, like `this: ... { ... }`. An in-body constructor
+part of `this;` does not make the declaration complete._
+
+A generative constructor declaration is _incomplete_ if it is not
+_complete_.
+
+A generative constructor declaration is _redirecting_ if it's
+a complete redirecting declaration, or if it augments a declaration
+which is redirecting.
+
+A generative constructor declaration is _initializing_ (not redirecting)
+if it's a primary constructor declaration, a complete and initializing
+declartion, or if it augments a declaration which is initializing.
+
+_The introductory declaration may not decide whether a generative
+constructor is initializing or redirecting. It's decided by the
+first declaration which is complete or which is a primary constructor
+(which must be initializing), and all later augmentations must not
+contradict that decision._
+
+If all _declarations_ of a generative constructor are incomplete,
+then the constructor is an _initializing_ constructor with the
+implementation defined by the introductory declaration.
+*(A declaration of `C();` is defined as incomplete, but is also
+a valid concrete implementation of a trivial constructor.)*
+
+
+Example:
 ```dart
 class C {
   C.generative();
@@ -1000,15 +1185,68 @@ augment class C {
   factory augment C.fact() = C.other;
 }
 ```
+and with a primary constructor:
+```dart
+class const D(int x) {
+  /// Creates a `D`.
+  this;
+
+  augment const new(@Since("3.15") int x);
+}
+
+augment class D(final int x) {
+  augment this { print("Initialized D"); }
+
+  @Deprecated("Was a bad idea anyway");
+  augment D(int _);
+}
+```
+#### Instance variable initialization during constructor invocation
+
+When invoking an initializing generative constructor to initialize
+a new object, instance variable initialization happens before executing
+the initializer list.
+
+This is true for augmented classes, with and without primary constructors.
+
+When invoking the initializing constructor to initialize a new object,
+the first thing that happens is that actual arguments are bound to formal
+parameters, which provides the bindings for the initializer list scope.
+
+Then all non-`late` instance variable declarations of the class which have
+an initializer expression are processed in their source order.
+
+Each instance variable is initialized in turn, by evaluating its initializer expression. If the class has a primary constructor, the initializer expression
+is evaluated in the initializer list scope, otherwise it's evaluated in the
+class scope, and if the evaluation completes with a value, the instance
+variable is initialized to that value.
+
+After all instance variable initializers have been executed,
+constructor execution continues with executing as normal,
+starting with variable initialization by initializing formals
+and declaring parameters.
+
+_This is how primary constructors already work. The only difference is
+that because a single constructor can have more than one declaration,
+the complete declaration of a primary constructor may not be a primary
+constructor declaration._
 
 ### Augmenting extension types
 
-When augmenting an extension type declaration, the parenthesized clause where
-the representation type is specified is treated as a constructor that has a
-single positional parameter, a single initializer from the parameter to the
-representation field, and an empty body. This constructor is complete.
+When introducing an extension type declaration, the parenthesized clause where
+the representation type is specified introduces a complete generative constructor
+that has a single parameter.
 
-The extension also introduces a complete getter for the representation variable.
+The extension type representation clause also introduces a complete getter
+for the representation variable.
+
+These complete members are declared by the representation type clause,
+which orders them _before_ any member declarations inside the extension
+type declaration.
+
+*When augmenting an extension type declaration, the representation
+type declaration cannot be repeated, an augmenting extension type
+declaration cannot have a primary constructor.*
 
 *In other words, we treat the representation field clause as declaring an
 implicit constructor and final field for the representation variable. Since they
@@ -1337,6 +1575,21 @@ fully captured by that paragraph). It's probably safest to be pessimistic
 and assume the third point is always true.
 
 ## Changelog
+
+### 1.44
+
+*   Add primary constructors.
+
+*   Fix the Before/After relation definitions (prior definition used
+    "_includes_" transitively even if it was only declared for
+    direct part includes).
+
+*   Change restriction against declaring `toString` etc. in an `enum` to
+    having the introductory `enum` introduce those members as complete
+    declarations.
+    Then you can still `@something augment toString();` to add metadata.
+    (Existing language allows abstract declarations of all mentioned
+    members except `values`.)
 
 ### 1.43
 
