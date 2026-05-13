@@ -462,7 +462,7 @@ declare constructors that work exactly the same:
 
 ```dart
 class MyClass {
-  const new ();
+  const new();
   new name();
   new redir(): this.name();
   factory fact() => .new();
@@ -472,10 +472,6 @@ class MyClass {
 
 In short, the class name and the period are replaced my the keyword `new`
 (in a generative constructor) or simply removed (in a factory constructor).
-
-*As a matter of formatting, note that the keyword `new` and the formal
-parameter list `()` are separated by a space to indicate that `new` is a
-keyword rather than an identifer. Similarly for `factory`.*
 
 ## Specification
 
