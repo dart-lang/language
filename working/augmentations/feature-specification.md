@@ -1128,8 +1128,10 @@ It's a **compile-time error** if:
 A generative constructor is _complete_ and _redirecting_ if contains
 a redirection clause, like `: this.name(...);`.
 
-A generatice constructor is _complete_ and _initializing_ if it contains
+A generative constructor is _complete_ and _initializing_ if it contains
 any of:
+
+* An `external` modifier.
 
 * An initializing formal parameter (`this.name`).
 
