@@ -473,6 +473,28 @@ class MyClass {
 In short, the class name and the period are replaced my the keyword `new`
 (in a generative constructor) or simply removed (in a factory constructor).
 
+Here are examples of all of constructor forms (for an example class named
+`LongClassName` using the new and old syntax:
+
+```
+Original Dart syntax                     New abbreviated syntax
+---------------------------------------  --------------------------
+LongClassName() {}                       new() {}
+LongClassName.name() {}                  new name() {}
+const LongClassName() {}                 const new() {}
+const LongClassName.name() {}            const new name() {}
+LongClassName(): this.other();           new(): this.other();
+LongClassName.name(): this();            new name(): this();
+const LongClassName(): this.other();     const new(): this.other();
+const LongClassName.name(): this();      const new name(): this();
+factory LongClassName() { ... }          factory() { ... }
+factory LongClassName.name() { ... }     factory name() { ... }
+factory LongClassName() = D;             factory() = D;
+factory LongClassName.name() = D;        factory name() = D;
+const factory LongClassName() = D;       const factory() = D;
+const factory LongClassName.name() = D;  const factory name() = D;
+```
+
 ## Specification
 
 ### Syntax
