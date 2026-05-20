@@ -38,7 +38,12 @@ const _corpora = [
   ('widgets', 'download/widgets'),
 ];
 
-final generatedSuffixes = ['.g.dart', '.freezed.dart'];
+final generatedSuffixes = [
+  '.g.dart',
+  '.freezed.dart',
+  '.mocks.dart',
+  '.swagger.dart'
+];
 
 void main(List<String> arguments) async {
   var argParser = ArgParser();
