@@ -482,7 +482,7 @@ Original Dart syntax                     New abbreviated syntax
 LongClassName() {}                       new() {}
 LongClassName.name() {}                  new name() {}
 const LongClassName();                   const new();
-const LongClassName.name() {}            const new name() {}
+const LongClassName.name();              const new name();
 LongClassName(): this.other();           new(): this.other();
 LongClassName.name(): this();            new name(): this();
 const LongClassName(): this.other();     const new(): this.other();
