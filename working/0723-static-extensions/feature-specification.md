@@ -206,11 +206,11 @@ void test() {
 }
 ```
 
-Constructors defined in generic extensions may also be invoked using
-the extension name, with or without providing type arguments.  The
-number of type arguments, if provided, must match the expected arity of
-the extension, and if elided are reconstructed using a type inference
-process described further below.
+Constructors defined in generic extensions may also be invoked or torn
+off using the extension name, with or without providing type
+arguments.  The number of type arguments, if provided, must match the
+expected arity of the extension, and if elided are reconstructed using
+a type inference process described further below.
 
 ```dart
 void test() {
@@ -301,27 +301,15 @@ further discussion.*
 
 ### Definitions
 
-In an extension declaration of the form `extension E<S1 .. Sj> on C
-{...}` where `C` is an identifier (or an identifier with an import
-prefix) that denotes a class, mixin, enum, or extension type
-declaration, we say that the _on-declaration_ of the extension is `C`.
-Here (and throughout) we include the case that `j` is 0,
-corresponding to an extension with no generic parameters.
-
-If `C` denotes a generic class then `E` is treated as `extension E<S1
-.. Sj> on C<T1 .. Tk> {...}` where `T1 .. Tk` are obtained by
-instantiation to bound.
-
-In an extension of the form `extension E<S1 .. Sj> on C<T1 .. Tk>
-{...}`  where `C` is an identifier or prefixed identifier that denotes
-a class, mixin, enum, or extension type declaration, we say that the
-_on-declaration_ of `E` is `C`.
-
-In an extension of the form `extension E<S1 .. Sj> on F<T1 .. Tk>
-{...}` where `F` is a type alias whose transitive alias expansion
-denotes a class, mixin, enum, or extension type `C`, we say that the
-_on-declaration_ of `E` is `C`, and the declaration is treated as if
-`F<T1 .. Tk>` were replaced by its transitive alias expansion.
+Consider an extension declaration of the form `extension E<S1 .. Sj>
+on F<T1, ..., Tk> {...}`, including in this the case where either or
+both of `j` or `k` is `0` (that is, where the extension under
+consideration has no type parameters and/or the on type has no type
+arguments).  If `F<T1, ..., Tk>` resolves (after type alias expansion
+and instantiation to bound if required) to a type of the form `C<U1,
+..., Um>` (where again, `m` may be `0`) and if `C` is a name
+introduced by a class, mixin, enum, or extension type declaration,
+then we say that the _on-declaration_ of `E` is `C`.
 
 In all other cases, an extension declaration does not have an
 on-declaration.
@@ -355,7 +343,7 @@ on-declaration.
 
 It remains an error to declare a factory constructor in an extension
 using the old style syntax in which the constructor declaration
-incorporates the classname, e.g. `factory ClassName(...)`.
+incorporates the classname, e.g. `factory ClassName.named(...)`.
 
 *Such declarations may of course give rise to errors as usual, e.g., if a
 redirecting factory constructor redirects to a constructor that does not
@@ -687,6 +675,24 @@ fully instantiated on-type of `E` - that is, the on-type of `E` with
 the inferred type arguments of the fully resolved invocation
 substituted for the type parameters of `E`.
 
+For example, consider the following invocation from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  List<int> l = [3, 4];
+  Pair<int, int> p = Pair.fromList(l);
+}
+```
+
+The fully resolved target of the invocation is `FromList.fromList`,
+and so type inference is done on the synthetic invocation
+`FromList.fromList(l)` using the downwards context `Pair<int, int>`,
+in the manner defined below.  In this case, inference chooses `int` as
+the solution for the type arguments to `FromList`.  The static type of
+the original invocation is then `Pair<int, int>`.
+
+
 #### Type inference for constructor invocations with explicitly provided type arguments.
 
 Consider an instance creation expression of the form
@@ -706,10 +712,43 @@ original program.*
 The static type of the original instance creation expression in this
 case is `C<TypeArguments>`.
 
+*We choose the static type to be the type which the user has used to
+call the constructor, even though the instantiated on-type gives a
+tighter bound on the type of the actual instance returned.  This is
+consistent with similar places in the language where a more precise
+type for an expression can be statically observed, but the users
+choice of static type is respected.  For example, the static type of a
+redirecting factory constructor is the type of the enclosing class
+even if the statically known redirectee provides a more precise type;
+or similarly, a variable or field with an explicit type and an
+initializer receives the declared static type rather than the type of
+the initializer expression.*
+
 It is a static error if the fully instantiated on-type of `E` - that
 is, the on-type of `E` with the inferred type arguments of the fully
 resolved invocation substituted for the type parameters of `E` - is
 not a subtype of `C<TypeArguments>`.
+
+For example, consider the following invocation from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  List<int> l = [3, 4];
+  Pair<num, num> p = Pair<num, int>.fromList(l);
+}
+```
+
+The fully resolved target of the invocation is `FromList.fromList`,
+and so type inference is done on the synthetic invocation
+`FromList.fromList(l)` using the downwards context `Pair<num, int>`
+(note, not `Pair<num, num>` which was the downwards context for the
+original expression), in the manner defined below.  In this case,
+inference chooses `int` as the solution for the type arguments to
+`FromList`.  The static type of the original invocation is then taken
+to be `Pair<num, int>` (the original type through which the invocation
+was made) as discussed above.
+
 
 #### Type inference for fully resolved constructor invocations.
 
@@ -720,6 +759,21 @@ further inference to reconstruct the type arguments.  Inference is
 performed as usual on any arguments to the constructor with the
 explicit type arguments used to instantiate the type parameters of the
 extension.
+
+For example, consider the following invocation from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  List<int> l = [3, 4];
+  Pair<num, num> p = FromList<int>.fromList(l);
+}
+```
+
+Here, the type arguments to the `FromList` extension are provided, and
+no further inference is required to reconstruct them.  The static type
+of the invocation is the fully instantiated on-type of the extension,
+specifically `Pair<int, int>`.
 
 If an extension declares type parameters and no type arguments are
 provided to a fully resolved invocation, then inference is performed
@@ -739,6 +793,24 @@ The static type of the constructor invocation in this case is the
 fully instantiated on-type of `E` - that is, the on-type of `E` with
 the type arguments (inferred or provided) of the fully resolved
 invocation substituted for the type parameters of `E`.
+
+For example, consider the following invocation from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  List<int> l = [3, 4];
+  Pair<num, num> p = FromList.fromList(l);
+}
+```
+
+The downwards context for the invocation of `FromList.fromList(l)` is
+`Pair<num, num>` and so subtype matching will be done against `Pair<T, T>` 
+(the on-type of the `FromList` extension) solving for `T`.  This
+results in a solution of `num` for `T`.  The instantiated on-type of
+`FromList` using `num` for `T` is `Pair<num, num>` which hence is used
+as the static type of the invocation.
+
 
 #### Type inference for constructor tearoffs with no provided type arguments.
 
@@ -767,6 +839,23 @@ The static type of the constructor tearoff in this case is the
 static type of the fully resolved tearoff as determined a subsequent
 section.
 
+For example, consider the following tearoff from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  var f1 = Pair.fromList;
+}
+```
+
+Here, the fully resolved target of the tearoff is `FromList.fromList`.
+Inference is performed on the fully resolved target using the same
+downwards context as the original expression, here the empty context.
+The static type of the tearoff is the static type of the synthetic
+tearoff after inference and coercion insertion, here `Pair<T, T>
+Function<T>(List<T>)`.
+
+
 #### Type inference for constructor tearoffs with explicitly provided type arguments.
 
 Consider a constructor tearoff of the form `C<TypeArguments>.name`
@@ -789,7 +878,7 @@ Otherwise, let `TypeParameters1` be the type parameters declared by
 `E`.  Type inference for the tearoff is performed by subtyping
 matching `M <# C<TypeArguments>` solving for `TypeParameters1`.
 
-*Inference use the explicitly given `TypeArguments` to constrain the
+*Inference uses the explicitly given `TypeArguments` to constrain the
 (possibly larger set of) type parameters of `E`, ignoring the
 downwards context.  An equivalent but less direct formulation can be
 obtained by performing downwards inference on the fully resolved
@@ -811,8 +900,30 @@ constraints induced by the explicitly provided type through which the
 reference is performed.  The type through which the reference is
 performed is used as the static return type of the reference, and is
 required to be a supertype of the on-type of the extension after
-substitution of the full set of derived arguments.*
+substitution of the full set of derived arguments.  The choice to use
+the declared type through which the user referenced the tearoff rather
+than the possibly more precise instantiated on-type is done for the
+reasons discussed above in the invocation case.*
 
+For example, consider the following tearoff from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  var f1 = Pair<num, int>.fromList;
+}
+```
+
+In this example, `FromList.fromList` is the fully resolved target; `M`
+(the un-instantiated on-type) is `Pair<T, T>`; and `Signature` is
+`(List<T> l)`.  Type inference is done by performing subtype matching
+of `M <# Pair<num, int>` solving for `T`.  This results in the
+solution of `int` for `T`; `M1` is therefore `Pair<int, int>` and
+`Signature1` is `(List<int> l)`.  The static type of the tearoff is
+`Pair<num, int> Function(List<int> l)`.  Note that the static type
+uses the declared type through which the user referenced the tearoff
+(here `Pair<num, int>`) as the return type of the tearoff rather than
+the more precise instantiated on-type of the extension.
 
 #### Type inference for fully resolved constructor tearoffs.
 
@@ -870,9 +981,43 @@ inferred for the extension, then the static type of the reference is
 the un-instantiated function type of the constructor reference with
 `TypeArguments` substituted throughout for `TypeParameters`.
 
+For example, consider the following tearoff from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  Pair<num, int> Function(List<int>) f2 = FromList.fromList;
+}
+```
+
+Here, inference is performed using a downwards context `Pair<num, int>
+Function(List<int>)`, where `FromList.fromList` is treated as having
+the generic function type `Pair<T, T> Function<T>(List<T>) `.  Given a
+non-generic context type and a generic expression, coercion inference
+must attempt to solve for a valid instantiation to insert.  Inference
+here produces a a solution of `int` for `T`, with
+`FromList<int>.fromList` representing the fully type reconstructed
+form.  The static type of the fully type reconstructor form is
+`Pair<int, int> Function(List<int>)` as usual.
+
 If this coercion inference process results in no type arguments being
 inferred for the extension, then the static type of the reference is
 the fully generic function type of the constructor reference.
+
+For example, consider the following tearoff from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  Pair<T, T> Function<T>(List<T>) f3 = FromList.fromList;
+```
+
+Here, inference is performed using a downwards context `Pair<T, T>
+Function<T>(List<T>)`, where `FromList.fromList` is treated as having
+the generic function type `Pair<T, T> Function<T>(List<T>) `.  No
+further inference or coercion insertion is required, and so the fully
+type reconstructor form of the tearoff is `FromList.fromList` with
+static type `Pair<T, T> Function<T>(List<T>)`.
 
 *The treatment above follows directly from the semantic interpretation
 of constructors declared in extensions as static members the generic
@@ -881,7 +1026,6 @@ type of which is the on-type of the extension.  In the case that the
 extension declares type parameters, the reference is subject to
 coercion ("partial instantiation") as usual with a reference to a
 generic function or constructor.*
-
 
 ## Dynamic Semantics
 
