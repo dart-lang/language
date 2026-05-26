@@ -349,7 +349,6 @@ incorporates the classname, e.g. `factory ClassName.named(...)`.
 redirecting factory constructor redirects to a constructor that does not
 exist, or there is a redirection cycle.*
 
-
 ### Static Analysis
 
 The following sections specify the static analysis of static members
@@ -485,6 +484,23 @@ instances.*
 
 It is a compile-time error if an extension declaration _D_ declares a
 constructor if _D_ does not have an on-declaration as defined above.
+
+It is an error if a an extension declaration with extension name
+`Name` declares a constructor with name `Name`.
+
+It is an error if a an extension declaration with on-declaration
+`Name` declares a constructor with name `Name`.
+
+*In an extension named `E` with on type `C` , declaring a constructor
+named `C` (for example, `factory C() => ...`) is syntactically a
+declaration of a named constructor `C.C` which is extremely unlikely
+to be what the user intended.  Similarly, declaring a constructor
+named `E` is syntactically a declaration of a named constructor `C.E`
+which is also almost certainly not what the user intended.*
+
+Given a constructor declaration in an extension which declares a named
+constructor with name Name, it is an error if Name is either the name
+of the extension, or the on-declaration of the extension
 
 If an extension declaration is generic, the type parameters declared
 by the extension are in scope in any constructors declared in the
@@ -928,7 +944,8 @@ the more precise instantiated on-type of the extension.
 #### Type inference for fully resolved constructor tearoffs.
 
 Consider a fully resolved reference ("tearoff") of a constructor
-declared in an extension.  We say that the "un-instantiated function
+declared in an extension of the form `E.name` or
+`E<TypeArguments>.name`.  We say that the "un-instantiated function
 type" of the constructor reference is `M Function(Signature)` where
 `M` is the un-instantiated on-type of the extension, and `Signature`
 is the parameter signature of the constructor (that is, the types of
@@ -963,9 +980,9 @@ throughout for `TypeParameters`.
 
 *Constructors defined in generic extensions where explicit type
 parameters are provided to the extension ("a partial instantiation")
-are treated as non-generic functions when torn off, with the type
-given by substituting in the provided type arguments for the type
-parameters of the extension.*
+are non-generic functions when torn off, with the type given by
+substituting in the provided type arguments for the type parameters of
+the extension.*
 
 If an extension declares type parameters `TypeParameters` and no type
 arguments are provided to a fully resolved reference, then the context
