@@ -675,7 +675,7 @@ a primary constructor which has a body part that includes any of the modifiers
 `async`, `async*`, or `sync*`, or if it uses `=>` rather than a block.
 
 A compile-time error occurs if a mixin class declaration has a primary
-constructor which is not trivial, that is, it declares one or more 
+constructor which is not trivial, that is, it declares one or more
 parameters, or it has a body part that has an initializer list or
 a body.
 
