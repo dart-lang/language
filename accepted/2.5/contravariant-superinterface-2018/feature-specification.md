@@ -4,6 +4,8 @@ Author: eernst@google.com (@eernstg)
 
 Version: 0.1.
 
+Status: Superceded by language specification.
+
 ## Motivation and Scope
 
 The ability to use a type variable contravariantly in a superinterface of a
