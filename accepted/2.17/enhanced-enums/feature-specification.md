@@ -102,7 +102,7 @@ The semantics of such an enum declaration, *E* with name *N*, is defined as intr
 
   * If `E` is declared as `enum Name with Mixin1, Mixin2 implements Type1, Type2 { … }` then the immediate superinterfaces of *C* are the interfaces of `Enum with Mixin1, Mixin2`, `Type1` and `Type2`.
 
-- **Declared members**: For each member declaration of the `enum` declaration *E*, the same member is added to the class *C*. This includes constructors (which must be `const` generative or non-`const` factory constructors.)
+- **Declared members**: For each member declaration of the `enum` declaration *E*, the same member is added to the class *C*. This includes constructors, which must be generative and `const` (this modifier is included even in the case where the declaration in *E* does not have it), or they must be non-`const` factory constructors.
 
 - **Default constructor**: If no generative constructors were declared, and also no factory constructor with name *N* was declared,
   a default generative constructor is added:
@@ -113,9 +113,9 @@ The semantics of such an enum declaration, *E* with name *N*, is defined as intr
 
   _(This differs from the default constructor of a normal `class` declaration by being constant, and by being added even if a factory constructor is present. If no generative constructor is declared, and the unnamed constructor name is taken by a factory constructor, there is no way for the enum declaration to compile successfully, since the declaration must contain at least one enum value, and that enum value must refer to a generative constructor.)_
 
-- **Enum values**: For each `<enumEntry>` with name *id* and index *i* in the comma-separated list of enum entries, a constant value is created, and a static constant variable named *id* is created in *C* with that value. All the constant values are associated, in some implementation dependent way, with 
+- **Enum values**: For each `<enumEntry>` with name *id* and index *i* in the comma-separated list of enum entries, a constant value is created, and a static constant variable named *id* is created in *C* with that value. All the constant values are associated, in some implementation dependent way, with
 
-  - their name *id* as a string `"id"`, 
+  - their name *id* as a string `"id"`,
   - their index *i* as an `int`, and
   - their `enum` class’s name as a string, <code>"*N*"</code>,
 
@@ -178,7 +178,7 @@ The recommended formatting of an `enum` declaration is to format the header (bef
 
 The specification here does not specify *how* the index and name of an enum is associated with the enum instances. In practice it’s possible to desugar an `enum` declaration to a `class` declaration, as long as the desugaring can access private names from other libraries (`dart:core` in particular).
 
-The existing enums are implemented as desugaring into a class extending a private `_Enum` class which holds the `final int index;` declaration and a `final String _name;` declaration (used by the the `EnumName.name` getter), and both fields are initialized by a constructor. 
+The existing enums are implemented as desugaring into a class extending a private `_Enum` class which holds the `final int index;` declaration and a `final String _name;` declaration (used by the the `EnumName.name` getter), and both fields are initialized by a constructor.
 
 In practice, the implementation of the enhanced enums will likely be something similar.
 
@@ -186,7 +186,7 @@ Either first declare `Enum` as:
 
 ```dart
 abstract class Enum {
-  Enum._(this.index, this._name);  
+  const Enum._(this.index, this._name);
   final int index;
   final String _name;
   String _$enumToString();
@@ -196,7 +196,7 @@ abstract class Enum {
 
 *or* retain the current `_Enum` class and make that the actual superclass of `enum` classes. Either works, I’ll use `Enum` as the superclass directly in the following.
 
-Then desugar an `enum` declaration to an actual `class` declaration and rewrite every generative constructor of the `enum` declaration to take two extra leading positional arguments. 
+Then desugar an `enum` declaration to an actual `class` declaration and rewrite every generative constructor of the `enum` declaration to take two extra leading positional arguments.
 
 The `enum` declaration:
 
@@ -206,10 +206,10 @@ enum LogPriority with LogPriorityMixin implements Comparable<LogPriority> {
   error(1, "Error"),
   log.unknown("Log"),
   ;
- 
+
   LogPriority(this.priority, this.prefix);
   LogPriority.unknown(String prefix) : this(-1, prefix);
-    
+
   final String prefix;
   final int priorty;
   int compareTo(Log other) => priority - other.priority;
@@ -223,30 +223,30 @@ class LogPriority extends Enum with LogriorityMixin implements Comparable<LogPri
   static const warning = LogPriority._$(0, "warning", 2, "Warning");
   static const error = LogPriority._$(1, "error", 1, "Error");
   static const log = LogPriority._$unknown(2, "log", "Log");
-  
-  LogPriority._$(int _$index, String _$name, this.priority, this.prefix) 
+
+  const LogPriority._$(int _$index, String _$name, this.priority, this.prefix)
         : super(_$index, _$name);
-  LogPriority._$unknown(int _$index, String _$name, String prefix) : 
+  const LogPriority._$unknown(int _$index, String _$name, String prefix)
         : this._$(_$index, _$name, -1, prefix);
-    
+
   final String prefix;
   final int priorty;
   int compareTo(Log other) => priority - other.priority;
-    
+
   static const List<LogPriority> values = [warning, error, log];
-    
+
   // Refers to privates in dart:core.
   String _$enumToString() => "LogPriority.${_$name}";
 }
 ```
 
-where the `_$` represents a fresh name. 
+where the `_$` represents a fresh name.
 
 In practice, we may choose to have a subclass of `Enum` as the actual superclass of the `enum` class, rather than use `Enum` directly. We’ll have to make sure that it makes no difference wrt. which declarations are valid (at least outside of `dart:core`, and for `enum`s declared inside `dart:core` it’s our own responsibility to not conflict with names used by the enum implementation.)
 
 ## Summary
 
-We let `enum` declarations be much more like the classes they are, with the only restriction now being that it’s classes with a fixed number of known constant instances. We allow the class to apply mixins (applicable to a supertype of `Enum`) and implement interfaces. We allow any static or instance member declaration, and any generative `const` constructor declaration (so instance variables must be final, including those added by mixins, otherwise the mixin application constructor forwarders to the superclass `const Enum()` constructor won’t be `const`).
+We let `enum` declarations be much more like the classes they are, with the only restriction now being that it’s classes with a fixed number of known constant instances. We allow the class to apply mixins (applicable to a supertype of `Enum`) and implement interfaces. We allow any static or instance member declaration, and any generative constructor declaration (which is explicitly or implicitly constant, so instance variables must be final, including those added by mixins, otherwise the mixin application constructor forwarders to the superclass `const Enum()` constructor won’t be `const`).
 
 The enum values can call the declared constructors, or the default unnamed zero-argument `const` constructor which is added if no other constructor is declared. The syntax looks like a constructor invocation except that the enum value name replaces the class name. If no type arguments or value arguments are needed, and the constructor invoked is unnamed, the enum value can still be a plain identifier.
 
@@ -273,14 +273,14 @@ enum Plain {
 would have a corresponding class desugaring of:
 
 ```dart
-class Plain extends Enum {  
-  static const Plain foo = Plain._$(0, "foo");  
-  static const Plain bar = Plain._$(1, "bar");  
-  static const Plain baz = Plain._$(2, "baz");  
-  static const List<Plain> values = [foo, bar, baz];  
-  const Plain._$(int _$index, String_ $name) : super._(_$index, $_name);  
-  
-  // Private names from `dart:core`.  
+class Plain extends Enum {
+  static const Plain foo = Plain._$(0, "foo");
+  static const Plain bar = Plain._$(1, "bar");
+  static const Plain baz = Plain._$(2, "baz");
+  static const List<Plain> values = [foo, bar, baz];
+  const Plain._$(int _$index, String _$name) : super._(_$index, _$name);
+
+  // Private names from `dart:core`.
   String _$enumToString() => "Plain.${_$name}";
 }
 ```
@@ -307,10 +307,10 @@ class Ordering extends Enum with EnumIndexOrdering<Ordering> {
   static const few = Ordering._$(1, "few");
   static const many = Ordering._$(2, "many");
   static const List<Ordering> values = [zero, few, many];
-  
+
   // Default constructor desugared:
-  Ordering._$(int _$index, String _$name): super(_$index, _$name);
-  
+  const Ordering._$(int _$index, String _$name): super(_$index, _$name);
+
   // Private names from `dart:core`.
   String _$enumToString() => "Ordering.${_$name}";
 }
@@ -418,7 +418,7 @@ class Complex<T extends Pattern> extends Enum with EnumComparable<Complex>
 
   // Private names from `dart:core`.
   String _$enumToString() => "Complex.$_name";
-    
+
   String toString() => "Complex<$T>($_patternSource)";
 }
 ```
@@ -442,7 +442,7 @@ class MySingleton extends Enum implements Whatever {
   static const List<MySingleton> values = [instance];
   const MySingleton._$(int _$index, String _$name, ...) : ..., super._(_$index, _$name);
   // Normal class declarations.
-  
+
   // Private names from `dart:core`.
   String _$enumToString() => "MySingleton.${_$name}";
 }
