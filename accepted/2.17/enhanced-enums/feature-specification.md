@@ -47,9 +47,9 @@ The grammar of the `enum` declaration becomes:
     <arguments>
 ```
 
-It is a **compile-time error** if the enum declaration contains any generative constructor which is not `const`.
-
-_We_ could _allow omitting the `const` on constructors, since it’s required, so we could just assume it’s always there. That’s a convenience we can also add at any later point. For now we require the `const`._
+With a generative `enum` constructor that does not have the modifier `const`,
+this modifier is implicitly induced. *That is, `const` can be omitted, but the
+constructor is constant anyway.*
 
 It is a **compile-time error** if the initializer list of a non-redirecting generative constructor includes a `super` constructor invocation.
 
