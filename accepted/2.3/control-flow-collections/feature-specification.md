@@ -1065,7 +1065,7 @@ Without [rest parameters][], `for` isn't useful and `if` probably isn't
 feasible for positional arguments. But even without rest params, it's possible
 to support `if` for named arguments.
 
-[rest parameters]: https://github.com/munificent/ui-as-code/blob/main/in-progress/parameter-freedom.md
+[rest parameters]: https://github.com/munificent/ui-as-code/blob/master/in-progress/parameter-freedom.md
 
 We can and should look at doing that as a separate proposal.
 

@@ -275,7 +275,7 @@ The optimistic upgrade from version 2.5 to 2.9 will go through all the intermedi
 - Update `.packages` file format to contain entire SDK version.
 - Restrict override syntax to only `// @dart = 2.3` format.
 - Specify experiment flag behavior.
-- Change `*:defaultPackage` to `:defaultPackage` because `*` was already a valid package name in the [`.packages` file specification](<https://github.com/lrhn/dep-pkgspec/blob/main/DEP-pkgspec.md>).
+- Change `*:defaultPackage` to `:defaultPackage` because `*` was already a valid package name in the [`.packages` file specification](<https://github.com/lrhn/dep-pkgspec/blob/master/DEP-pkgspec.md>).
 
 1.2: Require language version markers in part files when the library has one.
 

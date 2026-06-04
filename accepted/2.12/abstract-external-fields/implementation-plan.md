@@ -76,7 +76,7 @@ Add a formal specification of this feature to the language specification.
 
 Cider and DartPad syntax highlighting uses codemirror, which should
 be updated to support the new syntax:
-https://github.com/codemirror/CodeMirror/blob/main/mode/dart/dart.js.
+https://github.com/codemirror/CodeMirror/blob/master/mode/dart/dart.js.
 
 ### IntelliJ
 
@@ -94,7 +94,7 @@ new syntax.
 ### Update github syntax highlighting
 
 Github's syntax highlighting should support the new syntax:
-https://github.com/dart-lang/dart-syntax-highlight/tree/main/grammars.
+https://github.com/dart-lang/dart-syntax-highlight/tree/master/grammars.
 
 When the grammar is updated, please create an issue on the
 Dart-Code/Dart-Code repository, such that the grammar can be
