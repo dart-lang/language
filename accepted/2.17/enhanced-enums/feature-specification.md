@@ -49,7 +49,8 @@ The grammar of the `enum` declaration becomes:
 
 With a generative `enum` constructor that does not have the modifier `const`,
 this modifier is implicitly induced. *That is, `const` can be omitted, but the
-constructor is constant anyway.*
+constructor is constant anyway, and must satisfy all the requirements of a
+generative const constructor.*
 
 It is a **compile-time error** if the initializer list of a non-redirecting generative constructor includes a `super` constructor invocation.
 
