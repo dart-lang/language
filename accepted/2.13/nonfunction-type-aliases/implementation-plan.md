@@ -2,14 +2,14 @@
 
 Relevant documents:
  - [Tracking issue](https://github.com/dart-lang/language/issues/115)
- - [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/2.13/nonfunction-type-aliases/feature-specification.md)
+ - [Feature specification](https://github.com/dart-lang/language/blob/main/accepted/2.13/nonfunction-type-aliases/feature-specification.md)
 
 ## Implementation and Release plan
 
 This feature is non-breaking, because it is concerned with the introduction of
 support for new syntactic forms.
 Still, we will introduce it using an
-[experiments flag](https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md)
+[experiments flag](https://github.com/dart-lang/sdk/blob/main/docs/process/experimental-flags.md)
 in order to enable a controlled deployment.
 
 

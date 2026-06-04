@@ -3,8 +3,8 @@
 Relevant documents:
  - [Tracking issue](https://github.com/dart-lang/language/issues/12)
  - [Discussion issue](https://github.com/dart-lang/language/issues/7)
- - [Full proposal](https://github.com/dart-lang/language/blob/master/accepted/2.1/super-mixins/feature-specification.md)
- - [Mixin inference](https://github.com/dart-lang/language/blob/master/accepted/2.1/super-mixins/mixin-inference.md)
+ - [Full proposal](https://github.com/dart-lang/language/blob/main/accepted/2.1/super-mixins/feature-specification.md)
+ - [Mixin inference](https://github.com/dart-lang/language/blob/main/accepted/2.1/super-mixins/mixin-inference.md)
 
 ## Implementation and Release plan
 

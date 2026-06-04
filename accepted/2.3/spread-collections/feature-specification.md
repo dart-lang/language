@@ -11,9 +11,9 @@ have a [unified proposal][] that covers the behavior of all three. That proposal
 is now the source of truth. This document is useful for motivation, but may be
 otherwise out of date.**
 
-[set literals]: https://github.com/dart-lang/language/blob/master/accepted/2.2/set-literals/feature-specification.md
-[control flow collections]: https://github.com/dart-lang/language/blob/master/accepted/2.3/control-flow-collections/feature-specification.md
-[unified proposal]: https://github.com/dart-lang/language/tree/master/accepted/2.3/unified-collections/feature-specification.md
+[set literals]: https://github.com/dart-lang/language/blob/main/accepted/2.2/set-literals/feature-specification.md
+[control flow collections]: https://github.com/dart-lang/language/blob/main/accepted/2.3/control-flow-collections/feature-specification.md
+[unified proposal]: https://github.com/dart-lang/language/tree/main/accepted/2.3/unified-collections/feature-specification.md
 
 ## Motivation
 
@@ -739,7 +739,7 @@ corpus where this syntax could be used by looking for calls to `.addAll()` on
 collection literals. I converted them to use the prefix and postfix syntax
 [here][spread examples].
 
-[spread examples]: https://github.com/dart-lang/language/tree/master/working/spread-collections/examples
+[spread examples]: https://github.com/dart-lang/language/tree/main/working/spread-collections/examples
 
 Only a few cases use `...?`. Some examples do have pretty complex expressions
 where it's easy to overlook a trailing `...`, like:

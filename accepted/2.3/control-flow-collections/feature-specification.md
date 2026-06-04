@@ -9,9 +9,9 @@ conditionals and repetition.
 
 **Note: Because this feature interacts heavily with [Set Literals][] and [Spread Collections][], which are all being implemented concurrently, we have a [unified proposal][] that covers the behavior of all three. That proposal is now the source of truth. This document is useful for motivation, but may be otherwise out of date.**
 
-[set literals]: https://github.com/dart-lang/language/blob/master/accepted/2.2/set-literals/feature-specification.md
-[spread collections]: https://github.com/dart-lang/language/blob/master/accepted/2.3/spread-collections/feature-specification.md
-[unified proposal]: https://github.com/dart-lang/language/tree/master/accepted/2.3/unified-collections/feature-specification.md
+[set literals]: https://github.com/dart-lang/language/blob/main/accepted/2.2/set-literals/feature-specification.md
+[spread collections]: https://github.com/dart-lang/language/blob/main/accepted/2.3/spread-collections/feature-specification.md
+[unified proposal]: https://github.com/dart-lang/language/tree/main/accepted/2.3/unified-collections/feature-specification.md
 
 ## Motivation
 
@@ -84,7 +84,7 @@ Widget build(BuildContext context) {
 It's arguably better than the above code, but it's not obvious or terse. Adding
 [spread syntax][spread] would let you do:
 
-[spread]: https://github.com/dart-lang/language/blob/master/accepted/2.3/spread-collections/feature-specification.md
+[spread]: https://github.com/dart-lang/language/blob/main/accepted/2.3/spread-collections/feature-specification.md
 
 ```dart
 Widget build(BuildContext context) {
@@ -732,7 +732,7 @@ elements to consider:
 
     See the [relevant proposal][const spread] for how these are handled.
 
-    [const spread]: https://github.com/dart-lang/language/blob/master/accepted/2.3/spread-collections/feature-specification.md#const-spreads
+    [const spread]: https://github.com/dart-lang/language/blob/main/accepted/2.3/spread-collections/feature-specification.md#const-spreads
 
 *   An **if element**:
 
@@ -1065,7 +1065,7 @@ Without [rest parameters][], `for` isn't useful and `if` probably isn't
 feasible for positional arguments. But even without rest params, it's possible
 to support `if` for named arguments.
 
-[rest parameters]: https://github.com/munificent/ui-as-code/blob/master/in-progress/parameter-freedom.md
+[rest parameters]: https://github.com/munificent/ui-as-code/blob/main/in-progress/parameter-freedom.md
 
 We can and should look at doing that as a separate proposal.
 

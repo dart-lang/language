@@ -57,7 +57,7 @@ It does so by:
 
 ### Package Default Language Version
 
-A language tool (like a compiler or analyzer) needs to derive this information for *all* packages available to the program it is processing. To this end, we record a language version for each available package in the new [`.dart_tool/package_config.json`](https://github.com/dart-lang/language/blob/master/accepted/2.8/language-versioning/package-config-file-v2.md) file (which replaces `.packages` as the package configuration file), and this language version is used to define the *default* language version for all libraries in that package. Each individual library can override the default language version if necessary.
+A language tool (like a compiler or analyzer) needs to derive this information for *all* packages available to the program it is processing. To this end, we record a language version for each available package in the new [`.dart_tool/package_config.json`](https://github.com/dart-lang/language/blob/main/accepted/2.8/language-versioning/package-config-file-v2.md) file (which replaces `.packages` as the package configuration file), and this language version is used to define the *default* language version for all libraries in that package. Each individual library can override the default language version if necessary.
 
 The `.dart_tool/package_config.json` file is a JSON formatted text file which declares a number of named packages with a root and a package URI root directory for each. The SDK version for a specific package is added as an extra `languageVersion` property on the JSON object for the package.  The package configuration file is generated automatically by the `pub` tool as documented in the file’s specification.
 
@@ -268,14 +268,14 @@ The optimistic upgrade from version 2.5 to 2.9 will go through all the intermedi
 
 ## Revisions
 
-1.0: Initial version (adapted from [strawman proposal](<https://github.com/dart-lang/language/blob/master/working/0093%20-%20Gradual%20Language%20Change%20Migration/0094%20-%20Per%20Library%20Language%20Version%20Selection/strawman.md>)).
+1.0: Initial version (adapted from [strawman proposal](<https://github.com/dart-lang/language/blob/main/working/0093%20-%20Gradual%20Language%20Change%20Migration/0094%20-%20Per%20Library%20Language%20Version%20Selection/strawman.md>)).
 
 1.1: Update specification after rewiew.
 
 - Update `.packages` file format to contain entire SDK version.
 - Restrict override syntax to only `// @dart = 2.3` format.
 - Specify experiment flag behavior.
-- Change `*:defaultPackage` to `:defaultPackage` because `*` was already a valid package name in the [`.packages` file specification](<https://github.com/lrhn/dep-pkgspec/blob/master/DEP-pkgspec.md>).
+- Change `*:defaultPackage` to `:defaultPackage` because `*` was already a valid package name in the [`.packages` file specification](<https://github.com/lrhn/dep-pkgspec/blob/main/DEP-pkgspec.md>).
 
 1.2: Require language version markers in part files when the library has one.
 

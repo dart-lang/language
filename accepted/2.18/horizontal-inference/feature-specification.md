@@ -181,15 +181,15 @@ In this document we make use of the following terms:
     function literal.
 
 [language specification]: https://dart.dev/guides/language/spec
-[inference]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
-[flow analysis]: https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md#flow-analysis
-[type schemas]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#type-schemas
-[type constraints]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#type-constraints
-[subtype constraint generation]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#subtype-constraint-generation
-[constraint solution for a type variable]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#constraint-solution-for-a-type-variable
-[constraint solution for a set of type variables]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#constraint-solution-for-a-set-of-type-variables
-[grounded constraint solution for a type variable]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#grounded-constraint-solution-for-a-type-variable
-[grounded constraint solution for a set of type variables]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md#grounded-constraint-solution-for-a-set-of-type-variables
+[inference]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md
+[flow analysis]: https://github.com/dart-lang/language/blob/main/resources/type-system/flow-analysis.md#flow-analysis
+[type schemas]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#type-schemas
+[type constraints]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#type-constraints
+[subtype constraint generation]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#subtype-constraint-generation
+[constraint solution for a type variable]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#constraint-solution-for-a-type-variable
+[constraint solution for a set of type variables]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#constraint-solution-for-a-set-of-type-variables
+[grounded constraint solution for a type variable]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#grounded-constraint-solution-for-a-type-variable
+[grounded constraint solution for a set of type variables]: https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md#grounded-constraint-solution-for-a-set-of-type-variables
 
 ## Type inference algorithm for invocations
 

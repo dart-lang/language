@@ -7,7 +7,7 @@ Status: Abandoned
 **This proposal was superceded by the [class-modifiers][] proposal. Please refer
 to that document for more recent information.**
 
-[class-modifiers]: https://github.com/dart-lang/language/blob/master/accepted/3.0/class-modifiers/feature-specification.md
+[class-modifiers]: https://github.com/dart-lang/language/blob/main/accepted/3.0/class-modifiers/feature-specification.md
 
 Version 1.1 (see [Changelog](#changelog) at end)
 
@@ -18,11 +18,11 @@ of the rest of that proposal, but they aren't needed for pattern matching, so
 this proposal separates them out.) For motivation, see the previously linked
 documents.
 
-[exhaustiveness checking]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/exhaustiveness.md
+[exhaustiveness checking]: https://github.com/dart-lang/language/blob/main/accepted/3.0/patterns/exhaustiveness.md
 
-[pattern matching]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/feature-specification.md
+[pattern matching]: https://github.com/dart-lang/language/blob/main/accepted/3.0/patterns/feature-specification.md
 
-[type modifiers]: https://github.com/dart-lang/language/blob/master/inactive/type-modifiers/feature-specification.md
+[type modifiers]: https://github.com/dart-lang/language/blob/main/inactive/type-modifiers/feature-specification.md
 
 ## Introduction
 
@@ -171,7 +171,7 @@ It is a compile-time error to extend, implement, or mix in a type marked
 however to subtype a sealed type from another part file or [augmentation
 library][] within the same library.*
 
-[augmentation library]: https://github.com/dart-lang/language/blob/master/working/augmentation-libraries/feature-specification.md
+[augmentation library]: https://github.com/dart-lang/language/blob/main/working/augmentation-libraries/feature-specification.md
 
 A typedef can't be used to subvert this restriction. If a typedef refers to a
 sealed type, it is also a compile-time error to extend, implement or mix in that

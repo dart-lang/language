@@ -5,7 +5,7 @@ Owner: rnystrom@google.com ([@munificent](https://github.com/munificent/) on Git
 Relevant links:
 
 * [Tracking issue](https://github.com/dart-lang/language/issues/78)
-* [Proposal](https://github.com/dart-lang/language/blob/master/working/control-flow-collections/feature-specification.md)
+* [Proposal](https://github.com/dart-lang/language/blob/main/working/control-flow-collections/feature-specification.md)
 
 ## Phase 0 (Prerequisite)
 
@@ -15,7 +15,7 @@ The implementation of this feature should be hidden behind an [experiment
 flag][]. Tools must be passed the flag
 `--enable-experiment=control-flow-collections` to enable the feature.
 
-[experiment flag]: https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md
+[experiment flag]: https://github.com/dart-lang/sdk/blob/main/docs/process/experimental-flags.md
 
 While this feature is under development, individual tools may have incomplete or
 changing implementations behind the flag. When all tools have completely

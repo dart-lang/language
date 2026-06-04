@@ -204,13 +204,13 @@ Discussion issues on specific topics related to this proposal are [here](https:/
 The motivations for the feature along with the migration plan and strategy are
 discussed in more detail in
 the
-[roadmap](https://github.com/dart-lang/language/blob/master/accepted/2.12/nnbd/roadmap.md).
+[roadmap](https://github.com/dart-lang/language/blob/main/accepted/2.12/nnbd/roadmap.md).
 
 This proposal draws on the proposal that Patrice Chalin wrote
 up [here](https://github.com/dart-archive/dart_enhancement_proposals/issues/30),
 and on the proposal that Bob Nystrom wrote
 up
-[here](https://github.com/dart-lang/language/blob/master/resources/old-non-nullable-types.md).
+[here](https://github.com/dart-lang/language/blob/main/resources/old-non-nullable-types.md).
 
 
 ## Syntax
@@ -246,7 +246,7 @@ sequence to be written as `?..` indicating that the cascade is null-shorting.
 
 All of the syntax changes for this feature have been incorporated into
 the
-[formal grammar](https://github.com/dart-lang/language/blob/master/specification/dartLangSpec.tex),
+[formal grammar](https://github.com/dart-lang/language/blob/main/specification/dartLangSpec.tex),
 which serves as the canonical reference for the grammatical changes.
 
 ### Grammatical ambiguities and clarifications.
@@ -297,7 +297,7 @@ library section below.
 
 We modify the subtyping rules to account for nullability and legacy types as
 specified
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
+[here](https://github.com/dart-lang/language/blob/main/resources/type-system/subtyping.md).
 We write `S <: T` to mean that the type `S` is a subtype of `T` according to the
 rules specified there.
 
@@ -319,14 +319,14 @@ previous paragraph.
 We modify the upper and lower bound rules to account for nullability and legacy
 types as
 specified
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).
+[here](https://github.com/dart-lang/language/blob/main/resources/type-system/upper-lower-bounds.md).
 
 ### Type normalization
 
 We define a normalization procedure on types which defines a canonical
 representation for otherwise equivalent
 types
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/normalization.md).
+[here](https://github.com/dart-lang/language/blob/main/resources/type-system/normalization.md).
 This defines a procedure **NORM(`T`)** such that **NORM(`T`)** is syntactically
 equal to **NORM(`S`)** modulo replacement of primitive top types iff `S <: T`
 and `T <: S`.
@@ -523,7 +523,7 @@ definition if `T` is potentially non-nullable.
 A number of errors and warnings are updated to take reachability of statements
 into account.  Computation of code reachability
 is
-[specified separately](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
+[specified separately](https://github.com/dart-lang/language/blob/main/resources/type-system/flow-analysis.md).
 
 We say that a statement **may complete normally** if the specified control flow
 analysis determines that any control flow path may reach the end of the
@@ -831,7 +831,7 @@ parameter type.  Otherwise, the parameter type of the overriding method is
 
 Top level variable and local function inference is performed
 as
-[specified separately](https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md).
+[specified separately](https://github.com/dart-lang/language/blob/main/resources/type-system/inference.md).
 Method body inference is not yet specified.
 
 If no type is specified in a catch clause, then the default type of the error
@@ -1072,7 +1072,7 @@ defined as follows.
 
 These are extended as
 per
-[separate proposal](https://github.com/dart-lang/language/blob/master/resources/type-system/flow-analysis.md).
+[separate proposal](https://github.com/dart-lang/language/blob/main/resources/type-system/flow-analysis.md).
 
 ## Helper predicates
 
@@ -1678,7 +1678,7 @@ values for their optional parameters.
 For migration, we support incremental adoption of non-nullability as described
 at a high level in
 the
-[roadmap](https://github.com/dart-lang/language/blob/master/accepted/2.12/nnbd/roadmap.md).
+[roadmap](https://github.com/dart-lang/language/blob/main/accepted/2.12/nnbd/roadmap.md).
 
 ### Opted in libraries.
 

@@ -418,7 +418,7 @@ class extends Record {
 
 Subtyping for record types has been incorporated into the main subtyping
 specification
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md).
+[here](https://github.com/dart-lang/language/blob/main/resources/type-system/subtyping.md).
 Briefly:
 
 The class `Record` is a subtype of `Object` and `dynamic` and a supertype of
@@ -434,7 +434,7 @@ no "row polymorphism" or "width subtyping".*
 
 Bounds computations for record types have been incorporated into the main
 specification
-[here](https://github.com/dart-lang/language/blob/master/resources/type-system/upper-lower-bounds.md).
+[here](https://github.com/dart-lang/language/blob/main/resources/type-system/upper-lower-bounds.md).
 Briefly:
 
 If two record types have the same shape, their least upper bound is a new
