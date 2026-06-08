@@ -12,8 +12,8 @@ This document is built on several earlier proposals of a similar feature
 [views][1] proposal as well as the [extension struct][2] proposal provide
 information about the process, including in their change logs.
 
-[1]: https://github.com/dart-lang/language/blob/master/working/1426-extension-types/feature-specification-views.md
-[2]: https://github.com/dart-lang/language/blob/master/working/extension_structs/overview.md
+[1]: https://github.com/dart-lang/language/blob/main/working/1426-extension-types/feature-specification-views.md
+[2]: https://github.com/dart-lang/language/blob/main/working/extension_structs/overview.md
 
 2024.05.21
   - Clarify that preclusion is caused by instance members and not by static

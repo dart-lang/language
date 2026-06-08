@@ -5,7 +5,7 @@ Owner: eernst@google.com ([@eernstg](https://github.com/lrhn/) on GitHub)
 Relevant links:
 
 * [Tracking issue](https://github.com/dart-lang/sdk/issues/42560)
-* [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/2.12/abstract-external-fields/feature-specification.md)
+* [Feature specification](https://github.com/dart-lang/language/blob/main/accepted/2.12/abstract-external-fields/feature-specification.md)
 
 ## Phase 0 (Preliminary steps)
 
@@ -16,7 +16,7 @@ The implementation of this feature is hidden behind an
 The flag `--enable-experiment=non-nullable`
 must be passed to tools in order to enable the feature.
 
-[experiment flag]: https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md
+[experiment flag]: https://github.com/dart-lang/sdk/blob/main/docs/process/experimental-flags.md
 
 This means that the feature is considered to be part of the null-safety
 feature bundle, and it will be enabled by default along with null-safety.
@@ -24,7 +24,7 @@ feature bundle, and it will be enabled by default along with null-safety.
 ### Tests
 
 The language team adds
-[tests](https://github.com/dart-lang/sdk/tree/master/tests/language/external_abstract_fields)
+[tests](https://github.com/dart-lang/sdk/tree/main/tests/language/external_abstract_fields)
 for the feature. The Co19 team adds tests for the specification.
 
 ## Phase 1 (Front End Implementation)

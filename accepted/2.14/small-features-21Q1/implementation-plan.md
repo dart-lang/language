@@ -5,7 +5,7 @@ Owner: lrn@google.com ([@lrhn](https://github.com/lrhn/) on GitHub)
 Relevant links:
 
 * [Implementation issue](https://github.com/dart-lang/sdk/issues/44911)
-* [Proposal](https://github.com/dart-lang/language/blob/master/working/small-features-21q1/feature-specification.md)
+* [Proposal](https://github.com/dart-lang/language/blob/main/working/small-features-21q1/feature-specification.md)
 
 ## Phase 0 (Prerequisite)
 
@@ -15,7 +15,7 @@ The implementation of parts of this feature ("generic metadata" and "generic fun
 flag][]. Tools must be passed the flag
 `--enable-experiment=generic-metadata` to enable those features.
 
-[experiment flag]: https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md
+[experiment flag]: https://github.com/dart-lang/sdk/blob/main/docs/process/experimental-flags.md
 
 While this feature is under development, individual tools may have incomplete or
 changing implementations behind the flag. When all tools have completely

@@ -39,8 +39,8 @@ This proposal is a blend of a few earlier proposals:
 * [Type modifiers][]
 * [Access modifiers using closed, sealed, open and interface][leaf proposal]
 
-[class capabilities]: https://github.com/dart-lang/language/blob/master/resources/class-capabilities/class-capabilities.md
-[type modifiers]: https://github.com/dart-lang/language/blob/master/inactive/type-modifiers/feature-specification.md
+[class capabilities]: https://github.com/dart-lang/language/blob/main/resources/class-capabilities/class-capabilities.md
+[type modifiers]: https://github.com/dart-lang/language/blob/main/inactive/type-modifiers/feature-specification.md
 [leaf proposal]: https://github.com/dart-lang/language/issues/2595
 
 The [type modifiers][] document has some motivation and discussion around
@@ -243,17 +243,17 @@ family of subtypes used for exhaustiveness checking. You put `sealed` on a
 supertype. Then you are only allowed to directly extend, implement, or mix in
 that supertype from within the same library.
 
-[sealed]: https://github.com/dart-lang/language/blob/master/accepted/future-releases/sealed-types/feature-specification.md
-[pattern matching features]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/feature-specification.md
+[sealed]: https://github.com/dart-lang/language/blob/main/accepted/future-releases/sealed-types/feature-specification.md
+[pattern matching features]: https://github.com/dart-lang/language/blob/main/accepted/3.0/patterns/feature-specification.md
 
 In return for that restriction, in a switch, if you cover all of those subtypes,
 then the compiler knows that you have [exhaustively][exhaustive] covered all
 possible instances of the supertype. This is a big part of enabling a
 [functional programming style][fp] in Dart.
 
-[exhaustive]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/exhaustiveness.md
+[exhaustive]: https://github.com/dart-lang/language/blob/main/accepted/3.0/patterns/exhaustiveness.md
 
-[fp]: https://github.com/dart-lang/language/blob/master/accepted/3.0/patterns/feature-specification.md#algebraic-datatypes
+[fp]: https://github.com/dart-lang/language/blob/main/accepted/3.0/patterns/feature-specification.md#algebraic-datatypes
 
 The `sealed` modifier prevents direct subtyping from outside of the library
 where the sealed type is defined. But it doesn't prevent you from subtyping

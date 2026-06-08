@@ -2,7 +2,7 @@
 
 Relevant documents:
  - [Tracking issue](https://github.com/dart-lang/language/issues/113)
- - [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/2.5/contravariant-superinterface-2018/feature-specification.md)
+ - [Feature specification](https://github.com/dart-lang/language/blob/main/accepted/2.5/contravariant-superinterface-2018/feature-specification.md)
 
 
 ## Implementation and Release plan
@@ -10,7 +10,7 @@ Relevant documents:
 This feature is concerned with the introduction of one extra compile-time
 error, and the breakage has been estimated to be very low.
 Still, we will use an 
-[experiments flag](https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md)
+[experiments flag](https://github.com/dart-lang/sdk/blob/main/docs/process/experimental-flags.md)
 in order to enable a controlled deployment.
 
 
