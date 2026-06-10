@@ -6,7 +6,7 @@ Status: Ready for comment
 
 This is an adaptation of the experimental super-mixin type argument inference
 described
-[here](https://github.com/dart-lang/sdk/blob/main/docs/language/informal/mixin-inference.md)
+[here](https://github.com/dart-lang/sdk/blob/master/docs/language/informal/mixin-inference.md)
 to use the new super-mixin declaration syntax proposed for addition to Dart 2.1
 [here](https://github.com/dart-lang/language/blob/main/accepted/2.1/super-mixins/feature-specification.md).
 

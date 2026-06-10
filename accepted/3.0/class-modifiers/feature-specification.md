@@ -243,7 +243,7 @@ family of subtypes used for exhaustiveness checking. You put `sealed` on a
 supertype. Then you are only allowed to directly extend, implement, or mix in
 that supertype from within the same library.
 
-[sealed]: https://github.com/dart-lang/language/blob/main/accepted/future-releases/sealed-types/feature-specification.md
+[sealed]: https://github.com/dart-lang/language/blob/main/archive/sealed-types/feature-specification.md
 [pattern matching features]: https://github.com/dart-lang/language/blob/main/accepted/3.0/patterns/feature-specification.md
 
 In return for that restriction, in a switch, if you cover all of those subtypes,

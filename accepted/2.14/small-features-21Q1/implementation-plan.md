@@ -5,7 +5,7 @@ Owner: lrn@google.com ([@lrhn](https://github.com/lrhn/) on GitHub)
 Relevant links:
 
 * [Implementation issue](https://github.com/dart-lang/sdk/issues/44911)
-* [Proposal](https://github.com/dart-lang/language/blob/main/working/small-features-21q1/feature-specification.md)
+* [Proposal](https://github.com/dart-lang/language/blob/main/accepted/2.14/small-features-21q1/feature-specification.md)
 
 ## Phase 0 (Prerequisite)
 
