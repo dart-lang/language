@@ -21970,7 +21970,7 @@ However, their subtype relations are specified without restrictions.
     \RuleTwo{\SrnLeftNullable}{S}{T}{\code{Null}}{T}{%
       \code{$S$?}}{T}
     % ------------------------------------------------ Left Promoted Variable A
-    \Axiom{\SrnLeftPromotedVariableOne}{X \& S}{X}
+    \Rule{\SrnLeftPromotedVariableOne}{X}{T}{X \& S}{T}
     % ------------------------------------------------ Right FutureOr A
     \Rule{\SrnRightFutureOrA}{S}{%
       \code{Future<$T$>}}{S}{\code{FutureOr<$T$>}}
