@@ -21866,22 +21866,22 @@ However, their subtype relations are specified without restrictions.
 %\newcommand{\SrnRightObjectThree}{} Redundant
 \newcommand{\SrnRightObjectFour}{5}
 \newcommand{\SrnNullOne}{6}
-\newcommand{\SrnNullTwo}{7}
-\newcommand{\SrnLeftFutureOr}{8}
-\newcommand{\SrnLeftNullable}{9}
-\newcommand{\SrnLeftPromotedVariableOne}{10}
-\newcommand{\SrnRightPromotedVariable}{11}
-\newcommand{\SrnRightFutureOrA}{12}
-\newcommand{\SrnRightFutureOrB}{13}
-\newcommand{\SrnRightNullableOne}{14}
-\newcommand{\SrnRightNullableTwo}{15}
-\newcommand{\SrnLeftPromotedVariableTwo}{16}
-\newcommand{\SrnLeftVariableBound}{17}
-\newcommand{\SrnRightFunction}{18}
-\newcommand{\SrnPositionalFunctionType}{19}
-\newcommand{\SrnNamedFunctionType}{20}
-\newcommand{\SrnCovariance}{21}
-\newcommand{\SrnNominal}{22}
+% \newcommand{\SrnNullTwo}{} Redundant
+\newcommand{\SrnLeftFutureOr}{7}
+\newcommand{\SrnLeftNullable}{8}
+\newcommand{\SrnLeftPromotedVariableOne}{9}
+\newcommand{\SrnRightPromotedVariable}{10}
+\newcommand{\SrnRightFutureOrA}{11}
+\newcommand{\SrnRightFutureOrB}{12}
+\newcommand{\SrnRightNullableOne}{13}
+\newcommand{\SrnRightNullableTwo}{14}
+\newcommand{\SrnLeftPromotedVariableTwo}{15}
+\newcommand{\SrnLeftVariableBound}{16}
+\newcommand{\SrnRightFunction}{17}
+\newcommand{\SrnPositionalFunctionType}{18}
+\newcommand{\SrnNamedFunctionType}{19}
+\newcommand{\SrnCovariance}{20}
+\newcommand{\SrnNominal}{21}
 
 \begin{figure}[p]
   \def\VSP{\vspace{4mm}}
@@ -21918,6 +21918,11 @@ However, their subtype relations are specified without restrictions.
   %   \RuleRaw{\SrnRightObjectThree}{%
   %     \SubtypeStd{S}{\code{Object}}}{%
   %       \code{FutureOr<$S$>}}{\code{Object}}
+  % ------------------------------------------------ Left Null 2
+  % Not needed unless algorithmic: Derivable from
+  % \SrnLeftFutureOr{}.
+  % \Rule{\SrnNullTwo}{\code{Null}}{T}{%
+  %   \code{Null}}{\code{FutureOr<$T$>}}
   % ----------------------------------------------------------------------
   \begin{minipage}[c]{0.49\textwidth}
     % ------------------------------------------------ Reflexivity
@@ -21930,21 +21935,17 @@ However, their subtype relations are specified without restrictions.
       \SubtypeStd{\code{Object?}}{T}}{S}{T}
     % ------------------------------------------------ Left Bottom
     \Axiom{\SrnBottom}{\code{Never}}{T}
-    % ------------------------------------------------ Left Null 1
-    \Axiom{\SrnNullOne}{\code{Null}}{\code{$T$?}}
   \end{minipage}
   \begin{minipage}[c]{0.49\textwidth}
     % ------------------------------------------------ Right Top
     \RuleRaw{\SrnRightTop}{%
       T \in \{\code{Object?}, \DYNAMIC, \VOID\}}{S}{T}
     % ------------------------------------------------ Right Object
-    % TODO(eernst): Comment out this rule as redundant and
-    % renumber, it is an instance of \SrnRightFutureOrB.
+    % TODO(eernst): Come records, treat \RECORD{} the same as \FUNCTION.
     \RuleRaw{\SrnRightObjectFour}{%
       \mbox{$S$ is an interface type or \FUNCTION}}{S}{\code{Object}}
-    % ------------------------------------------------ Left Null 2
-    \Rule{\SrnNullTwo}{\code{Null}}{T}{%
-      \code{Null}}{\code{FutureOr<$T$>}}
+    % ------------------------------------------------ Left Null 1
+    \Axiom{\SrnNullOne}{\code{Null}}{\code{$T$?}}
   \end{minipage}
 
   \begin{minipage}[c]{0.49\textwidth}
@@ -22112,7 +22113,7 @@ The subtype rules assume that all type aliases have been transitively expanded.
 \LMHash{}%
 Every \synt{typeName} used in a type mentioned
 in section~\ref{subtypes} and its subsections
-is assumed to have no compile-time error,
+is assumed to have no compile-time errors,
 and it is assumed to denote a type.
 
 \commentary{%
@@ -22313,9 +22314,6 @@ the set of direct superinterfaces of $C$
     Interface types and \FUNCTION{} are subtypes of \code{Object}.
   \Item{\SrnNullOne}{Null Nullable}
     \code{Null} is a subtype of every type of the form \code{$T$?}.
-  \Item{\SrnNullTwo}{Null FutureOr}
-    \code{Null} is a subtype of \code{FutureOr<$T$>}
-    if \code{Null} is a subtype of $T$.
   \Item{\SrnLeftFutureOr}{Left FutureOr}
     The type \code{FutureOr<$S$>} is a subtype of a given type $T$
     if \code{Future<$S$>} is a subtype of $T$ and $S$ is a subtype of $T$,
@@ -22503,7 +22501,7 @@ come in two variants:
 }
 
 \LMHash{}%
-A function object is always an instance of some class $C$ that implements
+The type of a function object is
 a function type $F$ which is a subtype of the class \FUNCTION{}
 (\ref{functionType}).
 The function object has a method named \CALL,
@@ -23800,7 +23798,7 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
     Otherwise \SubtypeNE{S}{T} is true.
   \end{itemize}
 \item
-  \textbf{Left Null (\SrnRightFutureOrB*, \SrnNullTwo, \SrnNullOne):}
+  \textbf{Left Null (\SrnRightFutureOrB*, \SrnNullOne):}
   if $S$ is \code{Null} then:
   \begin{itemize}
   \item
