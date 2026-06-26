@@ -599,6 +599,9 @@ constructors as well.
 <fieldFormalParameter> ::= // Modified rule.
      <type>? 'this' '.' <identifier> (<formalParameterPart> '?'?)?;
 
+<superFormalParameter> ::= // Modified rule.
+     <type>? 'super' '.' <identifier> (<formalParameterPart> '?'?)?;
+
 <declaringParameterList> ::= // New rule.
      '(' ')'
    | '(' <declaringFormalParameters> ','? ')'
