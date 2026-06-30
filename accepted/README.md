@@ -68,7 +68,7 @@ documents in this repository.
 |     3.9 | [sound-flow-analysis](https://github.com/dart-lang/language/issues/3100)| Implemented, needs specification |
 |    3.10 | [dot-shorthands](https://github.com/dart-lang/language/blob/main/accepted/3.10/dot-shorthands/feature-specification.md)| Specified |
 |    3.12 | [private-named-parameters](https://github.com/dart-lang/language/blob/main/accepted/3.12/private-named-parameters/feature-specification.md)| Specified |
-|    3.13 | [primary-constructors](https://github.com/dart-lang/language/blob/main/accepted/future-releases/primary-constructors/feature-specification.md)| Specified |
+|    3.13 | [primary-constructors](https://github.com/dart-lang/language/blob/main/accepted/3.13/primary-constructors/feature-specification.md)| Specified |
 |     3.? | [parts-with-imports](https://github.com/dart-lang/language/blob/main/accepted/future-releases/parts-with-imports/feature-specification.md)| Ongoing |
 |     3.? | [augmentations](https://github.com/dart-lang/language/blob/main/working/augmentations/feature-specification.md)| Ongoing |
 |     3.? | [static-extensions](https://github.com/dart-lang/language/blob/main/working/0723-static-extensions/feature-specification.md)| Ongoing |
