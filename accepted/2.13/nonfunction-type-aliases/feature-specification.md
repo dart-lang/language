@@ -2,6 +2,8 @@
 
 Author: eernst@google.com (@eernstg).
 
+Status: Superceded by the language specification.
+
 Version: 0.4.
 
 ## Motivation and Scope

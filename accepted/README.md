@@ -44,7 +44,7 @@ documents in this repository.
 |     2.8 | [language-versioning](https://github.com/dart-lang/language/blob/main/accepted/2.8/language-versioning/feature-specification.md)| Specified |
 |    2.12 | [abstract-external-fields](https://github.com/dart-lang/language/blob/main/accepted/2.12/abstract-external-fields/feature-specification.md)| Specified |
 |         | [nnbd](https://github.com/dart-lang/language/blob/main/accepted/2.12/nnbd/feature-specification.md)| Specified |
-|    2.13 | [nonfunction-type-aliases](https://github.com/dart-lang/language/blob/main/accepted/2.13/nonfunction-type-aliases/feature-specification.md)| Specified |
+|    2.13 | [nonfunction-type-aliases](https://github.com/dart-lang/language/blob/main/accepted/2.13/nonfunction-type-aliases/feature-specification.md)| Done |
 |    2.14 | [small-features-21Q1](https://github.com/dart-lang/language/blob/main/accepted/2.14/small-features-21Q1/feature-specification.md)| Done |
 |         | [triple-shift-operator](https://github.com/dart-lang/language/blob/main/accepted/2.14/triple-shift-operator/feature-specification.md)| Done |
 |    2.15 | [constructor-tearoffs](https://github.com/dart-lang/language/blob/main/accepted/2.15/constructor-tearoffs/feature-specification.md)| Specified |
