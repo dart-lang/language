@@ -32,41 +32,42 @@ documents in this repository.
 | Version | Subdirectory/document              | Status     |
 |--------:|------------------------------------|:----------:|
 |     2.0 | [sound-type-system.md](https://github.com/dart-lang/language/blob/main/accepted/2.0/sound-type-system.md)| Done |
-|     2.1 | [int-literal-as-double-value](https://github.com/dart-lang/language/blob/main/accepted/2.1/int-literal-as-double-value)| Done |
-|         | [super-mixins](https://github.com/dart-lang/language/blob/main/accepted/2.1/super-mixins)| Done |
-|     2.2 | [set-literals](https://github.com/dart-lang/language/blob/main/accepted/2.2/set-literals)| Done |
-|     2.3 | [control-flow-collections](https://github.com/dart-lang/language/blob/main/accepted/2.3/control-flow-collections)| Abandoned |
-|         | [spread-collections](https://github.com/dart-lang/language/blob/main/accepted/2.3/spread-collections)| Abandoned |
-|         | [unified-collections](https://github.com/dart-lang/language/blob/main/accepted/2.3/unified-collections)| Done |
-|     2.5 | [constant-update-2018](https://github.com/dart-lang/language/blob/main/accepted/2.5/constant-update-2018)| Done | 
-|         | [contravariant-superinterface-2018](https://github.com/dart-lang/language/blob/main/accepted/2.5/contravariant-superinterface-2018)| Done |
-|     2.7 | [static-extension-methods](https://github.com/dart-lang/language/blob/main/accepted/2.7/static-extension-methods)| Done |
-|     2.8 | [language-versioning](https://github.com/dart-lang/language/blob/main/accepted/2.8/language-versioning)| Specified |
-|    2.12 | [abstract-external-fields](https://github.com/dart-lang/language/blob/main/accepted/2.12/abstract-external-fields)| Specified |
-|         | [nnbd](https://github.com/dart-lang/language/blob/main/accepted/2.12/nnbd)| Specified |
-|    2.13 | [nonfunction-type-aliases](https://github.com/dart-lang/language/blob/main/accepted/2.13/nonfunction-type-aliases)| Specified |
-|    2.14 | [small-features-21Q1](https://github.com/dart-lang/language/blob/main/accepted/2.14/small-features-21Q1)| Done |
-|         | [triple-shift-operator](https://github.com/dart-lang/language/blob/main/accepted/2.14/triple-shift-operator)| Done |
-|    2.15 | [constructor-tearoffs](https://github.com/dart-lang/language/blob/main/accepted/2.15/constructor-tearoffs)| Specified |
-|    2.17 | [1847-finalization-registry](https://github.com/dart-lang/language/blob/main/accepted/2.17/1847-finalization-registry)| (Library?) |
-|         | [enhanced-enums](https://github.com/dart-lang/language/blob/main/accepted/2.17/enhanced-enums)| Specified |
-|         | [named-arguments-anywhere](https://github.com/dart-lang/language/blob/main/accepted/2.17/named-arguments-anywhere)| Specified |
-|         | [super-parameters](https://github.com/dart-lang/language/blob/main/accepted/2.17/super-parameters)| Specified |
-|    2.18 | [horizontal-inference](https://github.com/dart-lang/language/blob/main/accepted/2.18/horizontal-inference)| Specified |
-|    2.19 | [unnamed-libraries](https://github.com/dart-lang/language/blob/main/accepted/2.19/unnamed-libraries)| Specified |
-|     3.0 | [patterns](https://github.com/dart-lang/language/blob/main/accepted/3.0/patterns)| Specified |
-|         | [class-modifiers](https://github.com/dart-lang/language/blob/main/accepted/3.0/class-modifiers)| Specified |
-|         | [records](https://github.com/dart-lang/language/blob/main/accepted/3.0/records)| Specified |
+|     2.1 | [int-literal-as-double-value](https://github.com/dart-lang/language/blob/main/accepted/2.1/int-literal-as-double-value/feature-specification.md)| Done |
+|         | [super-mixins](https://github.com/dart-lang/language/blob/main/accepted/2.1/super-mixins/feature-specification.md)| Done |
+|     2.2 | [set-literals](https://github.com/dart-lang/language/blob/main/accepted/2.2/set-literals/feature-specification.md)| Done |
+|     2.3 | [control-flow-collections](https://github.com/dart-lang/language/blob/main/accepted/2.3/control-flow-collections/feature-specification.md)| Abandoned |
+|         | [spread-collections](https://github.com/dart-lang/language/blob/main/accepted/2.3/spread-collections/feature-specification.md)| Abandoned |
+|         | [unified-collections](https://github.com/dart-lang/language/blob/main/accepted/2.3/unified-collections/feature-specification.md)| Done |
+|     2.5 | [constant-update-2018](https://github.com/dart-lang/language/blob/main/accepted/2.5/constant-update-2018/feature-specification.md)| Done | 
+|         | [contravariant-superinterface-2018](https://github.com/dart-lang/language/blob/main/accepted/2.5/contravariant-superinterface-2018/feature-specification.md)| Done |
+|     2.7 | [static-extension-methods](https://github.com/dart-lang/language/blob/main/accepted/2.7/static-extension-methods/feature-specification.md)| Done |
+|     2.8 | [language-versioning](https://github.com/dart-lang/language/blob/main/accepted/2.8/language-versioning/feature-specification.md)| Specified |
+|    2.12 | [abstract-external-fields](https://github.com/dart-lang/language/blob/main/accepted/2.12/abstract-external-fields/feature-specification.md)| Specified |
+|         | [nnbd](https://github.com/dart-lang/language/blob/main/accepted/2.12/nnbd/feature-specification.md)| Specified |
+|    2.13 | [nonfunction-type-aliases](https://github.com/dart-lang/language/blob/main/accepted/2.13/nonfunction-type-aliases/feature-specification.md)| Specified |
+|    2.14 | [small-features-21Q1](https://github.com/dart-lang/language/blob/main/accepted/2.14/small-features-21Q1/feature-specification.md)| Done |
+|         | [triple-shift-operator](https://github.com/dart-lang/language/blob/main/accepted/2.14/triple-shift-operator/feature-specification.md)| Done |
+|    2.15 | [constructor-tearoffs](https://github.com/dart-lang/language/blob/main/accepted/2.15/constructor-tearoffs/feature-specification.md)| Specified |
+|    2.17 | [1847-finalization-registry](https://github.com/dart-lang/language/blob/main/accepted/2.17/1847-finalization-registry/proposal.md)| Library |
+|         | [enhanced-enums](https://github.com/dart-lang/language/blob/main/accepted/2.17/enhanced-enums/feature-specification.md)| Specified |
+|         | [named-arguments-anywhere](https://github.com/dart-lang/language/blob/main/accepted/2.17/named-arguments-anywhere/feature-specification.md)| Specified |
+|         | [super-parameters](https://github.com/dart-lang/language/blob/main/accepted/2.17/super-parameters/feature-specification.md)| Specified |
+|    2.18 | [horizontal-inference](https://github.com/dart-lang/language/blob/main/accepted/2.18/horizontal-inference/feature-specification.md)| Specified |
+|    2.19 | [unnamed-libraries](https://github.com/dart-lang/language/blob/main/accepted/2.19/unnamed-libraries/feature-specification.md)| Specified |
+|     3.0 | [patterns](https://github.com/dart-lang/language/blob/main/accepted/3.0/patterns/feature-specification.md)| Specified |
+|         | [exhaustiveness](https://github.com/dart-lang/language/blob/main/accepted/3.0/patterns/exhaustiveness.md)| Specified |
+|         | [class-modifiers](https://github.com/dart-lang/language/blob/main/accepted/3.0/class-modifiers/feature-specification.md)| Specified |
+|         | [records](https://github.com/dart-lang/language/blob/main/accepted/3.0/records/feature-specification.md)| Specified |
 |     3.2 | [private-field-promotion issue](https://github.com/dart-lang/language/issues/2020)| Specified |
-|     3.3 | [extension-types](https://github.com/dart-lang/language/blob/main/accepted/future-releases/extension-types/feature-specification.md)| Specified |
+|     3.3 | [extension-types](https://github.com/dart-lang/language/blob/main/accepted/3.3/extension-types/feature-specification.md)| Specified |
 |     3.4 | [inference-update-3](https://github.com/dart-lang/language/issues/1618)| Specified |
-|     3.6 | [digit-separators](https://github.com/dart-lang/language/blob/main/accepted/future-releases/digit-separators/feature-specification.md)| Specified |
-|     3.7 | [wildcard-variables](https://github.com/dart-lang/language/blob/main/accepted/future-releases/wildcard-variables/feature-specification.md)| Specified |
-|         | [inference-using-bounds](https://github.com/dart-lang/language/blob/main/accepted/future-releases/3009-inference-using-bounds/design-document.md)| Specified |
-|     3.8 | [null-aware-elements](https://github.com/dart-lang/language/blob/main/accepted/future-releases/0323-null-aware-elements/feature-specification.md)| Specified |
+|     3.6 | [digit-separators](https://github.com/dart-lang/language/blob/main/accepted/3.6/digit-separators/feature-specification.md)| Specified |
+|     3.7 | [wildcard-variables](https://github.com/dart-lang/language/blob/main/accepted/3.7/wildcard-variables/feature-specification.md)| Specified |
+|         | [inference-using-bounds](https://github.com/dart-lang/language/blob/main/accepted/3.7/inference-using-bounds/design-document.md)| Specified |
+|     3.8 | [null-aware-elements](https://github.com/dart-lang/language/blob/main/accepted/3.8/null-aware-elements/feature-specification.md)| Specified |
 |     3.9 | [sound-flow-analysis](https://github.com/dart-lang/language/issues/3100)| Implemented, needs specification |
 |    3.10 | [dot-shorthands](https://github.com/dart-lang/language/blob/main/accepted/3.10/dot-shorthands/feature-specification.md)| Specified |
-|    3.12 | [private-named-parameters](https://github.com/dart-lang/language/blob/main/accepted/future-releases/2509-private-named-parameters/feature-specification.md)| Specified |
+|    3.12 | [private-named-parameters](https://github.com/dart-lang/language/blob/main/accepted/3.12/private-named-parameters/feature-specification.md)| Specified |
 |    3.13 | [primary-constructors](https://github.com/dart-lang/language/blob/main/accepted/future-releases/primary-constructors/feature-specification.md)| Specified |
 |     3.? | [parts-with-imports](https://github.com/dart-lang/language/blob/main/accepted/future-releases/parts-with-imports/feature-specification.md)| Ongoing |
 |     3.? | [augmentations](https://github.com/dart-lang/language/blob/main/working/augmentations/feature-specification.md)| Ongoing |
