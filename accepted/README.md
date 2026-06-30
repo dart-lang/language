@@ -74,6 +74,3 @@ documents in this repository.
 |     3.? | [static-extensions](https://github.com/dart-lang/language/blob/main/working/0723-static-extensions/feature-specification.md)| Ongoing |
 |     3.? | [unquoted-imports](https://github.com/dart-lang/language/blob/main/accepted/future-releases/unquoted-imports/feature-specification.md)| Ongoing |
 
-Some feature specifications are located in the
-[future-releases](https://github.com/dart-lang/language/tree/main/accepted/future-releases)
-directory and haven't yet been released.
