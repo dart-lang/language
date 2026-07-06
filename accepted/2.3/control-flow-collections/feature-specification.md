@@ -2,7 +2,7 @@
 
 Author: rnystrom@google.com
 
-Status: Draft
+Status: Abandoned, the unified proposal was accepted
 
 Allow `if` and `for` in collection literals to build collections using
 conditionals and repetition.

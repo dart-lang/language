@@ -2,6 +2,8 @@
 
 Author: rnystrom@google.com
 
+Status: Abandoned, the unified proposal was accepted
+
 Allow the `...` in list, map, and set literals to insert multiple elements into
 a collection.
 
