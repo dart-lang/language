@@ -177,9 +177,8 @@ mixinDeclaration ::=
   | 'augment' 'base'? 'mixin' typeIdentifier typeParameters?
     interfaces? memberedDeclarationBody
 
-extensionTypeDeclaration ::=
-    'extension' 'type' 'const'? typeIdentifier
-    typeParameters? representationDeclaration interfaces?
+extensionTypeDeclaration ::= // From primary constructors specification
+    'extension' 'type' primaryConstructor interfaces?
     memberedDeclarationBody
   | 'augment' 'extension' 'type' typeIdentifier
     typeParameters? interfaces?
@@ -192,7 +191,7 @@ memberedDeclarationBody ::=
 memberDeclarations ::= (metadata 'augment'? memberDeclaration)*
 
 primaryConstructorBodySignature ::= // From primary constructors specification
-     'augment'? 'this' initializers?;
+     'augment'? 'this' initializers?
 
 memberDeclaration ::= declaration
   | methodSignature functionBody
@@ -220,7 +219,14 @@ declaration ::=
   | redirectingFactoryConstructorSignature ';'
   | constantConstructorSignature (redirection | initializers)? ';'
   | constructorSignature (redirection | initializers)? ';'
+  | primaryConstructorBodySignature ';'
 ```
+
+*As introduced by the primary constructor feature, introductory extension type
+declarations use the primary constructor syntax, but **must** have precisely
+one parameter. That parameter must be declaring and `final`, but it can omit
+the `final` keyword. Augmenting extension type declarations cannot write
+primary constructors.*
 
 As with top-level declarations, we also reuse the abstract member syntax with a
 `static` modifier to allow declaring incomplete static fields, methods, getters,
@@ -296,7 +302,8 @@ See [Generative constructors](#generative_constructor_declarations).
 
 If a class or enum has a primary constructor, then the scope of non-`late`
 instance variable initializer expressions is the initializer list scope
-of that constructor.
+of that constructor, rather than the body scope of the surrounding class
+or enum declaration.
 
 It's a compile-time error if a non-`late` instance variable initializer
 expressions refers to a variable introduced by the constructor's
@@ -1004,7 +1011,6 @@ variables and constant variables can't be augmented.
 
 An introductory `enum` declaration introduces implicit introductory and
 complete declarations of:
- * `String toString()`
  * `int get index`
  * `int get hashCode`
  * `bool operator ==(Object)`
@@ -1041,8 +1047,9 @@ A constructor declaration is a _factory constructor declaration_ if it
 has a `factory` keyword, and it is a _generative constructor declaration_ if
 it does not, including when it is a primary constructor declaration.
 
-A constructor declaration is a _const constructor declaration_ if, and only if,
-it has a `const` keyword.
+A constructor declaration is a _const constructor declaration_ if
+it has a `const` keyword, or if it is a generative constructor declaration
+of an enum declaration, and otherwise it is not.
 _For a primary constructor, the `const` keyword goes before the class name
 in the header._
 
@@ -1057,13 +1064,13 @@ declaration_ and is _complete_ if it has a redirection clause (`= TargetType;`).
 
 _A factory constructor declaration with no body and no redirection clause,
 ended by a single `;`, is not a complete declaration, and does not decide
-whether the factory constructor being defined will is redirecting or not.
+whether the factory constructor being defined is redirecting or not.
 Only the (single) complete declaration forces that decision._
 
 #### Generative constructor declarations.
 
 A **primary constructor** declaration causes the constructor it defines
-be a primary constructor, and the class to have a primary constructor.
+to be a primary constructor, and the class to have a primary constructor.
 _This means the class cannot have any other initializing constructors,
 which is reflected by the consistency rules below, and it changes the
 scope used for instance variable initializer expressions._
@@ -1094,7 +1101,7 @@ have a separate `augment` keyword. Such a constructor is necessarily part
 of an augmenting class or enum declaration,
 and its header-part is likely on the same line as the `augment` keyword
 of that declaration. This is considered sufficient, rather than forcing
-a the author of a class declaration like `augment class C(final int x);`
+the author of a class declaration like `augment class C(final int x);`
 to add a body and in-body `this`-part just to write an `augment` on it,
 or alternatively to require a second `augment` keyword in the header as
 `augment class augment C(final int x);`._
@@ -1107,21 +1114,21 @@ the same getter and/or setter. *(The `augment` modifier does not apply
 to parameters, so the declaring parameter cannot be marked as augmenting
 a variable.)*
 
-An in-body generative constructor declaration is an _initializing constructor
-declaration_ and is _complete_ if (any of):
+A non-primary generative constructor declaration is an _initializing
+constructor declaration_ and is _complete_ if (any of):
   * It has an `external` keyword.
   * It has an initializing formal parameter (`this.name`).
   * It has a super parameter (`super.name`).
-  * It has a body (`{...}` instead of).
+  * It has a body (`{...}` instead of `;`).
   * It has an initializer list (`: ...`).
 
-*(An in-body initializing constructor cannot have declaring parameters,
+*(A non-primary initializing constructor cannot have declaring parameters,
 those are only available to primary constructor declarations.
 Had they been allowed, they'd also make the constructor complete.)*
 
-An in-body generative constructor declaration is a _redirecting generative
+A non-primary generative constructor declaration is a _redirecting generative
 constructor declaration_ and is _complete_ if it has a redirection clause
-(`: this(args);` or (`: this.name(args);`).
+(`: this(args);` or `: this.name(args);`).
 
 *The declarations of a class or enum can contain both primary and non-primary
 declarations of the same constructor. The class has a primary constructor
@@ -1154,7 +1161,7 @@ class C {
 
 augment class C {
   augment C.generative() : this.other();
-  factory augment C.fact() = C.other;
+  augment factory C.fact() = C.other;
 }
 ```
 
@@ -1167,17 +1174,17 @@ class const D(int x) {
   augment const new(@Since("3.15") int x);
 }
 
-augment class D(final int x) {
+augment class const D(final int x) {
   augment this { print("Initialized D"); }
 
-  @Deprecated("Was a bad idea anyway");
-  augment D(int _);
+  @Deprecated("Was a bad idea anyway")
+  augment const D(int _);
 }
 ```
 
 #### Consistency rules for constructor declarations
 
-It's a **compile-time error** if the the declarations of a class or enum
+It's a **compile-time error** if the declarations of a class or enum
 contain constructor declarations where:
 
 *   There is an augmenting constructor declaration with no corresponding
@@ -1226,7 +1233,7 @@ contain constructor declarations where:
 
 *   Two different declarations of the same constructor both specify a
     default value of the same parameter.
-    *This is an error even in it is the same default value.
+    *This is an error even if it is the same default value.
     Parameter default values can be defined by the introductory declaration
     or by an augmenting declaration, but at most once.*
 
@@ -1267,10 +1274,22 @@ Then all non-`late` instance variable declarations of the class which have
 an initializer expression are processed in their source order.
 
 Each instance variable is initialized in turn, by evaluating its initializer
-expression. If the class has a primary constructor, the initializer expression
-is evaluated in the initializer list scope, otherwise it's evaluated in the
-class scope, and if the evaluation completes with a value, the instance
-variable is initialized to that value.
+expression.
+If the class or enum has a primary constructor, the initializer
+expression is evaluated in the initializer list scope, otherwise it's evaluated
+in the body scope of the surrounding class or enum
+*(extension and extension type declarations cannot contain instance variable
+declarations, mixins and mixin-application classes cannot have primary
+constructors)*.
+
+*If the class has a constant generative constructor, then it's still a compile-
+time error if the class has any non-`final` instance variables, and it's still
+a compile-time error if an instance variable has an initializer expression
+that is not a potentially constant expression.*
+
+*Whether the evaluation uses the body scope or the initializer list scope,
+which has the body scope as parent scope, it's still an error if the
+expression refers to any instance member in the body scope.*
 
 After all instance variable initializers have been executed,
 constructor execution continues with executing as in Dart before this feature,
@@ -1284,26 +1303,35 @@ might not be a primary constructor declaration._
 
 ### Augmenting extension types
 
-When introducing an extension type declaration, the parenthesized clause where
-the representation type is specified introduces a complete generative constructor
-that has a single parameter.
+An introductory extension type declaration must have a primary constructor
+clause, which must have precisely one parameter.
+Just like for a class or enum, that primary constructor clause
+is a constructor declaration. For an extension type, it is an introductory
+and _complete_ initializing constructor declaration.
 
-The extension type representation clause also introduces a complete getter
-for the representation variable.
+That primary constructor's parameter declaration is also an introductory and
+complete getter declaration for a getter with the same name and type as the
+parameter declaration. *This is just like a declaring final parameter of a
+primary constructor of a class declaration. The parameter of an extension type
+primary constructor is always declaring and final, whether it has an explicit
+`final` or not.*
 
-These complete members are declared by the representation type clause,
-which orders them _before_ any member declarations inside the extension
-type declaration.
+*This orders these declarations _before_ any member declarations inside the
+extension type declaration, and since they must be declared by the introductory
+extension type declaration, they are always introductory.*
 
 *When augmenting an extension type declaration, the representation
 type declaration cannot be repeated, an augmenting extension type
 declaration cannot have a primary constructor.*
 
-*In other words, we treat the representation field clause as declaring an
-implicit constructor and final field for the representation variable. Since they
-are both complete, they can't be augmented with bodies. The representation
-variable getter can be augmented, because it's a getter and not a field
-declaration, but the augmentation can't add a body.*
+> [!NOTE]
+> Since the representation type declaration on the introductory extension type
+> introduces a complete constructor, it is a known limitation that an augmentation
+> cannot later attach an implementation body to the primary constructor.
+> All implementation of the primary constructor must be given in the introductory
+> declaration.
+> To work around this, developers can declare a private primary constructor and
+> expose a public constructor to be augmented.
 
 ### Augmenting with metadata annotations
 
@@ -1571,7 +1599,7 @@ follows:
         the argument list *A* and type arguments *T* to the *augmented
         parameter list* of *C*<sub>*top*</sub> and type parameters of
         *C<sub>top</sub>*. This creates a runtime parameter scope which has the
-        runtime class scope as parent scope (the lexical scope of the class,
+        runtime body scope as parent scope (the lexical scope of the class,
         except that type parameters of the class are bound to the runtime type
         arguments of those parameters for the instance *o*).
     *   Execute the body *B* in this parameter scope, with `this` bound to *o*.
@@ -1635,10 +1663,14 @@ and assume the third point is always true.
     "_includes_" transitively even if it was only declared for
     direct part includes).
 
-*   Change restriction against declaring `toString` etc. in an `enum` to
-    having the introductory `enum` introduce those members as complete
-    declarations.
-    Then you can still `@something augment toString();` to add metadata.
+*   Remove restriction against declaring `toString` in an `enum`.
+    There is no existing rule against an `enum` overriding `toString`,
+    and augmentations shouldn't introduce a restriction.
+
+*   Change restriction against declaring `operator ==`, `hashCode`,
+    `index` and `values` in an `enum` to having the introductory
+    `enum` introduce those members as complete declarations.
+    Then you can still `@something augment get index;` to add metadata.
     (Existing language allows abstract declarations of all mentioned
     members except `values`.)
 
