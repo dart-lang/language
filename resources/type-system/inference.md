@@ -332,7 +332,7 @@ follows.
     - Let `T` be `Null` if any control path reaches the end of the block
       without exiting the block, as computed by the **definite completion**
       analysis specified elsewhere.
-  
+
 Let `K` be the typing context for the function body as computed above from the
 imposed return type schema.
 
