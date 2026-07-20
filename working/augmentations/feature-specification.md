@@ -293,7 +293,7 @@ always uses the same `on` clause as the introductory declaration.
 
 ## Primary constructors
 
-A `class`, `enum` or `extension type` declarationscan use the primary
+A `class`, `enum` or `extension type` declarations can use the primary
 constructor syntax for declaring an initializing _(non-redirecting
 generative)_ constructor.
 
@@ -311,6 +311,9 @@ expressions refers to a variable introduced by the constructor's
 initializer list scope, and the surrounding class or enum declaration does
 _not_ have a primary constructor declaration which declares the
 corresponding parameter's name.
+See more details in the [Instance variable initializer](instance-variable-initialization-during-constructor-invocation)
+section.
+
 _A primary constructor must declare all parameters, but it can omit declaring
 a positional parameter's name by using `_` instead of the name.
 If it does so, that parameter's name cannot be used by instance variable
@@ -768,7 +771,7 @@ augmentation. In that case, it augments the corresponding member (the
 introducing member with the same name) in the same augmentation context,
 according to the rules in the following subsections.
 
-It's a **compile-time** error if:
+It's a **compile-time error** if:
 
 *   An augmenting class declaration has an `extends` clause and any prior
     declaration for the same class also has an `extends` clause.
@@ -940,7 +943,7 @@ introduced implicitly with the value `null` in the case where the parameter
 has a nullable declared type, and no default values for that parameter are
 specified in the augmentation chain.
 
-It's a **compile-time** error if:
+It's a **compile-time error** if:
 
 *   The signature of the augmenting function does not [match][signature matching]
     the signature of the corresponding introductory declaration.
@@ -1241,6 +1244,12 @@ contain constructor declarations where:
     report every declaration that has an error compared to the introductory
     declaration._
 
+*   There is a `const` initializing constructor declaration and:
+    *   A complete instance variable declaration which `late`,
+        or which is neither `final` nor `external`.
+    *   A complete instance variable declaration with an initializer
+        expression which is not a potentially constant expression.
+
 *   The signature of an augmenting constructor does not [match][signature
     matching] the signature of the corresponding introductory constructor.
     _The signature of a constructor using the privately-named-parameters
@@ -1302,7 +1311,7 @@ To perform instance variable initialization on a class or enum declaration:
   the lexical scope for instance variable initializers is the class/enum body
   scope.
   At initialization time, for each non-`late` instance variable with
-  an initializer expression, in source order, evaluate the expression initializer
+  an initializer expression, in source order, evaluate the initializer expression
   in the runtime body scope, then initialize the variable to the result.
 
 * If the class or enum has a primary constructor, each class or enum declaration
@@ -1323,15 +1332,16 @@ To perform instance variable initialization on a class or enum declaration:
   * None of these entries are assignable.
   * An identifier which resolves to a name in the field initializer scope
     is a compile-time error unless the surrounding class or enum declaration
-    has a primary constructor declaration with has a corresponding parameter
+    has a primary constructor declaration which has a corresponding parameter
     declaration which has that identifier as name.
     * _For a private named parameter, only the private name satisfies this._
 
-  This is the lexical scope for instance variable the instance variable
-  initializers.
+  This is the lexical scope for instance variable initializers. The parent
+  scope of the field initializer scope is the body scope of the surrounding
+  class or enum.
 
-  At initialization time, each of the entries are bound to the corresponding
-  actual argument value.
+  When the constructor is invoked, each of the entries are bound to the
+  corresponding actual argument value.
   If there is no corresponding argument, then the parameter must be optional.
   If any declaration of the parameter has a default value, the entry is bound
   to that value, otherwise the entry is bound to `null` _and the parameter
@@ -1341,6 +1351,10 @@ To perform instance variable initialization on a class or enum declaration:
   class or enum declaration, in source order, has its initializer expression
   is evaluated in that runtime field initializer scope, and the variable is
   initialized to the result.
+
+Whether the evaluation uses the body scope or the field initializer scope,
+it is still a compile-time error if the expression refers to any instance member
+in the body scope, or to `this`.
 
 After having run all non-`late` instance variable initializers in all
 declarations of the class or enum, the initializing constructor's implementation
@@ -1356,7 +1370,7 @@ class C({final int _x}) {
 }
 ```
 _has a different scope for `x` in the initializer expression.
-In the existing primary constructor specification that `x` would refer to the
+In the existing primary constructor specification, that `x` would refer to the
 top-level constant, and in this specification it is an error.
 Removing the public name from the field initializer scope would remove that
 discrepancy._
@@ -1373,14 +1387,14 @@ augment class Repeat<T> {
 }
 ```
 
-Example with defaults values an private named parameters:
+Example with defaults values and private named parameters:
 ```dart
 class const Point({int x = 0, int y = 0}) {
   abstract final int x;
   abstract final int y;
   final int _squareDistanceToOrigo = x * x + y * y;
-};
-augment class const Point({final int _x, final int y}) {
+}
+augment class const Point({final int _x, final int _y}) {
   augment int get x => _x;
   augment int get y => _y;
   final int _squareDistanceToDiagonal = (_y - _x) * (_y - _x);
@@ -1476,7 +1490,7 @@ same syntactic construct more severely than redundancies that only exist in the
 semantic declaration, but are syntactically located in different elements of
 an augmentation chain.*
 
-### Compile errors with augmentations
+### Compile-time errors with augmentations
 
 [compile-time error principle]: #compile-errors-with-augmentations
 
