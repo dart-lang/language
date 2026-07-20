@@ -1245,7 +1245,7 @@ contain constructor declarations where:
     declaration._
 
 *   There is a `const` initializing constructor declaration and:
-    *   A complete instance variable declaration which `late`,
+    *   A complete instance variable declaration which is `late`,
         or which is neither `final` nor `external`.
     *   A complete instance variable declaration with an initializer
         expression which is not a potentially constant expression.
@@ -1349,7 +1349,7 @@ To perform instance variable initialization on a class or enum declaration:
 
   Then each non-`late` instance variable with an initializer expression in that
   class or enum declaration, in source order, has its initializer expression
-  is evaluated in that runtime field initializer scope, and the variable is
+  evaluated in that runtime field initializer scope, and the variable is
   initialized to the result.
 
 Whether the evaluation uses the body scope or the field initializer scope,
@@ -1387,7 +1387,7 @@ augment class Repeat<T> {
 }
 ```
 
-Example with defaults values and private named parameters:
+Example with default values and private named parameters:
 ```dart
 class const Point({int x = 0, int y = 0}) {
   abstract final int x;
