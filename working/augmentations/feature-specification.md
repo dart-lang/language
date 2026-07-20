@@ -293,17 +293,18 @@ always uses the same `on` clause as the introductory declaration.
 
 ## Primary constructors
 
-Both `class` and `enum` declarations can use the primary constructor syntax
-for declaring an initializing _(non-redirecting generative)_ constructor.
+A `class`, `enum` or `extension type` declarationscan use the primary
+constructor syntax for declaring an initializing _(non-redirecting
+generative)_ constructor.
 
-See [Generative constructors](#generative_constructor_declarations).
+See [Generative constructors](#generative-constructor-declarations).
 
 ### Instance variable initializer expressions
 
-If a class or enum has a primary constructor, then the scope of non-`late`
-instance variable initializer expressions is the initializer list scope
-of that constructor, rather than the body scope of the surrounding class
-or enum declaration.
+If a class or enum has a primary constructor, then the current scope of
+the initializer expression of a non-`late` instance variable is the
+primary initializer scope, rather than the body scope of the
+surrounding class or enum declaration.
 
 It's a compile-time error if a non-`late` instance variable initializer
 expressions refers to a variable introduced by the constructor's
@@ -1037,12 +1038,6 @@ Augmenting a constructor works similarly to augmenting a function, with some
 extra rules to handle features unique to constructors, like redirections and
 initializer lists, and the primary constructor syntax.
 
-
-<!-- It is **not** a compile-time error for an incomplete factory constructor to
-omit default values. *That is, they are treated similarly to abstract
-instance methods in this respect. This allows the augmenting declaration to
-implement the constructor by adding a redirection or a body.* -->
-
 A constructor declaration is a _factory constructor declaration_ if it
 has a `factory` keyword, and it is a _generative constructor declaration_ if
 it does not, including when it is a primary constructor declaration.
@@ -1089,12 +1084,14 @@ A primary constructor declaration is _complete_ if (any of):
   * It has an in-body `this`-part that:
       * has a body (`{...}`) and/or
       * has an initializer list (`: ...`).
+  * It's in an extension type declaration.
 A primary constructor declaration is an _augmenting declaration_ if
 (either of):
   * It has an in-body `this`-part with an `augment` keyword
     (`augment this ...`).
-  * It has no in-body `this`-part, and there is another declaration of
-    the same constructor which occurs _before_ this constructor.
+  * It has no in-body `this`-part, and there is another constructor
+    declaration with the same name which occurs _before_ this
+    constructor declaration.
 Otherwise it is an _introductory declaration_.
 _An augmenting primary constructor with no in-body `this`-part does not
 have a separate `augment` keyword. Such a constructor is necessarily part
@@ -1124,7 +1121,8 @@ constructor declaration_ and is _complete_ if (any of):
 
 *(A non-primary initializing constructor cannot have declaring parameters,
 those are only available to primary constructor declarations.
-Had they been allowed, they'd also make the constructor complete.)*
+If declaring parameters ever become valid for a non-primary generative
+constructor, they'll also make the constructor complete.)*
 
 A non-primary generative constructor declaration is a _redirecting generative
 constructor declaration_ and is _complete_ if it has a redirection clause
@@ -1143,12 +1141,18 @@ since those must be initializing.*
 If all _declarations_ of a generative constructor are incomplete,
 *(and therefore contains no redirecting generative constructor declarations,
 since those are all complete)*,
-then the constructor being defined is an _initializing_ constructor
-with the signature of the introductory declaration, the default values
-introduced by any declaration, no initializer list and no body.
+then the constructor being defined is an _initializing_ constructor,
+which is `const` if the declarations are, and which has normal parameters
+corresponding to the signature and default values defined by all
+the declarations, no initializer list, invoking the "unnamed" superclass
+constructor with no arguments, and with no body.
 *(A declaration of `C();` is defined as incomplete, but is also
 historically a valid concrete implementation of a trivial constructor,
-and this ensures that it keeps working that way.)*
+and this ensures that it keeps working that way. Effectively if a
+generative constructor has no complete declaration, it gets a "default
+constructor" implementation with normal parameters for the combined
+parameters declared by all of the incomplete constructors. Those
+parameters may be visible in instance variable initializers.)*
 
 Example:
 ```dart
@@ -1164,13 +1168,17 @@ augment class C {
   augment factory C.fact() = C.other;
 }
 ```
+Here `C.other` has only incomplete declarations.
+The class gets an implementation of that constructor equivalent to
+`C.other(): super();`.
+
 
 Example with a primary constructor:
 ```dart
 class const D(int x) {
+  final int squared = x * x;
   /// Creates a `D`.
   this;
-
   augment const new(@Since("3.15") int x);
 }
 
@@ -1181,6 +1189,22 @@ augment class const D(final int x) {
   augment const D(int _);
 }
 ```
+
+Example with incomplete primary constructor.
+```dart
+class const D(int _) {
+  /// Don't know yet.
+  init;
+}
+augment class const D(int x) {
+  final int squared = x * x;
+}
+```
+Here the `D.new` constructor has only incomplete declarations.
+It gest a default implementation equivalent to `D(int x): super();`,
+based on the names and types of all declarations, and it can use `x`
+in its instance variable declarations (which is exactly how the second
+class declaration would work by itself without augmentations).
 
 #### Consistency rules for constructor declarations
 
@@ -1223,7 +1247,8 @@ contain constructor declarations where:
     feature uses the public name for that parameter._
 
 *   There is a primary constructor declaration, and there is an initializing
-    constructor declaration for any other constructor.
+    constructor declaration with a different name, and the enclosing
+    declaration is a class or enum declaration.
     _If a class or enum has a primary constructor declaration, that constructor
     must still be the only initializing constructor, just as specified
     by the primary-constructors feature. That restriction applies to the entire
