@@ -36,6 +36,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Jul 2026
+% - Remove the getter/setter signature mismatch error. It is no longer required
+%   that the getter return type and setter parameter type are related in any way.
+%
 % Jan 2026
 % - Specify that collection elements are allowed to have type `void` in a
 %   collection literal where the corresponding actual type argument is `void`.
@@ -3825,10 +3829,6 @@ does not consist of exactly one required formal parameter $p$.
 
 \LMHash{}%
 It is a compile-time error if a setter declares a return type other than \VOID.
-It is a compile-time error if a class has
-a setter named \code{$v$=} with argument type $T$ and
-a getter named $v$ with return type $S$,
-and $S$ may not be assigned to $T$.
 
 \commentary{%
   The rules for when a setter correctly overrides another member
