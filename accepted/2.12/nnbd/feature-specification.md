@@ -606,7 +606,8 @@ unreachable.
 It is an error if the static type of `e` in the expression `throw e` is not
 assignable to `Object`.
 
-It is not an error for the body of a `late` field to reference `this`.
+It is not an error for the initializing expression of a `late` instance 
+variable to reference `this`.
 
 It is an error for a variable to be declared as `late` in any of the following
 positions: in a formal parameter list of any kind; in a catch clause; in the
@@ -620,9 +621,9 @@ expression.
 It is an error for a class with a generative `const` constructor to have a
 `late final` instance variable.
 
-It is not a compile time error to write to a `final` non-local or instance
+*It is not a compile-time error to write to a `final` non-local or instance
 variable if that variable is declared `late` and does not have an initializer.
-For local variables, see the section below.
+For local variables, see the section below.*
 
 It is an error if the object being iterated over by a `for-in` loop has a static
 type which is not `dynamic`, and is not a subtype of `Iterable<dynamic>`.
