@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2026.07.22
+  - Remove the compile-time error for a getter/setter pair where the return type
+    of the getter is not a subtype of the parameter type of the setter.
+
 2025.06.16
   - Add an exception for extension members in the error about nullable
     receivers.
@@ -613,7 +617,7 @@ It is an error for the initializer expression of a `late` local variable to use
 a prefix `await` expression that is not nested inside of another function
 expression.
 
-It is an error for a class with a generative `const` constructor to have a 
+It is an error for a class with a generative `const` constructor to have a
 `late final` instance variable.
 
 It is not a compile time error to write to a `final` non-local or instance
@@ -645,11 +649,6 @@ where the cases are dispatched based on expressions `e0`...`ek`:
     enum cases, either explicitly or via a default.
   - If `T` is `Q?` where `Q` is an enum type, it is a warning if the switch does
     not handle all enum cases and `null`, either explicitly or via a default.
-
-It is an error if a class has a setter and a getter with the same basename where
-the return type of the getter is not a subtype of the argument type of the
-setter.  Note that this error specifically requires subtyping and not
-assignability and hence makes no exception for `dynamic`.
 
 If the static type of `e` is `void`, the expression `await e` is a compile-time
 error. *This implies that
@@ -1583,7 +1582,7 @@ read.
     again.
 
 Let _D_ be a `late` and `final` non-local variable declaration named `v`
-without an initializing expression.  
+without an initializing expression.
 It is a run-time error, to invoke the setter `v=` which is
 implicitly induced by _D_ if a value has previously been assigned to `v`
 (which could be due to an initializing formal or a constructor initializer
