@@ -1,198 +1,328 @@
 # Extensions with Static Capabilities
 
-Author: Erik Ernst
+Authors: Erik Ernst, Leaf Petersen
 
 Status: Draft
 
-Version: 1.2
+Version: 1.3
 
 Experiment flag: static-extensions
 
 This document specifies extensions with static capabilities. This is a
-feature that supports the addition of static members and/or constructors to
-an existing declaration that can have such members, based on a
-generalization of the features offered by `extension` declarations.
+feature that supports the addition of static members and/or factory
+constructors to an existing declaration that can have such members,
+based on a generalization of the features offered by extension
+declarations.
 
 ## Introduction
 
-A feature like extensions with static capabilities was requested already
-several years ago in [language issue #723][issue 723], and elsewhere.
+An extension declaration in Dart can already (before the addition of
+the feature specified here) declare static members, but not
+constructors.  Members so declared are only accessible via prefixing
+with the extension name.
+
+```dart
+extension Numbers on int {
+  static int one = 1;
+  static int two = 2;
+}
+void main() {
+  // Static members declared in an extension can be accessed
+  // by prefixing with the extension name.
+  print(Numbers.one);
+  print(Numbers.two);
+}
+```
+
+Developers have requested (e.g. [language issue #723][issue 723]) the
+capability of using extension declarations to declare static members
+(including constructors) which are accessible via the name of an
+existing class, mixin, enum, or extension type declaration.
 
 [issue 723]: https://github.com/dart-lang/language/issues/723
 
-The main motivation for this feature is that developers wish to add
-constructors or static members to an existing class, mixin, enum, or
-extension type declaration, but they do not have the ability to directly
-edit the source code of said declaration.
 
-This feature allows static members and constructors declared in an
-`extension` on a given class/mixin/etc. declaration _D_ to be invoked as if
-they were static members respectively constructors declared by _D_.
+This would allow static members and constructors to be added to
+existing declarations after the fact, including in situations where
+the user does not have ability to directly edit the source code of
+said declaration.
 
-Here is an example:
+The feature proposed here allows static members and constructors
+declared in an extension on a given class/mixin/etc. declaration _D_
+to be invoked as if they were static members (respectively
+constructors) declared by _D_.  In the case where the on-type of an
+extension declaration satisfies certain constraints defined below, we
+say that the class/mixin/etc. which is referred to in the on-type is
+the _on-declaration_ of the extension, and in the case that an
+extension has an on-declaration, static members and constructors
+declared in the extension become accessible via the name declared by
+its on-declaration.  So for example, in the extension `Numbers`
+defined above, the on-declaration of the extension is `int`, and the
+static members declared in the extension become accessible as if they
+were static members declared on the `int` class.
+
+```dart
+void main() {
+   // Static members on an extension are available via the 
+   // on-declaration name
+   print(int.one + int.two);
+
+   // Static members on an extension continue to be available 
+   // via the extension name.
+   print(Numbers.one + Numbers.two);
+}
+```
+
+The enhancements specified for extension declarations in this
+document are only applicable to extensions that have an
+on-declaration, all other extensions will continue to work exactly as
+they do today. Moreover, even in the case that an extension
+declaration has an on-declaration, static members declared in the
+extension continue to be accessible via the extension name, just as
+before this feature.
+
+In addition to static members, this feature also adds the ability to
+use an extension to add constructors to the on-declaration (if any) of
+the extension.  For example:
 
 ```dart
 class Distance {
   final int value;
-  const Distance(this.value);
+  const new(this.value);
 }
 
 extension E1 on Distance {
-  factory Distance.fromHalf(int half) => Distance(2 * half);
+  factory fromHalf(int half) => Distance(2 * half);
 }
 
 void walk(Distance d) {...}
 
-void main() {
+```
+
+In this example, a new constructor is made accessible on the
+`Distance` class using an extension.  This constructor becomes
+accessible via the `Distance` class name as if declared directly on
+the class.
+
+```dart
+void test() {
+  // Constructors declared in extensions may be invoked via 
+  // the on-declaration name.
   walk(Distance.fromHalf(10));
+
+  // Constructors declared in extensions may be torn-off via 
+  // the on-declaration name.
+  Distance Function(int) fromHalf = Distance.fromHalf;
+  walk(fromHalf(10));
 }
 ```
 
-In the case where the on-type of an extension declaration satisfies some
-constraints, we say that the class/mixin/etc. which is referred in the
-on-type is the _on-declaration_ of the extension.
-
-The enhancements specified for `extension` declarations in this document
-are only applicable to extensions that have an on-declaration, all other
-extensions will continue to work exactly as they do today. In the example
-above, the on-declaration of `E1` is `Distance`.
-
-Here is an example where a static member is added to a class:
+As with static members, constructors declared on an extension may also
+be invoked or torn off via the extension name.  So given the
+declarations of `Distance` and `E1` in the example above, all of the
+following are also valid uses of the new constructor.
 
 ```dart
-// Static members must ignore the type parameters. It may be useful
-// to omit the type parameters from the extension in the case where
-// every member is static.
-extension E2 on Map {
-  static Map<K2, V> castFromKey<K, V, K2>(Map<K, V> source) =>
-      Map.castFrom<K, V, K2, V>(source);
+void test() {
+  // Constructors declared in extensions may be invoked via the extension
+  // name.
+  walk(E1.fromHalf(10));
+
+  // Constructors declared in extensions may be torn-off via the extension
+  // name.
+  Distance Function(int) fromHalf = E1.fromHalf;
+  walk(fromHalf(10));
 }
 ```
 
-An extension with a generic on-declaration _D_ which is a class or an
-enumerated type can implicitly inject certain kinds of constructors into
-_D_, and they are able to use the type parameters of the extension. For
-example:
+Note that this proposal only adds support for constructors declared
+using the new syntax introduced alongside the primary constructors
+feature, in which the constructor declaration is not prefixed by the
+class name.  It is an error to declare a constructor in an extension
+using the old style constructor declaration syntax.
+
+Extensions can be defined with generic classes as their
+on-declaration, and may themselves be generic.
+
+For static members, the genericity of the extension and of the
+underlying on-declaration are irrelevant.  Static members do not have
+access to the type parameters of the extension, and are invoked
+without providing type arguments with the name of the extension or the
+on-declaration, just as with a normal static member invocation.
+Static members may of course be independently generic, in which case
+type arguments may be passed in the invocation as with any other
+generic member.
+
+Constructors may be declared in generic extensions, and may be
+declared in extensions (generic or not) for which the on-declaration
+is generic.  The type parameters of a generic extension are in scope
+in the declaration of a constructor declared in the extension.  For
+example, the following code adds a new constructor to a generic
+`Pair` type using an extension.
 
 ```dart
-extension E3<K extends String, V> on Map<K, V> {
-  factory Map.fromJson(Map<String, Object?> source) =>
-      Map.from(source);
-}
+class Pair<S, T>(final S fst, final T snd);
 
-var jsonMap = <String, Object?>{"key": 42};
-var typedMap = Map<String, int>.fromJson(jsonMap);
-// `Map<int, int>.fromJson(...)` is an error: It violates the
-// bound of `K`.
+extension FromList<T> on Pair<T, T> {
+  factory fromList(List<T> l) => 
+    switch(l) {
+	   [var a, var b] => Pair(a, b),
+       _              => throw "Expected a list of length 2"
+	 }
+}
 ```
 
-This situation is just an abbreviated notation for a declaration where the
-constructor declares its own handling of genericity:
+Constructors defined on generic on-declarations may be invoked or torn
+off using the on-declaration name, with or without providing type
+arguments.  The number of type arguments if provided must match the
+expected arity of the on-declaration, and if elided are reconstructed
+using a type inference process described further below.
 
 ```dart
-// We could keep the type parameters of the extension, but they are now
-// unused because the constructor declares its own type parameters.
-extension SameAsE3 on Map {
-  factory Map<K, V>.fromJson<K extends String, V>(
-    Map<String, Object?> source
-  ) => Map.from(source);
+void test() {
+  // A constructor provided by an extension may be invoked using 
+  // the on-declaration name and explicit type arguments.
+  Pair<int, int> p1 = Pair<int, int>.fromList([3, 4]);
+
+  // A constructor provided by an extension may be invoked using 
+  // the on-declaration name with type arguments provided by 
+  // inference.
+  Pair<int, int> p2 = Pair.fromList([3, 4]);
+  
+  // A constructor provided by an extension may be torn off using 
+  // the on-declaration name with type arguments provided explicitly.
+  Pair<int, int> Function(List<int>) f1 = Pair<int, int>.fromList;
+
+  // A constructor provided by an extension may be torn off using 
+  // the on-declaration name with type arguments provided by 
+  // inference.
+  Pair<int, int> Function(List<int>) f2 = Pair.fromList;
+
+  // A constructor provided by an extension may be torn off using 
+  // the on-declaration name as a generic function.  Note that the 
+  // type arity of the generic function matches that of the 
+  // extension, not of the on-declaration
+  Pair<T, T> Function<T>(List<T>) f3 = Pair.fromList;
 }
 ```
 
-An extension can declare factories and redirecting generative constructors,
-but it cannot declare a non-redirecting generative constructor.
+Constructors defined in generic extensions may also be invoked or torn
+off using the extension name, with or without providing type
+arguments.  The number of type arguments, if provided, must match the
+expected arity of the extension, and if elided are reconstructed using
+a type inference process described further below.
 
-Another motivation for this mechanism is that it supports constructors of
-generic classes whose invocation is only allowed when the given actual type
-arguments satisfy some constraints that are stronger than the ones required
-by the class itself.
+```dart
+void test() {
+  // A constructor provided by an extension may be invoked using 
+  // the extension name and explicit type arguments.
+  Pair<int, int> p1 = FromList<int>.fromList([3, 4]);
 
-For example, we might have a class `SortedList<X>` where the regular
-constructors (in the class itself) require an argument of type
-`Comparator<X>`, but an extension provides an extra constructor that does
-not require the `Comparator<X>` argument. This extra constructor would have
-a constraint on the actual type argument, namely that it is an `X` such
+  // A constructor provided by an extension may be invoked using 
+  // the on-declaration name with type arguments provided by 
+  // inference.
+  Pair<int, int> p2 = FromList.fromList([3, 4]);
+  
+  // A constructor provided by an extension may be torn off using 
+  // the extension name with type arguments provided explicitly.
+  Pair<int, int> Function(List<int>) f1 = FromList<int>.fromList;
+
+  // A constructor provided by an extension may be torn off using 
+  // the extension name with type arguments provided by inference.
+  Pair<int, int> Function(List<int>) f2 = FromList.fromList;
+
+  // A constructor provided by an extension may be torn off using 
+  // the extension name as a generic function.  Note that the type
+  // arity of the generic function matches that of the extension,
+  // not of the on-declaration
+  Pair<T, T> Function<T>(List<T>) f3 = FromList.fromList;
+}
+```
+
+Semantically, a constructor in a generic extension can be thought of as a
+generic method whose return type is given by the `on` type of the
+extension and whose generic parameters are the generic parameters of
+the extension declaration.  The `fromList` constructor defined above
+is extensionally equivalent to the following generic static method:
+```dart
+static Pair<T, T> fromList<T>(List<T> l) => 
+  switch(l) {
+    [var a, var b] => Pair(a, b),
+    _              => throw "Expected a list of length 2"
+  };
+```
+
+This correspondence is observable when the constructor is torn off
+instead of invoked: the generic arity of the torn off function is the
+arity of the extension, not the arity of the underlying
+on-declaration.
+
+Generic parameters on an extension can be used to define constructors
+on generic classes which impose additional constraints beyond those
+imposed by the original on-declaration.  For example, we might have a
+class `SortedList<X>` where the regular constructors (in the class
+itself) require an argument of type `Comparator<X>`, but an extension
+provides an extra constructor that does not require the
+`Comparator<X>` argument. This extra constructor would have a
+constraint on the actual type argument, namely that it is an `X` such
 that `X extends Comparable<X>`.
 
 ```dart
-class SortedList<X> {
-  final Comparator<X> _comparator;
-  SortedList(Comparator<X> this._comparator);
+class SortedList<X>(final Comparator<X> _comparator) {
   // ... lots of stuff that doesn't matter here ...
 }
 
 extension<X extends Comparable<X>> on SortedList<X> {
-  SortedList.ofComparable(): this((X a, X b) => a.compareTo(b));
+  factory ofComparable() => SortedList((X a, X b) => a.compareTo(b));
 }
 ```
 
-An extension with type parameters can be used to constrain the possible
-type arguments passed to a constructor invocation:
+An extension can only declare factory constructors.  It is an error if
+an extension declares any generative constructor, including a
+redirecting generative constructor.
 
-```dart
-extension E4<X> on Map<X, List<X>> {
-  factory Map.listValue(X x) => {x: [x]};
-}
+A factory declared in an extension may be redirecting, and may itself
+be the target of redirection subject to the usual constraints.
 
-var map = Map.listValue(1); // Inferred as `Map<int, List<int>>`.
-// `Map<int, double>.listValue(...)` is an error.
+*It would be semantically reasonable to support declaration of
+redirecting generative constructors in static extensions.  However,
+doing so introduces a new complexity to the language in the form of
+generative constructors which may return instances of a more specific
+type than their declared static type, which in turn raises difficult
+questions around super-calls and subsequent redirections.  See issues
+[4558][issue 4558], [4559][issue 4559], and [4560][issue 4560] for
+further discussion.*
 
-extension E6<Y> on Map<String, Y> {
-  factory Map.fromString(Y y) => {y.toString(): y};
-}
-
-var map2 = Map.fromString(true); // Infers `Map<String, bool>`.
-Map<String, List<bool>> map3 = Map.fromString([]);
-```
+[issue 4558]: https://github.com/dart-lang/language/issues/4558
+[issue 4559]: https://github.com/dart-lang/language/issues/4559
+[issue 4560]: https://github.com/dart-lang/language/issues/4560
 
 ## Specification
 
-This specification assumes that generic constructors have already been
-added to Dart.
+### Definitions
 
-### Syntax
-
-The grammar remains unchanged.
-
-However, it is no longer an error to declare a factory constructor,
-redirecting or not, or a redirecting generative constructor in an extension
-declaration that has an on-declaration (defined later in this section),
-and both kinds can be constant or not.
-
-*Such declarations may of course give rise to errors as usual, e.g., if a
-redirecting factory constructor redirects to a constructor that does not
-exist, or there is a redirection cycle.*
-
-In an extension declaration of the form `extension E on C {...}` where `C`
-is an identifier (or an identifier with an import prefix) that denotes a
-class, mixin, enum, or extension type declaration, we say that the
-_on-declaration_ of the extension is `C`.
-
-If `C` denotes a generic class then `E` is treated as
-`extension E on C<T1 .. Tk> {...}` where `T1 .. Tk` are obtained by
-instantiation to bound.
-
-In an extension of the form `extension E on C<T1 .. Tk> {...}`  where `C`
-is an identifier or prefixed identifier that denotes a class, mixin, enum,
-or extension type declaration, we say that the _on-declaration_ of `E` is
-`C`.
-
-In an extension of the form `extension E on F<T1 .. Tk> {...}` where `F` is
-a type alias whose transitive alias expansion denotes a class, mixin, enum,
-or extension type `C`, we say that the _on-declaration_ of `E` is `C`, and
-the declaration is treated as if `F<T1 .. Tk>` were replaced by its
-transitive alias expansion.
+Consider an extension declaration of the form `extension E<S1 .. Sj>
+on F<T1, ..., Tk> {...}`, including in this the case where either or
+both of `j` or `k` is `0` (that is, where the extension under
+consideration has no type parameters and/or the on type has no type
+arguments).  If `F<T1, ..., Tk>` resolves (after type alias expansion
+and instantiation to bound if required) to a type of the form `C<U1,
+..., Um>` (where again, `m` may be `0`) and if `C` is a name
+introduced by a class, mixin, enum, or extension type declaration,
+then we say that the _on-declaration_ of `E` is `C`.
 
 In all other cases, an extension declaration does not have an
 on-declaration.
 
-For the purpose of identifying the on-declaration of a given extension, the
-types `void`, `dynamic`, and `Never` are not considered to be classes, and
-neither are record types or function types.
+For the purpose of identifying the on-declaration of a given
+extension, the types `FutureOr`, `void`, `dynamic`, and `Never` are
+not considered to be classes, mixins, enums, or extension types, and
+neither are record types or function types, with the exception of the
+types `Record` and `Function`, which are considered to be classes.
 
 *Also note that none of the following types are classes:*
 
-- *A type of the form `T?` or `FutureOr<T>`, for any type `T`.*
+- *A type of the form `T?` for any type `T`.*
 - *A type variable.*
 - *An intersection type*.
 
@@ -202,24 +332,32 @@ left as a potential future enhancement. It could be useful to be able to
 denote a set of specific functions of a given type by declaring them as
 static members of an extension on that function type.*
 
+
+### Syntax
+
+The grammar remains unchanged.
+
+However, it is no longer an error to declare a factory constructor,
+redirecting or not, in an extension declaration that has an
+on-declaration.
+
+It remains an error to declare a factory constructor in an extension
+using the old style syntax in which the constructor declaration
+incorporates the classname, e.g. `factory ClassName.named(...)`.
+
+*Such declarations may of course give rise to errors as usual, e.g., if a
+redirecting factory constructor redirects to a constructor that does not
+exist, or there is a redirection cycle.*
+
 ### Static Analysis
 
-At first, we establish some sanity requirements for an extension declaration
-by specifying several errors.
+The following sections specify the static analysis of static members
+and constructors declared in extensions, along with their invocation
+and the treatment of inference.
 
-It is a compile-time error to declare a constructor with no type parameters
-in an extension whose on-type is not regular-bounded, assuming that the
-type parameters declared by the extension satisfy their bounds.
-
-*This constructor is desugared into a generic constructor which is
-guaranteed to have a compile-time error. As a consequence, it is not
-possible to invoke a constructor of an extension passing actual type
-arguments (written or inferred) such that the on-type of the extension
-is not regular-bounded.*
-
-Tools may report diagnostic messages like warnings or lints in certain
-situations. This is not part of the specification, but here is one
-recommended message:
+In addition to errors specified below, tools may choose to report
+diagnostic messages like warnings or lints in certain situations. This
+is not part of the specification, but here is one recommended message:
 
 A compile-time diagnostic is emitted if an extension _D_ declares a
 constructor or a static member with the same basename as a constructor or a
@@ -298,8 +436,10 @@ extension declaration.*
 
 Otherwise *(when no error occurred)* _M_ contains exactly one element.
 Assume that it is an extension `E` that declares a static member named
-`m`. The invocation is then treated as `E.m()` *(this is an explicitly
-resolved invocation, which is specified above)*.
+`m`. The invocation is then treated as the result of replacing the
+syntactic receiver `C` by `E` in `e`.  *For example, if `e` is `C.m()`
+then it is treated as `E.m()`. This latter is an explicitly resolved
+invocation, which is specified above*.
 
 Otherwise *(when `E` does not declare such a static member)*, _M_ will
 contain exactly one element which is a constructor named `C.m`. This is not
@@ -315,164 +455,655 @@ extension.
 
 #### Declarations of constructors in extensions
 
-This proposal relies on the [generic constructor proposal][]. In
-particular, this proposal uses concepts and definitions from the generic
-constructor proposal, and it is assumed that generic constructors are
-supported by the underlying Dart language.
-
-[generic constructor proposal]: https://github.com/dart-lang/language/pull/4265
-
-With this proposal, it is also supported to declare a generic constructor
-in an extension, with the same syntax as in a class and in other type
+With this proposal, it is now supported to declare a constructor in an
+extension, with the same syntax as in a class and in other type
 introducing membered declarations.
 
-It is a compile-time error if an extension declares a generic constructor
-which is non-redirecting and generative. *These constructors are only
-supported inside the type introducing membered declaration of whose type
-they are creating instances.*
+*The semantic interpretation of constructors declared in extensions
+follows closely from the informal interpretation given above in which
+the constructor is viewed as a static method whose type parameters are
+the type parameters of the extension in which it is declared
+(including their bounds) and whose return type is the on-type of the
+extension (which may contain references to said type parameters).*
+
+It is a compile-time error to declare a constructor in an extension
+whose on-type is not regular-bounded, assuming that the type arguments
+substituted for the type parameters declared by the extension satisfy
+the bounds on the parameters.
+
+*There is nothing semantically problematic with such a constructor.
+The semantic generic method to which it corresponds is well-defined
+and statically valid.  However, constructors on classes can be assumed
+to produce regular-bounded types, and so it seems reasonable to impose
+the same discipline on constructors added via extensions.*
+
+It is a compile-time error if an extension declares a constructor
+which is generative. *These constructors are only supported inside the
+type introducing membered declaration of whose type they are creating
+instances.*
 
 It is a compile-time error if an extension declaration _D_ declares a
-generic constructor whose name is `C` (which includes declarations using
-`C.new`) or `C.name` for some identifier `name`, if _D_ does not have an
-on-declaration, or the name of the on-declaration is not `C`. Note that `C`
-may be an identifier, or an identifier which is prefixed by an import
-prefix.
+constructor if _D_ does not have an on-declaration as defined above.
 
-An extension can declare a constructor which is not generic, that is, it
-does not declare any formal type parameters, and the constructor return
-type does not receive any actual type arguments.
+It is an error if a an extension declaration with extension name
+`Name` declares a constructor with name `Name`.
 
-If an extension declaration _D_ named `E` declares a non-generic
-constructor _D1_ and the on-declaration of _D_ is non-generic then _D1_ is
-treated as a generic constructor that declares zero type parameters and
-passes zero actual type arguments to the constructor return type.
+It is an error if a an extension declaration with on-declaration
+`Name` declares a constructor with name `Name`.
 
-*In other words, these constructors get the same treatment as generic
-constructors, except that the type inference step is a no-op.*
+*In an extension named `E` with on type `C` , declaring a constructor
+named `C` (for example, `factory C() => ...`) is syntactically a
+declaration of a named constructor `C.C` which is extremely unlikely
+to be what the user intended.  Similarly, declaring a constructor
+named `E` is syntactically a declaration of a named constructor `C.E`
+which is also almost certainly not what the user intended.*
 
-If an extension declaration _D_ named `E` declares a non-generic
-constructor _D1_ and the on-declaration of _D_ is generic then _D1_ is
-treated as a generic constructor that declares exactly the same type
-parameters as _D_, and it passes exactly the same actual type arguments to
-the constructor return type as the ones that are passed to the
-on-declaration in the on-type.
+Given a constructor declaration in an extension which declares a named
+constructor with name Name, it is an error if Name is either the name
+of the extension, or the on-declaration of the extension
 
-*For example:*
+If an extension declaration is generic, the type parameters declared
+by the extension are in scope in any constructors declared in the
+extension (just as with a constructor declared in a generic class).
 
-```dart
-extension E1<X, Y> on C<X, List<Y>, int> {
-  C.name(X x, Iterable<Y> ys): this(x, ys, 14);
-  // The previous line has the same meaning as the next line:
-  C<X, List<Y>, int>.name<X, Y>(X x, Iterable<Y> ys): this(x, ys, 14);
-}
+If an extension declaration declares a factory constructor, then the
+downwards context for the purposes of inference of the body of the
+constructor (or for inferring the type arguments to the redirectee in
+the case of a redirecting factory constructor) is the un-instantiated
+on-type of the extension.
 
-extension E2<X, Y> on D { // D is non-generic.
-  D.new(X x, Y y);
-  // Same as:
-  D.new<X, Y>(X x, Y y);
-}
-```
+*The on-type is well-formed within the scope of the body, since the
+generic type parameters of the extension are in scope in the
+constructor.*
 
-#### Resolution of a constructor in an extension
+It is a compile-time error if a redirecting factory constructor
+declared in an extension has a redirection target which is not a
+subtype of the un-instantiated on-type of the extension (after
+inference has been performed).
 
-Assume that `E` denotes an extension declaration _D_ with on-declaration
-_D1_ named `C`, and assume that _D_ declares a constructor whose name is
-`C`.
+In addition, all of the usual compile-time errors associated with
+declarations of redirecting factory constructors continue to apply.
 
-In that case an invocation of the form `E.new<TypeArguments>(arguments)` or
-the form `E.new(arguments)` is a fully resolved invocation of said
-constructor declaration.
+*Inference is performed to reconstruct the type arguments, if any, for
+the target of the redirecting factory constructor, and the target of
+the redirection is checked for errors as usual.  In addition, the
+post-inference return type of the target of the redirection must be a
+type which is a subtype of the return type of the constructor being
+declared, which is given by the un-instantiated on-type of the
+extension.*
 
-Similarly, if _D_ declares a constructor whose name is `C.name` then an
-invocation of the form `E.name<TypeArguments>(arguments)` or
-`E.name(arguments)` is a fully resolved invocation of said constructor
-declaration.
+It is a compile-time error if a factory constructor declared in an
+extension has an inferred return type which is not a subtype of the
+on-type of the extension (after inference has been performed).
+
+*Inference is performed on the body of the factory constructor, and
+the constructor is checked for errors as usual.  In addition, the
+post-inference type inferred for the constructor must be a subtype of
+the un-instantiated on-type of the extension.*
+
+#### On the naming of constructors
+
+With primary constructors and with this proposal, constructors may be
+declared in classes, mixins, enums, extension types, and extensions.
+Further, they may be declared using a primary constructor, an old
+style constructor declaration using the name of the enclosing
+declaration, or a new style constructor declaration using only the
+keyword `factory` or `new`.  Finally, constructors declared in any of
+these fashions may be explicitly named, or may be anonymous.  For
+clarity in this specification, we define here the **uniform base
+constructor name** introduced by each of these forms, and use that
+throughout to refer to constructor declarations regardless of the
+syntactic form of the declaration.
+
+**Definition: Uniform base constructor name**
+  - A constructor declaration (primary or otherwise) in a class,
+    mixin, enum, or extension type named `C` which declares a
+    constructor named `C` has the **uniform base constructor name**
+    `new`.
+  - A constructor declaration (primary or otherwise) in a class,
+    mixin, enum, or extension type named `C` which declares a
+    constructor named `C.name` has the **uniform base constructor
+    name** `name`.
+  - A constructor declaration in a class, mixin, extension type, or
+    extension which is derived from the grammar `'const'? factory
+    <formalParameterList>` or `'const'? new <formalParameterList>` has
+    the **uniform base constructor name**
+    `new`.
+  - A constructor declaration in a class, mixin, extension type, or
+    extension whose prefix is derived from the grammar `'const'?
+    factory <identifier> <formalParameterList>` or `'const'? new
+    <identifier> <formalParameterList>` declares a constructor named
+    `name` where `name` is the identifier matched by `<identifier>`.
+
+*That is, an "anonymous" constructor declaration of any form is said
+to declare a constructor named `new`, and a named constructor
+declaration of any form is said to declare a constructor whose name is
+the declared name.*
+
+#### Fully resolved invocations and tearoffs
+
+Assume that `E` denotes an extension declaration _D_ which declares a
+constructor whose **uniform base constructor name** is `name` (where
+as per above, `name` may be `new`).
+
+In that case an invocation of the form
+`E<TypeArguments>.name(arguments)` or `E.name(arguments)` is a fully
+resolved invocation of said constructor declaration, and a reference
+of the form `E<TypeArguments>.name` or `E.name` is a fully resolved
+tearoff of said constructor declaration.
 
 *This just means that there is no doubt about which constructor declaration
-named `C` respectively `C.name` is denoted by this invocation.*
+named `name` is denoted by this invocation or reference.*
 
-If this invocation does not include actual type arguments and the denoted
-constructor declares one or more type parameters then the invocation is
-subject to type inference in the same manner as an invocation of a generic
-constructor which is declared in a type introducing membered declaration
-*(e.g., a class)*.
+As usual, it is an error if type arguments are passed to an extension
+and the extension either declares no type parameters, or if the number
+of type parameters declared does not match the number of type
+arguments, or if the type arguments do not match the declared bounds
+of the type parameters.
 
-Fully resolved invocations of constructors declared in extensions are not
-expected to be common in actual source code. However, such invocations can
-be used in order to resolve name clashes when multiple extensions are
-accessible and two or more of them declare a constructor with the same
-name, or one declares a constructor named `C.name` and another declares a
-static member named `name`. Also, they define the semantics of extension
-declared constructors with other forms, because those other forms are
-reduced to the fully resolved form.
+If this invocation does not include actual type arguments and the
+extension declares one or more type parameters then the invocation is
+subject to type inference to reconstruct the type arguments.
 
-The forms `E<TypeArguments>.name(arguments)` and
-`E<TypeArguments1>.name<TypeArguments2>(arguments)` are compile-time
-errors when `E` denotes an extension.
+*Fully resolved invocations and tearoffs of constructors declared in
+extensions are not expected to be common in actual source
+code. However, such invocations and tearoffs can be used in order to
+resolve name clashes when multiple extensions are accessible and two
+or more of them declare a constructor with the same name, or one
+declares a constructor named `name` and another declares a static
+member named `name`. Also, they define the semantics of extension
+declared constructors with other forms, because those other forms may
+be reduced to the fully resolved form.*
 
-*Consider the case where the extension declares type parameters and has a
-generic on-declaration, and the constructor does not declare any type
-parameters and does not pass any actual type arguments to the class: It
-would be misleading to allow the extension as such to accept actual type
-arguments in the same way as the class name in an invocation of a generic
-constructor: The extension may declare a different number of type
-parameters than the class, and it may not pass them directly (e.g., the
-class might declare `<X, Y>` and the extension could declare `<X extends
-num>` and pass `<X, List<X>>` to the class in its on-type). It would also
-be misleading to allow the extension as such to receive actual type
-arguments matching the declared type parameters of the extension, because
-those type arguments should be passed after the period: they are being
-passed to the constructor.*
+#### Finding the fully resolved target of an invocation or tearoff
 
-*Consider the case where the constructor declares its own type parameters:
-In this case it certainly does not make sense to pass any type parameters
-to the extension as such.*
+An instance creation expression of any of the following forms is
+considered to be a reference to `name`:
+  - `C<TypeArguments>.name(arguments)` where `<TypeArguments>` may be
+    absent and where `name` may be `new`.  
+  - `C<TypeArguments>(arguments)` where `<TypeArguments>` may be
+    absent and where `name` is considered to be `new`.
 
-Consider an instance creation expression of the form
-`C<TypeArguments1>.name<TypeArguments2>(arguments)`, where
-`<TypeArguments1>` and `<TypeArguments2>` may be absent. Assume that `C`
-denotes a type introducing membered declaration _D_ (where `C` may include
-an import prefix). Assume that _D_ does not declare a constructor named
-`C.name`.
+Similarly a constructor tearoff of any of the following forms is
+considered to be a reference to `name`:
+  - `C<TypeArguments>.name` where `<TypeArguments>` may be
+    absent and where `name` may be `new`.  
+  - `C<TypeArguments>` where `<TypeArguments>` may be absent and where
+    `name` is considered to be `new`.  
+	
+In any of these cases, assume that `C` denotes a type introducing
+membered declaration _D_ (where `C` may include an import
+prefix). Assume that _D_ does not declare a constructor with **uniform
+base constructor name** `name`.
 
-Let _M_ be the set of accessible extensions with on-declaration _D_ that
-declare a constructor named `C.name` or a static member named `name`.
+Let _M_ be the set of accessible extensions with on-declaration _D_
+that declare a constructor with **uniform base constructor name**
+`name` or a static member with basename `name`.
 
 A compile-time error occurs if _M_ includes extensions with constructors as
 well as static members.
 
-Otherwise, if _M_ only includes static members then this is not an instance
-creation expression, it is a static member invocation and it is specified
-in an earlier section.
+Otherwise, if _M_ only includes static members then this is not an
+instance creation expression, it is a static member invocation or
+reference and it is specified in an earlier section.
 
-Otherwise, _M_ only includes extensions containing constructors with the
-requested name. A compile-time error occurs if _M_ is empty, or _M_
-contains two or more elements. Otherwise, the invocation denotes an
-invocation of the constructor named `C.name` which is declared by
-the extension declaration that _M_ contains.
+Otherwise, _M_ only includes extensions containing constructors with
+the requested name. A compile-time error occurs if _M_ is empty, or
+_M_ contains two or more elements. Otherwise, the invocation or
+reference denotes an invocation of or reference to the constructor
+with **uniform base constructor name** `name` which is declared by the
+extension declaration that _M_ contains.
 
 *Note that no attempt is made to determine that some constructors are "more
 specific" or "less specific", it is simply a conflict if there are multiple
 constructors with the requested name in the accessible extensions.*
 
-### Dynamic Semantics
+Let `E` be the unique extension declaration that _M_ contains.  The
+fully resolved target of the original invocation or tearoff is then
+`E.name`.
+
+#### Type inference for constructor invocations with no provided type arguments.
+
+Consider an instance creation expression of the form
+`C.name(arguments)` or `C(arguments)`, where `E.name` is
+the fully resolved target of the constructor invocation.
+
+*In the case that the invocation does not correspond to the invocation
+of a constructor declared in an extension, there is no fully resolved
+invocation and this section does not apply.*
+
+Type inference for such an invocation is done by performing inference
+on the invocation `E.name(arguments)` as defined in the subsequent
+section, using the same downwards context as the original expression.
+
+*Inference serves to find the type arguments (if any) that are missing
+from the fully resolved invocation.  These arguments are what are
+needed for subsequent static checking and for the dynamic
+semantics. However, for the purposes of error reporting, it may be
+useful to the user to report errors in terms of the original
+syntactic form.  If `C` is a generic type, then the corresponding type
+arguments for `C` can be obtained simply by substituting the inferred
+type arguments to `E` for the type parameters of `E` in the on-type of
+`E` (which by construction is an instantation of `C`).*
+
+The static type of the constructor invocation in this case is the
+fully instantiated on-type of `E` - that is, the on-type of `E` with
+the inferred type arguments of the fully resolved invocation
+substituted for the type parameters of `E`.
+
+For example, consider the following invocation from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  List<int> l = [3, 4];
+  Pair<int, int> p = Pair.fromList(l);
+}
+```
+
+The fully resolved target of the invocation is `FromList.fromList`,
+and so type inference is done on the synthetic invocation
+`FromList.fromList(l)` using the downwards context `Pair<int, int>`,
+in the manner defined below.  In this case, inference chooses `int` as
+the solution for the type arguments to `FromList`.  The static type of
+the original invocation is then `Pair<int, int>`.
+
+
+#### Type inference for constructor invocations with explicitly provided type arguments.
+
+Consider an instance creation expression of the form
+`C<TypeArguments>.name(arguments)` or `C<TypeArguments>(arguments)`,
+where `E.name` is the fully resolved target of the constructor.
+
+Type inference for such an invocation is done by performing inference
+on the invocation `E.name(arguments)` as defined in the subsequent
+section, using `C<TypeArguments>` as the downwards context.
+
+*As above, inference serves to find the type arguments that are
+missing from the fully resolved invocation.  For the purposes of error
+reporting, it may be more useful to the user to report errors in terms
+of the invocation form using `C<TypeArguments>` as given in the
+original program.*
+
+The static type of the original instance creation expression in this
+case is `C<TypeArguments>`.
+
+*We choose the static type to be the type which the user has used to
+call the constructor, even though the instantiated on-type gives a
+tighter bound on the type of the actual instance returned.  This is
+consistent with similar places in the language where a more precise
+type for an expression can be statically observed, but the users
+choice of static type is respected.  For example, the static type of a
+redirecting factory constructor is the type of the enclosing class
+even if the statically known redirectee provides a more precise type;
+or similarly, a variable or field with an explicit type and an
+initializer receives the declared static type rather than the type of
+the initializer expression.*
+
+It is a static error if the fully instantiated on-type of `E` - that
+is, the on-type of `E` with the inferred type arguments of the fully
+resolved invocation substituted for the type parameters of `E` - is
+not a subtype of `C<TypeArguments>`.
+
+For example, consider the following invocation from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  List<int> l = [3, 4];
+  Pair<num, num> p = Pair<num, int>.fromList(l);
+}
+```
+
+The fully resolved target of the invocation is `FromList.fromList`,
+and so type inference is done on the synthetic invocation
+`FromList.fromList(l)` using the downwards context `Pair<num, int>`
+(note, not `Pair<num, num>` which was the downwards context for the
+original expression), in the manner defined below.  In this case,
+inference chooses `int` as the solution for the type arguments to
+`FromList`.  The static type of the original invocation is then taken
+to be `Pair<num, int>` (the original type through which the invocation
+was made) as discussed above.
+
+
+#### Type inference for fully resolved constructor invocations.
+
+A fully resolved invocation of a constructor declared in an extension
+where either the extension declares no type parameters, or where the
+invocation has type arguments explicitly provided, is subject to no
+further inference to reconstruct the type arguments.  Inference is
+performed as usual on any arguments to the constructor with the
+explicit type arguments used to instantiate the type parameters of the
+extension.
+
+For example, consider the following invocation from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  List<int> l = [3, 4];
+  Pair<num, num> p = FromList<int>.fromList(l);
+}
+```
+
+Here, the type arguments to the `FromList` extension are provided, and
+no further inference is required to reconstruct them.  The static type
+of the invocation is the fully instantiated on-type of the extension,
+specifically `Pair<int, int>`.
+
+If an extension declares type parameters and no type arguments are
+provided to a fully resolved invocation, then inference is performed
+as follows.  Let `K` be the downwards context of the invocation, and
+let `R` be the on-type of the extension.  Inference is then performed
+in exactly the same manner as an invocation of a static generic method
+in context `K`, the type parameters of which are the type parameters of
+the extension; the return type of which is `R`; and the parameter
+types of which are the declared parameter types of the constructor.
+
+*The treatment above follows directly from the semantic interpretation
+of constructors declared in extensions as static members the generic
+type parameters of which are those of the extension and the return
+type of which is the on-type of the extension*.
+
+The static type of the constructor invocation in this case is the
+fully instantiated on-type of `E` - that is, the on-type of `E` with
+the type arguments (inferred or provided) of the fully resolved
+invocation substituted for the type parameters of `E`.
+
+For example, consider the following invocation from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  List<int> l = [3, 4];
+  Pair<num, num> p = FromList.fromList(l);
+}
+```
+
+The downwards context for the invocation of `FromList.fromList(l)` is
+`Pair<num, num>` and so subtype matching will be done against `Pair<T, T>` 
+(the on-type of the `FromList` extension) solving for `T`.  This
+results in a solution of `num` for `T`.  The instantiated on-type of
+`FromList` using `num` for `T` is `Pair<num, num>` which hence is used
+as the static type of the invocation.
+
+
+#### Type inference for constructor tearoffs with no provided type arguments.
+
+Consider a constructor tearoff of the form `C.name` or `C`, where
+`E.name` is the fully resolved target of the constructor.
+
+*In the case that the tearoff does not correspond to a reference to
+a constructor declared in an extension, there is no fully resolved
+reference and this section does not apply.*
+
+Type inference for such a tearoff is done by performing inference on
+the tearoff `E.name` as defined in a subsequent section, using the
+same downwards context as the original expression.
+
+*Inference serves to find the type arguments (if any) that are missing
+from the fully resolved reference.  These arguments are what are
+needed for subsequent static checking and for the dynamic
+semantics. However, for the purposes of error reporting, it may be
+useful to the user to report errors in terms of the original syntactic
+form.  If `C` is a generic type, then the corresponding type arguments
+for `C` can be obtained simply by substituting the inferred type
+arguments to `E` for the type parameters of `E` in the on-type of `E`
+(which by construction is an instantation of `C`).*
+
+The static type of the constructor tearoff in this case is the
+static type of the fully resolved tearoff as determined a subsequent
+section.
+
+For example, consider the following tearoff from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  var f1 = Pair.fromList;
+}
+```
+
+Here, the fully resolved target of the tearoff is `FromList.fromList`.
+Inference is performed on the fully resolved target using the same
+downwards context as the original expression, here the empty context.
+The static type of the tearoff is the static type of the synthetic
+tearoff after inference and coercion insertion, here `Pair<T, T>
+Function<T>(List<T>)`.
+
+
+#### Type inference for constructor tearoffs with explicitly provided type arguments.
+
+Consider a constructor tearoff of the form `C<TypeArguments>.name`
+or `C<TypeArguments>`, where `E.name` is the fully resolved target for
+the constructor.  Let `M` be the un-instantiated on-type of `E` and
+let `Signature` be the parameter signature of `E.name`.
+
+If `E` declares no type parameters, then no further inference is
+required, and the static type of the tearoff is `C<TypeArguments>
+Function(Signature)`.
+
+It is a static error if `M` is not a subtype of `C<TypeArguments>`.
+
+*In this case, there are no type parameters to solve for.  The type
+through which the reference is performed is used as the static return
+type of the reference, and is required to be a supertype of the
+on-type of the extension.*
+
+Otherwise, let `TypeParameters1` be the type parameters declared by
+`E`.  Type inference for the tearoff is performed by subtyping
+matching `M <# C<TypeArguments>` solving for `TypeParameters1`.
+
+*Inference uses the explicitly given `TypeArguments` to constrain the
+(possibly larger set of) type parameters of `E`, ignoring the
+downwards context.  An equivalent but less direct formulation can be
+obtained by performing downwards inference on the fully resolved
+reference (as defined below) using a downwards context of `M
+Function(Schema)` where `Schema` is the parameter signature of
+`E.name` with all types replaced with `_`.*
+
+Let `TypeArguments1` be the solution for `TypeParameters1` derived
+above, let `M1` be `M` with `TypeArguments1` substituted for
+`TypeParameters1` and let `Signature1` be `Signature` with
+`TypeArguments1` substituted for `TypeParameters1`.
+
+The static type of the constructor tearoff is `C<TypeArguments> Function(Signature1)`.
+
+It is a static error if `M1` is not a subtype of `C<TypeArguments>`.
+
+*In this case, we solve for the type parameters of `E` using only the
+constraints induced by the explicitly provided type through which the
+reference is performed.  The type through which the reference is
+performed is used as the static return type of the reference, and is
+required to be a supertype of the on-type of the extension after
+substitution of the full set of derived arguments.  The choice to use
+the declared type through which the user referenced the tearoff rather
+than the possibly more precise instantiated on-type is done for the
+reasons discussed above in the invocation case.*
+
+For example, consider the following tearoff from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  var f1 = Pair<num, int>.fromList;
+}
+```
+
+In this example, `FromList.fromList` is the fully resolved target; `M`
+(the un-instantiated on-type) is `Pair<T, T>`; and `Signature` is
+`(List<T> l)`.  Type inference is done by performing subtype matching
+of `M <# Pair<num, int>` solving for `T`.  This results in the
+solution of `int` for `T`; `M1` is therefore `Pair<int, int>` and
+`Signature1` is `(List<int> l)`.  The static type of the tearoff is
+`Pair<num, int> Function(List<int> l)`.  Note that the static type
+uses the declared type through which the user referenced the tearoff
+(here `Pair<num, int>`) as the return type of the tearoff rather than
+the more precise instantiated on-type of the extension.
+
+#### Type inference for fully resolved constructor tearoffs.
+
+Consider a fully resolved reference ("tearoff") of a constructor
+declared in an extension of the form `E.name` or
+`E<TypeArguments>.name`.  We say that the "un-instantiated function
+type" of the constructor reference is `M Function(Signature)` where
+`M` is the un-instantiated on-type of the extension, and `Signature`
+is the parameter signature of the constructor (that is, the types of
+the positional parameters, and the types and names of the named
+parameters).  Note that any type parameters declared by the extension
+occur free in the un-instantiated function type of the constructor.
+In the case that the extension declares type parameters
+`TypeParameters`, we further say that the "fully generic function
+type" of the constructor reference is `M
+Function<TypeParameters>(Signature)`.
+
+A fully resolved tearoff with no type arguments (`E.name`) which
+refers to a constructor declared in an extension where the extension
+declares no type parameters, is subject to no further inference to
+reconstruct the type arguments.
+
+The static type of such a tearoff is the un-instantiated function
+type of the constructor reference.
+
+*Constructors defined in non-generic extensions are treated as
+non-generic functions when torn off.  Note that in this case, there
+are no free type variables in the un-instantiated function type*
+
+A fully resolved reference ("tearoff") with explicitly provided type
+arguments (`E<TypeArguments>.name`) to a constructor declared in an
+extension with type parameters `TypeParameters`, is subject to no
+further inference to reconstruct the type arguments.
+
+The static type of such a reference is the un-instantiated function
+type of the constructor reference with `TypeArguments` substituted
+throughout for `TypeParameters`.
+
+*Constructors defined in generic extensions where explicit type
+parameters are provided to the extension ("a partial instantiation")
+are non-generic functions when torn off, with the type given by
+substituting in the provided type arguments for the type parameters of
+the extension.*
+
+If an extension declares type parameters `TypeParameters` and no type
+arguments are provided to a fully resolved reference, then the context
+type, if any, may induce implicitly provided type arguments as with
+references to normal constructors ("an implicit partial
+instantiation").  Coercion inference is performed using the downwards
+context `K`, exactly as if the reference were to a function whose type
+were the generic function type of the constructor reference (as
+defined above).
+
+If this coercion inference process results in type arguments being
+inferred for the extension, then the static type of the reference is
+the un-instantiated function type of the constructor reference with
+`TypeArguments` substituted throughout for `TypeParameters`.
+
+For example, consider the following tearoff from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  Pair<num, int> Function(List<int>) f2 = FromList.fromList;
+}
+```
+
+Here, inference is performed using a downwards context `Pair<num, int>
+Function(List<int>)`, where `FromList.fromList` is treated as having
+the generic function type `Pair<T, T> Function<T>(List<T>) `.  Given a
+non-generic context type and a generic expression, coercion inference
+must attempt to solve for a valid instantiation to insert.  Inference
+here produces a a solution of `int` for `T`, with
+`FromList<int>.fromList` representing the fully type reconstructed
+form.  The static type of the fully type reconstructor form is
+`Pair<int, int> Function(List<int>)` as usual.
+
+If this coercion inference process results in no type arguments being
+inferred for the extension, then the static type of the reference is
+the fully generic function type of the constructor reference.
+
+For example, consider the following tearoff from the `FromList`
+extension on `Pair` as defined previously:
+
+```dart
+void test() {
+  Pair<T, T> Function<T>(List<T>) f3 = FromList.fromList;
+```
+
+Here, inference is performed using a downwards context `Pair<T, T>
+Function<T>(List<T>)`, where `FromList.fromList` is treated as having
+the generic function type `Pair<T, T> Function<T>(List<T>) `.  No
+further inference or coercion insertion is required, and so the fully
+type reconstructor form of the tearoff is `FromList.fromList` with
+static type `Pair<T, T> Function<T>(List<T>)`.
+
+*The treatment above follows directly from the semantic interpretation
+of constructors declared in extensions as static members the generic
+type parameters of which are those of the extension and the return
+type of which is the on-type of the extension.  In the case that the
+extension declares type parameters, the reference is subject to
+coercion ("partial instantiation") as usual with a reference to a
+generic function or constructor.*
+
+## Dynamic Semantics
+
+### Dynamic Semantics of static members of an extension
 
 The dynamic semantics of static members of an extension is the same
 as the dynamic semantics of other static functions.
 
-The dynamic semantics of an explicitly resolved invocation of a constructor
-in an extension is determined by the normal semantics of generic
-constructor invocations.
+### Dynamic Semantics of constructors defined in extensions
 
-An implicitly resolved invocation of a constructor declared by a static
-extension is resolved as an invocation of a specific constructor in a
-specific extension as described in the previous section. 
+Declarations of constructors defined in extensions are semantically
+treated as declarations of static methods with return type given by
+the on-type of the extension; type parameters (if any) given by the
+type parameters of the extension (including bounds); and parameter
+signature as given in the declaration.
 
-The semantics of the constructor invocation is the same for a generic
-constructor which is declared in the type introducing membered declaration
-*(at "home")* and for a constructor which is declared in an extension.
+*That is, we treat a constructor declaration in an extension as an
+ordinary static member of the extension by treating it as if both the
+type parameters and the on-type of the extension were copied down onto
+the declaration of the constructor to serve as the type parameters and
+return type of the static member*
+
+### Dynamic Semantics of constructor invocations and tearoffs
+
+Every invocation and tearoff of a constructor defined in an
+extension has a corresponding fully resolved form with all type
+arguments (if any) fully determined as described in the static
+semantics above.  The dynamic semantics of invocations and tearoffs
+which are not originally provided in fully resolved form are entirely
+defined by the dynamic semantics of the corresponding fully resolved
+form.
+
+#### Dynamic Semantics of fully resolved constructors
+
+Invocations of fully resolved constructors are treated as invocations
+of a static member as defined above.  If the extension (and hence the
+induced static member representing the constructor) is generic, then
+type arguments to the invocation are either taken from the original
+invocation if provided explicitly (`E<Types>.name(arguments)`) or as
+reconstructed via inference in the manner described above if not
+provided explicitly (`E.name(arguments)`).
+
+Tearoffs of fully resolved constructors are treated as tearoffs of a
+static member as defined above.  If the extension (and hence the
+induced static member representing the constructor) is generic, then
+type arguments to the reference may be present coercing it from a
+generic member to a non-generic member in the usual manner.  These
+type arguments may be taken from the original invocation if provided
+explicitly (`E<Types>.name`) or as reconstructed via inference in the
+manner described above if not provided explicitly (`E.name`).  If the
+constructor is generic and no such coercion is present, then the
+reference evaluates to a reference to a generic static member as
+described above.
+
 
 ### Changelog
+
+1.3 - Oct 15, 2025
+
+* Specify constructors directly, without the extension to generic
+  constructors
 
 1.2 - Mar 5, 2025
 
