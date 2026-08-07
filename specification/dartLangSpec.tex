@@ -36,6 +36,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Aug 2026
+% - Define the union base type of a type, make union based cycles in type
+%   parameter declarations a compile-time error.
+%
 % Jul 2026
 % - Remove the getter/setter signature mismatch error. It is no longer required
 %   that the getter return type and setter parameter type are related in any way.
@@ -2160,15 +2164,14 @@ a function marked \code{\SYNC*} or \code{\ASYNC*} is \VOID.
 
 \LMHash{}%
 We define the
-\Index{union-free type derived from}
-a type $T$ as follows:
+\Index{union base type}
+of a type $T$ as follows:
 If $T$ is of the form \code{$S$?}\ or the form \code{FutureOr<$S$>}
-then the union-free type derived from $T$ is
-the union-free type derived from $S$.
-Otherwise, the union-free type derived from $T$ is $T$.
+then the union base type of $T$ is
+the union base type of $S$.
+Otherwise, the union base type of $T$ is $T$.
 \commentary{%
-  For example, the union-free type derived from
-  \code{FutureOr<int?>?} is \code{int}.%
+  For example, the union base type of \code{FutureOr<int?>?} is \code{int}.%
 }
 
 \LMHash{}%
@@ -2177,7 +2180,7 @@ We define the
     function!generator!element type}
 $f$ as follows:
 %
-Let $S$ be the union-free type derived from the declared return type of $f$.
+Let $S$ be the union base type of the declared return type of $f$.
 %
 If $f$ is a synchronous generator and
 $S$ implements \code{Iterable<$U$>} for some $U$
@@ -7439,15 +7442,58 @@ such that $T_j$ is not a subtype of $[T_1/X_1, \ldots, T_m/X_m]B_j$.
 \LMHash{}%
 A type parameter $T$ may be suffixed with an \EXTENDS{} clause
 that specifies the \Index{upper bound} for $T$.
-If no \EXTENDS{} clause is present, the upper bound is \code{Object}.
-It is a compile-time error if a type parameter is a supertype of its upper bound
-when that upper bound is itself a type variable.
-
+If no \EXTENDS{} clause is present, the upper bound is \code{Object?}.
+It is a \Error{compile-time error} if a type parameter is a supertype of
+its upper bound when that upper bound is itself a type variable.
 \commentary{%
   This prevents circular declarations like
-  \code{X \EXTENDS{} X}
+  \code{X\,\,\EXTENDS\,\,X}
   and
-  \code{X \EXTENDS{} Y, Y \EXTENDS{} X}.%
+  \code{X\,\,\EXTENDS\,\,Y, Y\,\,\EXTENDS\,\,X}.%
+}
+
+\LMHash{}%
+We need to define a special subset of the clauses \code{$X$\,\,\EXTENDS\,\,$B$}
+in order to avoid a certain kind of cycles.
+Let
+\IndexCustom{\UnionBasedSubtype{X}{Y}}{$\cup$@$X\,\,\,\textsf{U}\EXTENDS\,\,Y$}
+be the relation among type variables $X$ and $Y$ where
+\code{$X$\,\,\EXTENDS\,\,$Y$}, or
+\code{$X$\,\,\EXTENDS\,\,$T$}
+where $T$ is a type whose union base type
+(\ref{functions})
+is $Y$.
+\commentary{%
+  As an example, \UnionBasedSubtype{X}{X\code{?}} and
+  \UnionBasedSubtype{X}{\code{FutureOr<$X$>}}, but also
+  \UnionBasedSubtype{X}{\code{FutureOr<FutureOr<$X$?>{}>?}}.%
+}
+
+\LMHash{}%
+It is a \Error{compile-time error} if a generic declaration $D$ has
+type parameters and bounds
+\code{$X_1$\,\,\EXTENDS\,\,$B_1$,\,\dots,\,$X_s$\,\,\EXTENDS\,\,$B_s$} such that
+\UnionBasedSubtype{X_j}{X_{j+1}} for all $j \in 1 .. s - 1$,
+and \UnionBasedSubtype{X_s}{X_1}.
+These type parameters can be declared in any order,
+and there may be additional type parameters declared by $D$,
+the requirement is just that the cycle exists.
+\commentary{%
+  This prevents pseudo-circular declarations like
+  \code{X\,\,\EXTENDS\,\,X?}
+  and
+  \code{X\,\,\EXTENDS\,\,FutureOr<Y>, Y\,\,\EXTENDS\,\,X}.%
+}
+
+\rationale{%
+  A type parameter declaration like \code{X\,\,\EXTENDS\,\,X?}
+  could just as well have omitted the bound because it is always satisfied.
+  Similarly, a pseudo-circular declaration like
+  \code{X\,\,\EXTENDS\,\,FutureOr<Y>, Y\,\,\EXTENDS\,\,X}
+  is satisfied when all type variables in the cycle have the same value,
+  at least when that type is a top type, which is not likely to be useful.
+  We avoid these pseudo-cycle because they can introduce infinite loops
+  into the computation of standard upper bounds and subtyping.%
 }
 
 \LMHash{}%
