@@ -7474,7 +7474,8 @@ It is a \Error{compile-time error} if a generic declaration $D$ has
 type parameters and bounds
 \code{$X_1$\,\,\EXTENDS\,\,$B_1$,\,\dots,\,$X_s$\,\,\EXTENDS\,\,$B_s$} such that
 \UnionBasedSubtype{X_j}{X_{j+1}} for all $j \in 1 .. s - 1$,
-and \UnionBasedSubtype{X_s}{X_1}.
+and \UnionBasedSubtype{X_s}{X_1}
+\commentary{(that is, $B_s$ is $X_1$, possibly wrapped in some unions)}.
 These type parameters can be declared in any order,
 and there may be additional type parameters declared by $D$,
 the requirement is just that the cycle exists.
