@@ -7464,9 +7464,11 @@ where $T$ is a type whose union base type
 (\ref{functions})
 is $Y$.
 \commentary{%
-  As an example, \UnionBasedSubtype{X}{X\code{?}} and
-  \UnionBasedSubtype{X}{\code{FutureOr<$X$>}}, but also
-  \UnionBasedSubtype{X}{\code{FutureOr<FutureOr<$X$?>{}>?}}.%
+  As an example, \UnionBasedSubtype{X}{X}
+  when \code{$X$\,\,\EXTENDS\,\,$X$?} and
+  when \code{$X$\,\,\EXTENDS\,\,FutureOr<$X$>}, and
+  \UnionBasedSubtype{X}{Y} when
+  \code{$X$\,\,\EXTENDS\,\,FutureOr<FutureOr<$Y$?>{}>?}.%
 }
 
 \LMHash{}%
