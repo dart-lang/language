@@ -7491,8 +7491,9 @@ the requirement is just that the cycle exists.
   could just as well have omitted the bound because it is always satisfied.
   Similarly, a pseudo-circular declaration like
   \code{X\,\,\EXTENDS\,\,FutureOr<Y>, Y\,\,\EXTENDS\,\,X}
-  is satisfied when all type variables in the cycle have the same value,
-  at least when that type is a top type, which is not likely to be useful.
+  is satisfied when all type variables are bound to a top type,
+  or a couple of other cases involving bottom types and \code{Object},
+  which is not likely to be useful.
   We avoid these pseudo-cycle because they can introduce infinite loops
   into the computation of standard upper bounds and subtyping.%
 }
