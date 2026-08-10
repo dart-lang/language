@@ -7443,14 +7443,6 @@ such that $T_j$ is not a subtype of $[T_1/X_1, \ldots, T_m/X_m]B_j$.
 A type parameter $T$ may be suffixed with an \EXTENDS{} clause
 that specifies the \Index{upper bound} for $T$.
 If no \EXTENDS{} clause is present, the upper bound is \code{Object?}.
-It is a \Error{compile-time error} if a type parameter is a supertype of
-its upper bound when that upper bound is itself a type variable.
-\commentary{%
-  This prevents circular declarations like
-  \code{X\,\,\EXTENDS\,\,X}
-  and
-  \code{X\,\,\EXTENDS\,\,Y, Y\,\,\EXTENDS\,\,X}.%
-}
 
 \LMHash{}%
 We need to define a special subset of the clauses \code{$X$\,\,\EXTENDS\,\,$B$}
@@ -7464,9 +7456,10 @@ where $T$ is a type whose union base type
 (\ref{functions})
 is $Y$.
 \commentary{%
-  As an example, \UnionBasedSubtype{X}{X}
-  when \code{$X$\,\,\EXTENDS\,\,$X$?} and
-  when \code{$X$\,\,\EXTENDS\,\,FutureOr<$X$>}, and
+  For example, \UnionBasedSubtype{X}{X}
+  when \code{$X$\,\,\EXTENDS\,\,$X$},
+  \code{$X$\,\,\EXTENDS\,\,$X$?},
+  or \code{$X$\,\,\EXTENDS\,\,FutureOr<$X$>}, and
   \UnionBasedSubtype{X}{Y} when
   \code{$X$\,\,\EXTENDS\,\,FutureOr<FutureOr<$Y$?>{}>?}.%
 }
@@ -7482,22 +7475,28 @@ These type parameters can be declared in any order,
 and there may be additional type parameters declared by $D$,
 the requirement is just that the cycle exists.
 \commentary{%
-  This prevents pseudo-circular declarations like
+  This prevents circular declarations like
+  \code{X\,\,\EXTENDS\,\,X}
+  and
+  \code{X\,\,\EXTENDS\,\,Y, Y\,\,\EXTENDS\,\,X}.
+  It also prevents pseudo-circular declarations like
   \code{X\,\,\EXTENDS\,\,X?}
   and
   \code{X\,\,\EXTENDS\,\,FutureOr<Y>, Y\,\,\EXTENDS\,\,X}.%
 }
 
 \rationale{%
-  A type parameter declaration like \code{X\,\,\EXTENDS\,\,X?}
+  A type parameter declaration like
+  \code{X\,\,\EXTENDS\,\,X} or \code{X\,\,\EXTENDS\,\,X?}
   could just as well have omitted the bound because it is always satisfied.
   Similarly, a pseudo-circular declaration like
   \code{X\,\,\EXTENDS\,\,FutureOr<Y>, Y\,\,\EXTENDS\,\,X}
   is satisfied when all type variables are bound to a top type,
   or a couple of other cases involving bottom types and \code{Object},
   which is not likely to be useful.
-  We avoid these pseudo-cycles because they can introduce infinite loops
-  into the computation of standard upper bounds and subtyping.%
+  We avoid these cycles and pseudo-cycles because
+  they can introduce infinite loops into the computation of
+  standard upper bounds and subtyping.%
 }
 
 \LMHash{}%
