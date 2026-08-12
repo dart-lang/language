@@ -7457,8 +7457,8 @@ is $Y$.
 \commentary{%
   For example, $X$ union-extends $X$
   when $X$ is declared as
-  \code{$X$\,\,\EXTENDS\,\,$X$},
-  \code{$X$\,\,\EXTENDS\,\,$X$?}, or
+  \code{$X$\,\,\EXTENDS\,\,$X$}, as
+  \code{$X$\,\,\EXTENDS\,\,$X$?}, or as
   \code{$X$\,\,\EXTENDS\,\,FutureOr<$X$>}, and
   $X$ union-extends $Y$ when $X$ is declared as
   \code{$X$\,\,\EXTENDS\,\,FutureOr<FutureOr<$Y$?>{}>?}.%
@@ -7467,13 +7467,12 @@ is $Y$.
 \LMHash{}%
 It is a \Error{compile-time error} if a generic declaration $D$ has
 type parameters and bounds
-\code{$X_1$\,\,\EXTENDS\,\,$B_1$,\,\dots,\,$X_s$\,\,\EXTENDS\,\,$B_s$} such that
-\UnionBasedSubtype{X_j}{X_{j+1}} for all $j \in 1 .. s - 1$,
-and \UnionBasedSubtype{X_s}{X_1}
-\commentary{(that is, $B_s$ is $X_1$, possibly wrapped in some unions)}.
-These type parameters can be declared in any order,
-and there may be additional type parameters declared by $D$,
-the requirement is just that the cycle exists.
+\code{$X_1$\,\,\EXTENDS\,\,$B_1$,\,\dots,\,$X_s$\,\,\EXTENDS\,\,$B_s$},
+declared in any textual order and potentially together with additional
+type parameters,
+such that
+$X_j$ union-extends $X_{j+1}$ for all $j \in 1 .. s - 1$,
+and $X_s$ union-extends $X_1$.
 \commentary{%
   This prevents circular declarations like
   \code{X\,\,\EXTENDS\,\,X}
