@@ -7477,25 +7477,25 @@ It is a \Error{compile-time error} if a generic declaration
 has cyclic bounds.
 \commentary{%
   This prevents circular declarations like
-  \code{X\,\,\EXTENDS\,\,X}
+  \code{$X$\,\,\EXTENDS\,\,$X$}
   and
-  \code{X\,\,\EXTENDS\,\,Y, Y\,\,\EXTENDS\,\,X}.
+  \code{$X$\,\,\EXTENDS\,\,$Y$, $Y$\,\,\EXTENDS\,\,$X$}.
   It also prevents pseudo-circular declarations like
-  \code{X\,\,\EXTENDS\,\,X?}
+  \code{$X$\,\,\EXTENDS\,\,$X$?}
   and
-  \code{X\,\,\EXTENDS\,\,FutureOr<Y>, Y\,\,\EXTENDS\,\,X}.%
+  \code{$X$\,\,\EXTENDS\,\,FutureOr<$Y$>, $Y$\,\,\EXTENDS\,\,$X$}.%
 }
 
 \rationale{%
   A type parameter declaration like
-  \code{X\,\,\EXTENDS\,\,X} or 
-  \code{X\,\,\EXTENDS\,\,FutureOr<X>} or
-  \code{X\,\,\EXTENDS\,\,X?}
+  \code{$X$\,\,\EXTENDS\,\,$X$} or 
+  \code{$X$\,\,\EXTENDS\,\,FutureOr<$X$>} or
+  \code{$X$\,\,\EXTENDS\,\,$X$?}
   could just as well have omitted the bound because it is always satisfied.
   Similarly, a pseudo-circular declaration like
-  \code{X\,\,\EXTENDS\,\,FutureOr<Y>, Y\,\,\EXTENDS\,\,X}
+  \code{$X$\,\,\EXTENDS\,\,FutureOr<$Y$>, $Y$\,\,\EXTENDS\,\,$X$}
   is satisfied when all type variables are bound to a top type,
-  or a couple of other cases involving bottom types and \code{Object},
+  or a few other cases mainly involving bottom types and \code{Object},
   which is not likely to be useful.
   We avoid these cycles and pseudo-cycles because
   they can introduce infinite loops into the computation of
