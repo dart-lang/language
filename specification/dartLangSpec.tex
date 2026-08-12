@@ -7465,14 +7465,16 @@ is $Y$.
 }
 
 \LMHash{}%
-It is a \Error{compile-time error} if a generic declaration $D$ has
-type parameters and bounds
+A generic declaration $D$ has \Index{cyclic bounds} if it has
+type parameter declarations
 \code{$X_1$\,\,\EXTENDS\,\,$B_1$,\,\dots,\,$X_s$\,\,\EXTENDS\,\,$B_s$},
-declared in any textual order and potentially together with additional
+declared in any textual order and potentially along with additional
 type parameters,
 such that
 $X_j$ union-extends $X_{j+1}$ for all $j \in 1 .. s - 1$,
 and $X_s$ union-extends $X_1$.
+It is a \Error{compile-time error} if a generic declaration
+has cyclic bounds.
 \commentary{%
   This prevents circular declarations like
   \code{X\,\,\EXTENDS\,\,X}
@@ -7486,8 +7488,9 @@ and $X_s$ union-extends $X_1$.
 
 \rationale{%
   A type parameter declaration like
-  \code{X\,\,\EXTENDS\,\,X} or \code{X\,\,\EXTENDS\,\,X?} or
-  \code{X\,\,\EXTENDS\,\,FutureOr<X>}
+  \code{X\,\,\EXTENDS\,\,X} or 
+  \code{X\,\,\EXTENDS\,\,FutureOr<X>} or
+  \code{X\,\,\EXTENDS\,\,X?}
   could just as well have omitted the bound because it is always satisfied.
   Similarly, a pseudo-circular declaration like
   \code{X\,\,\EXTENDS\,\,FutureOr<Y>, Y\,\,\EXTENDS\,\,X}
