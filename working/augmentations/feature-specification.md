@@ -2,7 +2,7 @@
 
 Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com, eernst@google.com
 
-Version: 1.44 (see [Changelog](#Changelog) at end)
+Version: 1.45 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
@@ -1700,6 +1700,11 @@ fully captured by that paragraph). It's probably safest to be pessimistic
 and assume the third point is always true.
 
 ## Changelog
+
+### 1.45
+
+*   Add clarification that a declaring formal parameter cannot use `_`
+    as a "don't care" name.
 
 ### 1.44
 
