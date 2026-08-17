@@ -2,7 +2,7 @@
 
 Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com, eernst@google.com
 
-Version: 1.44 (see [Changelog](#Changelog) at end)
+Version: 1.45 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
@@ -877,6 +877,27 @@ signature *matches* an introductory signature if:
     augment f(int _) { print(x); } // Error.
     ```
 
+    It is a compile-time error for a declaring parameter to be declared with the
+    name `_`, except when every element in the augmentation chain for that
+    formal parameter is declared with the name `_`.
+
+    ```dart
+    class C1([final int? x]); // OK, instance variable is `x`.
+    augment class C1([int? _]);
+
+    class C2([final int? _]); // Error.
+    augment class C2([int? x]);
+
+    class C3([final int? _]); // OK, instance variable is `_`.
+    augment class C3([int? _]);
+    ```
+
+    *In other words, declaring formal parameters cannot use a "don't care"
+    name. This ensures that a reader of the code can know for sure that a
+    declaring parameter will specify the name of the corresponding instance
+    variable, both in the case where the name is `_`, and also when it is
+    anything else.*
+
 In this definition, the properties of the introductory declaration may
 correspond to an explicitly declared property _(such as an explicitly stated
 return type)_ or an inferred property _(such as a parameter type which has been
@@ -1679,6 +1700,11 @@ fully captured by that paragraph). It's probably safest to be pessimistic
 and assume the third point is always true.
 
 ## Changelog
+
+### 1.45
+
+*   Add clarification that a declaring formal parameter cannot use `_`
+    as a "don't care" name.
 
 ### 1.44
 
