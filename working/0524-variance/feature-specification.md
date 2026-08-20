@@ -225,8 +225,8 @@ can never be the bound of a type parameter of a generic method.*
 related restrictions on the positions where it can occur in member
 signatures.*
 
-Let _D_ be the declaration of a class, mixin class, enum, or mixin, and let
-_X_ be a type parameter declared by _D_.
+Let _D_ be the declaration of an extension type, and let _X_ be a type
+parameter declared by _D_.
 
 If _X_ has the variance modifier `out`, it is a compile-time error for _X_
 to occur in a non-covariant position in the representation type. *Note that
@@ -236,6 +236,10 @@ signatures of members of the extension type.*
 If _X_ has the variance modifier `in`, it is a compile-time error for _X_
 to occur in a non-contravariant position in the representation type. *Note
 again that members are unconstrained.*
+
+*In the case where _X_ has no variance modifier at all, it is already a
+compile-time error for _X_ to occur in a non-covariant position in the
+representation type.*
 
 Let _D_ be a class, mixin class, enum, mixin, or extension type
 declaration, let _S_ be a direct superinterface of _D_, and let _X_ be a
