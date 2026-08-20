@@ -43,12 +43,12 @@ that the above-mentioned dynamic type errors cannot occur.
 
 In order to ease the transition where types with explicit variance are
 created and used, this proposal allows for certain subtype relationships
-where dynamic type checks are still needed when using legacy types (where
-type parameters are _implicitly_ covariant) to access an object, even in
-the case where the object has a type with explicit variance. For example,
-it is allowed to declare `class MyList<out E> implements List<E> {...}`,
-even though this means that `MyList` has members such as `add` that require
-dynamic checks and may incur a dynamic type error.
+where dynamic type checks are still needed when using pre-feature types
+(where type parameters are _implicitly_ covariant) to access an object,
+even in the case where the object has a type with explicit variance. For
+example, it is allowed to declare `class MyList<out E> implements List<E>
+{...}`, even though this means that `MyList` has members such as `add` that
+require dynamic checks and may incur a dynamic type error.
 
 
 ## Syntax
@@ -121,6 +121,8 @@ least one of the following conditions is true:
       and `S` occurs in a covariant position in `Tj`, or
     - the `j`th type parameter of `C` is contravariant
       and `S` occurs in a contravariant position in `Tj`.
+  - `T` is a record type `(T1, ...., Tm, {Tm+1 xm+1, ..., Tk xk})`, and
+    `S` occurs in a covariant position in `Tj` for some `j` in `1 .. k`.
   - `T` is `FutureOr<U>` and `S` occurs in a covariant position in `U`.
   - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])` and:
     - `S` occurs in a covariant position in `U`, or
@@ -138,6 +140,8 @@ following conditions is true:
       and `S` occurs in a contravariant position in `Tj`, or
     - the `j`th type parameter of `C` is contravariant
       and `S` occurs in a covariant position in `Tj`.
+  - `T` is a record type `(T1, ...., Tm, {Tm+1 xm+1, ..., Tk xk})`, and
+    `S` occurs in a contravariant position in `Tj` for some `j` in `1 .. k`.
   - `T` is `FutureOr<U>` and `S` occurs in a contravariant position in `U`.
   - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])` and:
     - `S` occurs in a contravariant position in `U`, or
@@ -152,6 +156,8 @@ following conditions is true:
 following conditions is true:
   - `T` is an interface type `C<T1, ..., Tk>` and
     `S` occurs in an invariant position in `Tj` for some `j` in `1..k`.
+  - `T` is a record type `(T1, ...., Tm, {Tm+1 xm+1, ..., Tk xk})`, and
+    `S` occurs in an invariant position in `Tj` for some `j` in `1 .. k`.
   - `T` is `FutureOr<U>` and `S` occurs in an invariant position in `U`.
   - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])` and:
     - `S` occurs in a invariant position in `U`, or
@@ -165,8 +171,9 @@ following conditions is true:
   - `T` is `X &amp; U` and `S` occurs in an invariant position in `U`.
 
 It is a compile-time error if a variance modifier is specified for a type
-parameter declared in a declaration of an extension, a generic function or
-method, an extension type, or a type alias, or in a generic function type.
+parameter declared in the type parameter list of a declaration of an
+extension, a generic function or method, an extension type, or a type
+alias; or in the type parameter list of a generic function type.
 
 *Variance is not relevant to extension declarations, because there is no
 notion of subsumption. Each usage will be a single call site, and the value
@@ -246,7 +253,7 @@ cannot be migrated to use statically checked variance. However, it causes
 dynamic type checks to occur.*
 
 ```dart
-// Superinterface uses statically checked variance, subtype uses legacy.
+// Superinterface uses statically checked variance, subtype does not.
 
 abstract class A<out X> {
   X get x;
@@ -262,11 +269,12 @@ void main() {
 }
 ```
 
-*Hence, no additional type safety is obtained when a class using legacy
-variance has a supertype which uses statically checked variance.*
+*Hence, no additional static type safety is obtained when a class using
+dynamically checked variance has a supertype which uses statically checked
+variance.*
 
 ```dart
-// Superinterface uses legacy covariance, subtype uses statically checked.
+// Subtype uses statically checked variance, superinterface does not.
 
 abstract class C<X> {
   X x;
@@ -365,7 +373,7 @@ dynamic type check in the implementation of `m` in an instance of `L`.
 non-contravariant position in a superinterface.
 
 `In` is allowed, and the implementation of `m` in an instance of `In` must
-again perform the dynamic type check. However, this is _also_ true if the
+again perform the dynamic type check. This is _also_ true if the
 implementation of `m` is copied to `In` (which is not an error) and the
 declaration in `L` is made abstract.
 
@@ -463,13 +471,15 @@ This proposal supports migration of code using dynamically checked
 covariance to code where some explicit variance modifiers are used, based
 on language versions.
 
-We use the phrase _legacy library_ to denote a library which is written in
-a language version that does not support statically checked variance.
+We use the phrase _pre-feature library_ to denote a library which is
+written in a language version that does not support statically checked
+variance. Similarly, the phrase a _with-feature libaryr_ is written in a
+language version that does support statically checked variance.
 
 
-### Legacy libraries seen from a soundly variant library
+### Pre-feature Libraries Seen From a With-feature Library
 
-When a library _L_ with sound variance imports a legacy library _L2_, the
+When a with-feature library _L_ imports a pre-feature library _L2_, the
 declarations imported from _L2_ are seen in _L_ as if they had been
 declared in the language with statically checked variance.
 
@@ -477,11 +487,11 @@ declared in the language with statically checked variance.
 available, but it is simply not using them.*
 
 
-### Soundly variant libraries seen from a legacy library
+### With-feature Libraries Seen From a Pre-feature Library
 
-When a legacy library _L_ imports a library _L2_ with sound variance, the
+When a pre-feature library _L_ imports a with-feature library _L2_, the
 subtype relationships will take declaration-site variance into account.
 
-*In other words, a library that uses an older version of the language
-can use declaration-site variance, it just cannot declare types with
-declaration-site variance.*
+*In other words, a library that uses an older version of the language can
+use declaration-site variance when dealing with imported types, it just
+cannot declare a type with declaration-site variance itself.*
