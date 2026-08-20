@@ -162,11 +162,11 @@ following conditions is true:
   - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, [Tn+1 xn+1, ..., Tm xm])` and:
     - `S` occurs in a invariant position in `U`, or
     - `S` occurs in a invariant position in `Tj` for some `j` in `1..m`, or
-    - `S` occurs in `Bj` (*at any position*) for some `j` in `1..k`.
+    - `S` occurs in `Bj` *(at any position)* for some `j` in `1..k`.
   - `T` is `U Function<X1 extends B1, ...., Xk extends Bk>(T1 x1, ...., Tn xn, {Tn+1 xn+1, ..., Tm xm})` and:
     - `S` occurs in a invariant position in `U`, or
     - `S` occurs in a invariant position in `Tj` for some `j` in `1..m`, or
-    - `S` occurs in `Bj` (*at any position*) for some `j` in `1..k`.
+    - `S` occurs in `Bj` *(at any position)* for some `j` in `1..k`.
   - `T` is `U?` and `S` occurs in an invariant position in `U`.
   - `T` is `X &amp; U` and `S` occurs in an invariant position in `U`.
 
@@ -202,8 +202,8 @@ If _X_ has the variance modifier `out` then it is a compile-time error for
 _X_ to occur in a non-covariant position in a member signature in the body
 of _D_, except that it is not an error if it occurs in a covariant position
 in the type annotation of a formal parameter which is covariant by
-declaration (*this is a contravariant position in the member signature as a
-whole*).
+declaration *(this is a contravariant position in the member signature as a
+whole)*.
 
 *In particular, _X_ can not be the type of a method parameter (unless
 it is covariant). It can never be the bound of a type parameter of a
