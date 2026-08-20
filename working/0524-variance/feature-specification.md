@@ -1,4 +1,4 @@
-# Sound and Explicit Declaration-Site Variance
+# Explicit and Statically Checked Declaration-Site Variance
 
 Author: eernst@google.com
 
@@ -7,13 +7,13 @@ Status: Draft
 
 ## CHANGELOG
 
-2020.09.22:
-- Initial version uploaded.
+- 2026.08.20: Refreshed to current language.
+- 2020.09.22: Initial version uploaded.
 
 
 ## Summary
 
-This document specifies sound and explicit declaration-site
+This document specifies explicit and statically checked declaration-site
 [variance](https://github.com/dart-lang/language/issues/524)
 in Dart.
 
@@ -36,10 +36,10 @@ occurs in a non-covariant position may cause a dynamic type error, because
 the actual type annotation at run time&mdash;say, the type of a parameter
 of a method&mdash;is a subtype of the one which occurs in the static type.
 
-This feature introduces explicit variance modifiers for type parameters. It
-includes compile-time restrictions on type declarations and on the use of
-objects whose static type includes these modifiers, ensuring that the
-above-mentioned dynamic type errors cannot occur.
+This feature specification introduces explicit variance modifiers for type
+parameters. It includes compile-time restrictions on type declarations and
+on the use of objects whose static type includes these modifiers, ensuring
+that the above-mentioned dynamic type errors cannot occur.
 
 In order to ease the transition where types with explicit variance are
 created and used, this proposal allows for certain subtype relationships
@@ -64,8 +64,8 @@ The grammar is adjusted as follows:
     'out' | 'inout' | 'in'
 ```
 
-`out` and `inout` are added to the set of built-in identifiers (* and `in`
-is already a reserved word*).
+`out` and `inout` are added to the set of built-in identifiers *(and `in`
+is already a reserved word)*.
 
 
 ## Static Analysis
@@ -165,12 +165,12 @@ following conditions is true:
   - `T` is `X &amp; U` and `S` occurs in an invariant position in `U`.
 
 It is a compile-time error if a variance modifier is specified for a type
-parameter declared by a static extension, a generic function type, a
-generic function or method, or a type alias.
+parameter declared in a declaration of an extension, a generic function or
+method, an extension type, or a type alias, or in a generic function type.
 
-*Variance is not relevant to static extensions, because there is no notion
-of subsumption. Each usage will be a single call site, and the value of
-every type argument associated with an extension method invocation is
+*Variance is not relevant to extension declarations, because there is no
+notion of subsumption. Each usage will be a single call site, and the value
+of every type argument associated with an extension method invocation is
 statically known at the call site. Similar reasons apply for functions and
 function types. Finally, the variance of a type parameter declared by a
 type alias is determined by the usage of that type parameter in the body of
@@ -184,9 +184,9 @@ unchanged.
 *In particular, a type parameter _X_ of a type alias _F_ is covariant if it
 occurs in covariant positions in the body of _F_, but not in contravariant
 nor invariant positions; it is contravariant if it occurs in contravariant
-positions in the body of _F_, but in covariant or invariant positions; and 
-it _is invariant_ if it occurs in invariant positions and/or it occurs
-in covariant as well as in contravariant positions.*
+positions in the body of _F_, but neither in covariant nor in invariant
+positions; and it _is invariant_ if it occurs in invariant positions and/or
+it occurs in covariant as well as in contravariant positions.*
 
 Let _D_ be the declaration of a class or mixin, and let _X_ be a type
 parameter declared by _D_.
@@ -194,8 +194,9 @@ parameter declared by _D_.
 If _X_ has the variance modifier `out` then it is a compile-time error for
 _X_ to occur in a non-covariant position in a member signature in the body
 of _D_, except that it is not an error if it occurs in a covariant position
-in the type annotation of a formal parameter which is covariant (*this is a
-contravariant position in the member signature as a whole*).
+in the type annotation of a formal parameter which is covariant by
+declaration (*this is a contravariant position in the member signature as a
+whole*).
 
 *In particular, _X_ can not be the type of a method parameter (unless
 it is covariant). It can never be the bound of a type parameter of a
@@ -237,14 +238,15 @@ class B<out U, inout V, in W> implements
 
 *In a superinterface, a type parameter without a variance modifier can be
 used in an actual type argument for a parameter with a variance modifier,
-and vice versa. This creates a subtype hierarchy where sound and unsound
-variance is mixed, which is helpful during a transitional period where
-sound variance is introduced, or even as a more permanent choice if some
-widely used classes (say, `List`) cannot be migrated to use sound
-variance. However, it causes dynamic type checks to occur.*
+and vice versa. This creates a subtype hierarchy where statically and
+dynamically checked variance is mixed, which is helpful during a
+transitional period where statically checked variance is introduced, or
+even as a more permanent choice if some widely used classes (say, `List`)
+cannot be migrated to use statically checked variance. However, it causes
+dynamic type checks to occur.*
 
 ```dart
-// Superinterface uses sound variance, subtype uses legacy.
+// Superinterface uses statically checked variance, subtype uses legacy.
 
 abstract class A<out X> {
   X get x;
@@ -261,10 +263,10 @@ void main() {
 ```
 
 *Hence, no additional type safety is obtained when a class using legacy
-variance has a supertype which uses sound variance.*
+variance has a supertype which uses statically checked variance.*
 
 ```dart
-// Superinterface uses legacy covariance, subtype uses sound variance.
+// Superinterface uses legacy covariance, subtype uses statically checked.
 
 abstract class C<X> {
   X x;
@@ -313,7 +315,7 @@ class ExplicitlyUnsafeD<in X> extends C<void Function(X)> {
 
 *This makes it possible to declare method implementations with unsafe
 signatures, even in the case where the relevant type parameters of the
-enclosing class use sound variance.*
+enclosing class use statically checked variance.*
 
 
 ### Type Inference
@@ -371,6 +373,9 @@ The situation is similar if we use `implements` rather than `extends`,
 and write an implementation of `m` in the subtype, adding `covariant` as
 needed (including: `Contra` is still an error, no matter how it declares
 `m`).
+
+Next, consider the situation where the statically checked variance is used 
+in a superinterface.
 
 ```dart
 class Co2<out X> {
@@ -459,14 +464,14 @@ covariance to code where some explicit variance modifiers are used, based
 on language versions.
 
 We use the phrase _legacy library_ to denote a library which is written in
-a language version that does not support sound variance.
+a language version that does not support statically checked variance.
 
 
 ### Legacy libraries seen from a soundly variant library
 
 When a library _L_ with sound variance imports a legacy library _L2_, the
 declarations imported from _L2_ are seen in _L_ as if they had been
-declared in the language with sound variance.
+declared in the language with statically checked variance.
 
 *In other words, source code in _L2_ is seen as having variance modifiers
 available, but it is simply not using them.*
