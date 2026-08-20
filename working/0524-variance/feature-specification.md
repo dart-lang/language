@@ -202,34 +202,40 @@ positions in the body of _F_, but neither in covariant nor in invariant
 positions; and it _is invariant_ if it occurs in invariant positions and/or
 it occurs in covariant as well as in contravariant positions.*
 
-Let _D_ be the declaration of a class, mixin class, enum, mixin, or
-extension type, and let _X_ be a type parameter declared by _D_.
+Let _D_ be the declaration of a class, mixin class, enum, or mixin, and let
+_X_ be a type parameter declared by _D_.
 
-If _X_ has the variance modifier `out` then it is a compile-time error for
-_X_ to occur in a non-covariant position in a member signature in the body
-of _D_, except that it is not an error if it occurs in a covariant position
-in the type annotation of a formal parameter which is covariant by
-declaration *(this is a contravariant position in the member signature as a
-whole)*. If the enclosing declaration declares an extension type, this
-error also applies if _X_ occurs in a non-covariant position in the
-representation type.
+If _X_ has the variance modifier `out`, it is a compile-time error for _X_
+to occur in a non-covariant position in a member signature in the body of
+_D_, except that it is not an error if it occurs in a covariant position in
+the type annotation of a formal parameter which is covariant by declaration
+*(this is a contravariant position in the member signature as a
+whole)*. *In particular, _X_ can not be the type of a method parameter
+(unless it is covariant). It can never be the bound of a type parameter of
+a generic method.*
 
-*In particular, _X_ can not be the type of a method parameter (unless
-it is covariant). It can never be the bound of a type parameter of a
-generic method.*
-
-If _X_ has the variance modifier `in` then it is a compile-time error for
-_X_ to occur in a non-contravariant position in a member signature in the
-body of _D_, except that it is not an error if it occurs in a contravariant
+If _X_ has the variance modifier `in`, it is a compile-time error for _X_
+to occur in a non-contravariant position in a member signature in the body
+of _D_, except that it is not an error if it occurs in a contravariant
 position in the type of a formal parameter which is covariant. *For
 instance, _X_ can never be the return type of a method or getter, and it
-can never be the bound of a type parameter of a generic method.* If the
-enclosing declaration declares an extension type, this error also applies
-if _X_ occurs in a non-contravariant position in the representation type.
+can never be the bound of a type parameter of a generic method.*
 
 *If _X_ has the variance modifier `inout` then there are no variance
 related restrictions on the positions where it can occur in member
 signatures.*
+
+Let _D_ be the declaration of a class, mixin class, enum, or mixin, and let
+_X_ be a type parameter declared by _D_.
+
+If _X_ has the variance modifier `out`, it is a compile-time error for _X_
+to occur in a non-covariant position in the representation type. *Note that
+no constraints are applied to the occurrences of type parameters in the
+signatures of members of the extension type.*
+
+If _X_ has the variance modifier `in`, it is a compile-time error for _X_
+to occur in a non-contravariant position in the representation type. *Note
+again that members are unconstrained.*
 
 Let _D_ be a class, mixin class, enum, mixin, or extension type
 declaration, let _S_ be a direct superinterface of _D_, and let _X_ be a
