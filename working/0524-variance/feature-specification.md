@@ -42,8 +42,8 @@ on the use of objects whose static type includes these modifiers, ensuring
 that the above-mentioned dynamic type errors cannot occur.
 
 The explicitly declared variance can be used with generic declarations
-whose run-time semantics supports subsumption, that is, class, mixin class,
-enum, and mixin declarations.
+whose run-time semantics allows for variance, that is, class, mixin class,
+enum, extension type, and mixin declarations.
 
 In order to ease the transition where types with explicit variance are
 created and used, this proposal allows for certain subtype relationships
@@ -89,21 +89,23 @@ as follows:
 
 [subtyping.md]: https://github.com/dart-lang/language/blob/master/resources/type-system/subtyping.md
 
-- **Interface Compositionality**: `T0` is an interface type `C0<S0, ..., Sk>`
-  and `T1` is `C0<U0, ..., Uk>`. For `i` in `0..k`, let `vi` be the declared
-  variance of the `i`th type parameter of `C0`. Then, for each `i` in `0..k`,
-  one of the following holds:
+- **Interface Compositionality**: `T0` is an interface type or an extension
+  type `C0<S0, ..., Sk>` and `T1` is `C0<U0, ..., Uk>`. For `i` in `0..k`,
+  let `vi` be the declared variance of the `i`th type parameter of
+  `C0`. Then, for each `i` in `0..k`, one of the following holds:
   - `Si <: Ui` and `vi` is absent or `out`.
   - `Ui <: Si` and `vi` is `in`.
   - `Si <: Ui` and `Ui <: Si`, and `vi` is `inout`.
 
 
+
 ### Variance Rules
 
-We say that a type parameter of a generic class, mixin class, enum, or
-mixin is _covariant_ if it has no variance modifier or it has the modifier
-`out`; we say that it is _contravariant_ if it has the modifier `in`; and
-we say that it is _invariant_ if it has the modifier `inout`.
+We say that a type parameter of a generic class, mixin class, enum, mixin,
+or extension type is _covariant_ if it has no variance modifier or it has
+the modifier `out`; we say that it is _contravariant_ if it has the
+modifier `in`; and we say that it is _invariant_ if it has the modifier
+`inout`.
 
 The language specification defines what it means for a type to occur
 covariantly, contravariantly, or invariantly in another type. No
@@ -121,7 +123,8 @@ contravariant position.*
 We say that a type `S` occurs in a covariant position in a type `T` if at
 least one of the following conditions is true:
   - `T` is `S`.
-  - `T` is an interface type `C<T1, ..., Tk>`, `j` is in `1..k`, and:
+  - `T` is an interface type or an extension type `C<T1, ..., Tk>`, `j` is
+    in `1..k`, and:
     - the `j`th type parameter of `C` is covariant
       and `S` occurs in a covariant position in `Tj`, or
     - the `j`th type parameter of `C` is contravariant
@@ -140,7 +143,8 @@ least one of the following conditions is true:
 
 `S` occurs in a contravariant position in a type `T` if at least one of the
 following conditions is true:
-  - `T` is an interface type `C<T1, ..., Tk>`, `j` is in `1..k`, and:
+  - `T` is an interface type or an extension type `C<T1, ..., Tk>`, `j` is
+    in `1..k`, and:
     - the `j`th type parameter of `C` is covariant
       and `S` occurs in a contravariant position in `Tj`, or
     - the `j`th type parameter of `C` is contravariant
@@ -159,7 +163,7 @@ following conditions is true:
 
 `S` occurs in an invariant position in a type `T` if at least one of the
 following conditions is true:
-  - `T` is an interface type `C<T1, ..., Tk>` and
+  - `T` is an interface type or an extension type `C<T1, ..., Tk>` and
     `S` occurs in an invariant position in `Tj` for some `j` in `1..k`.
   - `T` is a record type `(T1, ...., Tm, {Tm+1 xm+1, ..., Tk xk})`, and
     `S` occurs in an invariant position in `Tj` for some `j` in `1 .. k`.
@@ -198,15 +202,17 @@ positions in the body of _F_, but neither in covariant nor in invariant
 positions; and it _is invariant_ if it occurs in invariant positions and/or
 it occurs in covariant as well as in contravariant positions.*
 
-Let _D_ be the declaration of a class, mixin class, enum, or mixin, and let
-_X_ be a type parameter declared by _D_.
+Let _D_ be the declaration of a class, mixin class, enum, mixin, or
+extension type, and let _X_ be a type parameter declared by _D_.
 
 If _X_ has the variance modifier `out` then it is a compile-time error for
 _X_ to occur in a non-covariant position in a member signature in the body
 of _D_, except that it is not an error if it occurs in a covariant position
 in the type annotation of a formal parameter which is covariant by
 declaration *(this is a contravariant position in the member signature as a
-whole)*.
+whole)*. If the enclosing declaration declares an extension type, this
+error also applies if _X_ occurs in a non-covariant position in the
+representation type.
 
 *In particular, _X_ can not be the type of a method parameter (unless
 it is covariant). It can never be the bound of a type parameter of a
@@ -216,19 +222,22 @@ If _X_ has the variance modifier `in` then it is a compile-time error for
 _X_ to occur in a non-contravariant position in a member signature in the
 body of _D_, except that it is not an error if it occurs in a contravariant
 position in the type of a formal parameter which is covariant. *For
-instance, _X_ can never be the return type of a method or getter, and it can
-never be the bound of a type parameter of a generic method.*
+instance, _X_ can never be the return type of a method or getter, and it
+can never be the bound of a type parameter of a generic method.* If the
+enclosing declaration declares an extension type, this error also applies
+if _X_ occurs in a non-contravariant position in the representation type.
 
 *If _X_ has the variance modifier `inout` then there are no variance
 related restrictions on the positions where it can occur in member
 signatures.*
 
-Let _D_ be a class, mixin class, enum, or mixin declaration, let _S_ be a
-direct superinterface of _D_, and let _X_ be a type parameter declared by
-_D_.  It is a compile-time error if _X_ is covariant, and _X_ occurs in a
-non-covariant position in _S_. It is a compile-time error if _X_ is
-contravariant, and _X_ occurs in a non-contravariant position in _S_.  In
-these rules, type inference of _S_ is assumed to have taken place already.
+Let _D_ be a class, mixin class, enum, mixin, or extension type
+declaration, let _S_ be a direct superinterface of _D_, and let _X_ be a
+type parameter declared by _D_.  It is a compile-time error if _X_ is
+covariant, and _X_ occurs in a non-covariant position in _S_. It is a
+compile-time error if _X_ is contravariant, and _X_ occurs in a
+non-contravariant position in _S_.  In these rules, type inference of _S_
+is assumed to have taken place already.
 
 *An invariant type parameter can occur in any position in a superinterface.
 These constraints on allowed locations for type parameters ensure that if
@@ -307,7 +316,7 @@ implementation with a safe signature:*
 
 ```dart
 class SafeD<in X> extends C<void Function(X)> {
-  set x(void Function(Never) value) { 
+  set x(void Function(Never) value) {
     if (value is void Function(X)) super.x = value;
   }
   SafeD(): super((X x) {});
@@ -385,7 +394,7 @@ and write an implementation of `m` in the subtype, adding `covariant` as
 needed (including: `Contra` is still an error, no matter how it declares
 `m`).
 
-Next, consider the situation where the statically checked variance is used 
+Next, consider the situation where the statically checked variance is used
 in a superinterface.
 
 ```dart
@@ -474,7 +483,7 @@ on language versions.
 
 We use the phrase _pre-feature library_ to denote a library which is
 written in a language version that does not support statically checked
-variance. Similarly, the phrase a _with-feature libaryr_ is written in a
+variance. Similarly, the phrase a _with-feature library_ is written in a
 language version that does support statically checked variance.
 
 
