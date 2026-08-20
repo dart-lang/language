@@ -41,6 +41,10 @@ parameters. It includes compile-time restrictions on type declarations and
 on the use of objects whose static type includes these modifiers, ensuring
 that the above-mentioned dynamic type errors cannot occur.
 
+The explicitly declared variance can be used with generic declarations
+whose run-time semantics supports subsumption, that is, class, mixin class,
+enum, and mixin declarations.
+
 In order to ease the transition where types with explicit variance are
 created and used, this proposal allows for certain subtype relationships
 where dynamic type checks are still needed when using pre-feature types
@@ -96,10 +100,10 @@ as follows:
 
 ### Variance Rules
 
-We say that a type parameter of a generic class, mixin, or enum is
-_covariant_ if it has no variance modifier or it has the modifier `out`; we
-say that it is _contravariant_ if it has the modifier `in`; and we say that
-it is _invariant_ if it has the modifier `inout`.
+We say that a type parameter of a generic class, mixin class, enum, or
+mixin is _covariant_ if it has no variance modifier or it has the modifier
+`out`; we say that it is _contravariant_ if it has the modifier `in`; and
+we say that it is _invariant_ if it has the modifier `inout`.
 
 The language specification defines what it means for a type to occur
 covariantly, contravariantly, or invariantly in another type. No
@@ -184,8 +188,6 @@ function types. Finally, the variance of a type parameter declared by a
 type alias is determined by the usage of that type parameter in the body of
 the type alias.*
 
-*Variance _can_ be used with a generic enum declaration.*
-
 The definition of the variance of a type parameter of a type alias remains
 unchanged.
 
@@ -196,8 +198,8 @@ positions in the body of _F_, but neither in covariant nor in invariant
 positions; and it _is invariant_ if it occurs in invariant positions and/or
 it occurs in covariant as well as in contravariant positions.*
 
-Let _D_ be the declaration of a class or mixin, and let _X_ be a type
-parameter declared by _D_.
+Let _D_ be the declaration of a class, mixin class, enum, or mixin, and let
+_X_ be a type parameter declared by _D_.
 
 If _X_ has the variance modifier `out` then it is a compile-time error for
 _X_ to occur in a non-covariant position in a member signature in the body
@@ -221,12 +223,12 @@ never be the bound of a type parameter of a generic method.*
 related restrictions on the positions where it can occur in member
 signatures.*
 
-Let _D_ be a class or mixin declaration, let _S_ be a direct superinterface
-of _D_, and let _X_ be a type parameter declared by _D_.  It is a
-compile-time error if _X_ is covariant, and _X_ occurs in a non-covariant
-position in _S_. It is a compile-time error if _X_ is contravariant, and
-_X_ occurs in a non-contravariant position in _S_.  In these rules, type
-inference of _S_ is assumed to have taken place already.
+Let _D_ be a class, mixin class, enum, or mixin declaration, let _S_ be a
+direct superinterface of _D_, and let _X_ be a type parameter declared by
+_D_.  It is a compile-time error if _X_ is covariant, and _X_ occurs in a
+non-covariant position in _S_. It is a compile-time error if _X_ is
+contravariant, and _X_ occurs in a non-contravariant position in _S_.  In
+these rules, type inference of _S_ is assumed to have taken place already.
 
 *An invariant type parameter can occur in any position in a superinterface.
 These constraints on allowed locations for type parameters ensure that if
