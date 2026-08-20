@@ -132,7 +132,7 @@ least one of the following conditions is true:
     - `S` occurs in a covariant position in `U`, or
     - `S` occurs in a contravariant position in `Tj` for some `j` in `1..m`.
   - `T` is `U?` and `S` occurs in a covariant position in `U`.
-  - `T` is `X &amp; U` and `S` occurs in a covariant position in `U`.
+  - `T` is `X & U` and `S` occurs in a covariant position in `U`.
 
 `S` occurs in a contravariant position in a type `T` if at least one of the
 following conditions is true:
@@ -151,7 +151,7 @@ following conditions is true:
     - `S` occurs in a contravariant position in `U`, or
     - `S` occurs in a covariant position in `Tj` for some `j` in `1..m`.
   - `T` is `U?` and `S` occurs in a contravariant position in `U`.
-  - `T` is `X &amp; U` and `S` occurs in a contravariant position in `U`.
+  - `T` is `X & U` and `S` occurs in a contravariant position in `U`.
 
 `S` occurs in an invariant position in a type `T` if at least one of the
 following conditions is true:
@@ -169,7 +169,7 @@ following conditions is true:
     - `S` occurs in a invariant position in `Tj` for some `j` in `1..m`, or
     - `S` occurs in `Bj` *(at any position)* for some `j` in `1..k`.
   - `T` is `U?` and `S` occurs in an invariant position in `U`.
-  - `T` is `X &amp; U` and `S` occurs in an invariant position in `U`.
+  - `T` is `X & U` and `S` occurs in an invariant position in `U`.
 
 It is a compile-time error if a variance modifier is specified for a type
 parameter declared in the type parameter list of a declaration of an
