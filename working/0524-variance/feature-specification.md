@@ -64,8 +64,9 @@ The grammar is adjusted as follows:
     'out' | 'inout' | 'in'
 ```
 
-`out` and `inout` are added to the set of built-in identifiers *(and `in`
-is already a reserved word)*.
+*Note that `out` and `inout` are not added to the set of built-in
+identifiers, whereas `in` is already a reserved word. This is sufficient to
+ensure that the language can be parsed.*
 
 
 ## Static Analysis
