@@ -350,14 +350,7 @@ enclosing class use statically checked variance.*
 
 ### Type Inference
 
-During type inference, downwards resolution produces constraints on type
-variables with a variance modifier, rather than fixing them to a specific
-value in a partial solution. Upwards resolution will then include those
-constraints.
-
-Detailed rules will be specified in [inference.md].
-
-[inference.md]: https://github.com/dart-lang/language/blob/master/resources/type-system/inference.md
+[To be written by @leafp.]
 
 
 ## Dynamic Semantics
