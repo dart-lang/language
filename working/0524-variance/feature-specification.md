@@ -408,7 +408,9 @@ class Lcontra2<X> extends Contra2<X> { // Error.
   ... // Doesn't matter, it's an error anyway.
 }
 
-class Lin2<X> extends In2<X> {}
+class Lin2<X> extends In2<X> { // Error.
+  ... // Doesn't matter, it's an error anyway.
+}
 ```
 
 `Lco2.m2` does not need any dynamic type checks, it can just be inherited
@@ -416,17 +418,16 @@ as is from `Co2`.
 
 `Lcontra2` is again an error, no matter what's in the body.
 
-`Lin2` cannot directly inherit `In2.m2`, it needs to have an implicitly
-induced stub method which will check the type of the actual argument `x`
-and then `return super.m2(x)`. This is necessary because an instance of
-`Lin2<int>` could be the value of an expression whose static type is
-`Lin2<num>`, and we could then pass `1.5` without any compile-time errors.
+`Lin2` is an error according to a pre-feature rule because it has an
+occurrence of the type parameter `X` in a superinterface in a position
+which is not covariant.
 
-Note also that it is _not_ safe to assign an expression of type `Lin2<num>`
-to a variable of type `In2<num>`, because the assigned object could have
-dynamic type `Lin2<int>`, which is not a subtype of `In2<num>`. In other
-words, with this type of hierarchy, some static superinterfaces may not be
-dynamic superinterfaces (which is new).
+*This error is justified: it is not safe to assign an expression of type
+`Lin2<num>` to a variable of type `In2<num>`. This is because the assigned
+object could have dynamic type `Lin2<int>`, which is not a subtype of
+`In2<num>`. Hence, if this error were eliminated, we would be able to
+obtain a soundness violation by performing two upcasts. We don't want to
+check upcasts at run time.*
 
 If we use `implements` rather than `extends`, we get the following:
 
@@ -453,16 +454,13 @@ class Lcontra3<X> implements Contra3<X> { // Error.
   ...
 }
 
-class Lin3<X> extends In3<X> {
-  X m3(X x) => x;
+class Lin3<X> implements In3<X> { // Error
+  ...
 }
 ```
 
 `Lco3` needs the usual dynamic type check on the setter `x=`, but no checks
-on `m3`. `Lcontra3` is an error. `Lin3.m3` needs a dynamic argument check
-because it can be a `Lin3<int>` with static type `Lin3<num>`. Again,
-assignment of an expression of type `Lin3<num>` to a variable of type
-`In3<num>` requires a dynamic type check.
+on `m3`. `Lcontra3` is an error, and so is `Lin3`.
 
 
 ## Migration
