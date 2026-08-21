@@ -6,6 +6,10 @@ on:
   push:
     branches: [main]
 
+# All permissions not specified are set to 'none'.
+permissions:
+  contents: read
+
 env:
   PUB_ENVIRONMENT: bot.github
 
