@@ -18,8 +18,8 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-      - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: dart-lang/setup-dart@7654d458321ee25acccccfdb86cd48bd95768ff1
         with:
             sdk: main
       - name: dart pub get (specification)
@@ -39,8 +39,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-      - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: dart-lang/setup-dart@7654d458321ee25acccccfdb86cd48bd95768ff1
         with:
             sdk: main
       - name: dart pub get (accepted/3.0/patterns/exhaustiveness_prototype)
