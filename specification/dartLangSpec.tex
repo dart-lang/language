@@ -36,6 +36,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Aug 2026
+% - Define the union base type of a type, make union based cycles in type
+%   parameter declarations a compile-time error.
+%
 % Jul 2026
 % - Remove the getter/setter signature mismatch error. It is no longer required
 %   that the getter return type and setter parameter type are related in any way.
@@ -2160,15 +2164,14 @@ a function marked \code{\SYNC*} or \code{\ASYNC*} is \VOID.
 
 \LMHash{}%
 We define the
-\Index{union-free type derived from}
-a type $T$ as follows:
+\Index{union base type}
+of a type $T$ as follows:
 If $T$ is of the form \code{$S$?}\ or the form \code{FutureOr<$S$>}
-then the union-free type derived from $T$ is
-the union-free type derived from $S$.
-Otherwise, the union-free type derived from $T$ is $T$.
+then the union base type of $T$ is
+the union base type of $S$.
+Otherwise, the union base type of $T$ is $T$.
 \commentary{%
-  For example, the union-free type derived from
-  \code{FutureOr<int?>?} is \code{int}.%
+  For example, the union base type of \code{FutureOr<int?>?} is \code{int}.%
 }
 
 \LMHash{}%
@@ -2177,7 +2180,7 @@ We define the
     function!generator!element type}
 $f$ as follows:
 %
-Let $S$ be the union-free type derived from the declared return type of $f$.
+Let $S$ be the union base type of the declared return type of $f$.
 %
 If $f$ is a synchronous generator and
 $S$ implements \code{Iterable<$U$>} for some $U$
@@ -7439,15 +7442,64 @@ such that $T_j$ is not a subtype of $[T_1/X_1, \ldots, T_m/X_m]B_j$.
 \LMHash{}%
 A type parameter $T$ may be suffixed with an \EXTENDS{} clause
 that specifies the \Index{upper bound} for $T$.
-If no \EXTENDS{} clause is present, the upper bound is \code{Object}.
-It is a compile-time error if a type parameter is a supertype of its upper bound
-when that upper bound is itself a type variable.
+If no \EXTENDS{} clause is present, the upper bound is \code{Object?}.
+
+\LMHash{}%
+We say that
+\IndexCustom{$X$ union-extends $Y$}{union-extends}
+when $X$ and $Y$ are type variables,
+and $X$ is declared as
+\code{$X$\,\,\EXTENDS\,\,$T$}
+where $T$ is a type whose union base type
+(\ref{functions})
+is $Y$.
 
 \commentary{%
+  For example, $X$ union-extends $X$
+  when $X$ is declared as
+  \code{$X$\,\,\EXTENDS\,\,$X$}, as
+  \code{$X$\,\,\EXTENDS\,\,$X$?}, or as
+  \code{$X$\,\,\EXTENDS\,\,FutureOr<$X$>}, and
+  $X$ union-extends $Y$ when $X$ is declared as
+  \code{$X$\,\,\EXTENDS\,\,FutureOr<FutureOr<$Y$?>{}>?}.%
+}
+
+\LMHash{}%
+A generic declaration $D$ has \Index{cyclic bounds} if it has
+type parameter declarations
+\code{$X_1$\,\,\EXTENDS\,\,$B_1$,\,\dots,\,$X_s$\,\,\EXTENDS\,\,$B_s$},
+declared in any textual order and potentially along with additional
+type parameters,
+such that
+$X_j$ union-extends $X_{j+1}$ for all $j \in 1 .. s - 1$,
+and $X_s$ union-extends $X_1$.
+It is a \Error{compile-time error} if a generic declaration
+has cyclic bounds.
+\commentary{%
   This prevents circular declarations like
-  \code{X \EXTENDS{} X}
+  \code{$X$\,\,\EXTENDS\,\,$X$}
   and
-  \code{X \EXTENDS{} Y, Y \EXTENDS{} X}.%
+  \code{$X$\,\,\EXTENDS\,\,$Y$, $Y$\,\,\EXTENDS\,\,$X$}.
+  It also prevents pseudo-circular declarations like
+  \code{$X$\,\,\EXTENDS\,\,$X$?}
+  and
+  \code{$X$\,\,\EXTENDS\,\,FutureOr<$Y$>, $Y$\,\,\EXTENDS\,\,$X$}.%
+}
+
+\rationale{%
+  A type parameter declaration like
+  \code{$X$\,\,\EXTENDS\,\,$X$} or 
+  \code{$X$\,\,\EXTENDS\,\,FutureOr<$X$>} or
+  \code{$X$\,\,\EXTENDS\,\,$X$?}
+  could just as well have omitted the bound because it is always satisfied.
+  Similarly, a pseudo-circular declaration like
+  \code{$X$\,\,\EXTENDS\,\,FutureOr<$Y$>, $Y$\,\,\EXTENDS\,\,$X$}
+  is satisfied when all type variables are bound to a top type,
+  or a few other cases mainly involving bottom types and \code{Object},
+  which is not likely to be useful.
+  We avoid these cycles and pseudo-cycles because
+  they can introduce infinite loops into the computation of
+  standard upper bounds and subtyping.%
 }
 
 \LMHash{}%
