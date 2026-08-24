@@ -98,7 +98,6 @@ as follows:
   - `Si <: Ui` and `Ui <: Si`, and `vi` is `inout`.
 
 
-
 ### Variance Rules
 
 We say that a type parameter of a generic class, mixin class, enum, mixin,
@@ -181,8 +180,8 @@ following conditions is true:
 
 It is a compile-time error if a variance modifier is specified for a type
 parameter declared in the type parameter list of a declaration of an
-extension, a generic function or method, an extension type, or a type
-alias; or in the type parameter list of a generic function type.
+extension, a generic function or method, or a type alias; or in the type
+parameter list of a generic function type.
 
 *Variance is not relevant to extension declarations, because there is no
 notion of subsumption. Each usage will be a single call site, and the value
