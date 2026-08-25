@@ -81,6 +81,26 @@ renamed `WarningCode.multipleCombinatorsDeprecated`) alerting developers that
 multiple combinators are deprecated and will not be supported in a future
 version of Dart.
 
+### Migration plan
+
+Any code in which the above mentioned `multiple_combinators` static warning is
+not disabled or ignored is already OK to go. Any code in which this warning is
+disabled or ignored may need migration. The migration path is to stop disabling
+or ignoring the static warning and collapsing multiple combinator clauses into
+a single clause.
+
+To collapse a set of combinator clauses, the following steps can be taken:
+
+1. Collapse all `show` combinators on a given import/export directive into one
+   `show` clause whose named elements are the intersection of the named
+   elements in each `show` clause being combined.
+2. Collapse all `hide` combinators on a given import/export directive into one
+   `hide` clause whose named elements are the union of the named elements in
+   each `hide` clause being combined.
+3. If there is still a remaining `show` clause and `hide` clause, combine them
+   into one `show` clause whose named elements are the shown elements set-minus
+   the hidden elements of the clauses being combined.
+
 ## Examples
 
 ### Valid Code
