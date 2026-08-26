@@ -106,18 +106,16 @@ that assignment).
     `VM` in the new map (regardless of any value associated with it in `VI`).
 
 - Lists
+
   - We use the notation `[a, b]` to denote a list containing elements `a` and
     `b`.
-  - We use the notation `[...l, a]` where `l` is a list to denote a list
-    beginning with all the elements of `l` and followed by `a`.
-  - A list of types `p` is called a _promotion chain_ iff, for all `i < j`,
-    `p[j] <: p[i]`. _Note that since the subtyping relation is transitive, in
-    order to establish that `p` is a promotion chain, it is sufficient to check
-    the `p[j] <: p[i]` relation for each adjacent pair of types._
-  - A promotion chain `p` is said to be _valid for declared type `T`_ iff every
-    type in `p` is a subtype of `T`. _Note that since the subtyping relation is
-    transitive, in order to establish that `p` is valid for declared type `T`,
-    it is sufficient to check that the first type in `p` is a subtype of `T`._
+  - We use the notation `l₁ ++ l₂` to denote the concatenation of lists.
+
+    _For example, `l ++ [a]` means the list beginning with all the elements of
+    `l` and followed by `a`._
+  - We use the notation `l₁ <+ l₂` to denote that `l₁` is a subsequence of
+    `l₂`. That is, `l₁ = [l₂[k₀], l₂[k₁], ... l₂[kₙ]]` where `k₀ < k₁ < ... <
+    kₙ`. _Note that subsequences need not be contiguous._
 
 - Stacks
   - We use the notation `push(s, x)` to mean pushing `x` onto the top of the
@@ -126,8 +124,82 @@ that assignment).
     the top element of `s`.  If `s` is empty, the result is undefined.
   - We use the notation `top(s)` to mean the top element of the stack `s`.  If
     `s` is empty, the result is undefined.
-  - Informally, we also use `[...t, a]` to describe a stack `s` such that
+  - Informally, we also use `t ++ [a]` to describe a stack `s` such that
     `top(s)` is `a` and `pop(s)` is `t`.
+
+### Strict subtyping
+
+A type `T` is said to be a _strict subtype_ of `U` (denoted `T <<: U`), iff `T
+<: U` and not `U <: T`.
+
+The strict subtyping relation is irreflexive (`¬ T <<: T`), asymmetric (`¬(T <<:
+U ∧ U <<: T)`), and transitive (`T <<: U ∧ U <<: V → T <<: V`).
+
+_Note that mutual subtypes are excluded; for example `¬ dynamic <<:
+Object?`. This is necessary for transitivity._
+
+### Promotion chains
+
+A list of types `c` is called a _promotion chain_ iff, for all `i < c.length -
+1`, `c[i + 1] <<: c[i]`.
+
+_We will use promotion chains to represent the state of a variable that has been
+promoted zero or more times (via an `is` test, `as` cast, or an operation that
+proves that the variable's value is not `null`). We require `c[i + 1] <<: c[i]`
+to ensure that each successive promotion is a refinement of the previous one,
+which helps make the promotion behavior predictable._
+
+Equivalently, `c` is a promotion chain iff, for all `0 ≤ i < j < c.length`,
+`c[j] <<: c[i]`. This follows from transitivity of `<<:`.
+
+Consequently, any subsequence of a promotion chain is also a promotion
+chain. _This fact will be used to prove that the `join` operation (defined
+below) produces a valid promotion chain._
+
+A promotion chain `c` is said to be _strictly bounded by_ `T` iff `[T]++c` is
+also a promotion chain.
+
+#### Joining of promotion chains
+
+The _join of promotion chains_ `c₁` and `c₂`, denoted `c₁.join c₂`, is given by
+the following recursive definition:
+
+```
+([T₁]++c₁).join ([T₂]++c₂) =
+    [T₁] ++ c₁.join c₂ if T₁ = T₂
+    c₁.join c₂         if T₁ ≠ T₂ ∧   T₁ <: T₂ ∧   T₂ <: T₁
+    ([T₁]++c₁).join c₂ if T₁ ≠ T₂ ∧   T₁ <: T₂ ∧ ¬ T₂ <: T₁
+    c₁.join ([T₂]++c₂) if T₁ ≠ T₂ ∧ ¬ T₁ <: T₂ ∧   T₂ <: T₁
+    []                 if T₁ ≠ T₂ ∧ ¬ T₁ <: T₂ ∧ ¬ T₂ <: T₁
+[].join c₂ = []
+c₁.join [] = []
+```
+
+By construction, the join of two promotion chains is always a subsequence of
+each of the input chains. That is, `c₁.join c₂ <+ c₁` and `c₁.join c₂ <+
+c₂`. Therefore, if `c₁` and `c₂` are promotion chains, then so is `c₁.join c₂`.
+
+_We will use the join operation to combine the promotion chains at the point
+where two separate control flow paths rejoin (e.g., at the end of an `if`
+statement). Informally, the join of two promotion chains is a promotion chain
+that keeps whatever promotions are present in both control flow paths, with the
+exception that if at any point the types in the two chains become unrelated
+(neither `T₁ <: T₂` nor `T₂ <: T₁`), then further promotions are dropped._
+
+The `join` relation is idempotent and commutative by construction. It is not
+associative.
+
+_For a counterexample to associativity, consider:_
+
+```
+c₁ = [Map<Object?, int>, Map<int, int>]
+c₂ = [Map<dynamic, int>, Map<int, int>]
+c₃ = [Map<int, Object>,  Map<int, int>]
+c₁.join c₂ = [Map<int, int>]
+(c₁.join c₂).join c₃ = [Map<int, int>]
+c₂.join c₃ = []
+c₁.join (c₂.join c₃) = []
+```
 
 ### Models
 
@@ -141,8 +213,8 @@ source code.
 
 - `promotionChain` is the variable's promotion chain. This is a list of types
   that the variable has been promoted to, with the final type in the list being
-  the current promoted type of the variable. It must always be a valid promotion
-  chain for declared type `declaredType`.
+  the current promoted type of the variable. It is always strictly bounded by
+  `declaredType`.
 
 - `tested` is a set of types which are considered "of interest" for the purposes
   of promotion, generally because the variable in question has been tested
@@ -238,14 +310,7 @@ We also make use of the following auxiliary functions:
   - `VM3 = VariableModel(d3, p3, s3, a3, u3, c3)` where
    - `d3 = d1 = d2`
      - Note that all models must agree on the declared type of a variable
-   - `p3` is a list formed by taking all the types that are in both `p1` and
-     `p2`, and ordering them such that each type in the list is a subtype of all
-     previous types.
-     - _Note: it is not specified how to order elements of this list that are
-       mutual subtypes of each other. This will soon be addressed by changing
-       the behavior of flow analysis so that each type in the list is a proper
-       subtype of the previous. (See
-       https://github.com/dart-lang/language/issues/4368.)
+   - `p3 = p1.join p2`
    - `s3 = s1 U s2`
      - The set of test sites is the union of the test sites on either path
    - `a3 = a1 && a2`
@@ -263,7 +328,7 @@ We also make use of the following auxiliary functions:
   where `r2` is `r` with `true` pushed as the top element of the stack.
 
 - `unsplit(M)`, where `M = FlowModel(r, VM)` is defined as `M1 = FlowModel(r1,
-  VM)` where `r` is of the form `[...s, n1, n0]` and `r1 = [...s, n0&&n1]`. The
+  VM)` where `r` is of the form `s ++ [n1, n0]` and `r1 = s ++ [n0&&n1]`. The
   model `M1` is a flow model which collapses the top two elements of the
   reachability model from `M` into a single boolean which conservatively
   summarizes the reachability information present in `M`.
@@ -311,7 +376,7 @@ We also make use of the following auxiliary functions:
     - Let `newPromotions'` be a promotion chain obtained by deleting any
       elements `T` from `newPromotions` that do not satisfy `T <: T2`.
     - Let `rebasePromotedTypes(basePromotions, newPromotions) =
-      [...basePromotions, ...newPromotions']`.
+      basePromotions ++ newPromotions'`.
 
   _The reason `rebasePromotedTypes` is asymmetric is that it is used in
   asymmetric situations. For example, when analyzing a `try`/`finally`
@@ -422,7 +487,7 @@ Promotion policy is defined by the following operations on flow models.
 
 We say that the **current type** of a variable `x` in variable model `VM` is `S` where:
   - `VM = VariableModel(declared, promotionChain, tested, assigned, unassigned, captured)`
-  - `promotionChain = [...l, S]` or (`promotionChain = []` and `declared = S`)
+  - `promotionChain = l ++ [S]` or (`promotionChain = []` and `declared = S`)
 
 Policy:
   - We say that at type `T` is a type of interest for a variable `x` in a set of
@@ -444,13 +509,13 @@ Definitions:
   any elements from `promotionChain` that do not satisfy `written <: T`. _In
   effect, this removes any type promotions that are no longer valid after the
   assignment of a value of type `written`._
-  - _Note that if `promotionChain` is valid for declared type `T`, it follows
-    that `demote(promotionChain, written)` is also valid for declared type `T`._
+  - _Note that if `promotionChain` is strictly bounded by `T`, it follows that
+    `demote(promotionChain, written)` is also strictly bounded by `T`._
 
 - `toi_promote(declared, promotionChain, tested, written)`, where `declared` and
   `written` are types satisfying `written <: declared`, `promotionChain` is
-  valid for declared type `declared`, and all types `T` in `promotionChain`
-  satisfy `written <: T`, is the promotion chain `newPromotionChain`, defined as
+  strictly bounded by `declared`, and all types `T` in `promotionChain` satisfy
+  `written <: T`, is the promotion chain `newPromotionChain`, defined as
   follows. _("toi" stands for "type of interest".)_
   - Let `provisionalType` be the last type in `promotionChain`, or `declared` if
     `promotionChain` is empty. _(This is the type of the variable after
@@ -472,17 +537,16 @@ Definitions:
   - Let `p2` be the set `p1 \ { provisionalType }` _(where `\` denotes set
     difference)_.
   - If the `written` type is in `p2` then `newPromotionChain` is
-    `[...promotionChain, written]`. _Writing a value whose static type is a
+    `promotionChain ++ [written]`. _Writing a value whose static type is a
     type of interest promotes to that type._
     - _By precondition, `written <: declared` and `written <: T` for all types
       in `promotionChain`. Therefore, `newPromotionChain` satisfies the
-      definition of a promotion chain, and is valid for declared type
-      `declared`._
+      definition of a promotion chain, and is strictly bounded by `declared`._
   - Otherwise _(when `written` is not in `p2`)_:
     - Let `p3` be the set of all types `T` in `p2` such that `written <: T <:
       provisionalType`.
     - If `p3` contains exactly one type `T` that is a subtype of all the others,
-      then `promoted` is `[...promotionChain, T]`. _Writing a value whose static
+      then `promoted` is `promotionChain ++ [T]`. _Writing a value whose static
       type is a subtype of a type of interest promotes to that type of interest,
       provided there is a single "best" type of interest available to promote
       to._
@@ -490,7 +554,7 @@ Definitions:
         `promotionChain` satisfy `provisionalType <: U`, it follows that all
         types `U` in `promotionChain` satisfy `T <: U`. Therefore
         `newPromotionChain` satisfies the definition of a promotion chain, and
-        is valid for declared type `declared`._
+        is strictly bounded by `declared`._
     - Otherwise, `newPromotionChain` is `promotionChain`. _If there is no single
       "best" type of interest to promote to, then no type of interest promotion
       is done._
@@ -542,7 +606,7 @@ Definitions:
       - Else if `S` is `X extends R` then let `T1` = `X & T`
       - Else If `S` is `X & R` then let `T1` = `X & T`
       - Else `x` is not promotable (shouldn't happen since we checked above)
-      - Let `VM2 = VariableModel(declared, [...promoted, T1], [...tested, T],
+      - Let `VM2 = VariableModel(declared, promoted ++ [T1], tested ++ [T],
         assigned, unassigned, captured)`
       - Let `M2 = FlowModel(r, VI[x -> VM2])`
       - If `T1 <: Never` then `M3` = `unreachable(M2)`, otherwise `M3` = `M2`

@@ -1,0 +1,15 @@
+name = "flow_analysis"
+version = "0.1.0"
+defaultTargets = ["flow_analysis"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.32.0"
+
+[[lean_lib]]
+name = "FlowAnalysis"
+
+[[lean_exe]]
+name = "flow_analysis"
+root = "Main"
