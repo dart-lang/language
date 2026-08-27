@@ -146,12 +146,12 @@ and from all the Github issues that we need to track to complete and ship the
 feature.
 
 > [!TIP]
-> Generate all the issues for the project automatically with
-> https://github.com/itsjustkevin/aviary.
+> Generate all the issues for the project automatically with our language
+> feature [project template](https://github.com/orgs/dart-lang/projects/113).
 >
-> This script generates all the issues that need to be tracked and added to the
-> project. If there are any issues or implementation areas that are unnecessary,
-> you can close them out immediately, but each issue is worth thinking through.
+> This template will create all the implementation issues that need to be
+> tracked to ship and release the feature. This includes testing, implementation
+> work, documentation writing, marketing and more.
 
 #### Meta implementation issue
 
@@ -376,6 +376,9 @@ within Google3.
 This is a general checklist for shipping a feature:
 - [ ] Make sure all pre-migrations are complete.
 - [ ] Submit a CL that enables the feature by default in the upcoming version.
+  - [ ] Write a `CHANGELOG` entry for this language feature. Include any
+        breaking changes that are introduced by this feature, as well as any
+        notes that could help package authors with the migration.
 - [ ] Follow up on documentation changes which should come out when the stable
 version with your feature comes out.
 - [ ] Communicate with the team that there's a new feature and invite everyone
