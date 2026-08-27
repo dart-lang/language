@@ -106,16 +106,24 @@ that assignment).
     `VM` in the new map (regardless of any value associated with it in `VI`).
 
 - Lists
-
   - We use the notation `[a, b]` to denote a list containing elements `a` and
     `b`.
   - We use the notation `l₁ ++ l₂` to denote the concatenation of lists.
 
     _For example, `l ++ [a]` means the list beginning with all the elements of
     `l` and followed by `a`._
+  - We use the notation `l.length` to denote the number of elements in a
+    list. If `l` is a list `v₀, ..., vₙ₋₁`, then `l.length = n`. _Length
+    satisfies that `[].length = 0`, `[v].length = 1`, and `(l₁ ++ l₂).length =
+    l₁.length + l₂.length`._
+  - We use the notation `l[k]` for a single element of a list where `k` is an
+    integer so that if `l = [v₀, ... vₙ₋₁]`, and `0 ≤ k < n`, then `l[k] =
+    vₖ`. _This operation satisfies that `(l₁ ++ l₂)[k]` is `l₁[k]` if `0 ≤ k <
+    l₁.length` and `l₂[k - l₁.length]` if `l₁.length ≤ k < l₁.length +
+    l₂.length`._
   - We use the notation `l₁ <+ l₂` to denote that `l₁` is a subsequence of
-    `l₂`. That is, `l₁ = [l₂[k₀], l₂[k₁], ... l₂[kₙ]]` where `k₀ < k₁ < ... <
-    kₙ`. _Note that subsequences need not be contiguous._
+    `l₂`. That is, `l₁ = [l₂[k₀], l₂[k₁], ... l₂[kₙ₋₁]]` for some `k₀ < k₁ <
+    ... < kₙ₋₁`. _Note that subsequences need not be contiguous._
 
 - Stacks
   - We use the notation `push(s, x)` to mean pushing `x` onto the top of the
@@ -133,7 +141,7 @@ A type `T` is said to be a _strict subtype_ of `U` (denoted `T <<: U`), iff `T
 <: U` and not `U <: T`.
 
 The strict subtyping relation is irreflexive (`¬ T <<: T`), asymmetric (`¬(T <<:
-U ∧ U <<: T)`), and transitive (`T <<: U ∧ U <<: V → T <<: V`).
+U ∧ U <<: T)`), and transitive (`T <<: U ∧ U <<: V ⇒ T <<: V`).
 
 _Note that mutual subtypes are excluded; for example `¬ dynamic <<:
 Object?`. This is necessary for transitivity._
@@ -144,10 +152,9 @@ A list of types `c` is called a _promotion chain_ iff, for all `i < c.length -
 1`, `c[i + 1] <<: c[i]`.
 
 _We will use promotion chains to represent the state of a variable that has been
-promoted zero or more times (via an `is` test, `as` cast, or an operation that
-proves that the variable's value is not `null`). We require `c[i + 1] <<: c[i]`
-to ensure that each successive promotion is a refinement of the previous one,
-which helps make the promotion behavior predictable._
+promoted zero or more times (e.g. via an `is` test). We require `c[i + 1] <<:
+c[i]` to ensure that each successive promotion is a refinement of the previous
+one, which helps make the promotion behavior predictable._
 
 Equivalently, `c` is a promotion chain iff, for all `0 ≤ i < j < c.length`,
 `c[j] <<: c[i]`. This follows from transitivity of `<<:`.
@@ -161,23 +168,21 @@ also a promotion chain.
 
 #### Joining of promotion chains
 
-The _join of promotion chains_ `c₁` and `c₂`, denoted `c₁.join c₂`, is given by
-the following recursive definition:
-
-```
-([T₁]++c₁).join ([T₂]++c₂) =
-    [T₁] ++ c₁.join c₂ if T₁ = T₂
-    c₁.join c₂         if T₁ ≠ T₂ ∧   T₁ <: T₂ ∧   T₂ <: T₁
-    ([T₁]++c₁).join c₂ if T₁ ≠ T₂ ∧   T₁ <: T₂ ∧ ¬ T₂ <: T₁
-    c₁.join ([T₂]++c₂) if T₁ ≠ T₂ ∧ ¬ T₁ <: T₂ ∧   T₂ <: T₁
-    []                 if T₁ ≠ T₂ ∧ ¬ T₁ <: T₂ ∧ ¬ T₂ <: T₁
-[].join c₂ = []
-c₁.join [] = []
-```
+The _join of promotion chains_ `c₁` and `c₂`, denoted `join(c₁, c₂)`, is defined
+as:
+- `join([], c₂) = []`
+- `join(c₁, []) = []`
+- `join([T₁]++c₁, [T₂]++c₂) =`
+  - `[T₁] ++ join(c₁, c₂)` if `T₁ = T₂`
+  - `join(c₁, c₂)` if `T₁ ≠ T₂ ∧ T₁ <: T₂ ∧ T₂ <: T₁`
+  - `join([T₁]++c₁, c₂)` if `T₁ ≠ T₂ ∧ T₁ <: T₂ ∧ ¬ T₂ <: T₁`
+  - `join(c₁, [T₂]++c₂)` if `T₁ ≠ T₂ ∧ ¬ T₁ <: T₂ ∧ T₂ <: T₁`
+  - `[]` if `T₁ ≠ T₂ ∧ ¬ T₁ <: T₂ ∧ ¬ T₂ <: T₁`
 
 By construction, the join of two promotion chains is always a subsequence of
-each of the input chains. That is, `c₁.join c₂ <+ c₁` and `c₁.join c₂ <+
-c₂`. Therefore, if `c₁` and `c₂` are promotion chains, then so is `c₁.join c₂`.
+each of the input chains. That is, `join(c₁, c₂) <+ c₁` and
+`join(c₁, c₂) <+ c₂`. Therefore, if `c₁` and `c₂` are promotion chains, then so
+is `join(c₁, c₂)`.
 
 _We will use the join operation to combine the promotion chains at the point
 where two separate control flow paths rejoin (e.g., at the end of an `if`
@@ -328,7 +333,7 @@ We also make use of the following auxiliary functions:
   where `r2` is `r` with `true` pushed as the top element of the stack.
 
 - `unsplit(M)`, where `M = FlowModel(r, VM)` is defined as `M1 = FlowModel(r1,
-  VM)` where `r` is of the form `s ++ [n1, n0]` and `r1 = s ++ [n0&&n1]`. The
+  VM)` where `r` is of the form `s ++ [n1, n0]` and `r1 = s ++ [n0 && n1]`. The
   model `M1` is a flow model which collapses the top two elements of the
   reachability model from `M` into a single boolean which conservatively
   summarizes the reachability information present in `M`.
@@ -505,10 +510,10 @@ Policy:
 
 Definitions:
 
-- `demote(promotionChain, written)`, is a promotion chain obtained by deleting
-  any elements from `promotionChain` that do not satisfy `written <: T`. _In
-  effect, this removes any type promotions that are no longer valid after the
-  assignment of a value of type `written`._
+- `demote(promotionChain, written)`, is a subsequence of `promotionChain` which
+  contains every element `T` where `written <: T`. _In effect, this removes any
+  type promotions that are no longer valid after the assignment of a value of
+  type `written`._
   - _Note that if `promotionChain` is strictly bounded by `T`, it follows that
     `demote(promotionChain, written)` is also strictly bounded by `T`._
 
@@ -534,7 +539,7 @@ Definitions:
       - **NonNull**(`T`)
 
     _The types in `p1` are known as the types of interest._
-  - Let `p2` be the set `p1 \ { provisionalType }` _(where `\` denotes set
+  - Let `p2` be the set `p1 ∖ { provisionalType }` _(where `∖` denotes set
     difference)_.
   - If the `written` type is in `p2` then `newPromotionChain` is
     `promotionChain ++ [written]`. _Writing a value whose static type is a
