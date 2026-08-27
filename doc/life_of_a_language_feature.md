@@ -376,7 +376,7 @@ within Google3.
 This is a general checklist for shipping a feature:
 - [ ] Make sure all pre-migrations are complete.
 - [ ] Submit a CL that enables the feature by default in the upcoming version.
-  - [ ] Write a `CHANGELOG` entry for this language feature. Include any
+  - [ ] Write a `CHANGELOG.md` entry for this language feature. Include any
         breaking changes that are introduced by this feature, as well as any
         notes that could help package authors with the migration.
 - [ ] Follow up on documentation changes which should come out when the stable
