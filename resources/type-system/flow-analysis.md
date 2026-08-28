@@ -121,7 +121,7 @@ that assignment).
     vₖ`. _This operation satisfies that `(l₁ ++ l₂)[k]` is `l₁[k]` if `0 ≤ k <
     l₁.length` and `l₂[k - l₁.length]` if `l₁.length ≤ k < l₁.length +
     l₂.length`._
-  - We use the notation `l₁ <+ l₂` to denote that `l₁` is a subsequence of
+  - We use the notation `subseq(l₁, l₂)` to denote that `l₁` is a subsequence of
     `l₂`. That is, `l₁ = [l₂[k₀], l₂[k₁], ... l₂[kₙ₋₁]]` for some `k₀ < k₁ <
     ... < kₙ₋₁`. _Note that subsequences need not be contiguous._
 
@@ -143,13 +143,10 @@ A type `T` is said to be a _strict subtype_ of `U` (denoted `T <<: U`), iff `T
 The strict subtyping relation is irreflexive (`¬ T <<: T`), asymmetric (`¬(T <<:
 U ∧ U <<: T)`), and transitive (`T <<: U ∧ U <<: V ⇒ T <<: V`).
 
-_Note that mutual subtypes are excluded; for example `¬ dynamic <<:
-Object?`. This is necessary for transitivity._
-
 ### Promotion chains
 
-A list of types `c` is called a _promotion chain_ iff, for all `i < c.length -
-1`, `c[i + 1] <<: c[i]`.
+A list of types `c` is called a _promotion chain_ iff, for all
+`0 ≤ i < c.length - 1`, `c[i + 1] <<: c[i]`.
 
 _We will use promotion chains to represent the state of a variable that has been
 promoted zero or more times (e.g. via an `is` test). We require `c[i + 1] <<:
@@ -180,9 +177,9 @@ as:
   - `[]` if `T₁ ≠ T₂ ∧ ¬ T₁ <: T₂ ∧ ¬ T₂ <: T₁`
 
 By construction, the join of two promotion chains is always a subsequence of
-each of the input chains. That is, `join(c₁, c₂) <+ c₁` and
-`join(c₁, c₂) <+ c₂`. Therefore, if `c₁` and `c₂` are promotion chains, then so
-is `join(c₁, c₂)`.
+each of the input chains. That is, `subseq(join(c₁, c₂), c₁)` and
+`subseq(join(c₁, c₂), c₂)`. Therefore, if `c₁` and `c₂` are promotion chains,
+then so is `join(c₁, c₂)`.
 
 _We will use the join operation to combine the promotion chains at the point
 where two separate control flow paths rejoin (e.g., at the end of an `if`
@@ -190,6 +187,9 @@ statement). Informally, the join of two promotion chains is a promotion chain
 that keeps whatever promotions are present in both control flow paths, with the
 exception that if at any point the types in the two chains become unrelated
 (neither `T₁ <: T₂` nor `T₂ <: T₁`), then further promotions are dropped._
+
+_See https://github.com/dart-lang/language/issues/4757 for a proposed
+improvement to this._
 
 The `join` relation is idempotent and commutative by construction. It is not
 associative.
