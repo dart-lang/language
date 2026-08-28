@@ -512,7 +512,7 @@ initially I propose to limit shared fields by allowing only _trivially shareable
 types_, which include:
 
 - Objects which do not contain mutable state and thus can already pass through
-`SendPort` without copying:
+  `SendPort` without copying:
   - strings;
   - numbers;
   - instances of [deeply immutable][] types;
@@ -1111,9 +1111,6 @@ abstract interface class Coroutine {
   external static Coroutine create(void Function() body);
 
   /// Suspends the given currently running coroutine.
-  ///
-  /// This makes `resume` return with
-  /// Expects resumer to pass back a value of type [R].
   external static void suspend();
 
   /// Resumes previously suspended coroutine.

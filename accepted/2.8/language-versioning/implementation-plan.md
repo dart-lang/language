@@ -5,7 +5,7 @@ Owner: lrn@google.com ([@lrhn](https://github.com/lrhn/) on GitHub)
 Relevant links:
 
 * [Tracking issue](https://github.com/dart-lang/language/issues/94)
-* [Proposal](https://github.com/dart-lang/language/blob/master/accepted/2.8/language-versioning/feature-specification.md)
+* [Proposal](https://github.com/dart-lang/language/blob/main/accepted/2.8/language-versioning/feature-specification.md)
 
 ## Phase 0 (Prerequisite)
 
@@ -15,7 +15,7 @@ This feature does not need an [experiment flag] for user consumption.
 
 We may want a flag for testing purposes, but the implementation teams should consider that internally.
 
-[experiment flag]: https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md
+[experiment flag]: https://github.com/dart-lang/sdk/blob/main/docs/process/experimental-flags.md
 
 ### Tests
 

@@ -4,12 +4,15 @@ import 'package:corpus/utils.dart';
 
 const _totalPackages = 2000;
 
+final _packageNamePattern = RegExp(r'^[a-z0-9_]+$');
+final _packageVersionPattern = RegExp(r'^[0-9A-Za-z.+\-]+$');
+
 void main(List<String> arguments) async {
   clean('download/pub');
 
   // Iterate through the pages (which are in most recent order) until we get
   // enough packages.
-  var packagePage = 'http://pub.dartlang.org/api/packages';
+  var packagePage = 'https://pub.dev/api/packages';
   var downloaded = 1;
 
   var downloader = Downloader(totalResources: _totalPackages);
@@ -22,6 +25,19 @@ void main(List<String> arguments) async {
         var name = package['name'] as String;
         var version = package['latest']['version'] as String;
         var archiveUrl = package['latest']['archive_url'] as String;
+
+        // Make sure the package name and version don't contain path characters
+        // that could cause security problems by writing to other places in the
+        // file system.
+        if (!_packageNamePattern.hasMatch(name)) {
+          logger.log('Invalid package name "$name"');
+          return;
+        }
+
+        if (!_packageVersionPattern.hasMatch(version)) {
+          logger.log('Invalid package version "$version" for package "$name"');
+          return;
+        }
 
         try {
           logger.begin('Downloading $archiveUrl...');

@@ -1,7 +1,7 @@
 # Implementation Plan for async-star/await-for behavior.
 
 Relevant documents:
-- [Feature specification](https://github.com/dart-lang/language/blob/master/accepted/future-releases/async-star-behavior/feature-specification.md)
+- [Feature specification](https://github.com/dart-lang/language/blob/main/accepted/future-releases/async-star-behavior/feature-specification.md)
 ## Implementation and Release plan
 
 ### Phase 0 (Preliminaries)

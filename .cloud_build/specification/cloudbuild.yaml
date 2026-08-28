@@ -4,8 +4,8 @@ steps:
   env:
   - 'BRANCH_NAME=$BRANCH_NAME'
   - '_PR_NUMBER=$_PR_NUMBER'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: [ '-m', 'cp', '-r', 'specification/artifacts/*', 'gs://dart-specification']
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: [ 'storage', 'cp', '--recursive', 'specification/artifacts/*', 'gs://dart-specification']
 options:
   automapSubstitutions: true
   logging: CLOUD_LOGGING_ONLY

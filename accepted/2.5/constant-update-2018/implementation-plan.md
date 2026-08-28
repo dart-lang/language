@@ -2,13 +2,13 @@
 
 Relevant documents:
  - [Tracking issue](https://github.com/dart-lang/language/issues/60)
- - [Full proposal](https://github.com/dart-lang/language/blob/master/accepted/2.5/constant-update-2018/feature-specification.md)
+ - [Full proposal](https://github.com/dart-lang/language/blob/main/accepted/2.5/constant-update-2018/feature-specification.md)
 
 ## Implementation and Release plan
 
 ### Release flags
 
-The implementation of these changes must happen behind an [*experiments flag*](https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md).
+The implementation of these changes must happen behind an [*experiments flag*](https://github.com/dart-lang/sdk/blob/main/docs/process/experimental-flags.md).
 Tools need to be passed the flag `--enable-experiment=constant-update-2018`
 for the changes to be enabled.
 

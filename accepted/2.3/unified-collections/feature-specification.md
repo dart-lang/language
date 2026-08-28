@@ -7,7 +7,7 @@ collections feature. The source of truth on this topic at this time is the
 'Collection Literals' section of the [language specification][]
 ([PDF][language specification PDF]).**
 
-[language specification]: https://github.com/dart-lang/language/blob/master/specification/dartLangSpec.tex
+[language specification]: https://github.com/dart-lang/language/blob/main/specification/dartLangSpec.tex
 [language specification PDF]: https://spec.dart.dev/DartLangSpecDraft.pdf
 
 The Dart team is concurrently working on three proposals that affect collection
@@ -17,9 +17,9 @@ literals:
 * [Spread Collections][]
 * [Control Flow Collections][]
 
-[set literals]: https://github.com/dart-lang/language/blob/master/accepted/2.2/set-literals/feature-specification.md
-[spread collections]: https://github.com/dart-lang/language/blob/master/accepted/2.3/spread-collections/feature-specification.md
-[control flow collections]: https://github.com/dart-lang/language/blob/master/accepted/2.3/control-flow-collections/feature-specification.md
+[set literals]: https://github.com/dart-lang/language/blob/main/accepted/2.2/set-literals/feature-specification.md
+[spread collections]: https://github.com/dart-lang/language/blob/main/accepted/2.3/spread-collections/feature-specification.md
+[control flow collections]: https://github.com/dart-lang/language/blob/main/accepted/2.3/control-flow-collections/feature-specification.md
 
 These features interact in several ways, some of which weren't obvious at first.
 To make things easier on implementers and anyone else trying to understand the

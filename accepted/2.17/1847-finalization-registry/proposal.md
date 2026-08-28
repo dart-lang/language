@@ -449,7 +449,7 @@ way and consequently used as a finalization callback.
 This functionality though is outside of scope for this proposal and can be
 implemented independently at a later date.
 
-[dart_api.h]: https://github.com/dart-lang/sdk/blob/master/runtime/include/dart_api.h
+[dart_api.h]: https://github.com/dart-lang/sdk/blob/main/runtime/include/dart_api.h
 [weak handle]: https://github.com/dart-lang/sdk/blob/39a165647a7f2cf1ca8e81e696c552d25365c0c5/runtime/include/dart_api.h#L460-L494
 [finalizable handle]: https://github.com/dart-lang/sdk/blob/39a165647a7f2cf1ca8e81e696c552d25365c0c5/runtime/include/dart_api.h#L512-L550
 [MDN FinalizationRegistry]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry

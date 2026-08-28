@@ -2,7 +2,7 @@
 
 Relevant documents:
  - [Tracking issue](TODO)
- - [Full proposal](https://github.com/dart-lang/language/blob/master/accepted/2.2/set-literals/feature-specification.md)
+ - [Full proposal](https://github.com/dart-lang/language/blob/main/accepted/2.2/set-literals/feature-specification.md)
 
 ## Implementation and Release plan
 
@@ -10,7 +10,7 @@ Relevant documents:
 
 The implementation of this change will happen behind
 an
-[*experiments flag*](https://github.com/dart-lang/sdk/blob/master/docs/process/experimental-flags.md).
+[*experiments flag*](https://github.com/dart-lang/sdk/blob/main/docs/process/experimental-flags.md).
 Tools need to be passed the flag `--enable-experiment=set-literals` for the
 changes to be enabled.
 

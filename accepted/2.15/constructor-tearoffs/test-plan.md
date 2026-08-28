@@ -164,11 +164,11 @@ The possible sources of tear-offs:
 
 
 
-[tear_off_test]: http://github.com/dart-lang/sdk/blob/master/tests/language/constructor/tear_off_test.dart
-[unnamed_new_error_test]: http://github.com/dart-lang/sdk/blob/master/tests/language/constructor/unnamed_new_error_test.dart
-[unnamed_new_test]: (http://github.com/dart-lang/sdk/blob/master/tests/language/constructor/unnamed_new_test.dart
-[explicit_instantiated_tearoff_test]: http://github.com/dart-lang/sdk/blob/master/tests/language/generic_methods/explicit_instantiated_tearoff_test.dart
-[explicit_instantiated_type_literal_error_test]: http://github.com/dart-lang/sdk/blob/master/tests/language/type_object/explicit_instantiated_type_literal_error_test.dart
-[explicit_instantiated_type_literal_test]: http://github.com/dart-lang/sdk/blob/master/tests/language/type_object/explicit_instantiated_type_literal_test.dart
-[aliased_constructor_tear_off_test]: http://github.com/dart-lang/sdk/blob/master/tests/language/typedef/aliased_constructor_tear_off_test.dart
-[aliased_type_literal_instantiation_test]: http://github.com/dart-lang/sdk/blob/master/tests/language/typedef/aliased_type_literal_instantiation_test.dart
+[tear_off_test]: http://github.com/dart-lang/sdk/blob/main/tests/language/constructor/tear_off_test.dart
+[unnamed_new_error_test]: http://github.com/dart-lang/sdk/blob/main/tests/language/constructor/unnamed_new_error_test.dart
+[unnamed_new_test]: (http://github.com/dart-lang/sdk/blob/main/tests/language/constructor/unnamed_new_test.dart
+[explicit_instantiated_tearoff_test]: http://github.com/dart-lang/sdk/blob/main/tests/language/generic_methods/explicit_instantiated_tearoff_test.dart
+[explicit_instantiated_type_literal_error_test]: http://github.com/dart-lang/sdk/blob/main/tests/language/type_object/explicit_instantiated_type_literal_error_test.dart
+[explicit_instantiated_type_literal_test]: http://github.com/dart-lang/sdk/blob/main/tests/language/type_object/explicit_instantiated_type_literal_test.dart
+[aliased_constructor_tear_off_test]: http://github.com/dart-lang/sdk/blob/main/tests/language/typedef/aliased_constructor_tear_off_test.dart
+[aliased_type_literal_instantiation_test]: http://github.com/dart-lang/sdk/blob/main/tests/language/typedef/aliased_type_literal_instantiation_test.dart
