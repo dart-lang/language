@@ -485,11 +485,9 @@ instances.*
 It is a compile-time error if an extension declaration _D_ declares a
 constructor if _D_ does not have an on-declaration as defined above.
 
-It is an error if a an extension declaration with extension name
-`Name` declares a constructor with name `Name`.
-
-It is an error if a an extension declaration with on-declaration
-`Name` declares a constructor with name `Name`.
+Given a constructor declaration in an extension which declares a named
+constructor with name Name, it is an error if Name is either the name
+of the extension, or the on-declaration of the extension
 
 *In an extension named `E` with on type `C` , declaring a constructor
 named `C` (for example, `factory C() => ...`) is syntactically a
@@ -497,10 +495,6 @@ declaration of a named constructor `C.C` which is extremely unlikely
 to be what the user intended.  Similarly, declaring a constructor
 named `E` is syntactically a declaration of a named constructor `C.E`
 which is also almost certainly not what the user intended.*
-
-Given a constructor declaration in an extension which declares a named
-constructor with name Name, it is an error if Name is either the name
-of the extension, or the on-declaration of the extension
 
 If an extension declaration is generic, the type parameters declared
 by the extension are in scope in any constructors declared in the
@@ -1051,20 +1045,6 @@ generic function or constructor.*
 The dynamic semantics of static members of an extension is the same
 as the dynamic semantics of other static functions.
 
-### Dynamic Semantics of constructors defined in extensions
-
-Declarations of constructors defined in extensions are semantically
-treated as declarations of static methods with return type given by
-the on-type of the extension; type parameters (if any) given by the
-type parameters of the extension (including bounds); and parameter
-signature as given in the declaration.
-
-*That is, we treat a constructor declaration in an extension as an
-ordinary static member of the extension by treating it as if both the
-type parameters and the on-type of the extension were copied down onto
-the declaration of the constructor to serve as the type parameters and
-return type of the static member*
-
 ### Dynamic Semantics of constructor invocations and tearoffs
 
 Every invocation and tearoff of a constructor defined in an
@@ -1077,13 +1057,36 @@ form.
 
 #### Dynamic Semantics of fully resolved constructors
 
-Invocations of fully resolved constructors are treated as invocations
-of a static member as defined above.  If the extension (and hence the
-induced static member representing the constructor) is generic, then
-type arguments to the invocation are either taken from the original
+All constructors defined in extensions are factory constructors, and
+as described above, every invocation has a corresponding fully
+resolved form.
+
+Declarations of non-redirecting constructors defined in extensions can
+be thought of semantically as declarations of static methods with
+return type given by the on-type of the extension; type parameters (if
+any) given by the type parameters of the extension (including bounds);
+and parameter signature as given in the declaration.
+
+Evaluation of a fully resolved invocation of a non-redirecting
+construcutor is done in the same manner as evaluation of an induced
+static method as described above.  If the extension (and hence the
+induced static method for the constructor) is generic, then type
+arguments to the invocation are either taken from the original
 invocation if provided explicitly (`E<Types>.name(arguments)`) or as
 reconstructed via inference in the manner described above if not
 provided explicitly (`E.name(arguments)`).
+
+*That is, we treat a non-redirecting constructor declaration in an
+extension as an ordinary static member of the extension by treating it
+as if both the type parameters and the on-type of the extension were
+copied down onto the declaration of the constructor to serve as the
+type parameters and return type of the static member*
+
+Invocations of redirecting factory constructors defined in extensions
+(including const invocations) are evaluated by evaluating an
+invocation of the underlying redirectee, with type arguments as
+provided by type inference, and term arguments as taken from the
+declaration of the enclosing constructor as usual.
 
 Tearoffs of fully resolved constructors are treated as tearoffs of a
 static member as defined above.  If the extension (and hence the
