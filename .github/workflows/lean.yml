@@ -1,0 +1,25 @@
+name: Lean CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# All permissions not specified are set to 'none'.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Build Lean code
+        uses: leanprover/lean-action@50fcf42d2e460296f1a34b402e990d1b24f8b596
+        with:
+          lake-package-directory: lean
+          build: true
+          test: false
