@@ -554,8 +554,8 @@ augmenting) is *incomplete* if all of:
 
 *   There is no redirection, initializer list, initializing formals, or super
     parameters. *Obviously, this only applies to constructor declarations. We
-    don't consider field parameters here because primary constructors can't be
-    augmented anyway.*
+    don't consider declaring parameters here because those only occur in primary
+    constructors which can't be augmented.*
 
 If a declaration is not *incomplete* then it is *complete*.
 
@@ -993,7 +993,7 @@ For purposes of augmentation, a variable declaration is treated as implicitly
 defining a getter whose return type is the type of the variable. If the variable
 is not `final`, or is `late` without an initializer, then the variable
 declaration also implicitly defines a setter with a parameter named `_` whose
-type is the type of the variable. Likewise, a field parameter in a primary
+type is the type of the variable. Likewise, a declaring parameter in a primary
 constructor induces an introductory instance variable declaration which in turn
 has a complete getter and a complete setter if not `final`.
 
@@ -1004,7 +1004,8 @@ it, so these members have bodies.*
 
 A getter can be augmented by another getter, and likewise a setter can be
 augmented by a setter. This is true whether the getter or setter is explicitly
-declared or implicitly declared using a variable declaration or field parameter.
+declared or implicitly declared using a variable declaration or declaring
+parameter.
 
 *Since non-abstract variables are complete, that implies that it is an error to
 augment a non-abstract variable declaration with a complete getter, setter, or
@@ -1106,7 +1107,7 @@ It's a **compile-time error** if:
     default values.*
 
 *   The augmenting declaration and augmented declaration do not have the
-    same `const` and `factor` modifiers. *Augmentations can't change whether a
+    same `const` and `factory` modifiers. *Augmentations can't change whether a
     constructor is const or not, or whether it is generative or not. Note that
     the `new` keyword is omitted here. Augmentations do not have to agree on
     whether they use the old new constructor syntax:*
