@@ -200,10 +200,10 @@ _For a counterexample to associativity, consider:_
 c₁ = [Map<Object?, int>, Map<int, int>]
 c₂ = [Map<dynamic, int>, Map<int, int>]
 c₃ = [Map<int, Object>,  Map<int, int>]
-c₁.join c₂ = [Map<int, int>]
-(c₁.join c₂).join c₃ = [Map<int, int>]
-c₂.join c₃ = []
-c₁.join (c₂.join c₃) = []
+join(c₁, c₂) = [Map<int, int>]
+join(join(c₁, c₂), c₃) = [Map<int, int>]
+join(c₂, c₃) = []
+join(c₁, join(c₂, c₃)) = []
 ```
 
 ### Models
@@ -315,7 +315,7 @@ We also make use of the following auxiliary functions:
   - `VM3 = VariableModel(d3, p3, s3, a3, u3, c3)` where
    - `d3 = d1 = d2`
      - Note that all models must agree on the declared type of a variable
-   - `p3 = p1.join p2`
+   - `p3 = join(p1, p2)`
    - `s3 = s1 U s2`
      - The set of test sites is the union of the test sites on either path
    - `a3 = a1 && a2`
