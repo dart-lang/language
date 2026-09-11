@@ -260,6 +260,140 @@ that the choice of common variable names avoid capture.  It is valid to choose
 the `Xi` or the `Yi` for `Zi` so long as capture is avoided*
 
 
+## Algorithmic subtyping: version 2
+
+This version of the algorithmic rules re-orders the rules to move all of the
+rules relevant to non-nullability as early as possible.  It also simplifies the
+algorithm somewhat by allowing specific rules to "fall through" to later rules
+when it is clearer to do so.  This presentation is intended to be equivalent to
+the above.  It is motivated by pragmatic concerns from the implementations.
+
+### Rules
+
+We say that a type `T` is **nullable** if `Null <: T`.  This is equivalent to
+the syntactic criterion that `T` is any of:
+  - `Null`
+  - `S?` for some `S`
+  - `S*` for some `S` where `S` is nullable
+  - `FutureOr<S>` for some `S` where `S` is nullable
+  - `dynamic`
+  - `void`
+
+We say that a type `T` is a **top** type if `T` is `dynamic`, `void`, `Object?`,
+or `FutureOr<S>` where `S` is a top type.
+
+**Note that these rules are designed to be read top down as an algorithm**
+
+We say that a type `T0` is a subtype of a type `T1` (written `T0 <: T1`) when:
+
+- **Reflexivity**: if `T0` and `T1` are the same type then `T0 <: T1` otherwise continue
+  - *Note that this check is necessary as the base case for primitive types, and
+    type variables but not for composite types.  In particular, algorithmically
+    a structural equality check is admissible, but not required
+    here. Pragmatically, non-constant time identity checks here are
+    counter-productive*
+
+- **Right Top**: if `T1` is a top type then `T0 <: T1` otherwise continue
+
+- **Right Legacy Top**: if `T1` is `S*` where `S` is a top type then `T0 <: T1`,
+  otherwise continue
+
+- **Left Top**: if `T0` is a top type then the subtyping does not hold (return
+  false)
+
+- **Left Legacy Top**: if `T0` is `S*` where `S` is a top type then the
+  subtyping does not hold (return false)
+
+- **Left Nullable 1**: if `T0` is `Null`, `Null*`, or `S0?` and `T1` is not
+  nullable then the subtyping does not hold (return false)
+
+- **Left Nullable 2**: otherwise, if `T0` is `S0?` then the subtyping holds iff
+  `S0 <: T1` (return true or false)
+
+- **Left Bottom**: if `T0` is `Null`, `Null?`, `Null*`, `Never`, `Never?`, or
+  `Never*` then `T0 <: T1` (return true)
+  - Note that we rely here on the fact that if `T0` is `Null`, `Null?`, `Null*`
+    or `Never?` then we know by the fact that `Left Nullable 1` above did not
+    apply that `T1` is nullable.
+
+- **Left Legacy** if `T0` is `S0*` then:
+  - `T0 <: T1` iff `S0 <: T1` (return true or false)
+
+- **Right Legacy** `T1` is `S1*` then:
+  - `T0 <: T1` iff `T0 <: S1?` (return true or false)
+
+- **Right Nullable**: if `T1` is `S1?` then `T0 <: T1` if:
+  - `T0` is nullable
+  - or `T0 <: S1`
+  - otherwise continue
+
+- **Left FutureOr**: if `T0` is `FutureOr<S0>` then:
+  - `T0 <: T1` iff  `Future<S0> <: T1` and `S0 <: T1` (return true or false)
+
+- **Type Variable Reflexivity 1**: if `T0` is a type variable `X0` or a
+promoted type variables `X0 & S0` and `T1` is `X0` then:
+  - `T0 <: T1` (return true)
+  - *Note that this rule is admissible, and can be safely elided if desired*
+
+- **Type Variable Reflexivity 2**: if `T0` is a type variable `X0` or a
+promoted type variables `X0 & S0` and `T1` is `X0 & S1` then:
+  - `T0 <: T1` iff `T0 <: S1` (return true or false)
+  - *Note that this rule is admissible, and can be safely elided if desired*
+
+- **Right Promoted Variable**: if `T1` is a promoted type variable `X1 & S1` then:
+  - `T0 <: T1` iff  `T0 <: X1` and `T0 <: S1` (return true or false)
+
+- **Right FutureOr**: if `T1` is `FutureOr<S1>` then:
+  - `T0 <: T1` iff any of the following hold:
+    - either `T0 <: Future<S1>`
+    - or `T0 <: S1`
+    - otherwise continue
+
+- **Left Promoted Variable**: `T0` is a promoted type variable `X0 & S0`
+  - and `S0 <: T1` (return true or false)
+
+- **Left Type Variable Bound**: `T0` is a type variable `X0` with bound `B0`
+  - and `B0 <: T1` (return true or false)
+
+- **Function Type/Function**: `T0` is a function type and `T1` is `Function` (return true)
+
+- **Interface Compositionality**: `T0` is an interface type `C0<S0, ..., Sk>`
+  and `T1` is `C0<U0, ..., Uk>`
+  - and each `Si <: Ui` (return true or false)
+
+- **Super-Interface**: `T0` is an interface type with super-interfaces `S0,...Sn`
+  - and `Si <: T1` for some `i` (return true or false)
+
+- **Positional Function Types**: `T0` is
+  `U0 Function<X0 extends B00, ..., Xk extends B0k>(V0 x0, ..., Vn xn, [Vn+1 xn+1, ..., Vm xm])`
+  - and `T1` is
+    `U1 Function<Y0 extends B10, ..., Yk extends B1k>(S0 y0, ..., Sp yp, [Sp+1 yp+1, ..., Sq yq])`
+  - and `p >= n`
+  - and `m >= q`
+  - and `Si[Z0/Y0, ..., Zk/Yk] <: Vi[Z0/X0, ..., Zk/Xk]` for `i` in `0...q`
+  - and `U0[Z0/X0, ..., Zk/Xk] <: U1[Z0/Y0, ..., Zk/Yk]`
+  - and `B0i[Z0/X0, ..., Zk/Xk] === B1i[Z0/Y0, ..., Zk/Yk]` for `i` in `0...k`
+  - where the `Zi` are fresh type variables with bounds `B0i[Z0/X0, ..., Zk/Xk]`
+
+- **Named Function Types**: `T0` is
+  `U0 Function<X0 extends B00, ..., Xk extends B0k>(V0 x0, ..., Vn xn, {Vn+1 xn+1, ..., Vm xm})`
+  - and `T1` is
+    `U1 Function<Y0 extends B10, ..., Yk extends B1k>(S0 y0, ..., Sn yn, {Sn+1 yn+1, ..., Sq yq})`
+  - and `{yn+1, ... , yq}` subsetof `{xn+1, ... , xm}`
+  - and `Si[Z0/Y0, ..., Zk/Yk] <: Vi[Z0/X0, ..., Zk/Xk]` for `i` in `0...n`
+  - and `Si[Z0/Y0, ..., Zk/Yk] <: Tj[Z0/X0, ..., Zk/Xk]` for `i` in `n+1...q`, `yj = xi`
+  - and `U0[Z0/X0, ..., Zk/Xk] <: U1[Z0/Y0, ..., Zk/Yk]`
+  - and `B0i[Z0/X0, ..., Zk/Xk] === B1i[Z0/Y0, ..., Zk/Yk]` for `i` in `0...k`
+  - where the `Zi` are fresh type variables with bounds `B0i[Z0/X0, ..., Zk/Xk]`
+
+*Note: the requirement that `Zi` are fresh is as usual strictly a requirement
+that the choice of common variable names avoid capture.  It is valid to choose
+the `Xi` or the `Yi` for `Zi` so long as capture is avoided*
+
+- **Otherwise**: The subtyping does not hold
+
+
+
 ## Derivation of algorithmic rules
 
 This section sketches out the derivation of the algorithmic rules from the
