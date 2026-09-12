@@ -3,7 +3,7 @@ import Aesop
 import Batteries.Data.List.Basic
 import Batteries.Data.List.Lemmas
 public import FlowAnalysis.Types
-public import Mathlib.Data.Finset.Dedup
+public import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Set.Finite.Basic
 
 namespace FlowAnalysis
@@ -65,7 +65,8 @@ public theorem lt_of_mem_tail {T : τ} {ts : List τ} (hvalid : isPromotionChain
   aesop
 
 /-- The head of a promotion chain is not in the tail. -/
-lemma head_not_mem_tail {T : τ} {ts : List τ} (hvalid : isPromotionChain (T::ts)) : T ∉ ts := by
+public theorem head_not_mem_tail {T : τ} {ts : List τ} (hvalid : isPromotionChain (T::ts)) :
+    T ∉ ts := by
   have := hvalid.lt_of_mem_tail T
   grind
 
@@ -126,7 +127,7 @@ public theorem ext_iff {c₁ c₂ : PromotionChain} : c₁ = c₂ ↔ c₁.val =
 public def empty : PromotionChain := ⟨[], by simp⟩
 
 /-- Analogous to `List.take` but for promotion chains. -/
-public def take (n : Nat) (c : PromotionChain) : PromotionChain := .mk (c.val.take n) $ by
+public def take (n : Nat) (c : PromotionChain) : PromotionChain := .mk (c.val.take n) <| by
   suffices h : c.val.take n <+ c.val by apply isPromotionChain.sublist h c.property
   exact List.take_sublist n c.val
 
@@ -141,7 +142,7 @@ public theorem take_of_val {n : Nat} {c : PromotionChain}
 
 /-- Analogous to `List.drop` but for promotion chains. -/
 public def drop (n : Nat) (c : PromotionChain) :
-    PromotionChain := .mk (c.val.drop n) $ by
+    PromotionChain := .mk (c.val.drop n) <| by
   suffices h : c.val.drop n <+ c.val by apply isPromotionChain.sublist h c.property
   exact List.drop_sublist n c.val
 
@@ -183,12 +184,9 @@ public theorem val_single {T : τ} : (single T).val = [T] := by rfl
 public def strictly_bounded_by (c : PromotionChain) (T : τ) : Prop := isPromotionChain (T::c)
 
 /-- Analogous to `List.filter` but for promotion chains. -/
-public def filter (p : τ → Bool) (c : PromotionChain) : PromotionChain := .mk (c.val.filter p) $ by
-  rcases c with ⟨ts, hvalid⟩
-  rw [isPromotionChain.iff_pairwise]
-  apply List.Pairwise.filter
-  rw [←isPromotionChain.iff_pairwise]
-  simp [hvalid]
+public def filter (p : τ → Bool) (c : PromotionChain) : PromotionChain := .mk (c.val.filter p) <| by
+  suffices h : c.val.filter p <+ c.val by apply isPromotionChain.sublist h c.property
+  simp
 
 /--
 Simplification theorem relating the behavior of `PromotionChain.filter` to that of `List.filter`.
@@ -206,52 +204,24 @@ public theorem filter_of_val {p : τ → Bool} {c : PromotionChain}
     ⟨c.val.filter p, hvalid⟩ = c.filter p := by rfl
 
 /--
-If two promotion chains contain the same the set of types, then they are equal.
-
-We prove this as a private lemma, since clients will want to rewrite using `toFinset_inj`, below.
--/
-lemma eq_of_toFinset_eq : ∀ (c₁ c₂ : PromotionChain),
-    c₁.val.toFinset = c₂.val.toFinset → c₁ = c₂ := by
-  rintro ⟨ts₁, hvalid₁⟩ ⟨ts₂, hvalid₂⟩; simp
-  cases ts₁
-  case nil => simp; intro h; rw [←List.toFinset_eq_empty_iff]; aesop
-  case cons T₁ ts₁' =>
-    cases ts₂
-    case nil => simp
-    case cons T₂ ts₂' =>
-      simp
-      by_cases T₁ = T₂
-      case pos heq =>
-        subst heq
-        intro hinsert
-        suffices h : ts₁'.toFinset = ts₂'.toFinset by
-          have := eq_of_toFinset_eq ⟨ts₁', hvalid₁.of_cons⟩ ⟨ts₂', hvalid₂.of_cons⟩
-          simp_all
-        simp [Finset.ext_iff] at hinsert ⊢
-        intro T; specialize hinsert T
-        by_cases T = T₁
-        case neg hne => simp [hne] at hinsert; assumption
-        case pos heq => grind [hvalid₁.head_not_mem_tail, hvalid₂.head_not_mem_tail]
-      case neg hne =>
-        simp [hne]; intro hcontra; simp [Finset.ext_iff] at hcontra
-        have hT₁_lt_T₂ : T₁ < T₂ := by grind [isPromotionChain.lt_of_mem_tail hvalid₂]
-        have hT₂_lt_T₁ : T₂ < T₁ := by grind [isPromotionChain.lt_of_mem_tail hvalid₁]
-        grind
-
-/-- Two promotion chains are equal iff they contain the same set of types. -/
-public theorem toFinset_inj (c₁ c₂ : PromotionChain) :
-    c₁ = c₂ ↔ c₁.val.toFinset = c₂.val.toFinset := by
-  constructor
-  · intro rfl; rfl
-  · apply eq_of_toFinset_eq
-
-/--
 Two promotion chains are equal iff membership in one implies membership in the other (and vice
 versa).
 -/
 public theorem ext_iff_mem (c₁ c₂ : PromotionChain) :
     c₁ = c₂ ↔ ∀ T, T ∈ c₁.val ↔ T ∈ c₂.val := by
-  rw [toFinset_inj, Finset.ext_iff]; simp
+  constructor
+  · intro rfl; simp
+  · intro hmem
+    apply ext
+    apply List.Pairwise.eq_of_mem_iff (r := (fun T U => U < T))
+    · rw [←isPromotionChain.iff_pairwise]; aesop
+    · rw [←isPromotionChain.iff_pairwise]; aesop
+    · assumption
+
+/-- Two promotion chains are equal iff they contain the same set of types. -/
+public theorem toFinset_inj (c₁ c₂ : PromotionChain) :
+    c₁ = c₂ ↔ c₁.val.toFinset = c₂.val.toFinset := by
+  simp [ext_iff_mem, Finset.ext_iff]
 
 /--
 The sublist relation holds between two promotion chains iff membership in the former implies
@@ -281,8 +251,17 @@ additional legwork in the proofs below.
 public abbrev is_greatest_common_sublist (c c₁ c₂ : PromotionChain) : Prop :=
   c.is_common_sublist c₁ c₂ ∧ ∀ c' : PromotionChain, c'.is_common_sublist c₁ c₂ → c'.val <+ c.val
 
-/-- For computability, we define `c₁ join c₂` as a filter of `c₁`, removing any types that are not in `c₂`. -/
+/--
+For computability, we define `c₁.join c₂` as a filter of `c₁`, removing any types that are not in
+`c₂`.
+-/
 public def join (c₁ c₂ : PromotionChain) := c₁.filter (· ∈ c₂.val)
+
+/-- A type is in the join of two promotion chains iff it is in both chains. -/
+@[simp]
+public theorem mem_join (c₁ c₂ : PromotionChain) (T : τ) :
+    T ∈ (c₁.join c₂).val ↔ T ∈ c₁.val ∧ T ∈ c₂.val := by
+  simp [join]
 
 /--
 An equivalent definition, which we use in the spec (and in proofs below) is that the join of two
@@ -290,43 +269,21 @@ promotion chains is their unique greatest common sublist.
 -/
 public theorem join_is_greatest_common_sublist (c₁ c₂ : PromotionChain) :
     (c₁.join c₂).is_greatest_common_sublist c₁ c₂ := by
-  simp [join]
-  constructor
-  · constructor
-    · simp
-    · rw [sublist_iff_forall_mem]; simp
-  · rintro c' ⟨hc'_sublist_c₁, hc'_sublist_c₂⟩
-    rw [sublist_iff_forall_mem] at hc'_sublist_c₁ hc'_sublist_c₂ ⊢
-    intro T hT_in_c'
-    simp [hc'_sublist_c₁ T hT_in_c', hc'_sublist_c₂ T hT_in_c']
+  simp [is_greatest_common_sublist, is_common_sublist, sublist_iff_forall_mem]
+  aesop
 
 /--
 The computable definition of `join` above proves that a greatest common sublist always exists.
 -/
-lemma exists_is_greatest_common_sublist (c₁ c₂ : PromotionChain) :
-    ∃ c : PromotionChain, c.is_greatest_common_sublist c₁ c₂ := by
-  exists c₁.filter (· ∈ c₂.val)
-  apply join_is_greatest_common_sublist
+public theorem exists_is_greatest_common_sublist (c₁ c₂ : PromotionChain) :
+    ∃ c : PromotionChain, c.is_greatest_common_sublist c₁ c₂ :=
+  ⟨c₁.join c₂, join_is_greatest_common_sublist c₁ c₂⟩
 
 /-- The join is the unique greatest common sublist. -/
-public theorem is_greatest_common_sublist.unique (c₁ c₂ : PromotionChain) :
-    ∀ c : PromotionChain, c.is_greatest_common_sublist c₁ c₂ → c = c₁.join c₂ := by
-  intro c hc
-  let c' := c₁.join c₂
+public theorem is_greatest_common_sublist.unique {c c₁ c₂ : PromotionChain}
+    (h : c.is_greatest_common_sublist c₁ c₂) : c = c₁.join c₂ := by
   have hc' := join_is_greatest_common_sublist c₁ c₂
   rw [ext_iff_mem]; grind
-
-/-- A type is in the join of two promotion chains iff it is in both chains. -/
-@[simp]
-public theorem mem_join (c₁ c₂ : PromotionChain) (T : τ) :
-    T ∈ (c₁.join c₂).val ↔ T ∈ c₁.val ∧ T ∈ c₂.val := by
-  obtain ⟨⟨hjoin_sublist_c₁, hjoin_sublist_c₂⟩, hgreatest⟩ := join_is_greatest_common_sublist c₁ c₂
-  rw [PromotionChain.sublist_iff_forall_mem] at hjoin_sublist_c₁ hjoin_sublist_c₂
-  constructor
-  · grind
-  · simp; intro hT_in_c₁ hT_in_c₂
-    specialize hgreatest (.single T) (by simp_all [is_common_sublist])
-    rw [PromotionChain.sublist_iff_forall_mem] at hgreatest; simp at hgreatest; assumption
 
 /--
 The join of two promotion chains is equal to `c` iff all types `T` satisfy the `mem_join` relation
@@ -338,17 +295,17 @@ public theorem join_eq_iff_mem (c c₁ c₂ : PromotionChain) :
   · intro rfl T; simp
   · rw [ext_iff_mem]; simp
 
-/-- Joining a promotion chain with a sublist produces the sublist. -/
+/-- If `c₁` is a sublist of `c₂`, their join is `c₁`. -/
 @[simp]
-public theorem join_eq_left_of_sublist (c₁ c₂ : PromotionChain) :
-    c₁.val <+ c₂.val → c₁.join c₂ = c₁ := by
-  intro h; rw [join_eq_iff_mem]; intro T; grind
+public theorem join_eq_left_of_sublist {c₁ c₂ : PromotionChain} (h : c₁.val <+ c₂.val) :
+    c₁.join c₂ = c₁ := by
+  rw [join_eq_iff_mem]; intro T; grind
 
-/-- Joining a promotion chain with a sublist produces the sublist. -/
+/-- If `c₂` is a sublist of `c₁`, their join is `c₂`. -/
 @[simp]
-public theorem join_eq_right_of_sublist (c₁ c₂ : PromotionChain) :
-    c₂.val <+ c₁.val → c₁.join c₂ = c₂ := by
-  intro h; rw [join_eq_iff_mem]; intro T; grind
+public theorem join_eq_right_of_sublist {c₁ c₂ : PromotionChain} (h : c₂.val <+ c₁.val) :
+    c₁.join c₂ = c₂ := by
+  rw [join_eq_iff_mem]; intro T; grind
 
 /-- The join operation is idempotent (`join c c = c`). -/
 @[simp]
@@ -376,14 +333,13 @@ public instance join.instAssociative : Std.Associative (join (τ := τ)) where
 
 /-- Joining with an empty promotion chain produces the empty promotion chain. -/
 @[simp]
-public theorem empty_join :
-    ∀ c : PromotionChain, (∅ : PromotionChain).join c = ∅ := by
-  intro c; rw [join_eq_iff_mem]; simp
+public theorem empty_join (c : PromotionChain) : (∅ : PromotionChain).join c = ∅ := by
+  rw [join_eq_iff_mem]; simp
 
 /-- Joining with an empty promotion chain produces the empty promotion chain. -/
 @[simp]
-public theorem join_empty : ∀ c : PromotionChain, c.join ∅ = ∅ := by
-  intro c; rw [join_eq_iff_mem]; simp
+public theorem join_empty (c : PromotionChain) : c.join ∅ = ∅ := by
+  rw [join_eq_iff_mem]; simp
 
 /--
 If a promotion chain is not empty, then its list of types is not empty.
@@ -395,7 +351,9 @@ public theorem val_ne_nil_of_ne_empty {c : PromotionChain} : ¬c = ∅ → ¬c.v
   contrapose; rcases c; simp; intro rfl; simp
 
 /--
-If a promotion chain contains no types, then joining it with another chain produces the empty chain.
+If `c₁` contains no types, then `c₁.join c₂` is the empty chain.
+
+Variant of `empty_join` for use when emptiness is expressed as `c₁.val = []` rather than `c₁ = ∅`.
 -/
 @[simp]
 public theorem join_eq_empty_of_val_nil_left {c₁ c₂ : PromotionChain} :
@@ -403,10 +361,13 @@ public theorem join_eq_empty_of_val_nil_left {c₁ c₂ : PromotionChain} :
   intro h; simp [show c₁ = ∅ by grind]
 
 /--
-If a promotion chain contains no types, then joining it with another chain produces the empty chain.
+If `c₂` contains no types, then `c₁.join c₂` is the empty chain.
+
+Variant of `join_empty` for use when emptiness is expressed as `c₂.val = []` rather than `c₂ = ∅`.
 -/
 @[simp]
-public theorem join_eq_empty_of_val_nil_right {c₁ c₂ : PromotionChain} : c₂.val = [] → c₁.join c₂ = ∅ := by
+public theorem join_eq_empty_of_val_nil_right {c₁ c₂ : PromotionChain} :
+    c₂.val = [] → c₁.join c₂ = ∅ := by
   intro h; simp [show c₂ = ∅ by grind]
 
 end «PromotionChain»
