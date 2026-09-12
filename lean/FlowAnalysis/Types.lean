@@ -13,7 +13,7 @@ generality of the model.
 See the file `SimpleTypes.lean` for a concrete instantiation of this typeclass.
 -/
 public class DartTypeRepr (τ : Type) extends BEq τ, LawfulBEq τ, Preorder τ, Repr τ,
-    ToString τ where
+    ToString τ, Inhabited τ where
   decideEq : DecidableEq τ
   /--
   We use `≤` to represent non-strict subtyping, since this lets us use the `Preorder` typeclass,

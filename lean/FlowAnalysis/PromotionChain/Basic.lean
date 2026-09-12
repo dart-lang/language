@@ -370,4 +370,61 @@ public theorem join_eq_empty_of_val_nil_right {c₁ c₂ : PromotionChain} :
     c₂.val = [] → c₁.join c₂ = ∅ := by
   intro h; simp [show c₂ = ∅ by grind]
 
+/--
+A key property underlying the recurrence relation for `join` when `T₁ = T₂`: transferring the common
+type to the promotion chain being built results in a valid chain.
+-/
+@[simp]
+lemma isPromotionChain_cons_join {T : τ} {ts₁' ts₂' : List τ}
+    {hvalid₁ : isPromotionChain (T::ts₁')} {hvalid₂ : isPromotionChain (T::ts₂')} :
+    isPromotionChain (T :: join ⟨ts₁', hvalid₁.of_cons⟩ ⟨ts₂', hvalid₂.of_cons⟩) := by
+  apply isPromotionChain.cons <;> simp
+  intro T' hT'_in_ts₁' hT'_in_ts₂'
+  apply hvalid₁.lt_of_mem_tail; assumption
+
+/--
+Recurrence relation for `join` when `T₁ = T₂`.
+
+This is used to prove correctness of the Dart implementation.
+-/
+@[simp]
+public theorem join.heads_eq {T : τ} {ts₁' ts₂' : List τ}
+    {hvalid₁ : isPromotionChain (T::ts₁')} {hvalid₂ : isPromotionChain (T::ts₂')} :
+    join ⟨T::ts₁', hvalid₁⟩ ⟨T::ts₂', hvalid₂⟩ =
+    ⟨T :: join ⟨ts₁', hvalid₁.of_cons⟩ ⟨ts₂', hvalid₂.of_cons⟩, by simp_all⟩ := by
+  rw [ext_iff_mem]; intro T'
+  constructor <;> simp <;> grind
+
+/--
+Recurrence relation for `join` when `T₁ ≤ T₂`.
+
+This is used to prove correctness of the Dart implementation.
+-/
+@[simp]
+public theorem join.heads_ne_le {T₁ T₂ : τ} {ts₁' ts₂' : List τ}
+    {hvalid₁ : isPromotionChain (T₁::ts₁')} {hvalid₂ : isPromotionChain (T₂::ts₂')}
+    (hne : ¬T₁ = T₂) (hle : T₁ ≤ T₂) :
+    join ⟨T₁::ts₁', hvalid₁⟩ ⟨T₂::ts₂', hvalid₂⟩ =
+    join ⟨T₁::ts₁', hvalid₁⟩ ⟨ts₂', hvalid₂.of_cons⟩ := by
+  rw [ext_iff_mem]; intro T; simp
+  intro h rfl; simp [show T = T₁ ↔ False by grind] at h
+  have := hvalid₁.lt_of_mem_tail T h
+  grind
+
+/--
+Recurrence relation for `join` when `¬T₁ ≤ T₂`.
+
+This is used to prove correctness of the Dart implementation.
+-/
+@[simp]
+public theorem join.heads_ne_not_le {T₁ T₂ : τ} {ts₁' ts₂' : List τ}
+    {hvalid₁ : isPromotionChain (T₁::ts₁')} {hvalid₂ : isPromotionChain (T₂::ts₂')}
+    (hne : ¬T₁ = T₂) (hnotLe : ¬T₁ ≤ T₂) :
+    join ⟨T₁::ts₁', hvalid₁⟩ ⟨T₂::ts₂', hvalid₂⟩ =
+    join ⟨ts₁', hvalid₁.of_cons⟩ ⟨T₂::ts₂', hvalid₂⟩ := by
+  rw [ext_iff_mem]; intro T; simp
+  intro h rfl; simp [show T = T₂ ↔ False by grind] at h
+  have := hvalid₂.lt_of_mem_tail T h
+  grind
+
 end «PromotionChain»
