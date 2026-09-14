@@ -165,46 +165,25 @@ also a promotion chain.
 
 #### Joining of promotion chains
 
-The _join of promotion chains_ `c₁` and `c₂`, denoted `join(c₁, c₂)`, is defined
-as:
-- `join([], c₂) = []`
-- `join(c₁, []) = []`
-- `join([T₁]++c₁, [T₂]++c₂) =`
-  - `[T₁] ++ join(c₁, c₂)` if `T₁ = T₂`
-  - `join(c₁, c₂)` if `T₁ ≠ T₂ ∧ T₁ <: T₂ ∧ T₂ <: T₁`
-  - `join([T₁]++c₁, c₂)` if `T₁ ≠ T₂ ∧ T₁ <: T₂ ∧ ¬ T₂ <: T₁`
-  - `join(c₁, [T₂]++c₂)` if `T₁ ≠ T₂ ∧ ¬ T₁ <: T₂ ∧ T₂ <: T₁`
-  - `[]` if `T₁ ≠ T₂ ∧ ¬ T₁ <: T₂ ∧ ¬ T₂ <: T₁`
+The _join of promotion chains_ `c₁` and `c₂`, denoted `join(c₁, c₂)`, is the
+greatest common subsequence of `c₁` and `c₂`.
 
-By construction, the join of two promotion chains is always a subsequence of
-each of the input chains. That is, `subseq(join(c₁, c₂), c₁)` and
-`subseq(join(c₁, c₂), c₂)`. Therefore, if `c₁` and `c₂` are promotion chains,
-then so is `join(c₁, c₂)`.
+_Note: because all types in a promotion chain are ordered by strict subtyping
+(`<<:`), any types shared between `c₁` and `c₂` must appear in the exact same
+relative order in both chains. Therefore, the greatest common subsequence is
+unique (and contains all types present in both chains)._
+
+_Since `join(c₁, c₂)` is a subsequence of `c₁`, it is a promotion chain._
 
 _We will use the join operation to combine the promotion chains at the point
 where two separate control flow paths rejoin (e.g., at the end of an `if`
-statement). Informally, the join of two promotion chains is a promotion chain
-that keeps whatever promotions are present in both control flow paths, with the
-exception that if at any point the types in the two chains become unrelated
-(neither `T₁ <: T₂` nor `T₂ <: T₁`), then further promotions are dropped._
+statement). Informally, the join keeps exactly those promotions that are present
+on both conrol flow paths._
 
-_See https://github.com/dart-lang/language/issues/4757 for a proposed
-improvement to this._
+The `join` relation is idempotent, commutative, and associative.
 
-The `join` relation is idempotent and commutative by construction. It is not
-associative.
-
-_For a counterexample to associativity, consider:_
-
-```
-c₁ = [Map<Object?, int>, Map<int, int>]
-c₂ = [Map<dynamic, int>, Map<int, int>]
-c₃ = [Map<int, Object>,  Map<int, int>]
-join(c₁, c₂) = [Map<int, int>]
-join(join(c₁, c₂), c₃) = [Map<int, int>]
-join(c₂, c₃) = []
-join(c₁, join(c₂, c₃)) = []
-```
+_See https://github.com/dart-lang/language/issues/4757 for the discussion that
+motivated this definition._
 
 ### Models
 
