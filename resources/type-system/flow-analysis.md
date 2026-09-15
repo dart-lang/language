@@ -99,11 +99,11 @@ that assignment).
 
 
 - Maps
-  - We use the notation `{x: VM1, y: VM2}` to denote a map associating the
-    key `x` with the value `VM1`, and the key `y` with the value `VM2`.
-  - We use the notation `VI[x -> VM]` to denote the map which maps every key
-    in `VI` to its corresponding value in `VI` except `x`, which is mapped to
-    `VM` in the new map (regardless of any value associated with it in `VI`).
+  - We use the notation `{x: PM1, y: PM2}` to denote a map associating the
+    key `x` with the value `PM1`, and the key `y` with the value `PM2`.
+  - We use the notation `PI[x -> PM]` to denote the map which maps every key
+    in `PI` to its corresponding value in `PI` except `x`, which is mapped to
+    `PM` in the new map (regardless of any value associated with it in `PI`).
 
 - Lists
   - We use the notation `[a, b]` to denote a list containing elements `a` and
@@ -187,7 +187,7 @@ motivated this definition._
 
 ### Models
 
-A *variable model*, denoted `VariableModel(declaredType, promotionChain,
+A *promotion model*, denoted `PromotionModel(declaredType, promotionChain,
 tested, assigned, unassigned, writeCaptured)`, represents what is statically
 known to the flow analysis about the state of a variable at a given point in the
 source code.
@@ -222,7 +222,7 @@ source code.
   variable initializer is not per se considered to write to the late variable
   itself.
 
-A *flow model*, denoted `FlowModel(reachable, variableInfo)`, represents what
+A *flow model*, denoted `FlowModel(reachable, promotionInfo)`, represents what
 is statically known to flow analysis about the state of the program at a given
 point in the source code.
 
@@ -242,8 +242,8 @@ point in the source code.
   elements of the `reachable` stack, since each element of the stack models the
   reachability of one control flow split from its enclosing control flow split.
 
-  - `variableInfo` is a mapping from variables in scope at the given point to
-  their associated *variable model*s.
+  - `promotionInfo` is a mapping from variables in scope at the given point to
+  their associated *promotion model*s.
 
 The following functions associate flow models to nodes:
 
@@ -287,11 +287,11 @@ static types.
 
 We also make use of the following auxiliary functions:
 
-- `joinV(VM1, VM2)`, where `VM1` and `VM2` are variable models, represents the
-  union of two variable models, defined as follows:
-  - If `VM1 = VariableModel(d1, p1, s1, a1, u1, c1)` and
-  - If `VM2 = VariableModel(d2, p2, s2, a2, u2, c2)` then
-  - `VM3 = VariableModel(d3, p3, s3, a3, u3, c3)` where
+- `joinV(PM1, PM2)`, where `PM1` and `PM2` are promotion models, represents the
+  union of two promotion models, defined as follows:
+  - If `PM1 = PromotionModel(d1, p1, s1, a1, u1, c1)` and
+  - If `PM2 = PromotionModel(d2, p2, s2, a2, u2, c2)` then
+  - `PM3 = PromotionModel(d3, p3, s3, a3, u3, c3)` where
    - `d3 = d1 = d2`
      - Note that all models must agree on the declared type of a variable
    - `p3 = join(p1, p2)`
@@ -307,18 +307,18 @@ We also make use of the following auxiliary functions:
      - A variable is captured in the join of two models iff it is captured in
        either.
 
-- `split(M)`, where `M = FlowModel(r, VM)` is a flow model which models program
-  nodes inside of a control flow split, and is defined as `FlowModel(r2, VM)`
+- `split(M)`, where `M = FlowModel(r, PM)` is a flow model which models program
+  nodes inside of a control flow split, and is defined as `FlowModel(r2, PM)`
   where `r2` is `r` with `true` pushed as the top element of the stack.
 
-- `unsplit(M)`, where `M = FlowModel(r, VM)` is defined as `M1 = FlowModel(r1,
-  VM)` where `r` is of the form `s ++ [n1, n0]` and `r1 = s ++ [n0 && n1]`. The
+- `unsplit(M)`, where `M = FlowModel(r, PM)` is defined as `M1 = FlowModel(r1,
+  PM)` where `r` is of the form `s ++ [n1, n0]` and `r1 = s ++ [n0 && n1]`. The
   model `M1` is a flow model which collapses the top two elements of the
   reachability model from `M` into a single boolean which conservatively
   summarizes the reachability information present in `M`.
 
 - `unsplitTo(r0, M)` is defined recursively as follows:
-  - Let `M = FlowModel(r, VI)`.
+  - Let `M = FlowModel(r, PI)`.
   - If `r0` and `r` have the same length, then `unsplitTo(r, M) = M`.
   - Otherwise, `unsplitTo(r, M) = unsplitTo(r, unsplit(M))`.
   - _In other words, the effect of `unsplitTo(r, M)` is to perform `unsplit()`
@@ -328,13 +328,13 @@ We also make use of the following auxiliary functions:
 - `join(M1, M2)`, where `M1` and `M2` are flow models, represents the union of
   two flow models and is defined as follows:
 
-  - We define `join(M1, M2)` to be `M3 = FlowModel(r3, VI3)` where:
-    - `M1 = FlowModel(r1, VI1)`
-    - `M2 = FlowModel(r2, VI2)`
+  - We define `join(M1, M2)` to be `M3 = FlowModel(r3, PI3)` where:
+    - `M1 = FlowModel(r1, PI1)`
+    - `M2 = FlowModel(r2, PI2)`
     - `pop(r1) = pop(r2) = r0` for some `r0`
     - `r3` is `push(r0, top(r1) || top(r2))`
-    - `VI3` is the map which maps each variable `v` in the domain of `VI1` and
-      `VI2` to `joinV(VI1(v), VI2(v))`.  Note that any variable which is in
+    - `PI3` is the map which maps each variable `v` in the domain of `PI1` and
+      `PI2` to `joinV(PI1(v), PI2(v))`.  Note that any variable which is in
       domain of only one of the two is dropped, since it is no longer in scope.
 
   _We expect the `join` and `joinV` combinators to be commutative and
@@ -376,9 +376,9 @@ We also make use of the following auxiliary functions:
   the program after a `try/finally` statement, where `afterTry` is the state
   after the `try` block, `beforeFinally` is the state before the `finally`
   block, and `afterFinally` is the state after the `finally` block. It is
-  defined as `FlowModel(r4, VI4)`, where:
-  - Let `afterTry = FlowModel(r1, VI1)`, `beforeFinally = FlowModel(r2, VI2)`,
-    and `afterFinally = FlowModel(r3, VI3)`.
+  defined as `FlowModel(r4, PI4)`, where:
+  - Let `afterTry = FlowModel(r1, PI1)`, `beforeFinally = FlowModel(r2, PI2)`,
+    and `afterFinally = FlowModel(r3, PI3)`.
   - Let `r4` be defined as follows:
     - If `top(r3)` is `true`, then let `r4 = r1`. _If the `finally` block does
       not unconditionally exit, then the reachability behavior of the
@@ -387,25 +387,25 @@ We also make use of the following auxiliary functions:
     - Otherwise, let `r4 = unreachable(r1)`. _If the `finally` block
       unconditionally exits, then the `try/finally` statement as a whole
       unconditionally exits._
-  - Let `VI4` be the map which maps each variable `v` in the domain of either
-    `VI1` or `VI3` as follows:
-    - If `v` is in the domain of `VI1` but not `VI3`, then `VI4(v) = VI1(v)`.
-    - If `v` is in the domain of `VI3` but not `VI1`, then `VI4(v) = VI3(v)`.
-    - If `v` is in the domain of both `VI1` and `VI3`, then `VI4(v) =
-      attachFinallyV(VI1(v), VI2(v), VI3(v))`. _Note that if `v` is in the
-      domain of both `VI1` and `VI3`, it must have been declared before the
+  - Let `PI4` be the map which maps each variable `v` in the domain of either
+    `PI1` or `PI3` as follows:
+    - If `v` is in the domain of `PI1` but not `PI3`, then `PI4(v) = PI1(v)`.
+    - If `v` is in the domain of `PI3` but not `PI1`, then `PI4(v) = PI3(v)`.
+    - If `v` is in the domain of both `PI1` and `PI3`, then `PI4(v) =
+      attachFinallyV(PI1(v), PI2(v), PI3(v))`. _Note that if `v` is in the
+      domain of both `PI1` and `PI3`, it must have been declared before the
       `try/finally` statement, therefore it must also be in the domain of
-      `VI2`._
+      `PI2`._
 
 - `attachFinallyV(afterTry, beforeFinally, afterFinally)`, where `afterTry`,
-  `beforeFinally`, and `afterFinally` are variable models, represents the state
-  of a variable model after a `try/finally` statement, where `afterTry` is the
+  `beforeFinally`, and `afterFinally` are promotion models, represents the state
+  of a promotion model after a `try/finally` statement, where `afterTry` is the
   state after the `try` block, `beforeFinally` is the state before the `finally`
   block, and `afterFinally` is the state after the `finally` block. It is
-  defined as `VariableModel(d4, p4, s4, a4, u4, c4)`, where:
-  - Let `afterTry = VariableModel(d1, p1, s1, a1, u1, c1)`.
-  - Let `beforeFinally = VariableModel(d2, p2, s2, a2, u2, c2)`.
-  - Let `afterFinally = VariableModel(d3, p3, s3, a3, u3, c3)`.
+  defined as `PromotionModel(d4, p4, s4, a4, u4, c4)`, where:
+  - Let `afterTry = PromotionModel(d1, p1, s1, a1, u1, c1)`.
+  - Let `beforeFinally = PromotionModel(d2, p2, s2, a2, u2, c2)`.
+  - Let `afterFinally = PromotionModel(d3, p3, s3, a3, u3, c3)`.
   - Let `d4 = d3`. _A variable's declared type cannot change. Therefore, `d1 =
     d2 = d3`, so it is safe to simply pick `d3`._
   - Let `p4` be determined as follows:
@@ -427,29 +427,29 @@ We also make use of the following auxiliary functions:
 
 - `unreachable(M)` represents the model corresponding to a program location
   which is unreachable, but is otherwise modeled by flow model `M = FlowModel(r,
-  VI)`, and is defined as `FlowModel(push(pop(r), false), VI)`
+  PI)`, and is defined as `FlowModel(push(pop(r), false), PI)`
 
 - `conservativeJoin(M, written, captured)` represents a conservative
   approximation of the flow model that could result from joining `M` with a
   model in which variables in `written` might have been written to and variables
   in `captured` might have been write-captured.  It is defined as
-  `FlowModel(r, VI1)` where `M` is `FlowModel(r, VI0)` and `VI1` is the map
+  `FlowModel(r, PI1)` where `M` is `FlowModel(r, PI0)` and `PI1` is the map
   such that:
-    - `VI0` maps `v` to `VM0 = VariableModel(d0, p0, s0, a0, u0, c0)`
-    - If `captured` contains `v` then `VI1` maps `v` to
-      `VariableModel(d0, [], s0, a0, false, true)`
-    - Otherwise if `written` contains `v` then `VI1` maps `v` to
-      `VariableModel(d0, [], s0, a0, false, c0)`
-    - Otherwise `VI1` maps `v` to `VM0`
+    - `PI0` maps `v` to `PM0 = PromotionModel(d0, p0, s0, a0, u0, c0)`
+    - If `captured` contains `v` then `PI1` maps `v` to
+      `PromotionModel(d0, [], s0, a0, false, true)`
+    - Otherwise if `written` contains `v` then `PI1` maps `v` to
+      `PromotionModel(d0, [], s0, a0, false, c0)`
+    - Otherwise `PI1` maps `v` to `PM0`
 
-- `inheritTestedV(VM1, VM2)`, where `VM1` and `VM2` are variable models,
-  represents a modification of `VM1` to include any additional types of interest
-  from `VM2`.  It is defined as follows:
+- `inheritTestedV(PM1, PM2)`, where `PM1` and `PM2` are promotion models,
+  represents a modification of `PM1` to include any additional types of interest
+  from `PM2`.  It is defined as follows:
 
-  - We define `inheritTestedV(VM1, VM2)` to be `VM3 = VariableModel(d1, p1, s3,
+  - We define `inheritTestedV(PM1, PM2)` to be `PM3 = PromotionModel(d1, p1, s3,
     a1, u1, c1)` where:
-    - `VM1 = VariableModel(d1, p1, s1, a1, u1, c1)`
-    - `VM2 = VariableModel(d2, p2, s2, a2, u2, c2)`
+    - `PM1 = PromotionModel(d1, p1, s1, a1, u1, c1)`
+    - `PM2 = PromotionModel(d2, p2, s2, a2, u2, c2)`
     - `s3 = s1 U s2`
       - The set of test sites is the union of the test sites on either path
 
@@ -457,20 +457,20 @@ We also make use of the following auxiliary functions:
   modification of `M1` to include any additional types of interest from `M2`.
   It is defined as follows:
 
-  - We define `inheritTested(M1, M2)` to be `M3 = FlowModel(r1, VI3)` where:
-    - `M1 = FlowModel(r1, VI1)`
-    - `M2 = FlowModel(r2, VI2)`
-    - `VI3` is the map which maps each variable `v` in the domain of both `VI1`
-      and `VI2` to `inheritTestedV(VI1(v), VI2(v))`, and maps each variable in
-      the domain of `VI1` but not `VI2` to `VI1(v)`.
+  - We define `inheritTested(M1, M2)` to be `M3 = FlowModel(r1, PI3)` where:
+    - `M1 = FlowModel(r1, PI1)`
+    - `M2 = FlowModel(r2, PI2)`
+    - `PI3` is the map which maps each variable `v` in the domain of both `PI1`
+      and `PI2` to `inheritTestedV(PI1(v), PI2(v))`, and maps each variable in
+      the domain of `PI1` but not `PI2` to `PI1(v)`.
 
 
 ### Promotion
 
 Promotion policy is defined by the following operations on flow models.
 
-We say that the **current type** of a variable `x` in variable model `VM` is `S` where:
-  - `VM = VariableModel(declared, promotionChain, tested, assigned, unassigned, captured)`
+We say that the **current type** of a variable `x` in promotion model `PM` is `S` where:
+  - `PM = PromotionModel(declared, promotionChain, tested, assigned, unassigned, captured)`
   - `promotionChain = l ++ [S]` or (`promotionChain = []` and `declared = S`)
 
 Policy:
@@ -479,10 +479,10 @@ Policy:
     or `T` is **NonNull(`S`)**.
 
   - We say that a variable `x` is promotable via type test with type `T` given
-    variable model `VM` if
-    - `VM = VariableModel(declared, promotionChain, tested, assigned, unassigned, captured)`
+    promotion model `PM` if
+    - `PM = PromotionModel(declared, promotionChain, tested, assigned, unassigned, captured)`
     - and `captured` is false
-    - and `S` is the current type of `x` in `VM`
+    - and `S` is the current type of `x` in `PM`
     - and not `S <: T`
     - and `T <: S` or (`S` is `X extends R` and `T <: R`) or (`S` is `X & R` and
       `T <: R`)
@@ -545,12 +545,12 @@ Definitions:
 
 - `assign(x, E, M)` where `x` is a local variable, `E` is an expression of
   inferred type `T` (which must be a subtype of `x`'s declared type), and `M =
-  FlowModel(r, VI)` is the flow model for `E` is defined to be `FlowModel(r,
-  VI[x -> VM])` where:
-  - `VI(x) = VariableModel(declared, promoted, tested, assigned, unassigned,
+  FlowModel(r, PI)` is the flow model for `E` is defined to be `FlowModel(r,
+  PI[x -> PM])` where:
+  - `PI(x) = PromotionModel(declared, promoted, tested, assigned, unassigned,
     captured)`
   - If `captured` is true then:
-    - `VM = VariableModel(declared, promotionChain, tested, true, false, captured)`.
+    - `PM = PromotionModel(declared, promotionChain, tested, true, false, captured)`.
   - Otherwise:
     - Let `written = T`.
     - Let `promotionChain' = demote(promotionChain, written)`.
@@ -562,7 +562,7 @@ Definitions:
           satisfies `written <: T`._
         - _`written = T` and `T` is a subtype of `x`'s declared type, therefore
           `written <: declared`._
-    - Then `VM = VariableModel(declared, promotionChain'', tested, true, false,
+    - Then `PM = PromotionModel(declared, promotionChain'', tested, true, false,
       captured)`.
 
 - `stripParens(E1)`, where `E1` is an expression, is the result of stripping
@@ -577,22 +577,22 @@ Definitions:
   `Null <: T`; otherwise false.
 
 - `promote(E, T, M)` where `E` is an expression, `T` is a type which it may be
-  promoted to, and `M = FlowModel(r, VI)` is the flow model in which to promote,
+  promoted to, and `M = FlowModel(r, PI)` is the flow model in which to promote,
   is defined to be `M3`, where:
   - If `stripParens(E)` is not a promotion target, then `M3` = `M`
   - If `stripParens(E)` is a promotion target `x`, then
-    - Let `VM = VariableModel(declared, promoted, tested, assigned, unassigned,
-      captured)` be the variable model for `x` in `VI`
-    - If `x` is not promotable via type test to `T` given `VM`, then `M3` = `M`
+    - Let `PM = PromotionModel(declared, promoted, tested, assigned, unassigned,
+      captured)` be the promotion model for `x` in `PI`
+    - If `x` is not promotable via type test to `T` given `PM`, then `M3` = `M`
     - Else
-      - Let `S` be the current type of `x` in `VM`
+      - Let `S` be the current type of `x` in `PM`
       - If `T <: S` then let `T1` = `T`
       - Else if `S` is `X extends R` then let `T1` = `X & T`
       - Else If `S` is `X & R` then let `T1` = `X & T`
       - Else `x` is not promotable (shouldn't happen since we checked above)
-      - Let `VM2 = VariableModel(declared, promoted ++ [T1], tested ++ [T],
+      - Let `PM2 = PromotionModel(declared, promoted ++ [T1], tested ++ [T],
         assigned, unassigned, captured)`
-      - Let `M2 = FlowModel(r, VI[x -> VM2])`
+      - Let `M2 = FlowModel(r, PI[x -> PM2])`
       - If `T1 <: Never` then `M3` = `unreachable(M2)`, otherwise `M3` = `M2`
 - `promoteToNonNull(E, M)` where `E` is an expression and `M` is a flow model is
   defined to be `promote(E, T, M)` where `T0` is the type of `E`, and `T` is
