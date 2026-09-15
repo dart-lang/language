@@ -287,7 +287,7 @@ static types.
 
 We also make use of the following auxiliary functions:
 
-- `joinV(PM1, PM2)`, where `PM1` and `PM2` are promotion models, represents the
+- `joinPM(PM1, PM2)`, where `PM1` and `PM2` are promotion models, represents the
   union of two promotion models, defined as follows:
   - If `PM1 = PromotionModel(d1, p1, s1, a1, u1, c1)` and
   - If `PM2 = PromotionModel(d2, p2, s2, a2, u2, c2)` then
@@ -334,10 +334,10 @@ We also make use of the following auxiliary functions:
     - `pop(r1) = pop(r2) = r0` for some `r0`
     - `r3` is `push(r0, top(r1) || top(r2))`
     - `PI3` is the map which maps each variable `v` in the domain of `PI1` and
-      `PI2` to `joinV(PI1(v), PI2(v))`.  Note that any variable which is in
+      `PI2` to `joinPM(PI1(v), PI2(v))`.  Note that any variable which is in
       domain of only one of the two is dropped, since it is no longer in scope.
 
-  _We expect the `join` and `joinV` combinators to be commutative and
+  _We expect the `join` and `joinPM` combinators to be commutative and
   associative, but we don't rely on this for the soundness of the algorithm._
 
   For brevity, we will sometimes extend `join` to more than two arguments in the
@@ -392,12 +392,12 @@ We also make use of the following auxiliary functions:
     - If `v` is in the domain of `PI1` but not `PI3`, then `PI4(v) = PI1(v)`.
     - If `v` is in the domain of `PI3` but not `PI1`, then `PI4(v) = PI3(v)`.
     - If `v` is in the domain of both `PI1` and `PI3`, then `PI4(v) =
-      attachFinallyV(PI1(v), PI2(v), PI3(v))`. _Note that if `v` is in the
+      attachFinallyPM(PI1(v), PI2(v), PI3(v))`. _Note that if `v` is in the
       domain of both `PI1` and `PI3`, it must have been declared before the
       `try/finally` statement, therefore it must also be in the domain of
       `PI2`._
 
-- `attachFinallyV(afterTry, beforeFinally, afterFinally)`, where `afterTry`,
+- `attachFinallyPM(afterTry, beforeFinally, afterFinally)`, where `afterTry`,
   `beforeFinally`, and `afterFinally` are promotion models, represents the state
   of a promotion model after a `try/finally` statement, where `afterTry` is the
   state after the `try` block, `beforeFinally` is the state before the `finally`
@@ -442,12 +442,12 @@ We also make use of the following auxiliary functions:
       `PromotionModel(d0, [], s0, a0, false, c0)`
     - Otherwise `PI1` maps `v` to `PM0`
 
-- `inheritTestedV(PM1, PM2)`, where `PM1` and `PM2` are promotion models,
+- `inheritTestedPM(PM1, PM2)`, where `PM1` and `PM2` are promotion models,
   represents a modification of `PM1` to include any additional types of interest
   from `PM2`.  It is defined as follows:
 
-  - We define `inheritTestedV(PM1, PM2)` to be `PM3 = PromotionModel(d1, p1, s3,
-    a1, u1, c1)` where:
+  - We define `inheritTestedPM(PM1, PM2)` to be `PM3 = PromotionModel(d1, p1,
+    s3, a1, u1, c1)` where:
     - `PM1 = PromotionModel(d1, p1, s1, a1, u1, c1)`
     - `PM2 = PromotionModel(d2, p2, s2, a2, u2, c2)`
     - `s3 = s1 U s2`
@@ -461,7 +461,7 @@ We also make use of the following auxiliary functions:
     - `M1 = FlowModel(r1, PI1)`
     - `M2 = FlowModel(r2, PI2)`
     - `PI3` is the map which maps each variable `v` in the domain of both `PI1`
-      and `PI2` to `inheritTestedV(PI1(v), PI2(v))`, and maps each variable in
+      and `PI2` to `inheritTestedPM(PI1(v), PI2(v))`, and maps each variable in
       the domain of `PI1` but not `PI2` to `PI1(v)`.
 
 
