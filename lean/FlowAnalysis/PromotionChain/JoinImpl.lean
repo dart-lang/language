@@ -49,7 +49,7 @@ def joinPromotedTypesImpl' {m} [Monad m] (ts₁ ts₂ : List τ) : m (List τ) :
       if i₂ = ts₂.length then
         return match result with
           | some r => r
-          | none => if i₁ = ts₁.length then ts₁ else ts₁.take i₁
+          | none => if i₁ ≥ ts₁.length then panic! "assertion fires" else ts₁.take i₁
       T₂ := ts₂[i₂]!
 
 /-- Lean model of the Dart method `PromotionModel.joinPromotedTypes`. -/
@@ -164,7 +164,9 @@ theorem joinPromotedTypesImpl'_correct [Monad m] [Lean.Order.MonadTail m]
         split
         case isTrue hdone₂ =>
           rw [hdone₂] at hjoin; simp at hjoin ⊢
-          mconstructor; massumption; mpure_intro; cases result <;> simp_all
+          mconstructor; massumption; mpure_intro
+          simp [show ¬c₁.val.length ≤ i₁ by order]
+          cases result <;> simp_all
         case isFalse hrange₂ =>
           replace hrange₂ : i₂ + 1 < c₂.val.length := by grind
           simp
