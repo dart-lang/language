@@ -4,7 +4,7 @@ Author: lrn@google.com
 
 Status: Accepted
 
-Version: 1.4.1 (2025-04-02)
+Version: 1.4.2 (2026-08-11)
 
 Experiment Flag: dot-shorthands
 
@@ -54,11 +54,6 @@ We introduce grammar productions of the form:
     | 'const' '.' (<identifier> | 'new') <arguments>  -- shorthand for constant object creation
 ```
 
-We also add `.` to the tokens that an expression statement cannot start with. This doesn't
-affect starting with a double literal like `.42`, since that's a different token than a single `.`.
-_(Not sure this is *necessary*, but it will possibly make parser recovery easier/
-So mainly disallow this as an abundance of caution.)_
-
 That means you can write things like the following (with the intended meaning as 
 comments, specification to achieve that below):
 
@@ -92,6 +87,9 @@ Future futures = .wait<int>([.value(1), .value(2)]);
 
 // -> Future<List<String>>.wait([lazyString(), lazyString()]).then<String>((list) => list.join())
 Future<String> futures = .wait([lazyString(), lazyString()]).then((list) => list.join());
+
+// -> bool.parse(userInput) || (throw Exception('Not true!'));
+.parse(userInput) || (throw Exception('Not true!'));
 ```
 
 This is a simple grammatical change. It allows new constructs in any place where
@@ -121,13 +119,6 @@ parse `.id` as a selector in that context, and not allow a primary to follow. No
 new rules are needed.
 
 Therefore the new productions introduces no new grammatical ambiguities.
-
-We prevent expression statements from starting with `.` mainly out of caution.
-_(It's an unlikely expression that can start with a static member, it requires something
-that adds a context type on the left, `.parse(userInput) || (throw "Not true!")`
-or similar, which isn't particularly *useful*._
-_If we ever allow metadata on statements, we don’t want `@foo . bar(4);`
-to be ambiguous. If we ever allow metadata on expressions, we have bigger issues.)_
 
 A postfix expression expression *can* follow a `?` in a conditional expression, as in
 `{e1 ? . id : e2}`. This is not ambiguous with `e1?.id` since we parse `?.` as a
@@ -716,6 +707,10 @@ not members of `Future`. Primarily to allow people to return values from
 `async` functions, where we don't *want* to encourage returning `Future`s.
 
 ## Versions
+
+1.4.2 (2026-08-11): Remove the restriction preventing a static member shorthand
+  from beginning an expression statement, matching the existing implementations
+  ([dart-lang/sdk#64009](https://github.com/dart-lang/sdk/issues/64009)).
 
 1.4.1 (2025-04-02): Fix phrasing to avoid using "raw type" where it means
   "uninstantiated type declaration reference".
