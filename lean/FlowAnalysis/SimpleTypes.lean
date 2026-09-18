@@ -110,6 +110,7 @@ public instance instSimpleTypeRepr : DartTypeRepr SimpleType where
   Null := Null
   Object := Object
   ObjectQ := ObjectQ
+  default := Never
 
 namespace instSimpleTypeRepr
 
