@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2026.07.09
+  - Remove a spurious `Null` from the element type inferred for a generator
+    function literal when the end of the body is reachable.
+
 2024.12.17
   - Change the function literal return type inference rules to ignore
     `return;` statements in generators (it doesn't actually cause null to be
@@ -318,13 +322,20 @@ inferred type of the expression body, using the local type inference algorithm
 described below with a typing context as computed above.
 
 The actual returned type of a function literal with a block body is computed as
-follows.  Let `T` be `Never` if every control path through the block exits the
-block without reaching the end of the block, as computed by the **definite
-completion** analysis specified elsewhere.  Let `T` be `Null` if any control
-path reaches the end of the block without exiting the block, as computed by the
-**definite completion** analysis specified elsewhere.  Let `K` be the typing
-context for the function body as computed above from the imposed return type
-schema.
+follows.
+
+  - When the function literal is a generator, let `T` be `Never`.
+  - When the function literal is not a generator:
+    - Let `T` be `Never` if every control path through the block exits the
+      block without reaching the end of the block, as computed by the
+      **definite completion** analysis specified elsewhere.
+    - Let `T` be `Null` if any control path reaches the end of the block
+      without exiting the block, as computed by the **definite completion**
+      analysis specified elsewhere.
+
+Let `K` be the typing context for the function body as computed above from the
+imposed return type schema.
+
   - For each `return e;` statement in the block, let `S` be the inferred type of
     `e`, using the local type inference algorithm described below with typing
     context `K`, and update `T` to be `UP(flatten(S), T)` if the enclosing
