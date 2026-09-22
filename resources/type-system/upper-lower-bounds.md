@@ -336,6 +336,21 @@ follows.
 
 - **DOWN**(`T1`, `T2`) = `Never` otherwise
 
+## Issues and Interesting examples
+
+### Type variable bounds
+
+The definition of upper bound for type variables does not guarantee termination.
+Counterexample:
+
+```dart
+void foo<T extends List<S>, S extends List<T>>(T x, S y) {
+  var a = (x == y) ? x : y;
+}
+```
+
+It should be changed to close the bound with respect to all of the type
+variables declared in the same scope, using the greatest closure definition.
 
 ## Asymmetry
 
