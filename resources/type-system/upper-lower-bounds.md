@@ -337,56 +337,6 @@ follows.
 - **DOWN**(`T1`, `T2`) = `Never` otherwise
 
 
-## Issues and Interesting examples
-
-### Type variable bounds
-
-The definition of upper bound for type variables does not guarantee termination.
-Counterexample:
-
-```dart
-void foo<T extends List<S>, S extends List<T>>() {
-  T x;
-  S y;
-  var a = (x == y) ? x : y;
-}
-```
-
-It should be changed to close the bound with respect to all of the type
-variables declared in the same scope, using the greatest closure definition.
-
-### Generic functions
-
-The CFE currently implements upper bounds for generic functions incorrectly. Example:
-
-```dart
-typedef G0 = T Function<T>(T x);
-typedef G1 = T Function<T>(T x);
-void main() {
-  G0 x;
-  G1 y;
-  // Analyzer: T Function<T>(T)
-  // CFE: bottom -> Object
-  var a = (x == y) ? x : y;
-}
-```
-
-Both the CFE and the analyzer currently implement lower bounds for generic
-functions incorrectly.  Example:
-
-```dart
-typedef G0 = T Function<T>(T x);
-typedef G1 = T Function<T>(T x);
-void main() {
-  void Function(G0) x;
-  void Function(G1) y;
-  int z;
-  // Analyzer: void Function(Never Function(Object))
-  // CFE:      void Function(bottom-type Function(Object))
-  var a = (x == y) ? x : y;
-}
-```
-
 ## Asymmetry
 
 The current algorithm is asymmetric.  There is an equivalence class of top
