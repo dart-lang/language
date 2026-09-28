@@ -191,7 +191,7 @@ memberedDeclarationBody ::=
 memberDeclarations ::= (metadata 'augment'? memberDeclaration)*
 
 primaryConstructorBodySignature ::= // From primary constructors specification
-     'augment'? 'this' initializers?
+    'this' initializers?
 
 memberDeclaration ::= declaration
   | methodSignature functionBody
@@ -1133,7 +1133,7 @@ It's a **compile-time error** if:
     class C(int x);
 
     augment class C {
-      new(int x); // Error.
+      augment new(int x); // Error.
     }
     ```
 
