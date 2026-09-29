@@ -191,7 +191,7 @@ memberedDeclarationBody ::=
 memberDeclarations ::= (metadata 'augment'? memberDeclaration)*
 
 primaryConstructorBodySignature ::= // From primary constructors specification
-     'augment'? 'this' initializers?
+    'this' initializers?
 
 memberDeclaration ::= declaration
   | methodSignature functionBody
@@ -1124,16 +1124,16 @@ It's a **compile-time error** if:
     }
     ```
 
-*   A primary constructor is augmented. *It is already a syntax error for a
-    primary constructor to appear in a class augmentation. But it is also an
-    error to augment a primary constructor using non-primary constructor
-    syntax:*
+*   A primary constructor is augmented. *It is already a compile-time error for
+    a primary constructor to appear in an augmenting declaration. But it is also
+    a compile-time error to augment a primary constructor using non-primary
+    constructor syntax:*
 
     ```dart
     class C(int x);
 
     augment class C {
-      new(int x); // Error.
+      augment new(int x); // Error.
     }
     ```
 
