@@ -1350,23 +1350,20 @@ member declarations:
     *C* is the set of syntactic instance member declarations of
     *C<sub>top</sub>*.
 *   Otherwise let *P* be the set of member declarations of the non-empty stack
-    *C<sub>rest</sub>*,
+    *C<sub>rest</sub>*.
 *   and the member declarations of *C* is the set *R* defined as containing
     only the following elements:
-    *   A stack of each syntactic instance member declaration *M* of
-        *C<sub>top</sub>*, where *M* is a non-augmenting declaration, followed
-        by the augmenting declarations of *M* in *C<sub>top</sub>*, if any,
-        ordered according to the 'before' relation.
+    *   A singleton stack of each syntactic instance member declaration *M* of
+        *C<sub>top</sub>*, where *M* is a non-augmenting declaration.
     *   The elements *N* of *P* where *C<sub>top</sub>* does not contain an
         augmenting instance member declaration with the same name _(mutable
         variable declarations have both a setter and a getter name)_.
-    *   The elements *M* of *P* where *C<sub>top</sub>* contains one or more
-        augmenting instance member declaration with the same name as *M*,
-        augmented by said augmenting declarations in *C<sub>top</sub>*,
-        ordered according to the 'before' relation.
+    *   The stacks of a declaration *M* on top of the stack *N*, where *N* is a
+        member of *P*, *M* is an augmenting instance member declaration of
+        *C<sub>top</sub>*, and *M* has the same name as *N*.
 
-We can determine whether such an instance member declaration stack, *C*,
-*defines an abstract method* as:
+And we can whether such an instance member declaration stack, *C*, *defines an
+abstract method* as:
 
 *   Let *C<sub>top</sub>* be the latest element of the stack and
     *C<sub>rest</sub>* the rest of the stack.
@@ -1396,11 +1393,8 @@ For example, we define the *augmented parameter list* of a non-empty stack,
     known to be empty.)_
 *   Otherwise *C<sub>top</sub>* is an augmenting declaration with a parameter
     list which must have the same parameters (names, positions, optionality and
-    types) as its augmented declaration, except that some positional parameters
-    may have the name `_` in the augmented declaration and another name in the
-    augmenting declaration, or vice versa, and except that at most one of the
-    augmented and augmenting declarations can declare the default value for any
-    given optional parameter.
+    types) as its augmented declaration, except that it is not allowed to
+    declare default values for optional parameters.
     *   Let *P* be the augmented parameter list of *C<sub>rest</sub>*.
     *   The augmented parameter list of *C<sub>top</sub>* is then the parameter
         list of *C<sub>top</sub>*, updated by adding to each optional parameter
@@ -1439,22 +1433,18 @@ follows:
 
 *   Let *C<sub>top</sub>* be the latest declaration on the stack (the last
     applied augmentation in augmentation application order), and
-    *C*<sub>*rest*</sub> the rest of the stack. Let *P* be the augmented
-    parameter list of the complete augmentation stack that contains *C*
-    as a prefix. _Parameter default values may be declared anywhere in the
-    augmentation stack. They may not be found in *C<sub>rest</sub>* nor
-    in *C<sub>top</sub>*, so we must use the augmented parameter list of
-    the entire augmentation chain._
+    *C*<sub>*rest*</sub> the rest of the stack.
 *   If *C<sub>top</sub>* has a function body *B* then:
     *   Bind actuals to formals (using the usual definition of that), binding
-        the argument list *A* and type arguments *T* to the the parameter list
-        *P*. This creates a runtime parameter scope which has the runtime body
-        scope as parent scope (the lexical scope of the class, except that type
-        parameters of the class are bound to the runtime type arguments of those
-        parameters for the instance *o*).
+        the argument list *A* and type arguments *T* to the *augmented
+        parameter list* of *C*<sub>*top*</sub> and type parameters of
+        *C<sub>top</sub>*. This creates a runtime parameter scope which has the
+        runtime body scope as parent scope (the lexical scope of the class,
+        except that type parameters of the class are bound to the runtime type
+        arguments of those parameters for the instance *o*).
     *   Execute the body *B* in this parameter scope, with `this` bound to *o*.
-    *   _There would have been a compile-time error if there is more than one
-        declaration with a body in the entire augmentation chain._
+    *   _There would have been a compile-time error if there is no earlier
+        declaration with a body._
     *   The result of invoking *C* is the returned or thrown result of
         executing *B*.
 *   Otherwise, the result of the invocation of *C* is the result of invoke
