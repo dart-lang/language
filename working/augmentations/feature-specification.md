@@ -249,14 +249,15 @@ Likewise, the grammar for an augmenting `mixin` declaration does not allow
 specifying an `on` clause. Only the introductory declaration permits that. We
 could relax this restriction if compelling use cases arise.
 
-It's a **compile-time error** if a class marked `augment` has a primary
-constructor (`primaryConstructor`) or contains a primary constructor initializer
-block (`primaryConstructorBodySignature`). *Only the introductory declaration of
-a class may declare a primary constructor or its initializer block. Allowing
-primary constructors in augmentations raises tricky questions around how field
-parameters behave and what it means to augment a primary constructor. We could
-allow this in a future version, but for now at least, we avoid that complexity
-by limiting primary constructors to the introductory declaration.*
+It's a **compile-time error** if a class declaration marked `augment` has a
+primary constructor (`primaryConstructor`) or contains a primary constructor
+initializer block (`primaryConstructorBodySignature`). *Only the introductory
+declaration of a class may declare a primary constructor or its initializer
+block. Allowing primary constructors in augmentations raises tricky questions
+around how field parameters behave and what it means to augment a primary
+constructor. We could allow this in a future version, but for now at least, we
+avoid that complexity by limiting primary constructors to the introductory
+declaration.*
 
 ### Enums
 
@@ -279,6 +280,10 @@ enumBody ::=
 
 *Note that an enum can also have neither values nor members and both `{}` and
 `{;}` are valid.*
+
+It's a **compile-time error** if an enum declaration marked `augment` has a
+primary constructor (`primaryConstructor`) or contains a primary constructor
+initializer block (`primaryConstructorBodySignature`).
 
 ### Extensions
 
@@ -496,7 +501,8 @@ class C {
 ```
 
 It's a **compile-time error** if an abstract variable augments a getter and
-setter that don't have a combined signature.
+setter such that the getter return type and the setter parameter type are not
+the same type.
 
 ## Applying augmentations
 
@@ -532,9 +538,10 @@ It's a **compile-time error** if:
     a method with a getter, etc.
 
     The exception is that a variable declaration (introductory or augmenting) is
-    treated as a getter declaration (and a setter declaration if non-`final`)
-    for purposes of augmentation. These implicit declarations can augment and be
-    augmented by other explicit getter and setter declarations. *In other words,
+    treated as a getter declaration (and a setter declaration if non-`final` and
+    non-`const`, or if `late final` without an initializer) for purposes of
+    augmentation. These implicit declarations can augment and be augmented by
+    other implicit or explicit getter and setter declarations. *In other words,
     variables are never augmented or augmenting, only the getters and possibly
     setters that they induce are.*
 
@@ -818,9 +825,8 @@ It's a **compile-time** error if:
     *Since repeating the type parameters is, by definition, redundant, this
     restriction doesn't accomplish anything semantically. It ensures that
     anyone reading the augmenting type can see the declarations of any type
-    parameters that it uses in its body and avoids potential confusion with
-    other top-level variables that might be in scope in the library
-    augmentation.*
+    parameters that it uses in its body, and avoids potential confusion with
+    imported names that might be in scope in the library of the augmentation.*
 
     The augmenting declaration may choose to omit the bound on any type
     parameter, in which case it will be inherited from the introductory
@@ -997,7 +1003,7 @@ type is the type of the variable. Likewise, a declaring parameter in a primary
 constructor induces an introductory instance variable declaration which in turn
 has a complete getter and a complete setter if not `final`.
 
-If the variable is `abstract`, then the getter and setter are incomplete,
+If the variable is `abstract`, the getter and setter (if any) are incomplete,
 otherwise they are complete. *For non-abstract variables, the compiler
 synthesizes a getter that accesses the backing storage and a setter that updates
 it, so these members have bodies.*
@@ -1344,20 +1350,23 @@ member declarations:
     *C* is the set of syntactic instance member declarations of
     *C<sub>top</sub>*.
 *   Otherwise let *P* be the set of member declarations of the non-empty stack
-    *C<sub>rest</sub>*.
+    *C<sub>rest</sub>*,
 *   and the member declarations of *C* is the set *R* defined as containing
     only the following elements:
-    *   A singleton stack of each syntactic instance member declaration *M* of
-        *C<sub>top</sub>*, where *M* is a non-augmenting declaration.
+    *   A stack of each syntactic instance member declaration *M* of
+        *C<sub>top</sub>*, where *M* is a non-augmenting declaration, followed
+        by the augmenting declarations of *M* in *C<sub>top</sub>*, if any,
+        ordered according to the 'before' relation.
     *   The elements *N* of *P* where *C<sub>top</sub>* does not contain an
         augmenting instance member declaration with the same name _(mutable
         variable declarations have both a setter and a getter name)_.
-    *   The stacks of a declaration *M* on top of the stack *N*, where *N* is a
-        member of *P*, *M* is an augmenting instance member declaration of
-        *C<sub>top</sub>*, and *M* has the same name as *N*.
+    *   The elements *M* of *P* where *C<sub>top</sub>* contains one or more
+        augmenting instance member declaration with the same name as *M*,
+        augmented by said augmenting declarations in *C<sub>top</sub>*,
+        ordered according to the 'before' relation.
 
-And we can whether such an instance member declaration stack, *C*, *defines an
-abstract method* as:
+We can determine whether such an instance member declaration stack, *C*,
+*defines an abstract method* as:
 
 *   Let *C<sub>top</sub>* be the latest element of the stack and
     *C<sub>rest</sub>* the rest of the stack.
@@ -1387,8 +1396,11 @@ For example, we define the *augmented parameter list* of a non-empty stack,
     known to be empty.)_
 *   Otherwise *C<sub>top</sub>* is an augmenting declaration with a parameter
     list which must have the same parameters (names, positions, optionality and
-    types) as its augmented declaration, except that it is not allowed to
-    declare default values for optional parameters.
+    types) as its augmented declaration, except that some positional parameters
+    may have the name `_` in the augmented declaration and another name in the
+    augmenting declaration, or vice versa, and except that at most one of the
+    augmented and augmenting declarations can declare the default value for any
+    given optional parameter.
     *   Let *P* be the augmented parameter list of *C<sub>rest</sub>*.
     *   The augmented parameter list of *C<sub>top</sub>* is then the parameter
         list of *C<sub>top</sub>*, updated by adding to each optional parameter
@@ -1427,18 +1439,22 @@ follows:
 
 *   Let *C<sub>top</sub>* be the latest declaration on the stack (the last
     applied augmentation in augmentation application order), and
-    *C*<sub>*rest*</sub> the rest of the stack.
+    *C*<sub>*rest*</sub> the rest of the stack. Let *P* be the augmented
+    parameter list of the complete augmentation stack that contains *C*
+    as a prefix. _Parameter default values may be declared anywhere in the
+    augmentation stack. They may not be found in *C<sub>rest</sub>* nor
+    in *C<sub>top</sub>*, so we must use the augmented parameter list of
+    the entire augmentation chain._
 *   If *C<sub>top</sub>* has a function body *B* then:
     *   Bind actuals to formals (using the usual definition of that), binding
-        the argument list *A* and type arguments *T* to the *augmented
-        parameter list* of *C*<sub>*top*</sub> and type parameters of
-        *C<sub>top</sub>*. This creates a runtime parameter scope which has the
-        runtime body scope as parent scope (the lexical scope of the class,
-        except that type parameters of the class are bound to the runtime type
-        arguments of those parameters for the instance *o*).
+        the argument list *A* and type arguments *T* to the the parameter list
+        *P*. This creates a runtime parameter scope which has the runtime body
+        scope as parent scope (the lexical scope of the class, except that type
+        parameters of the class are bound to the runtime type arguments of those
+        parameters for the instance *o*).
     *   Execute the body *B* in this parameter scope, with `this` bound to *o*.
-    *   _There would have been a compile-time error if there is no earlier
-        declaration with a body._
+    *   _There would have been a compile-time error if there is more than one
+        declaration with a body in the entire augmentation chain._
     *   The result of invoking *C* is the returned or thrown result of
         executing *B*.
 *   Otherwise, the result of the invocation of *C* is the result of invoke
