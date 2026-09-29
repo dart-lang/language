@@ -40,7 +40,7 @@ parameter a function type. For example:
 
 ```dart
 class Iterable<E> {
-  Iterable<E> where(bool test(E element) { ... }
+  Iterable<E> where(bool test(E element)) { ... }
 }
 ```
 
@@ -87,11 +87,22 @@ if you make this mistake. You just silently get worse type checking.
 In [Dart 2][], we shipped a richer, strong static type system. A change relevant
 to this proposal is that it added support for generic methods and first-class
 generic functions. The existing function typedef syntax did not work well with
-those. The language did support generic *typedefs*, but it was the typedef
-itself that accepted type arguments. There was no way to create an alias to a
-generic function type. And, since there was also no other way to write a
-function type in many places, that meant there was no way to write a type
-annotation for a generic function type at all.
+those. The language did support generic *typedefs*. For example:
+
+```dart
+typedef T Combine<T>(T a, T b);
+```
+
+With this, you can use `Combine<int>` to refer to a function type that takes two
+integers and returns one. But there's no way to use this to refer to a *generic*
+function type with type parameter `T`. It's the typedef itself that's generic,
+not the function type it assigns a name too. If you just say `Combine`, the
+compiler implicitly fills in the missing type argument with `dynamic`.
+
+That meant this old syntax didn't let you create an alias to a generic function
+type. And, since there was also no other way to write a function type in many
+places, that meant there was no way to write a type annotation for a generic
+function type *at all*.
 
 [dart 2]: https://dart.dev/blog/announcing-dart-2-optimized-for-client-side-development
 
@@ -99,11 +110,11 @@ annotation for a generic function type at all.
 functions and static types, users really should be able to just *write the type
 of a function* wherever they want.)
 
-Dart 2.0 fixed this by adding a real function type syntax:
+Dart 2.0 fixed the root problem by adding a real function type syntax:
 
 ```dart
 class Iterable<E> {
-  Iterable<E> where(bool Function(E element) test { ... }
+  Iterable<E> where(bool Function(E element) test) { ... }
 }
 ```
 
@@ -111,9 +122,18 @@ Here, `bool Function(E element)` is a type annotation for a function type that
 takes an `E` and returns `bool`. If you omit the name of a parameter (`bool
 Function(E)`), the function type still takes an `E`, not `dynamic`.
 
-Dart 2.0 also add a more generalized `typedef` that allows you to define an
-alias for any type: function types, generic function types, classes,
-instantiations of generic classes, etc.:
+If you need a generic function type, you can put type parameters after
+`Function`, as in `T Function<T>(T, T)`. That's a type annotation for a generic
+function that takes two values of some given type `T` and returns the same type.
+
+Once we had a real function type syntax, there was no need to specialize
+typedefs for function types. Users had long wanted to be able to define their
+own aliases for other types too (like, say, `Json` for `Map<String, Object>`).
+So in Dart 2.13, we added a [more generalized typedef][typedef] that allows you
+to define an alias for any type: function type, generic function type, class,
+instantiation of a generic class, etc.:
+
+[typedef]: https://github.com/dart-lang/language/blob/main/accepted/2.13/nonfunction-type-aliases/feature-specification.md
 
 ```dart
 typedef Measure = int Function(String);
@@ -121,8 +141,20 @@ typedef ListOfInts = List<int>;
 typedef Text = String;
 ```
 
+You can define a generic typedef like this:
+
+```dart
+typedef Combine<T> = T Function(T, T);
+```
+
+Or if you want to typedef a generic function type, you can do:
+
+```dart
+typedef Combine = T Function<T>(T, T);
+```
+
 These two features -- function type annotations and generalized typedefs --
-completely supersede the older function-type parameters and function typedefs.
+completely supersede the older function-typed parameters and function typedefs.
 They can express everything the old syntax could express and more, and they
 don't have the hazard of omitting a parameter name and silently getting
 `dynamic` instead of an unnamed but typed parameter.
@@ -135,10 +167,10 @@ error-prone.
 
 ### Usage
 
-We think the new syntax is so much better for the Dart ecosystem that as soon
-as Dart 2.0 shipped, we started discouraging users from using the old features
-in favor of the new ones. That encouragement seems to have worked. I analyzed
-2,000 pub packages (21,981,565 lines in 104,253 files).
+We think the new syntax is so much better for the Dart ecosystem that as soon as
+those features shipped, we started discouraging users from using the old
+features in favor of the new ones. That encouragement seems to have worked. I
+analyzed 2,000 pub packages (21,981,565 lines in 104,253 files).
 
 Old style function-typed parameters are rare:
 
@@ -172,8 +204,11 @@ Most of those 206 occurrences are in a handful of packages.
 I also analyzed all of the Dart code inside Google. We don't publicly publish
 detailed code size stats of Google's internal codebase but the numbers were
 similar. 95% of parameters that have a function type use the new syntax. Almost
-all of those are in the Dart SDK itself or other packages the Dart team
-maintains. 98% of typedefs use the new syntax.
+all of the ones that don't are in the Dart SDK itself or other packages the Dart
+team maintains. (The Dart team owns some of the oldest Dart code in the world,
+and not all of it has been brought up to the latest idioms.)
+
+98% of typedefs inside Google use the new syntax.
 
 ### Simplifying
 
@@ -302,7 +337,7 @@ simple as running `dart fix`.
 ### SDK code libraries
 
 Our own core library implementations still use the old function-typed parameter
-syntax. (I believe Lasse likes it because it's more concise.) We will have to
+syntax. (I believe Lasse liked it because it's more concise.) We will have to
 migrate that. Again, that's just a matter of re-enabling the lint and running
 `dart fix`.
 
