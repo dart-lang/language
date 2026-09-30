@@ -128,7 +128,7 @@ function that takes two values of some given type `T` and returns the same type.
 
 Once we had a real function type syntax, there was no need to specialize
 typedefs for function types. Users had long wanted to be able to define their
-own aliases for other types too (like, say, `Json` for `Map<String, Object>`).
+own aliases for other types too (like, say, `Json` for `Map<String, dynamic>`).
 So in Dart 2.13, we added a [more generalized typedef][typedef] that allows you
 to define an alias for any type: function type, generic function type, class,
 instantiation of a generic class, etc.:
