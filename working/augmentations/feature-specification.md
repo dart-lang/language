@@ -500,8 +500,8 @@ class C {
 }
 ```
 
-It's a **compile-time error** if an abstract variable augments a getter and
-setter such that the getter return type and the setter parameter type are not
+It's a **compile-time error** if an abstract variable augments a getter and a
+setter where the getter's return type and the setter's parameter type are not
 the same type.
 
 ## Applying augmentations
