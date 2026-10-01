@@ -249,14 +249,15 @@ Likewise, the grammar for an augmenting `mixin` declaration does not allow
 specifying an `on` clause. Only the introductory declaration permits that. We
 could relax this restriction if compelling use cases arise.
 
-It's a **compile-time error** if a class marked `augment` has a primary
-constructor (`primaryConstructor`) or contains a primary constructor initializer
-block (`primaryConstructorBodySignature`). *Only the introductory declaration of
-a class may declare a primary constructor or its initializer block. Allowing
-primary constructors in augmentations raises tricky questions around how field
-parameters behave and what it means to augment a primary constructor. We could
-allow this in a future version, but for now at least, we avoid that complexity
-by limiting primary constructors to the introductory declaration.*
+It's a **compile-time error** if a class declaration marked `augment` has a
+primary constructor (`primaryConstructor`) or contains a primary constructor
+initializer block (`primaryConstructorBodySignature`). *Only the introductory
+declaration of a class may declare a primary constructor or its initializer
+block. Allowing primary constructors in augmentations raises tricky questions
+around how field parameters behave and what it means to augment a primary
+constructor. We could allow this in a future version, but for now at least, we
+avoid that complexity by limiting primary constructors to the introductory
+declaration.*
 
 ### Enums
 
@@ -279,6 +280,10 @@ enumBody ::=
 
 *Note that an enum can also have neither values nor members and both `{}` and
 `{;}` are valid.*
+
+It's a **compile-time error** if an enum declaration marked `augment` has a
+primary constructor (`primaryConstructor`) or contains a primary constructor
+initializer block (`primaryConstructorBodySignature`).
 
 ### Extensions
 
@@ -495,8 +500,9 @@ class C {
 }
 ```
 
-It's a **compile-time error** if an abstract variable augments a getter and
-setter that don't have a combined signature.
+It's a **compile-time error** if an abstract variable augments a getter and a
+setter where the getter's return type and the setter's parameter type are not
+the same type.
 
 ## Applying augmentations
 
@@ -532,9 +538,10 @@ It's a **compile-time error** if:
     a method with a getter, etc.
 
     The exception is that a variable declaration (introductory or augmenting) is
-    treated as a getter declaration (and a setter declaration if non-`final`)
-    for purposes of augmentation. These implicit declarations can augment and be
-    augmented by other explicit getter and setter declarations. *In other words,
+    treated as a getter declaration (and a setter declaration if non-`final` and
+    non-`const`, or if `late final` without an initializer) for purposes of
+    augmentation. These implicit declarations can augment and be augmented by
+    other implicit or explicit getter and setter declarations. *In other words,
     variables are never augmented or augmenting, only the getters and possibly
     setters that they induce are.*
 
@@ -818,9 +825,8 @@ It's a **compile-time** error if:
     *Since repeating the type parameters is, by definition, redundant, this
     restriction doesn't accomplish anything semantically. It ensures that
     anyone reading the augmenting type can see the declarations of any type
-    parameters that it uses in its body and avoids potential confusion with
-    other top-level variables that might be in scope in the library
-    augmentation.*
+    parameters that it uses in its body, and avoids potential confusion with
+    imported names that might be in scope in the library of the augmentation.*
 
     The augmenting declaration may choose to omit the bound on any type
     parameter, in which case it will be inherited from the introductory
@@ -997,7 +1003,7 @@ type is the type of the variable. Likewise, a declaring parameter in a primary
 constructor induces an introductory instance variable declaration which in turn
 has a complete getter and a complete setter if not `final`.
 
-If the variable is `abstract`, then the getter and setter are incomplete,
+If the variable is `abstract`, the getter and setter (if any) are incomplete,
 otherwise they are complete. *For non-abstract variables, the compiler
 synthesizes a getter that accesses the backing storage and a setter that updates
 it, so these members have bodies.*
