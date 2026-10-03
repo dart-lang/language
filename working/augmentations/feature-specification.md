@@ -2,7 +2,7 @@
 
 Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com, eernst@google.com
 
-Version: 1.46 (see [Changelog](#Changelog) at end)
+Version: 1.47 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
@@ -96,8 +96,8 @@ can *add new capabilities* to the declaration and *fill in implementation*, but
 generally can't change any property a reader knows to be true from the
 introductory declaration or any prior augmentation. In other words, if a program
 would work without the augmentation being applied, it should generally still
-work after the augmentation is applied. *Note that this a design principle and
-not a strict guarantee.*
+work after the augmentation is applied. *Note that this is a design principle
+and not a strict guarantee.*
 
 For example, if the introductory declaration of a function takes an `int`
 parameter and returns a `String`, then any augmentation must also take an `int`
@@ -538,12 +538,11 @@ It's a **compile-time error** if:
     a method with a getter, etc.
 
     The exception is that a variable declaration (introductory or augmenting) is
-    treated as a getter declaration (and a setter declaration if non-`final` and
-    non-`const`, or if `late final` without an initializer) for purposes of
-    augmentation. These implicit declarations can augment and be augmented by
-    other implicit or explicit getter and setter declarations. *In other words,
-    variables are never augmented or augmenting, only the getters and possibly
-    setters that they induce are.*
+    treated as a getter declaration and potentially a setter declaration for
+    purposes of augmentation. These implicit declarations can augment and be
+    augmented by other implicit or explicit getter and setter declarations. *In
+    other words, variables are never augmented or augmenting, only the getters
+    and possibly setters that they induce are.*
 
 ### Complete and incomplete declarations
 
@@ -778,7 +777,7 @@ augment class C = S with N; // Error.
 
 A class, enum, extension type, mixin, or mixin class augmentation may specify
 `extends`, `implements` and `with` clauses (when otherwise supported). The types
-in these clauses are appended to the introductory declarations' clauses of the
+in these clauses are appended to the introductory declaration's clauses of the
 same kind, and if that clause did not exist previously, then it is added with
 the new types.
 
@@ -816,7 +815,7 @@ It's a **compile-time** error if:
     after augmentation.*
 
 *   The type parameters of the augmenting declaration do not match the
-    introductory declarations's type parameters. This means there must be the
+    introductory declaration's type parameters. This means there must be the
     same number of type parameters with the exact same type parameter names
     (same identifiers) and bounds if any (same *types*, even if they may not be
     written exactly the same in case one of the declarations needs to refer to a
@@ -862,6 +861,27 @@ signature *matches* an introductory signature if:
 
 *   It has the same set of named parameter names as the introductory
     declaration.
+
+    *For purposes of signature matching, a private named parameter uses its
+    corresponding public name:*
+
+    ```dart
+    class C {
+      int? _x;
+      new({int? this._x});
+    }
+
+    augment class C {
+      new({int? x}); // OK, matches corresponding public name.
+    }
+    ```
+
+    *Note that a private named parameter must be an initializing formal or
+    declaring parameter, which means the surrounding constructor is implicitly
+    complete. The constructor can only be augmented by or augment an incomplete
+    constructor declaration. That in turn means the incomplete declaration which
+    writes the corresponding public name for the parameter will never actually
+    refer to that parameter.*
 
 *   For each corresponding pair of parameters:
 
@@ -964,14 +984,14 @@ augment class C {
 }
 ```
 
-An optional formal parameter has the default value *d* if exactly one
-declaration of that formal parameter in the augmentation chain specifies a
-default value, and it is *d*. An optional formal parameter does not have an
-explicitly specified default value if none of its declarations in the
-augmentation chain specifies a default value. The default value is
-introduced implicitly with the value `null` in the case where the parameter
-has a nullable declared type, and no default values for that parameter are
-specified in the augmentation chain.
+A formal parameter has the default value *d* if exactly one declaration of that
+formal parameter in the augmentation chain specifies a default value, and it is
+*d*. A formal parameter does not have an explicitly specified default value if
+none of its declarations in the augmentation chain specifies a default value.
+*If a formal parameter needs a default value (because it is optional and not in
+a redirecting factory constructor, etc.) then the existing language rules around
+when `null` is implicitly provided apply. Likewise, the rules about whether that
+implicit `null` is an error or not.*
 
 It's a **compile-time** error if:
 
@@ -988,20 +1008,19 @@ It's a **compile-time** error if:
     and the declared function is not abstract.
 
 *   A function is not complete after all augmentations are applied, unless it's
-    an instance member and the surrounding class is abstract. *Every function
-    declaration eventually needs to have a body filled in unless it's an
-    instance method that can be abstract. In that case, if no declaration
-    provides a body, it is considered abstract.*
+    in a context where it may be abstract. *It's OK to have an incomplete
+    declaration inside an abstract class, mixin, class with a `noSuchMethod()`
+    declaration, etc. In that case, the declaration is treated as abstract.*
 
 ### Augmenting variables, getters, and setters
 
 For purposes of augmentation, a variable declaration is treated as implicitly
 defining a getter whose return type is the type of the variable. If the variable
-is not `final`, or is `late` without an initializer, then the variable
-declaration also implicitly defines a setter with a parameter named `_` whose
-type is the type of the variable. Likewise, a declaring parameter in a primary
-constructor induces an introductory instance variable declaration which in turn
-has a complete getter and a complete setter if not `final`.
+is not `final` or `const`, or is `late` without an initializer, then the
+variable declaration also implicitly defines a setter with a parameter named `_`
+whose type is the type of the variable. Likewise, a declaring parameter in a
+primary constructor induces an introductory instance variable declaration which
+in turn has a complete getter and a complete setter if not `final`.
 
 If the variable is `abstract`, the getter and setter (if any) are incomplete,
 otherwise they are complete. *For non-abstract variables, the compiler
@@ -1027,16 +1046,10 @@ It's a **compile-time error** if:
 
 *   A getter or setter (including one implicitly induced by a variable
     declaration) is not complete after all augmentations are applied, unless
-    it's an instance member and the surrounding class is abstract. *Every getter
-    or setter declaration eventually needs to have a body filled in unless it's
-    an instance member that can be abstract. In that case, if no declaration
-    provides a body, it is considered abstract.*
-
-*Using the general [compile-time error principle], some additional situations
-are errors. In particular, a compile-time error occurs if, after application of
-all augmentations, a static or library variable has no initializing expression,
-and its type is not nullable, and the declaration does not have the modifier
-`late` nor the modifier `external`.*
+    it's in a context where it may be abstract. *It's OK to have an incomplete
+    getter or setter declaration inside an abstract class, mixin, class with a
+    `noSuchMethod()` declaration, etc. In that case, the declaration is treated
+    as abstract.*
 
 ### Augmenting enums
 
@@ -1100,7 +1113,7 @@ It's a **compile-time error** if:
 *   More than one constructor declaration in the augmentation chain specifies a
     default value for the same optional parameter. This is an error even in the
     case where all of them are identical. *Default values are defined by the
-    introductory function or an augmentation, but at most once.*
+    introductory constructor or an augmentation, but at most once.*
 
 *   No declaration in the augmentation chain specifies a default value for
     an optional parameter whose declared type is potentially non-nullable,
@@ -1116,7 +1129,7 @@ It's a **compile-time error** if:
     same `const` and `factory` modifiers. *Augmentations can't change whether a
     constructor is const or not, or whether it is generative or not. Note that
     the `new` keyword is omitted here. Augmentations do not have to agree on
-    whether they use the old new constructor syntax:*
+    whether they use the old or new constructor syntax:*
 
     ```dart
     class C {
@@ -1129,6 +1142,10 @@ It's a **compile-time error** if:
       augment factory named() { ... } // OK.
     }
     ```
+
+    *The `const` modifier on a constructor in an enum declaration is optional
+    and meaningless, but all declarations of the same constructor must still
+    agree on whether or not have it.*
 
 *   A primary constructor is augmented. *It is already a compile-time error for
     a primary constructor to appear in an augmenting declaration. But it is also
@@ -1146,7 +1163,7 @@ It's a **compile-time error** if:
 *   A constructor is not complete after all augmentations are applied, unless
     it's a generative constructor. *Every factory constructor eventually needs
     to have a body. A generative constructor does not need to be complete
-    because the compiler will implicitly complete it with default body if it
+    because the compiler will implicitly complete it with a default body if it
     doesn't have one.*
 
 ### Augmenting extension types
@@ -1170,7 +1187,7 @@ extension type declaration, and since they must be declared by the introductory
 extension type declaration, they are always introductory.*
 
 *When augmenting an extension type declaration, the representation
-type declaration cannot be repeated, an augmenting extension type
+type declaration cannot be repeated. An augmenting extension type
 declaration cannot have a primary constructor.*
 
 ### Augmenting with metadata annotations
@@ -1457,7 +1474,7 @@ follows:
 
 ### Documentation comments
 
-Documentation comments are allowed in all the standard places in library
+Documentation comments are allowed in all the standard places in
 augmentations. It is up to the tooling to decide how to present such
 documentation comments to the user, but they should generally be considered to
 be additive, and should not completely override the original comment. In other
@@ -1500,6 +1517,26 @@ fully captured by that paragraph). It's probably safest to be pessimistic
 and assume the third point is always true.
 
 ## Changelog
+
+### 1.47
+
+*   Clarify that `const` declarations don't induce an implicit setter, and
+    remove a redundant specification for declarations that induce a setter.
+
+*   Remove an error that no longer applies now that the specification says
+    that non-abstract variable declarations are always complete.
+
+*   Clarify how named parameter signature matching interacts with private named
+    parameters.
+
+*   Simplify how explicit default values are specifies. Don't restate
+    (incorrectly) what the language already specifies for when an implicit
+    `null` is provided.
+
+*   Clarify that the rule about all declarations of a constructor either having
+    `const` or not applies to enum constructors too.
+
+*   Fix typos.
 
 ### 1.46
 
