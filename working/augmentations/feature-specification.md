@@ -151,10 +151,12 @@ topLevelDeclaration ::= classDeclaration
   | 'augment'? 'late'? varOrType initializedIdentifierList ';'
 ```
 
-### Class-like declarations
+### Class, extension type, and mixin declarations
 
-We allow `augment` before class, extension type, and mixin declarations. *(Enums
-and extensions are discussed in subsequent sections.)*
+We allow `augment` before class, extension type, and mixin declarations and
+before most members inside them. *Enums and extensions are discussed in
+subsequent sections. We don't allow `augment` before a primary constructor
+body.*
 
 ```
 classDeclaration ::=
@@ -188,13 +190,15 @@ memberedDeclarationBody ::=
     '{' memberDeclarations '}'
   | ';'
 
-memberDeclarations ::= (metadata 'augment'? memberDeclaration)*
+memberDeclarations ::= (metadata memberDeclaration)*
 
 primaryConstructorBodySignature ::= // From primary constructors specification
     'this' initializers?
 
-memberDeclaration ::= declaration
-  | methodSignature functionBody
+memberDeclaration ::=
+    'augment'? declaration
+  | 'augment'? methodSignature functionBody
+  | primaryConstructorBodySignature ';'
 
 declaration ::=
     'external'? factoryConstructorSignature ';'
@@ -219,7 +223,6 @@ declaration ::=
   | redirectingFactoryConstructorSignature ';'
   | constantConstructorSignature (redirection | initializers)? ';'
   | constructorSignature (redirection | initializers)? ';'
-  | primaryConstructorBodySignature ';'
 ```
 
 *As introduced by the primary constructor feature, introductory extension type
@@ -249,15 +252,19 @@ Likewise, the grammar for an augmenting `mixin` declaration does not allow
 specifying an `on` clause. Only the introductory declaration permits that. We
 could relax this restriction if compelling use cases arise.
 
-It's a **compile-time error** if a class declaration marked `augment` has a
-primary constructor (`primaryConstructor`) or contains a primary constructor
-initializer block (`primaryConstructorBodySignature`). *Only the introductory
-declaration of a class may declare a primary constructor or its initializer
-block. Allowing primary constructors in augmentations raises tricky questions
-around how field parameters behave and what it means to augment a primary
-constructor. We could allow this in a future version, but for now at least, we
-avoid that complexity by limiting primary constructors to the introductory
-declaration.*
+It's a **compile-time error** if a class or extension type declaration marked
+`augment` has a primary constructor (`primaryConstructor`) or contains a primary
+constructor initializer block (`primaryConstructorBodySignature`).
+
+*Only the introductory declaration of a class or extension type may declare a
+primary constructor or its initializer block. Allowing primary constructors in
+augmentations raises tricky questions around how field parameters behave and
+what it means to augment a primary constructor. We could allow this in a future
+version, but for now at least, we avoid that complexity by limiting primary
+constructors to the introductory declaration.*
+
+*A mixin is already forbidden from having any kind of constructor declaration,
+primary or not, so this compile error doesn't have to cover mixins.*
 
 ### Enums
 
@@ -758,7 +765,7 @@ main() {
 
 *This prints "1 2 3 4 5".*
 
-### Augmenting class-like declarations
+### Augmenting membered declarations
 
 A class, enum, extension, extension type, mixin, or mixin class declaration
 can be marked with an `augment` modifier:
@@ -1508,6 +1515,16 @@ and assume the third point is always true.
     enum with an abstract getter. If we made `index` an introductory declaration
     in the enum declaration itself, then that override would have to be marked
     `augment`.
+
+
+*   Specify that it's an error for an extension type augmentation to add a
+    primary constructor or primary constructor initializer. This restriction
+    was made for classes in 1.46, but was accidentally omitted for extension
+    types.
+
+*   Don't allow `augment` before a primary constructor initializer. This
+    clarifies the grammar and also ensures that even the introductory
+    declaration can't augment a primary constructor.
 
 ### 1.46
 
