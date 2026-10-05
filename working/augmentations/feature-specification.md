@@ -1237,18 +1237,17 @@ enum values. Enum values are appended in augmentation application order.
 Enum values themselves can't be augmented since they are essentially constant
 variables and constant variables can't be augmented.
 
-An introductory `enum` declaration introduces implicit introductory and
-complete declarations of:
- * `int get index`
- * `int get hashCode`
- * `bool operator ==(Object)`
- * `static const List<E> values;` where `E` is the enum type.
+An introductory `enum` declaration introduces an implicit introductory and
+complete declaration of `static const List<E> values;` where `E` is the enum
+type.
 
-For ordering purposes, these implicit declarations are _before_ any members
-declared in the declaration.
+*An introductory `enum` declaration doesn't introduce members for `index`,
+`hashCode`, or `operator ==()`. Those are inherited from a hidden superclass. As
+with Dart today, it is an error to override those with concrete members in the
+enum declaration. This is true for both the introductory and any augmenting
+declarations. An enum declaration (introductory or augmenting) can declare
+_abstract_ overrides of those members.*
 
-*Any declaration of the same members must be augmenting (they are not
-introductory) and must not be complete.*
 *Declaring an instance member named `values` will conflict with the
 static `values` declaration as a normal scope name conflict.*
 
@@ -1695,6 +1694,13 @@ and assume the third point is always true.
 ### 1.47
 
 *   Add a complete specification of "same type" (#4621).
+
+*   Aside from `values`, the members implicitly induced by an enum declaration
+    are not treated as being introductory in the enum itself. This avoids a
+    breaking change where you can currently override a member like `index` in an
+    enum with an abstract getter. If we made `index` an introductory declaration
+    in the enum declaration itself, then that override would have to be marked
+    `augment`.
 
 ### 1.46
 
