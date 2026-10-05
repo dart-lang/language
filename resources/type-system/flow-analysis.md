@@ -24,6 +24,7 @@ https://docs.google.com/document/d/11Xs0b4bzH6DwDlcJMUcbx4BpvEKGz8MVuJWEfo_mirE/
     entry they push (`unsplit`), and to coerce the element type when assigning
     to the loop variable. Correct the definition of `capturedIn` to include
     assignments in `late` variable initializers.
+  - Explain why the cases of a `switch` statement are considered recurrent.
   - Document two known soundness bugs in the existing behavior:
     `for (x in E)` loops ignore `break` statements
     (https://github.com/dart-lang/sdk/issues/64465), and `await for` loops
@@ -302,6 +303,10 @@ The following functions associate flow models to nodes:
     `assignedIn` of any enclosing statement whose recurrent part contains `S`.
     And if the body itself assigns to `x`, then `x` is in `assignedIn(S)`._
   - If `S` is a `switch` statement, all of `S` except the switch `expression`.
+    _The cases of a `switch` statement are considered recurrent because a
+    `continue` statement can transfer control to a labeled case. Accordingly,
+    `assignedIn(S)` and `capturedIn(S)` are only used for a `switch` statement
+    whose cases include a label (see **switch statement** below)._
 
 - `capturedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
   represents the union of `assignedIn(C)` over all closures `C` (see below) in
