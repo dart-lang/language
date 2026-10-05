@@ -862,26 +862,8 @@ signature *matches* an introductory signature if:
 *   It has the same set of named parameter names as the introductory
     declaration.
 
-    *For purposes of signature matching, a private named parameter uses its
-    corresponding public name:*
-
-    ```dart
-    class C {
-      int? _x;
-      new({int? this._x});
-    }
-
-    augment class C {
-      new({int? x}); // OK, matches corresponding public name.
-    }
-    ```
-
-    *Note that a private named parameter must be an initializing formal or
-    declaring parameter, which means the surrounding constructor is implicitly
-    complete. The constructor can only be augmented by or augment an incomplete
-    constructor declaration. That in turn means the incomplete declaration which
-    writes the corresponding public name for the parameter will never actually
-    refer to that parameter.*
+    **TODO:** How does this interact with private named parameters? See:
+    https://github.com/dart-lang/language/issues/4710.
 
 *   For each corresponding pair of parameters:
 
