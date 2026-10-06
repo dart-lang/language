@@ -19,7 +19,7 @@ created. For example:
 
 ```dart
 int foo({int? arg}) {
-  arg = 0;
+  arg ??= 0;
   return (() => arg)(); // OK: `arg` has type `int` inside the closure.
 }
 ```
@@ -60,10 +60,10 @@ other code has run. So flow analysis adjusts the state as follows:
 - After `C`, in the enclosing function, every variable that is assigned inside
   `C` is write captured.
 
-In addition, when a closure suspends (at an `await` expression, or a `yield`
-statement), any variable that the closure reads, and that is assigned anywhere
-in the enclosing top-level declaration, has its promotions discarded, because
-the enclosing function might run while the closure is suspended.
+In addition, when a closure suspends (at an `await` expression, or a `yield` or
+`yield*` statement), any variable that the closure reads, and that is assigned
+anywhere in the enclosing top-level declaration, has its promotions discarded,
+because the enclosing function might run while the closure is suspended.
 
 These rules are documented in [flow-analysis.md][], in the section "Closures
 and suspensions".
@@ -72,10 +72,11 @@ and suspensions".
 
 ### The problem
 
-The first bullet above is more conservative than it needs to be. An
-assignment that happens before `C` is created can't happen between the
-creation of `C` and its invocation, so it can't invalidate a promotion that
-was in effect when `C` was created. For example:
+The first bullet above is more conservative than it needs to be. If an
+assignment executes before the closure is created, then that execution of the
+assignment can't invalidate a promotion that was in effect when the closure
+was created. (The same assignment might execute again later, for example in a
+loop; the definition of "after", below, takes care of that.) For example:
 
 ```dart
 void printLater(int? value, void Function(void Function()) schedule) {
@@ -99,13 +100,15 @@ tricky part is defining "after". The rest of this section defines it precisely.
 
 The *creation point* of a closure `C` is the end of `C`: the end of the
 function expression, the end of the local function declaration, or the end of
-the `late` variable's initializer expression. _So a local function declaration
-is created at its declaration, and a `late` variable's initializer is created
+the `late` variable's initializer expression. _We say that `C` is created when
+execution reaches its creation point. So a local function declaration is
+created at its declaration, and a `late` variable's initializer is created
 when the declaration is reached._
 
-Local functions that call themselves, or each other, need no special
-treatment. Any assignment that executes as a result of invoking a closure `D`
-is inside `D` (or inside some closure that `D` invokes). If the variable it
+Local functions that call themselves, or each other, need no special treatment
+(setting aside [language#4779][], which is addressed by [closure promotion
+soundness][]). Any assignment that executes as a result of invoking a closure
+`D` is inside `D` (or inside some closure that `D` invokes). If the variable it
 assigns to is declared outside that closure, then the variable is write
 captured anyway; otherwise, each invocation of the closure has its own copy of
 the variable.
@@ -169,8 +172,8 @@ A loop *contains* a program point if the program point is in the part of the
 loop that can execute more than once. _For example, the initializer `D` of
 `for (D; E; U) S` is not contained by the loop, but `E`, `U`, and `S` are. In
 `for (X in E) S`, `E` is not contained by the loop, but the implicit
-assignment to `X` and `S` are. In `switch (E) { ... }`, `E` is not contained
-by the loop, but the cases are._
+assignment to `X` and `S` are. In `switch (E) { case ... L: case ... }`, `E`
+is not contained by the loop, but the cases are._
 
 A loop is not considered to contain the declaration of a variable that is
 declared in the loop's header. This includes the variables declared in `D` in
@@ -197,7 +200,12 @@ new errors; see [Impact](#impact).)
 An *exclusive group* is a construct consisting of one or more *arms*, such
 that once control enters an arm, no part of the group that follows the end of
 that arm (in the analysis order) executes during the same execution of the
-group. The exclusive groups are:
+group.
+
+_Arms are syntactic: a program point or an assignment is inside an arm if it
+is located within the source text of that arm._
+
+The exclusive groups are:
 
 - An `if` statement or a collection `if` element (including the if-case
   forms). The then-branch and the else-branch (if present) are arms. The
@@ -222,16 +230,26 @@ operands.
 An assignment `w` to a variable `v` is *after* a program point `P` if either of
 the following holds:
 
-- `w` follows `P` in the analysis order, and there is no exclusive group `G`
-  with an arm `A`, such that `P` is inside `A`, `w` is inside `G`, and `w`
-  follows the end of `A`.
+- `w` follows `P` in the analysis order, unless there is an exclusive group `G`
+  with an arm `A` such that `P` is inside `A`, and `w` is inside `G` but not
+  inside `A`.
 - There is a loop that contains both `P` and `w`, but does not contain the
-  declaration of `v`. _Each iteration of a loop that contains the declaration
-  of `v` has a fresh copy of `v`, so assignments in later iterations can't
-  affect it._
+  declaration of `v`. _If the loop contained the declaration of `v`, each
+  iteration would have a fresh copy of `v`, so assignments in later iterations
+  couldn't affect the copy seen by a closure created in an earlier one._
 
 The initialization of a variable at its declaration site is not considered an
 assignment for this purpose. The implicit assignment in `for (v in E) S` is.
+
+_The purpose of this definition is to identify the assignments that might
+change a variable's value, as seen by a closure, after the closure has been
+created. Assignments inside closures are handled separately: if `w` is inside
+a closure in which `v` is not declared, then `v` is in `writeCapturedAnywhere`,
+so this definition doesn't need to account for closures being invoked at
+arbitrary times. For other assignments, if `w` is not after the creation point
+of a closure `C`, then once `C` has been created, `w` can't execute on the copy
+of `v` that `C` refers to (see [soundness](#soundness)). The converse doesn't
+hold: the definition is conservative (see [early exits](#early-exits))._
 
 `writtenAfter(C)` is the set of variables `v` declared outside of a closure
 `C`, such that some assignment to `v` is after the creation point of `C`.
@@ -255,9 +273,9 @@ to a variable `v` inside one function literal argument, and a closure `C`
 inside a different function literal argument of the same invocation. If `v`
 is declared inside the function literal containing `w`, then `C` can't refer
 to `v`. Otherwise, since `w` is inside a closure, `v` is in
-`capturedAnywhere`. Either way, whether `w` is after the creation point of
-`C` doesn't affect `writtenAfter(C) ∪ capturedAnywhere`, and since `v` is
-write captured on entry to `C`, it is never promoted inside `C`, so whether
+`writeCapturedAnywhere`. Either way, whether `w` is after the creation point
+of `C` doesn't affect `writtenAfter(C) ∪ writeCapturedAnywhere`, and since `v`
+is write captured on entry to `C`, it is never promoted inside `C`, so whether
 `v` is in `readIn(C) ∩ writtenAfter(C)` doesn't matter either._
 
 ### The rules
@@ -265,22 +283,23 @@ write captured on entry to `C`, it is never promoted inside `C`, so whether
 Using the notation of [flow-analysis.md][]:
 
 - On entry to a closure `C`, the flow model is `conservativeJoin(M,
-  writtenAfter(C) ∪ capturedAnywhere, capturedAnywhere)`, where `M` is the
-  flow model in the enclosing function at the point where `C` appears, with the
-  variables assigned in `C` write captured. _Today, `assignedAnywhere` is used
-  in place of `writtenAfter(C) ∪ capturedAnywhere`._
-- When a closure `C` reaches an `await` expression or a `yield` statement, the
-  flow model `M` is replaced by `conservativeJoin(M, readIn(C) ∩
-  writtenAfter(C), [])`. _Today, `assignedAnywhere` is used in place of
-  `writtenAfter(C)`._
+  writtenAfter(C) ∪ writeCapturedAnywhere, writeCapturedAnywhere)`, where `M`
+  is the flow model in the enclosing function at the point where `C` appears,
+  with the variables assigned in `C` write captured. _Today,
+  `assignedAnywhere` is used in place of `writtenAfter(C) ∪
+  writeCapturedAnywhere`._
+- When a closure `C` reaches an `await` expression, a `yield` statement, or a
+  `yield*` statement, the flow model `M` is replaced by `conservativeJoin(M,
+  readIn(C) ∩ writtenAfter(C), [])`. _Today, `assignedAnywhere` is used in
+  place of `writtenAfter(C)`._
 
 All other rules are unchanged.
 
 _`conservativeJoin` also marks the variables in its second argument as not
 definitely unassigned. So a variable that is definitely unassigned at the point
-where `C` appears, and is not in `writtenAfter(C) ∪ capturedAnywhere`, remains
-definitely unassigned inside `C`. Today, it would only remain definitely
-unassigned if it were never assigned at all. See [unassigned `late`
+where `C` appears, and is not in `writtenAfter(C) ∪ writeCapturedAnywhere`,
+remains definitely unassigned inside `C`. Today, it would only remain
+definitely unassigned if it were never assigned at all. See [unassigned `late`
 variables](#unassigned-late-variables)._
 
 ## Examples
@@ -486,17 +505,20 @@ the same as today.
 
 ## Soundness
 
-When the body of a closure `C` begins executing, every assignment to a variable
-`v` that is not after the creation point of `C` has either already executed, or
-can't execute until the enclosing function executes the construct containing
-`C` again. The latter requires an enclosing loop that doesn't contain the
-declaration of `v` (otherwise, a fresh copy of `v` would be involved), and in
-that case the assignment is after the creation point of `C`, by the loop rule.
+Consider a closure `C`, and an assignment `w` to a variable `v`, such that `w`
+is not after the creation point of `C`, and `w` is not inside a closure in
+which `v` is not declared. For `w` to execute on the copy of `v` that `C`
+refers to after `C` has been created, control would have to reach `w` after
+the creation point of `C` without leaving the scope that declares `v` (leaving
+and re-entering that scope creates a fresh copy of `v`). That requires a loop
+that contains both the creation point of `C` and `w`, but not the declaration
+of `v`, and in that case `w` would be after the creation point of `C`, by the
+loop rule.
 
 So the promotions in effect at the creation point of `C` are still valid when
 `C` begins executing, unless `v` has been assigned in the meantime, either by
 the enclosing function (in which case `v` is in `writtenAfter(C)`) or by some
-closure (in which case `v` is in `capturedAnywhere`). Either way, the
+closure (in which case `v` is in `writeCapturedAnywhere`). Either way, the
 promotion is discarded.
 
 The same argument applies to suspensions: while `C` is suspended, the only
@@ -505,8 +527,8 @@ are after the creation point of `C`.
 
 It also applies to definite unassignment: if `v` is definitely unassigned at
 the creation point of `C`, and is in neither `writtenAfter(C)` nor
-`capturedAnywhere`, then no assignment to `v` can execute before `C` reads it,
-so `v` is still unassigned when the read executes.
+`writeCapturedAnywhere`, then no assignment to `v` can execute before `C` reads
+it, so `v` is still unassigned when the read executes.
 
 _This argument relies on the same assumption as today's rule: while a closure
 is executing, the enclosing function can only execute at points where the

@@ -68,9 +68,9 @@ order][], they are as follows:
   are also write captured.
 - After `C`, in the enclosing function, the variables that are assigned inside
   `C` are write captured.
-- When `C` suspends (at an `await` expression or a `yield` statement), flow
-  analysis discards the promotions of every variable that `C` reads and that
-  is assigned after `C` is created.
+- When `C` suspends (at an `await` expression, or a `yield` or `yield*`
+  statement), flow analysis discards the promotions of every variable that `C`
+  reads and that is assigned after `C` is created.
 
 A variable that is assigned only by enclosing functions is not write captured
 inside `C`. So after its promotion is discarded on entry to `C`, it can be
@@ -185,7 +185,7 @@ The exemption applies only to the write capturing added by this proposal (the
 that flow analysis already does for a variable that is assigned inside a
 closure in which it isn't declared. Such a variable is write captured in the
 enclosing function after that closure, and on entry to every closure (because
-it's in `capturedAnywhere`), even if it's in `Final`. _It would be sound to
+it's in `writeCapturedAnywhere`), even if it's in `Final`. _It would be sound to
 exempt such variables too, but this proposal doesn't; see [Exempting finals
 from the existing write
 capturing](#exempting-finals-from-the-existing-write-capturing)._
@@ -197,8 +197,8 @@ On entry to a closure `C`, flow analysis write captures every variable in
 today. That is, the flow model on entry to `C` is:
 
 ```
-conservativeJoin(M, writtenAfter(C) ∪ capturedAnywhere,
-    capturedAnywhere ∪ (writtenAfter(C) − Final))
+conservativeJoin(M, writtenAfter(C) ∪ writeCapturedAnywhere,
+    writeCapturedAnywhere ∪ (writtenAfter(C) − Final))
 ```
 
 where `M` is the flow model in the enclosing function at the point where `C`
@@ -226,8 +226,8 @@ suspension that follows the creation of `C`. That is, the flow model on entry
 to `C` is:
 
 ```
-conservativeJoin(M, writtenAfter(C) ∪ capturedAnywhere,
-    capturedAnywhere ∪ resumableWrittenAfter(C))
+conservativeJoin(M, writtenAfter(C) ∪ writeCapturedAnywhere,
+    writeCapturedAnywhere ∪ resumableWrittenAfter(C))
 ```
 
 where:
@@ -252,9 +252,9 @@ where:
   A suspension point `s` is *after* a program point `P` with respect to a
   variable `v` if either of the following holds:
 
-  - `s` follows `P` in the analysis order, and there is no exclusive group `G`
-    with an arm `A`, such that `P` is inside `A`, `s` is inside `G`, and `s`
-    follows the end of `A`.
+  - `s` follows `P` in the analysis order, unless there is an exclusive group
+    `G` with an arm `A` such that `P` is inside `A`, and `s` is inside `G` but
+    not inside `A`.
   - There is a loop that contains both `P` and `s`, but does not contain the
     declaration of `v`.
 
@@ -269,9 +269,10 @@ while `C` is executing; `F` assigns to `v`". `resumableAfter(C, v)` holds
 whenever that sequence is possible.
 
 Only `F`'s own suspension points need to be considered. If `v` is assigned
-inside any closure nested within `F`, then `v` is in `capturedAnywhere`, so it
-is write captured anyway. So all the remaining assignments to `v` are in `F`'s
-own body, and they can only execute while `C` is executing if `F` is resumed.
+inside any closure nested within `F`, then `v` is in `writeCapturedAnywhere`,
+so it is write captured anyway. So all the remaining assignments to `v` are in
+`F`'s own body, and they can only execute while `C` is executing if `F` is
+resumed.
 
 Note that a synchronous function, or an `async` function with no `await`
 expressions or `await for` loops, has no suspension points, so the narrow
@@ -417,8 +418,8 @@ void f(Box b, Box other) {
 Inside a closure `C`, a promotion of a variable `v` declared outside of `C`
 can be invalidated only by an assignment to `v` that executes after the
 promotion is established, while `C` is executing. Such an assignment is
-either inside some closure, in which case `v` is in `capturedAnywhere`, or in
-the enclosing function, after `C` was created, in which case `v` is in
+either inside some closure, in which case `v` is in `writeCapturedAnywhere`,
+or in the enclosing function, after `C` was created, in which case `v` is in
 `writtenAfter(C)`. Either way, `v` is write captured, unless `v` is in `Final`,
 in which case it can't be assigned after a successful read. Promotions that
 are in effect on entry to `C` are covered by the soundness argument in
@@ -547,7 +548,8 @@ This proposal doesn't make that change, for three reasons:
   final` variables that are assigned inside a closure and promoted somewhere,
   which is an unusual combination.
 - Its effects wouldn't be limited to closures: it would also change
-  `capturedIn`, which is used by the rules for loops, `switch` statements, and
-  `try` statements. So it would need to be evaluated separately.
+  `writeCapturedIn`, which is used by the rules for loops, `switch`
+  statements, and `try` statements. So it would need to be evaluated
+  separately.
 
 It could be made later, as a separate, language-versioned change.
