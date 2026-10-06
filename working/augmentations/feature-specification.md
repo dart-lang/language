@@ -1126,7 +1126,7 @@ It's a **compile-time error** if:
 
     *The `const` modifier on a constructor in an enum declaration is optional
     and meaningless, but all declarations of the same constructor must still
-    agree on whether or not have it.*
+    agree on whether or not to have it.*
 
 *   A primary constructor is augmented. *It is already a compile-time error for
     a primary constructor to appear in an augmenting declaration. But it is also
