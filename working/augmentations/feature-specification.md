@@ -1514,9 +1514,6 @@ and assume the third point is always true.
 *   Remove an error that no longer applies now that the specification says
     that non-abstract variable declarations are always complete.
 
-*   Clarify how named parameter signature matching interacts with private named
-    parameters.
-
 *   Simplify how explicit default values are specifies. Don't restate
     (incorrectly) what the language already specifies for when an implicit
     `null` is provided.
