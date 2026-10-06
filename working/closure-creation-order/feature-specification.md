@@ -611,11 +611,13 @@ literal arguments](#deferred-function-literal-arguments) example.
 ### Take early exits into account
 
 A more precise rule would ignore assignments that can't be reached from the
-creation point, as in the [early exits](#early-exits) example. But
-reachability is computed by flow analysis itself, as it visits the code, and
-the body of a closure is analyzed at the point where the closure appears,
-before the code that follows it. Taking early exits into account would require
-a separate pass, for a small gain.
+creation point, as in the [early exits](#early-exits) example. Flow analysis
+can't use its own reachability information for this, because the body of a
+closure is analyzed at the point where the closure appears, before the code
+that follows it. But a syntactic pre-pass, like the one that already determines
+which variables are assigned and which are write captured, could recognize
+simple cases, such as a block that ends in a `return` statement. This is left
+as possible future work, to keep this proposal small.
 
 ### Leave definite unassignment unchanged
 
