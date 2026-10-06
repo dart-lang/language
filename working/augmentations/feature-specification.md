@@ -972,7 +972,7 @@ formal parameter in the augmentation chain specifies a default value, and it is
 none of its declarations in the augmentation chain specifies a default value.
 *If a formal parameter needs a default value (because it is optional and not in
 a redirecting factory constructor, etc.) then the existing language rules around
-when `null` is implicitly provided apply. Likewise, the rules about whether that
+when `null` is implicitly provided apply. So do the rules about whether that
 implicit `null` is an error or not.*
 
 It's a **compile-time** error if:
