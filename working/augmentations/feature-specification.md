@@ -1514,7 +1514,7 @@ and assume the third point is always true.
 *   Remove an error that no longer applies now that the specification says
     that non-abstract variable declarations are always complete.
 
-*   Simplify how explicit default values are specifies. Don't restate
+*   Simplify how explicit default values are specified. Don't restate
     (incorrectly) what the language already specifies for when an implicit
     `null` is provided.
 
