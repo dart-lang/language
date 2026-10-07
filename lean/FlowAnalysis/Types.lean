@@ -1,5 +1,5 @@
 module
-public import Mathlib.Logic.Unique
+public import Mathlib.Basic.Unique
 public import Mathlib.Order.Defs.PartialOrder
 
 namespace FlowAnalysis
