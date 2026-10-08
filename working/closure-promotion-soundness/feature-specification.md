@@ -235,18 +235,18 @@ where:
 - A *suspension point* is the end of an `await` expression, or the end of a
   `yield` or `yield*` statement. An `await for` loop `L` (either a statement
   or a collection element) is treated as having one suspension point at the
-  beginning of each iteration (before the implicit assignment to the loop
-  variable, if any, and contained by `L`), and another immediately after `L`.
-  _An `await for` loop suspends before each iteration, and before the loop
-  exits. A suspension point follows the operand of the `await` or `yield`, so
-  closures created and assignments made by the operand precede it._
+  beginning of each iteration (before the implicit write to the loop variable,
+  if any, and contained by `L`), and another immediately after `L`. _An
+  `await for` loop suspends before each iteration, and before the loop exits.
+  A suspension point follows the operand of the `await` or `yield`, so
+  closures created and writes performed by the operand precede it._
 - `resumableAfter(C, v)` is true if and only if there is a suspension point `s`
   such that:
   - `s` is in the body of `F`, where `F` is the function whose body or formal
     parameter list declares `v`, and `s` is not inside any closure nested
     within `F`;
   - `s` is after the creation point of `C` with respect to `v`; and
-  - some assignment to `v` is after `s`, in the sense defined in
+  - some write to `v` is after `s`, in the sense defined in
     [closure creation order][].
 
   A suspension point `s` is *after* a program point `P` with respect to a
@@ -258,7 +258,7 @@ where:
   - There is a loop that contains both `P` and `s`, but does not contain the
     declaration of `v`.
 
-  _This mirrors the definition of an assignment being after a program point in
+  _This mirrors the definition of a write being after a program point in
   [closure creation order][], and uses the same analysis order (including the
   treatment of deferred function literal arguments) and exclusive groups._
 - `resumableWrittenAfter(C)` is the set of variables `v` in

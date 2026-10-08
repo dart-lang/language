@@ -117,18 +117,24 @@ the variable.
 
 The *analysis order* is the order in which flow analysis visits code, with the
 bodies of closures visited at the points where flow analysis visits the
-closures. This is mostly the same as the textual order, with the following
+closures.
+
+An assignment expression performs a *write* to a variable (or, for a pattern
+assignment, to each variable in the pattern) at a single point in the analysis
+order, as described below. When this document says that an assignment such as
+`x = null` precedes or follows something, it refers to the write performed by
+the assignment.
+
+The analysis order is mostly the same as the textual order, with the following
 points worth noting:
 
-- In `x = E`, `x op= E`, and `x ??= E`, the assignment to `x` follows `E`. In
-  `++x`, `--x`, `x++`, and `x--`, the assignment follows the read of `x`. So in
-  `x += f(() => x)`, the assignment to `x` follows the closure's creation
-  point.
-- In a pattern assignment `P = E`, the assignments to the variables in `P`
-  follow `E`. So in `(a, b) = g(() => a)`, the assignment to `a` follows the
-  closure's creation point.
-- In `for (X in E) S`, the implicit assignment to `X` follows `E` and precedes
-  `S`.
+- In `x = E`, `x op= E`, and `x ??= E`, the write to `x` follows `E`. In `++x`,
+  `--x`, `x++`, and `x--`, the write follows the read of `x`. So in
+  `x += f(() => x)`, the write to `x` follows the closure's creation point.
+- In a pattern assignment `P = E`, the writes to the variables in `P` follow
+  `E`. So in `(a, b) = g(() => a)`, the write to `a` follows the closure's
+  creation point.
+- In `for (X in E) S`, the implicit write to `X` follows `E` and precedes `S`.
 - In `for (D; E; U) S`, `D` is followed by `E`, then `S`, then `U`. Because of
   the loop rule below, the order of code within a single loop never matters,
   only the fact that `D` precedes the rest of the loop.
@@ -171,9 +177,9 @@ considered a loop because `continue L` can jump backward to the labeled case._
 A loop *contains* a program point if the program point is in the part of the
 loop that can execute more than once. _For example, the initializer `D` of
 `for (D; E; U) S` is not contained by the loop, but `E`, `U`, and `S` are. In
-`for (X in E) S`, `E` is not contained by the loop, but the implicit
-assignment to `X` and `S` are. In `switch (E) { case ... L: case ... }`, `E`
-is not contained by the loop, but the cases are._
+`for (X in E) S`, `E` is not contained by the loop, but the implicit write to
+`X` and `S` are. In `switch (E) { case ... L: case ... }`, `E` is not
+contained by the loop, but the cases are._
 
 A loop is not considered to contain the declaration of a variable that is
 declared in the loop's header. This includes the variables declared in `D` in
@@ -202,8 +208,8 @@ that once control enters an arm, no part of the group that follows the end of
 that arm (in the analysis order) executes during the same execution of the
 group.
 
-_Arms are syntactic: a program point or an assignment is inside an arm if it
-is located within the source text of that arm._
+_Arms are syntactic: a program point or a write is inside an arm if it is
+located within the source text of that arm._
 
 The exclusive groups are:
 
@@ -227,52 +233,52 @@ operands.
 
 ### After
 
-An assignment `w` to a variable `v` is *after* a program point `P` if either of
-the following holds:
+A write `w` to a variable `v` is *after* a program point `P` if either of the
+following holds:
 
 - `w` follows `P` in the analysis order, unless there is an exclusive group `G`
   with an arm `A` such that `P` is inside `A`, and `w` is inside `G` but not
   inside `A`.
 - There is a loop that contains both `P` and `w`, but does not contain the
   declaration of `v`. _If the loop contained the declaration of `v`, each
-  iteration would have a fresh copy of `v`, so assignments in later iterations
+  iteration would have a fresh copy of `v`, so writes in later iterations
   couldn't affect the copy seen by a closure created in an earlier one._
 
-The initialization of a variable at its declaration site is not considered an
-assignment for this purpose. The implicit assignment in `for (v in E) S` is.
+The initialization of a variable at its declaration site is not considered a
+write for this purpose. The implicit write in `for (v in E) S` is.
 
-_The purpose of this definition is to identify the assignments that might
-change a variable's value, as seen by a closure, after the closure has been
-created. Assignments inside closures are handled separately: if `w` is inside
-a closure in which `v` is not declared, then `v` is in `writeCapturedAnywhere`,
-so this definition doesn't need to account for closures being invoked at
-arbitrary times. For other assignments, if `w` is not after the creation point
-of a closure `C`, then once `C` has been created, `w` can't execute on the copy
-of `v` that `C` refers to (see [soundness](#soundness)). The converse doesn't
-hold: the definition is conservative (see [early exits](#early-exits))._
+_The purpose of this definition is to identify the writes that might change a
+variable's value, as seen by a closure, after the closure has been created.
+Writes inside closures are handled separately: if `w` is inside a closure in
+which `v` is not declared, then `v` is in `writeCapturedAnywhere`, so this
+definition doesn't need to account for closures being invoked at arbitrary
+times. For other writes, if `w` is not after the creation point of a closure
+`C`, then once `C` has been created, `w` can't execute on the copy of `v` that
+`C` refers to (see [soundness](#soundness)). The converse doesn't hold: the
+definition is conservative (see [early exits](#early-exits))._
 
 `writtenAfter(C)` is the set of variables `v` declared outside of a closure
-`C`, such that some assignment to `v` is after the creation point of `C`.
+`C`, such that some write to `v` is after the creation point of `C`.
 
 _A `switch` statement with a labeled case is not an exclusive group, because a
 `continue` statement can transfer control from one case to another. But an
 implementation may treat it as one, with no observable difference. To see why,
-consider an assignment `w` to a variable `v`, and a program point `P`, such
-that `w` follows `P` in the analysis order. Treating the `switch` statement as
-an exclusive group could only change whether `w` is after `P` if `P` and `w`
-are in different arms of the `switch` statement. If the `switch` statement
-doesn't contain the declaration of `v`, then `w` is after `P` anyway, by the
-loop rule. If it does, then, since each case has its own scope, `v` is declared
-in the case containing `w`, so a closure whose creation point is `P` can't
-refer to `v`._
+consider a write `w` to a variable `v`, and a program point `P`, such that `w`
+follows `P` in the analysis order. Treating the `switch` statement as an
+exclusive group could only change whether `w` is after `P` if `P` and `w` are
+in different arms of the `switch` statement. If the `switch` statement doesn't
+contain the declaration of `v`, then `w` is after `P` anyway, by the loop rule.
+If it does, then, since each case has its own scope, `v` is declared in the
+case containing `w`, so a closure whose creation point is `P` can't refer to
+`v`._
 
 _Similarly, the order in which horizontal inference visits the function
 literal arguments of an invocation (see [analysis order](#analysis-order))
-never makes an observable difference. To see why, consider an assignment `w`
-to a variable `v` inside one function literal argument, and a closure `C`
-inside a different function literal argument of the same invocation. If `v`
-is declared inside the function literal containing `w`, then `C` can't refer
-to `v`. Otherwise, since `w` is inside a closure, `v` is in
+never makes an observable difference. To see why, consider a write `w` to a
+variable `v` inside one function literal argument, and a closure `C` inside a
+different function literal argument of the same invocation. If `v` is declared
+inside the function literal containing `w`, then `C` can't refer to `v`.
+Otherwise, since `w` is inside a closure, `v` is in
 `writeCapturedAnywhere`. Either way, whether `w` is after the creation point
 of `C` doesn't affect `writtenAfter(C) ∪ writeCapturedAnywhere`, and since `v`
 is write captured on entry to `C`, it is never promoted inside `C`, so whether
@@ -505,15 +511,14 @@ the same as today.
 
 ## Soundness
 
-Consider a closure `C`, and an assignment `w` to a variable `v`, such that `w`
-is not after the creation point of `C`, and `w` is not inside a closure in
-which `v` is not declared. For `w` to execute on the copy of `v` that `C`
-refers to after `C` has been created, control would have to reach `w` after
-the creation point of `C` without leaving the scope that declares `v` (leaving
-and re-entering that scope creates a fresh copy of `v`). That requires a loop
-that contains both the creation point of `C` and `w`, but not the declaration
-of `v`, and in that case `w` would be after the creation point of `C`, by the
-loop rule.
+Consider a closure `C`, and a write `w` to a variable `v`, such that `w` is not
+after the creation point of `C`, and `w` is not inside a closure in which `v`
+is not declared. For `w` to execute on the copy of `v` that `C` refers to after
+`C` has been created, control would have to reach `w` after the creation point
+of `C` without leaving the scope that declares `v` (leaving and re-entering
+that scope creates a fresh copy of `v`). That requires a loop that contains
+both the creation point of `C` and `w`, but not the declaration of `v`, and in
+that case `w` would be after the creation point of `C`, by the loop rule.
 
 So the promotions in effect at the creation point of `C` are still valid when
 `C` begins executing, unless `v` has been assigned in the meantime, either by
@@ -522,13 +527,13 @@ closure (in which case `v` is in `writeCapturedAnywhere`). Either way, the
 promotion is discarded.
 
 The same argument applies to suspensions: while `C` is suspended, the only
-assignments to `v` that can execute in the enclosing function are those that
-are after the creation point of `C`.
+writes to `v` that can execute in the enclosing function are those that are
+after the creation point of `C`.
 
 It also applies to definite unassignment: if `v` is definitely unassigned at
 the creation point of `C`, and is in neither `writtenAfter(C)` nor
-`writeCapturedAnywhere`, then no assignment to `v` can execute before `C` reads
-it, so `v` is still unassigned when the read executes.
+`writeCapturedAnywhere`, then no write to `v` can execute before `C` reads it,
+so `v` is still unassigned when the read executes.
 
 _This argument relies on the same assumption as today's rule: while a closure
 is executing, the enclosing function can only execute at points where the
