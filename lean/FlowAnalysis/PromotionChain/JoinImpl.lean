@@ -234,7 +234,7 @@ public theorem joinPromotedTypesImpl_correct [Monad m] [Lean.Order.MonadTail m]
     · order
     · rename_i r; mrename_i h; mcases h with ⟨hstate, hresult⟩
       mconstructor; massumption; mpure_intro
-      rw [join_comm]; assumption
+      rwa [join_comm]
   case hifFalse =>
     intro hc₁_shorter; mintro hstate; simp; mspec joinPromotedTypesImpl'_correct
     · grind
