@@ -23534,6 +23534,9 @@ at least one of the following criteria holds:
 \begin{itemize}
 \item $S$ is \VOID{} and $T$ is \VOID.
   \commentary{This is a reserved word and cannot be redefined.}
+\item $S$ is $U$ and $T$ is $U?$ or vice versa, where $U$ is \VOID,
+  \code{dynamic}, or \code{Null}.
+  \commentary{The question mark is redundant and tools can ignore it.}
 \item $S$ is an identifier or a prefixed identifier which is resolved
   to denote a declaration $D_S$,
   and $T$ is an identifier or a prefixed identifier which is resolved
@@ -23585,11 +23588,11 @@ at least one of the following criteria holds:
 \end{itemize}
 
 \LMHash{}%
-For the purpose of the above ruleset, \code{Object}, \code{dynamic},
-\code{Null}, \code{Never}, \code{Function},
+In the above ruleset, \code{Object}, \code{dynamic}, \code{Null},
+\code{Never}, \code{Function},
 %% TODO(eernst): Add \code{Record},
 \code{Future}, and \code{FutureOr}
-are considered to be introduced by a declaration in \code{dart:core}.
+are the types introduced by a declaration in a system library.
 
 
 \section{Reference}
