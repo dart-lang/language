@@ -1287,169 +1287,10 @@ produces something that looks and behaves like a single declaration: It has
 a single name, a single type or function signature, and it's what all
 references to the *name* refers to inside and outside of the library.
 
-Unlike before, that single *semantic declaration* now consists of multiple
-*syntactic* declarations (one introductory declaration, the rest augmenting
-declarations, with a given augmentation application order), and the properties
-of the combined semantic declaration can be derived from the syntactic
-declarations.
-
-We redefine a number of semantic functions to now work on a *stack* of
-declarations (the declarations for a name in bottom to top order), so that
-existing semantic definitions keep working.
-
-### Example: Class declarations
-
-#### Super-declarations
-
-The specification of class modifiers introduced a number of predicates on
-*declarations*, to check whether the type hierarchy is well formed and the
-class modifiers are as required, before the static semantics have even
-introduced *types* yet. We modify those predicates to apply to a stack of
-augmenting declarations and an introductory declaration as follows:
-
-*   A a non-empty *stack* of syntactic class declarations, *C*, has a
-    declaration *D* as *declared super-class* if:
-    *   *C* starts with an (augmenting or not) class declaration *C0* and either
-        *   *C0* has an `extends` clause whose type clause denotes the
-            declaration *D*, or
-        *   *C0* is an augmenting declaration, so *C* continues with a
-            non-empty *C<sub>rest</sub>*, and *C<sub>rest</sub>* has *D* as
-            declared super-class.
-*   A a non-empty *stack* of syntactic class declarations, *C*, has a
-    declaration *D* as *declared super-interface* if:
-    *   *C* starts with an (augmenting or not) class declaration *C0* and either
-        *   *C0* has an `implements` clause with an entry whose type clause
-            denotes the declaration *D*, or
-        *   *C0* is an augmenting declaration, so *C* continues with a
-            non-empty *C<sub>rest</sub>*, and *C<sub>rest</sub>* has *D* as
-            declared super-interface.
-*   A a non-empty *stack* of syntactic class declarations, *C*, has a
-    declaration *D* as *declared super-mixin* if:
-    *   *C* starts with an (augmenting or not) class declaration *C0* and either
-        *   *C0* has a `with` clause with an entry whose type clause denotes
-            the  declaration *D*, or
-        *   *C0* is an augmenting declaration, so *C* continues with a
-            non-empty *C<sub>rest</sub>*, and *C<sub>rest</sub>* has *D* as
-            declared super-mixin.
-
-#### Members
-
-A class declaration stack, *C*, of an introductory declaration and zero or more
-augmenting declarations, defines an *augmented interface* (member
-signatures) and *augmented implementation* (instance members declarations)
-based on the individual syntactic declarations.
-
-A non-empty class declaration stack, *C*, has the following set of instance
-member declarations:
-
-*   Let *C<sub>top</sub>* be the latest declaration of the stack, and
-    *C<sub>rest</sub>* the rest of the stack.
-*   If *C<sub>top</sub>* is a non-augmenting declaration, the declarations of
-    *C* is the set of syntactic instance member declarations of
-    *C<sub>top</sub>*.
-*   Otherwise let *P* be the set of member declarations of the non-empty stack
-    *C<sub>rest</sub>*.
-*   and the member declarations of *C* is the set *R* defined as containing
-    only the following elements:
-    *   A singleton stack of each syntactic instance member declaration *M* of
-        *C<sub>top</sub>*, where *M* is a non-augmenting declaration.
-    *   The elements *N* of *P* where *C<sub>top</sub>* does not contain an
-        augmenting instance member declaration with the same name _(mutable
-        variable declarations have both a setter and a getter name)_.
-    *   The stacks of a declaration *M* on top of the stack *N*, where *N* is a
-        member of *P*, *M* is an augmenting instance member declaration of
-        *C<sub>top</sub>*, and *M* has the same name as *N*.
-
-And we can whether such an instance member declaration stack, *C*, *defines an
-abstract method* as:
-
-*   Let *C<sub>top</sub>* be the latest element of the stack and
-    *C<sub>rest</sub>* the rest of the stack.
-*   If *C<sub>top</sub>* is a non-variable declaration, and is not declared
-    abstract, the *C* doe
-*   If *C<sub>top</sub>* declares a function body, then *C* does not define an
-    abstract method.
-*   Otherwise *C* defines an abstract method if *C<sub>rest</sub>* defines an
-    abstract method.
-
-(This is just for methods, we will define it more generally for members,
-including variable declarations.)
-
-### Example: Instance methods
-
-#### Properties
-
-Similarly we can define the properties of stacks of member declarations.
-
-For example, we define the *augmented parameter list* of a non-empty stack,
-*C*, of augmentations on an introductory function declaration as:
-
-*   Let *C<sub>top</sub>* be the latest element of the stack and
-    *C<sub>rest</sub>* the rest of the stack.
-*   If *C<sub>top</sub>* is not an augmenting declaration, its augmented
-    parameter list is its actual parameter list. _(And *C<sub>rest</sub>* is
-    known to be empty.)_
-*   Otherwise *C<sub>top</sub>* is an augmenting declaration with a parameter
-    list which must have the same parameters (names, positions, optionality and
-    types) as its augmented declaration, except that it is not allowed to
-    declare default values for optional parameters.
-    *   Let *P* be the augmented parameter list of *C<sub>rest</sub>*.
-    *   The augmented parameter list of *C<sub>top</sub>* is then the parameter
-        list of *C<sub>top</sub>*, updated by adding to each optional parameter
-        the default value of the corresponding parameter in *P*, if any.
-
-_This will usually be exactly the parameter list of the introductory
-declaration, but the ordering of named parameters may differ. This is mostly
-intended as an example, in practice the augmented parameter list can just be
-the parameter list of the introductory declaration, but it's more
-direct and clearly correct to use the actual parameter list of the declaration
-when creating the parameter scope that its body will run in._
-
-Similarly we define the _augmented function type_ of the declaration stack.
-Because of the restrictions we place on augmentations, they will all have the
-same function type as the introductory declaration, but again it's
-simpler to assign a function type to every declaration.
-
-#### Invocation
-
-When invoking an instance member on an object, the current specification looks
-up the corresponding implementation on the class of the runtime-type of the
-receiver, traversing super-classes, until it it finds a non-abstract
-declaration or needs to search past `Object`. The specification then defines
-how to invoke that method declaration, with suitable contexts and bindings.
-
-We still define the same thing, only the result of lookup is not a single
-declaration, but a stack of augmenting declarations on top of an
-introductory declaration, and while searching, we skip past *declaration
-stacks* that define an abstract method. The resulting stack is the *member
-definition*, or *semantic declaration*, which is derived from the syntactic
-declarations in the source.
-
-Invoking a *stack*, *C*, of instance method declarations on a receiver object
-*o* with an argument list *A* and type arguments *T*, is then defined as
-follows:
-
-*   Let *C<sub>top</sub>* be the latest declaration on the stack (the last
-    applied augmentation in augmentation application order), and
-    *C*<sub>*rest*</sub> the rest of the stack.
-*   If *C<sub>top</sub>* has a function body *B* then:
-    *   Bind actuals to formals (using the usual definition of that), binding
-        the argument list *A* and type arguments *T* to the *augmented
-        parameter list* of *C*<sub>*top*</sub> and type parameters of
-        *C<sub>top</sub>*. This creates a runtime parameter scope which has the
-        runtime body scope as parent scope (the lexical scope of the class,
-        except that type parameters of the class are bound to the runtime type
-        arguments of those parameters for the instance *o*).
-    *   Execute the body *B* in this parameter scope, with `this` bound to *o*.
-    *   _There would have been a compile-time error if there is no earlier
-        declaration with a body._
-    *   The result of invoking *C* is the returned or thrown result of
-        executing *B*.
-*   Otherwise, the result of the invocation of *C* is the result of invoke
-    *C<sub>rest</sub>* on *o* with argument list *A* and type arguments *T*.
-    *   _This will eventually find a body to execute, otherwise *C* would have
-        defined an abstract method, and would not have been invoked to begin
-        with._
+Once this single semantic declaration has been derived by applying all
+augmentations to the introductory declaration in augmentation order, the
+resulting declaration has the same dynamic semantics as if it were a single
+syntactic declaration.
 
 ## Tooling
 
@@ -1500,6 +1341,11 @@ and assume the third point is always true.
 ## Changelog
 
 ### 1.47
+
+*   Remove most of dynamic semantics section. It wasn't clear if it was
+    normative or not, and should be unnecessary. Once augmentations have been
+    applied, the result is a single declaration whose dynamic semantics are the
+    same as if it were written as a single syntactic declaration.
 
 *   Aside from `values`, the members implicitly induced by an enum declaration
     are not treated as being introductory in the enum itself. This avoids a
