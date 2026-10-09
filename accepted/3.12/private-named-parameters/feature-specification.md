@@ -372,6 +372,25 @@ class Hammer extends Tool {
 void pricyHammer() => Hammer(price: 200);
 ```
 
+### Redirecting factories
+
+A redirecting factory declares a formal parameter list which must 
+correspond to the formal parameter list of the redirectee.
+
+Previously, this meant using the same names for named parameters,
+as well as same number of positional parameters, with types that are
+the same as in the redirectee or subtypes thereof.
+
+With this feature, the treatment of named parameters is modified:
+A private named parameter _p_ in the redirectee corresponds to 
+a named parameter _p1_ in the redirecting constructor whose name
+is the corresponding public name of the name in _p_.
+
+All other rules about the parameter lists of redirecting factories 
+remain unchanged. In particular, the declared type in _p1_, if 
+present, must be a subtype of the declared type in _p_.
+
+
 ## Static semantics
 
 An identifier is a **private name** if it starts with an underscore (`_`),
