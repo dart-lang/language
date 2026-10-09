@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: Accepted
 
-Version 0.2 (see [CHANGELOG](#CHANGELOG) at end)
+Version 1.0 (see [CHANGELOG](#CHANGELOG) at end)
 
 Experiment flag: private-named-parameters
 
@@ -572,6 +572,10 @@ can help users learn the feature.
 [concerns]: #concerns
 
 ## Changelog
+
+### 1.0
+
+-   Add section about redirecting factories.
 
 ### 0.2
 
