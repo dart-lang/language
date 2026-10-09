@@ -36,6 +36,10 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Oct 2026
+% - Specify type normalization taking place in algorithm to decide whether
+%   two types are equal.
+%
 % Jul 2026
 % - Remove the getter/setter signature mismatch error. It is no longer required
 %   that the getter return type and setter parameter type are related in any way.
@@ -23537,6 +23541,11 @@ at least one of the following criteria holds:
 \item $S$ is $U$ and $T$ is $U?$ or vice versa, where $U$ is \VOID,
   \code{dynamic}, or \code{Null}.
   \commentary{The question mark is redundant and tools can ignore it.}
+\item $S$ is $U?$ and $T$ is $U??$ or vice versa.
+  \commentary{
+    Each non-first question mark is redundant.
+    Tools can ignore such question marks whenever they arise.%
+  }
 \item $S$ is an identifier or a prefixed identifier which is resolved
   to denote a declaration $D_S$,
   and $T$ is an identifier or a prefixed identifier which is resolved
