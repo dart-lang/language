@@ -4665,6 +4665,14 @@ where $R$ is of one of the forms
 \code{$T$<$S_1 \ldots,\ S_p$>} or
 \code{$T$<$S_1 \ldots,\ S_p$>.\id}.
 
+\commentary{%
+  The non-generic case is covered by letting $m$ or $p$ or both be zero,
+  in which case the formal type parameter list of the class $C$
+  and/or the actual type argument list of the redirectee constructor
+  is omitted
+  (\ref{generics}).%
+}
+
 \LMHash{}%
 It is a compile-time error if $T$ does not denote
 a class accessible in the current scope.
@@ -4687,39 +4695,6 @@ or $q''$ is the redirectee constructor of $q$
 and $q'$ is redirection-reachable from $q''$.
 It is a compile-time error if a redirecting factory constructor
 is redirection-reachable from itself.
-
-\LMHash{}%
-Let $\argumentList{T}$ be the static argument list type
-(\ref{actualArgumentLists})
-\code{($T_1 \ldots,\ T_{n+k}$)}
-when $k$ takes no named arguments, and
-\code{($T_1 \ldots,\ T_n,\ T_{n+1}\ x_{n+1},\ \ldots,\ T_{n+k}\ x_{n+k}$)}
-when $k$ takes some named arguments.
-It is a compile-time error if $\argumentList{T}$
-is not a subtype match for the formal parameter list of the redirectee.
-
-\rationale{%
-  We require a subtype match
-  (rather than the more forgiving assignable match
-  which is used with a generative redirecting constructor),
-  because a factory redirecting constructor $k$ always invokes
-  its redirectee $k'$ with
-  exactly the same actual arguments that $k$ received.
-  This means that a downcast on an actual argument
-  ``between'' $k$ and $k'$
-  would either be unused because the actual argument has
-  the type required by $k'$,
-  or it would amount to a dynamic error which is simply delayed a single step.%
-}
-
-\commentary{%
-  Note that the non-generic case is covered by
-  letting $m$ or $p$ or both be zero,
-  in which case the formal type parameter list of the class $C$
-  and/or the actual type argument list of
-  the redirectee constructor is omitted
-  (\ref{generics}).%
-}
 
 \LMHash{}%
 It is a compile-time error if $k$ explicitly specifies
