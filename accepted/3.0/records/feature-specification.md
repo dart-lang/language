@@ -513,11 +513,16 @@ entries is semantically irrelevant, and all invocations and record literals with
 the same named entries (possibly in different orders or locations) and the same
 positional entries are considered equivalent.
 
+We need to introduce the _union-free type schema_ derived from a given type
+schema `S`: The union-free type schema derived from `S?` and from `FutureOr<S>`
+is the union-free type schema derived from `S`. For any other type schema `S`,
+the union-free type schema derived from `S` is `S`.
+
 Given a type schema `K` and a record expression `E` of the general form `(e1,
 ..., en, d1 : e{n+1}, ..., dm : e{n+m})` inference proceeds as follows.
 
-If `K` is a record type schema of the form `(K1, ..., Kn, {d1 : K{n+1}, ....,
-dm : K{n+m}})` then:
+If the union-free type schema derived from `K` is a record type schema of the
+form `(K1, ..., Kn, {d1 : K{n+1}, ...., dm : K{n+m}})` then:
   - Each `ei` is inferred with context type schema `Ki` to have type `Si`
     - Let `Ri` be the greatest closure of `Ki`
     - If `Si` is a subtype of `Ri` then let `Ti` be `Si`
