@@ -9,6 +9,33 @@ https://docs.google.com/document/d/11Xs0b4bzH6DwDlcJMUcbx4BpvEKGz8MVuJWEfo_mirE/
 
 ## CHANGELOG
 
+2026.10.04
+  - Specify the existing behavior of flow analysis for closures (function
+    expressions, local function declarations, and `late` variable
+    initializers), `await` expressions, and `yield` and `yield*` statements,
+    including the known unsoundness described in
+    https://github.com/dart-lang/language/issues/4779, and the further
+    unsoundness that shared-memory multithreading would introduce
+    (https://github.com/dart-lang/language/issues/4778).
+  - Update the description of `for (x in E)` loops to match the existing
+    behavior, in which the implicit assignment to `x` is not part of the loop's
+    conservative join (see https://github.com/dart-lang/sdk/issues/42653).
+  - Rename `capturedIn` to `writeCapturedIn`, to make clear that it only
+    includes variables that are assigned inside closures, not variables that
+    are merely read.
+  - Correct the description of `for`-`in` loops to pop the reachability stack
+    entry they push (`unsplit`), and to coerce the element type when assigning
+    to the loop variable. Correct the definition of `writeCapturedIn` to include
+    assignments in `late` variable initializers.
+  - Explain why the cases of a `switch` statement are considered recurrent.
+  - Document three known soundness bugs in the existing behavior:
+    `for (x in E)` loops ignore `break` statements
+    (https://github.com/dart-lang/sdk/issues/64465), `await for` loops don't
+    discard promotions in closures
+    (https://github.com/dart-lang/sdk/issues/64466), and the initializer of a
+    non-`final` `late` variable can run re-entrantly and overwrite a promoted
+    value (https://github.com/dart-lang/language/issues/4795).
+
 2020.06.29
   - Fix handling of variables that are write captured in loops, switch
     statements, and try-blocks (such variables should be conservatively assumed
@@ -273,17 +300,61 @@ The following functions associate flow models to nodes:
     `forLoopParts` take the form of a for-in loop, the body of `S`.  A loop of
     the form `for (var x in ...) ...` is not considered to assign to `x`
     (because `var x in ...` is considered an initialization of `x` at its
-    declaration site), but a loop of the form `for (x in ...) ...` (where `x` is
-    declared elsewhere in the function) *is* considered to assign to `x`.
+    declaration site). In a loop `S` of the form `for (x in ...) ...` (where
+    `x` is declared elsewhere in the function), the implicit assignment to `x`
+    is not considered part of the body, so it doesn't contribute to
+    `assignedIn(S)`; instead, it is accounted for separately at the start of
+    each iteration (see **for each statement** below). _It does contribute to
+    `assignedIn` of any enclosing statement whose recurrent part contains `S`.
+    And if the body itself assigns to `x`, then `x` is in `assignedIn(S)`._
   - If `S` is a `switch` statement, all of `S` except the switch `expression`.
+    _The cases of a `switch` statement are considered recurrent because a
+    `continue` statement can transfer control to a labeled case. Accordingly,
+    `assignedIn(S)` and `writeCapturedIn(S)` are only used for a `switch`
+    statement whose cases include a label (see **switch statement** below)._
 
-- `capturedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while` statement,
-  represents the set of variables assigned to in a local function or function
-  expression in the recurrent part of `S`, where the "recurrent" part of `s` is
+- `writeCapturedIn(S)`, where `S` is a `do`, `for`, `switch`, or `while`
+  statement, represents the union of `assignedIn(C)` over all closures `C` (see
+  below) in the recurrent part of `S`, where the "recurrent" part of `S` is
   defined as in `assignedIn`, above.
 
 Note that `true` and `false` are defined for all expressions regardless of their
 static types.
+
+A *closure* is a function expression, a local function declaration, or the
+initializer expression of a `late` local variable. _A `late` variable
+initializer is treated as a closure because it is not evaluated when the
+declaration is reached, but at some later time, when the variable is first
+read; in effect, `late x = E;` behaves like `var x = LAZY_MAGIC(() => E);`,
+where `LAZY_MAGIC` creates a thunk that is evaluated on first read._ The *body*
+of a closure is the function body (for a function expression or local function
+declaration) or the initializer expression itself (for a `late` variable
+initializer).
+
+The *flow analysis root* is the top level function, method, constructor, or
+field declaration being analyzed (see [Flow analysis](#flow-analysis)). The
+following sets are defined for closures and flow analysis roots:
+
+- `assignedIn(C)`, where `C` is a closure, represents the set of variables
+  declared outside of `C` that are assigned to anywhere inside `C` (including
+  inside closures nested in `C`), not counting initializations of variables at
+  their declaration sites.
+
+- `readIn(C)`, where `C` is a closure, represents the set of variables declared
+  outside of `C` that are read anywhere inside `C` (including inside closures
+  nested in `C`).
+
+- `assignedAnywhere` represents the set of variables assigned to anywhere in
+  the flow analysis root (including inside closures), not counting
+  initializations of variables at their declaration sites. _This set includes
+  a variable `x` that is assigned only by the implicit assignment in a loop `S`
+  of the form `for (x in ...) ...`, even though that assignment doesn't
+  contribute to `assignedIn(S)`._
+
+- `writeCapturedAnywhere` represents the set of variables `v` such that `v` is
+  in `assignedIn(C)` for some closure `C` in the flow analysis root. _In other
+  words, it is the set of variables that are assigned inside a closure in which
+  they are not declared._
 
 We also make use of the following auxiliary functions:
 
@@ -828,7 +899,7 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
 - **while statement**: If `N` is a while statement of the form `while
   (E) S` then:
   - Let `before(E) = conservativeJoin(split(before(N)), assignedIn(N),
-    capturedIn(N))`.
+    writeCapturedIn(N))`.
   - Let `before(S) = true(E)`.
   - Let `r` be the `reachability` stack of `before(E)`.
   - Let `breakModels` be a list whose first element is `false(E)`, and whose
@@ -840,8 +911,8 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
   then:
   - Let `before(D) = before(N)`.
   - Let `M0 = conservativeJoin(split(after(D)), assignedIn(N'),
-    capturedIn(N'))`, where `N'` represents the portion of the for statement
-    that excludes `D`.
+    writeCapturedIn(N'))`, where `N'` represents the portion of the for
+    statement that excludes `D`.
   - Let `before(S)` be defined as follows:
     - If the condition `C` is present, then:
       - Let `before(C) = M0`.
@@ -863,7 +934,7 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
 - **do while statement**: If `N` is a do while statement of the form `do S while
   (E)` then:
   - Let `before(S) = conservativeJoin(split(before(N)), assignedIn(N),
-    capturedIn(N))`.
+    writeCapturedIn(N))`.
   - Let `r` be the `reachability` stack of `before(S)`.
   - Let `continueModels` be a list whose first element is `after(S)`, and whose
     remaining elements are `unsplitTo(r, before(C))` for each `continue`
@@ -877,18 +948,26 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
 - **for each statement**: If `N` is a for statement of the form `for (T X in E)
   S`, `for (var X in E) S`, or `for (X in E) S`, then:
   - Let `before(E) = before(N)`
-  - Let `before(S) = conservativeJoin(split(after(E)), assignedIn(N'),
-    capturedIn(N'))`, where `N'` represents the portion of the for statement
-    that excludes `E`.
-  - Let `after(N) = join(after(S), before(S))`. _In principle, it seems like it
-    ought to be necessary for the join to include code paths that come from
-    `break` statements that target `N`. However, since `before(S)` is the result
-    of a conservative join, no code path coming from a break statement that
-    targets `N` can possibly affect the join. So, as an optimization, these code
-    paths are ignored._
-
-  TODO(paulberry): this glosses over how we handle the implicit assignment to X.
-  See https://github.com/dart-lang/sdk/issues/42653.
+  - Let `M0 = conservativeJoin(split(after(E)), assignedIn(N),
+    writeCapturedIn(N))`.
+  - Let `before(S)` be defined as follows:
+    - If `N` has the form `for (X in E) S`, where `X` is a local variable, then
+      let `before(S) = assign(X, E', M0)`, where `E'` is the result of
+      applying type coercion to a fictitious expression whose static type is
+      the element type of the iteration, to coerce it to the declared type of
+      `X`. _The implicit assignment to `X` happens at the start of each
+      iteration, so it is applied after the conservative join, and it is not
+      included in `assignedIn(N)` (see the definition of `assignedIn`). This
+      ensures that code like `if (x is int) for (x in [0]) x.isEven;` is
+      accepted. See https://github.com/dart-lang/sdk/issues/42653._
+    - Otherwise, let `before(S) = M0`.
+  - Let `after(N) = unsplit(join(after(S), M0))`. _Code paths that come from
+    `break` statements that target `N` are not included in the join. If `N`
+    does not have the form `for (X in E) S`, this is harmless: since `M0` is
+    the result of a conservative join, no code path coming from a `break`
+    statement that targets `N` can possibly affect the join. But if `N` has
+    the form `for (X in E) S`, it is unsound: see
+    https://github.com/dart-lang/sdk/issues/64465 for an explanation._
 
 - **switch statement**: If `N` is a switch statement of the form `switch (E)
   {alternatives}` (where each `alternative` is a `switchStatementDefault` or
@@ -908,7 +987,7 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
     - Let `S` be the set of statements in the last alternative of `G`.
     - Let `before(S)` be defined as follows:
       - If any of the alternatives in `G` contains a label, then `before(S) =
-        split(conservativeJoin(unmatched, assignedIn(N), capturedIn(N)))`.
+        split(conservativeJoin(unmatched, assignedIn(N), writeCapturedIn(N)))`.
       - Otherwise, let `before(S) = split(unmatched)`.
   - Let `breakModels` be a list consisting of:
     - For each group `G` in `body`:
@@ -930,14 +1009,14 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
   - Let `before(B) = split(before(N))`.
   - For each catch block `on Ti Si` in `catches`:
     - Let `before(Si) = conservativeJoin(before(N), assignedIn(B),
-      capturedIn(B))`.
+      writeCapturedIn(B))`.
   - Let `after(N) = unsplit(join(after(B), after(S0), ..., after(Sk)))`.
 
 - **try finally**: If `N` is a try statement of the form `try B1 finally B2`
   then:
   - Let `before(B1) = before(N)`
   - Let `before(B2) = join(after(B1), conservativeJoin(before(N),
-    assignedIn(B1), capturedIn(B1)))`.
+    assignedIn(B1), writeCapturedIn(B1)))`.
   - Let `after(N) = attachFinally(after(B1), before(B2), after(B2))`.
     - _Note: as an optimization, the computation of `attachFinally` may be
       skipped in two circumstances:_
@@ -951,6 +1030,97 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
 - **try catch finally**: If `N` is a try statement of the form `try B1 catches
   finally B2`, then it is treated as equivalent to the statement `try { try B1
   catches } finally B2`.
+
+### Closures and suspensions
+
+As in the sections above, `N` denotes the expression or statement being
+analyzed, and the rules specify `after(N)` in terms of `before(N)`. A local
+variable declaration that declares more than one variable (for example, `late
+int x = e1, y = e2;`) is treated as a sequence of declarations, each declaring
+one of the variables.
+
+The body of a closure is analyzed at the point where flow analysis visits the
+closure, even though it executes later (possibly many times, or not at all).
+For a local function declaration, this is the point of the declaration; for a
+`late` variable initializer, it is the point of the variable declaration. For
+a function expression, this is ordinarily the point where the expression
+appears in the source code. However, if the function expression is a function
+literal argument of an invocation (as defined in [horizontal inference][]),
+then it is analyzed after the invocation's other arguments that are not
+function literals, in an order determined by [horizontal inference][].
+
+[horizontal inference]: ../../accepted/2.18/horizontal-inference/feature-specification.md
+
+- **Closure**: If `N` is a function expression or a local function
+  declaration, let `C` be `N`, and let `B` be the body of `C` (either a block
+  body or an `=>` body). If `N` is a declaration of a `late` local variable
+  with an initializer expression `E`, let `C` and `B` both be `E`. Then:
+  - Let `M = conservativeJoin(before(N), [], assignedIn(C))`. _Once `C` has
+    been created, it might be invoked at any time, and so any variable that
+    `C` assigns to might change at any time. Therefore, those variables are
+    write captured from this point on._
+  - Let `before(B) = conservativeJoin(M, assignedAnywhere,
+    writeCapturedAnywhere)`.
+    _Inside `C`, any variable that is assigned anywhere has its promotions
+    discarded, because the assignment might have happened before `C` executes.
+    But only variables that are assigned inside a closure in which they are
+    not declared are write captured (and hence made ineligible for further
+    promotion inside `C`). Variables that are assigned only by enclosing
+    functions may still be promoted inside `C`. This is based on the
+    assumption that, while `C` is executing, enclosing functions can only
+    execute at points where `C` itself suspends; see **Suspensions**, below._
+  - Let `after(N) = M`. _The only way `B` affects the flow model after `N` is
+    through `assignedIn(C)`, which is already accounted for in `M`. The
+    promotions and reachability computed while analyzing `B` don't carry
+    over, because `B` does not execute at the point where `C` appears._
+
+  _The assumption that enclosing functions can only execute while `C` is
+  suspended is known to be unsound. A closure can resume an enclosing `sync*`
+  function synchronously, by calling `moveNext` on its iterator, and an
+  enclosing `async` function can be resumed synchronously by a sync completer.
+  Either way, the enclosing function may assign to a variable while a
+  promotion of it is in effect inside `C`. See
+  https://github.com/dart-lang/language/issues/4779._
+
+  _If shared-memory multithreading were added to Dart, the assumption would
+  fail in a further way, because enclosing functions might then execute
+  concurrently with `C`. See
+  https://github.com/dart-lang/language/issues/4778._
+
+  _The initializer of a `late` variable is an initialization, not an
+  assignment, so it doesn't cause the variable to be write captured, or its
+  promotions to be discarded on entry to a closure. This is unsound for a
+  non-`final` `late` variable. If the variable is read while its initializer
+  is executing (for example, by a closure that the initializer invokes), the
+  initializer runs again, re-entrantly, and when the outer run finishes, it
+  overwrites the value stored by the inner run. So a promotion based on the
+  inner run's value may become invalid. See
+  https://github.com/dart-lang/language/issues/4795._
+
+- **Suspensions**: `suspend(N, M)`, where `N` is an `await` expression, a
+  `yield` statement, or a `yield*` statement, and `M` is a flow model, is
+  defined as follows:
+  - If `N` is inside a closure, let `C` be the innermost closure containing
+    `N`. Then `suspend(N, M) = conservativeJoin(M, readIn(C) ∩
+    assignedAnywhere, [])`. _While `C` is suspended, enclosing functions may
+    resume executing, and they may assign to variables that `C` reads.
+    Therefore, any promotions of such variables are discarded._
+  - Otherwise, `suspend(N, M) = M`. _Code that is not inside any closure can
+    only be affected by closures, and variables assigned in closures are
+    already write captured._
+
+  _An `await for` loop also suspends, before each iteration and before the
+  loop exits, but it does not currently discard any promotions. This is
+  unsound. See https://github.com/dart-lang/sdk/issues/64466._
+
+- **Await expression**: If `N` is an expression of the form `await E1`, then:
+  - Let `before(E1) = before(N)`.
+  - Let `after(N) = suspend(N, after(E1))`.
+
+- **Yield statement**: If `N` is a statement of the form `yield E1;` or `yield*
+  E1;`, then:
+  - Let `before(E1) = before(N)`.
+  - Let `after(N) = suspend(N, after(E1))`.
 
 ## Interesting examples
 
