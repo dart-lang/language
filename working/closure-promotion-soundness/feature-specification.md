@@ -204,7 +204,7 @@ conservativeJoin(M, writtenAfter(C) ∪ writeCapturedAnywhere,
 where `M` is the flow model in the enclosing function at the point where `C`
 appears (with the variables assigned in `C` write captured), and
 `writtenAfter(C)` is the set of variables declared outside of `C` that are
-assigned after the creation point of `C`, as defined in [closure promotion
+assigned after the creation point of `C`, as defined in [closure creation
 order][].
 
 In other words, a non-final variable can be promoted inside a closure only if
@@ -457,6 +457,7 @@ where an existing promotion inside a closure would be lost, and a fix (such as
 | Full variant, with [closure creation order][] | 34 |
 | Option A (see below), without [closure creation order][] | 205 |
 | Option B (see below), without [closure creation order][] | 108 |
+| Option A (see below), with [closure creation order][] | 9 |
 | Narrow variant, with [closure creation order][] | 7 |
 
 All 7 sites affected by the narrow variant were checked by hand, and all are
@@ -479,9 +480,22 @@ corpus above, the lint and quick fix found and fixed all 386 sites.
 
 Write capture every non-final variable that is read inside a closure and
 assigned somewhere other than its declaration, if the function declaring the
-variable is `sync*`, `async`, or `async*`. This is simpler than the narrow
-variant, but loses many more promotions: without [closure creation order][], it
-affects 205 sites, versus 108 for option B.
+variable is `sync*`, `async`, or `async*`. Without [closure creation order][],
+this affects 205 sites, versus 108 for option B.
+
+Combined with [closure creation order][], option A becomes: on entry to a
+closure `C`, write capture the variables in `writtenAfter(C) − Final`, if the
+function declaring them is `sync*`, `async`, or `async*`. In other words, it is
+the full variant, restricted to those kinds of functions. This is sound, because
+it write captures a superset of the variables that the narrow variant write
+captures (only `sync*`, `async`, and `async*` functions have suspension points).
+It affects 9 sites, versus 7 for the narrow variant, but it avoids the need to
+define suspension points and `resumableAfter`. Its extra cost would also become
+moot if the full variant ships. Whether to adopt it in place of the narrow
+variant is an open question; see [the discussion in
+language#4779][option-a-discussion].
+
+[option-a-discussion]: https://github.com/dart-lang/language/issues/4779#issuecomment-6083185151
 
 ### Option B: writes after a suspension
 
@@ -503,7 +517,7 @@ if (x != null) {
 }
 ```
 
-[suspend-as-closure]: https://github.com/dart-lang/language/issues/4779#issuecomment-5876471415
+[suspend-as-closure]: https://github.com/dart-lang/language/issues/4779#issuecomment-5850287727
 
 ### Write type refinement
 
