@@ -4665,6 +4665,14 @@ where $R$ is of one of the forms
 \code{$T$<$S_1 \ldots,\ S_p$>} or
 \code{$T$<$S_1 \ldots,\ S_p$>.\id}.
 
+\commentary{%
+  The non-generic case is covered by letting $m$ or $p$ or both be zero,
+  in which case the formal type parameter list of the class $C$
+  and/or the actual type argument list of the redirectee constructor
+  is omitted
+  (\ref{generics}).%
+}
+
 \LMHash{}%
 It is a compile-time error if $T$ does not denote
 a class accessible in the current scope.
