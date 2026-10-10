@@ -1,5 +1,6 @@
 module
 public import DartLang
+public import DartSemantics.HeadStep
 public import DartSemantics.Resolve
 public import DartSemantics.State
 
