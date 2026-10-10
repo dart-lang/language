@@ -100,6 +100,22 @@ public inductive LoweredExpr where
   (after any promotion) is `T`.
   -/
   | propertyGet (m : LoweredExpr) (p : Property) (T : τ)
+  /-
+  The remaining constructors are *run-time-only* forms: flow analysis never produces them. They
+  appear only as a program runs.
+  -/
+  /-- An expression that has completed normally, evaluating to `v`. -/
+  | val (v : Value)
+  /-- An expression that has thrown exception object `v`, propagating outward. -/
+  | throwing (v : Value)
+  /--
+  A reference to local variable or formal parameter `v`, whose static type (after any promotion)
+  is `T`, resolved to the heap cell at `ℓ`. Declaring a variable resolves each `var v T` in its
+  scope to `varAt v T ℓ`.
+  -/
+  | varAt (v : Variable) (T : τ) (ℓ : Loc)
+  /-- Evaluate `m₁`, discard its value, then evaluate `m₂`. A block runs as a sequence. -/
+  | seq (m₁ m₂ : LoweredExpr)
 
 /--
 An evaluation context item: an expression with a hole in the position that evaluates next. See
@@ -116,15 +132,36 @@ public inductive EctxItem where
   | cond (m₂ m₃ : LoweredExpr) (T : τ)
   /-- `□.p` (of type `T`) -/
   | propertyGet (p : Property) (T : τ)
+  /-- `seq(□, m₂)` -/
+  | seq (m₂ : LoweredExpr)
 
 end
 
 deriving instance Repr for Value, LoweredExpr, EctxItem
 deriving instance BEq for Value, LoweredExpr, EctxItem
 
+local notation "Value" => Value (τ := τ)
 local notation "LoweredExpr" => LoweredExpr (τ := τ)
 
-/-- The static type of an expression. -/
+/--
+A static type for a value, for `LoweredExpr.typeOf`: the most precise type that doesn't depend
+on the heap. (An object's class is in the heap, so an object reference just gets `Object`.)
+-/
+@[expose]
+public def Value.typeOf : Value → τ
+  | .null => Γ.Null
+  | .bool _ => Γ.bool
+  | .obj _ => Γ.Object
+  | .error _ => Γ.Object
+  | .cont _ => Γ.ObjectQ
+
+/--
+The static type of an expression.
+
+For the run-time-only forms, which flow analysis never sees, the types are chosen only to make
+this function total, and no proof relies on them. In particular, `throwing` would best be typed
+`Never`, which `DartTypeRepr` doesn't have; it gets the top type `Object?` instead.
+-/
 @[expose]
 public def LoweredExpr.typeOf :
     LoweredExpr → τ
@@ -137,5 +174,9 @@ public def LoweredExpr.typeOf :
   | cond _ _ _ T => T
   | block _ => Γ.Null
   | propertyGet _ _ T => T
+  | val v => v.typeOf
+  | throwing _ => Γ.ObjectQ
+  | varAt _ T _ => T
+  | seq _ m₂ => m₂.typeOf
 
 end DartLang
