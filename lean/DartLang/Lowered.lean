@@ -179,4 +179,69 @@ public def LoweredExpr.typeOf :
   | varAt _ T _ => T
   | seq _ m₂ => m₂.typeOf
 
+local notation "EctxItem" => EctxItem (τ := τ)
+
+/--
+How an expression's evaluation (or a statement's execution) *completes*, in the sense of the
+language specification's "Statement Completion" section: normally, evaluating to an object, or by
+throwing an exception object. Stack traces aren't modeled.
+
+The specification has three more kinds of completion: breaking and continuing (each with or
+without a label), and returning. Variants for them will be added here when the semantics supports
+`break`, `continue` and `return` statements.
+-/
+public inductive Outcome where
+  /-- Completes normally, evaluating to `v`. -/
+  | normal (v : Value)
+  /-- Throws exception object `v`. -/
+  | throwing (v : Value)
+  deriving Repr, BEq
+
+local notation "Outcome" => Outcome (τ := τ)
+
+/-- The expression that has completed with outcome `o`. -/
+@[expose]
+public def Outcome.toExpr : Outcome → LoweredExpr
+  | .normal v => .val v
+  | .throwing v => .throwing v
+
+/-- How `m` completed, if it has. -/
+@[expose]
+public def LoweredExpr.toOutcome? : LoweredExpr → Option Outcome
+  | .val v => some (.normal v)
+  | .throwing v => some (.throwing v)
+  | _ => none
+
+omit Γ in
+public theorem Outcome.toOutcome?_toExpr (o : Outcome) : o.toExpr.toOutcome? = some o := by
+  cases o <;> rfl
+
+omit Γ in
+public theorem LoweredExpr.toExpr_of_toOutcome? {m : LoweredExpr} {o : Outcome}
+    (h : m.toOutcome? = some o) : o.toExpr = m := by
+  cases m <;> simp only [toOutcome?, reduceCtorEq, Option.some.injEq] at h <;> subst h <;> rfl
+
+/-- Plug `m` into the hole of context item `Ki`. -/
+@[expose]
+public def EctxItem.fill : EctxItem → LoweredExpr → LoweredExpr
+  | .nullCheck, m => .nullCheck m
+  | .as T, m => .as m T
+  | .is T, m => .is m T
+  | .cond m₂ m₃ T, m => .cond m m₂ m₃ T
+  | .propertyGet p T, m => .propertyGet m p T
+  | .seq m₂, m => .seq m m₂
+
+omit Γ in
+/-- An expression with a hole plugged hasn't completed. -/
+public theorem EctxItem.toOutcome?_fill (Ki : EctxItem) (m : LoweredExpr) :
+    (Ki.fill m).toOutcome? = none := by
+  cases Ki <;> rfl
+
+/--
+Plug `m` into the hole of the evaluation context `k`, a list of context items, innermost first.
+-/
+@[expose]
+public def fillCtx (k : List EctxItem) (m : LoweredExpr) : LoweredExpr :=
+  k.foldl (fun m Ki => Ki.fill m) m
+
 end DartLang
