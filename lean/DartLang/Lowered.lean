@@ -1,5 +1,6 @@
 module
 public import DartLang.Elements
+public import DartLang.Loc
 public import DartLang.Types
 
 namespace DartLang
@@ -10,6 +11,50 @@ variable {τ : Type} [Γ : DartTypeRepr τ]
 
 local notation "Variable" => Variable (τ := τ)
 local notation "Property" => Property (τ := τ)
+
+/--
+The kinds of dynamic error (in the specification's sense) that can occur in the subset of Dart
+modeled so far.
+
+This is a placeholder. The language specification says that when a dynamic error occurs, a
+corresponding error object is thrown; for a dynamic type error, the thrown object implements
+`TypeError`. Once the semantics can allocate objects of core library classes, a dynamic error
+will throw such an object, and this type (with `Value.error`) will go away.
+-/
+public inductive DynamicError where
+  /--
+  A dynamic type error: a failed type check at run time, such as a null check (`e!`) finding the
+  null object, or a failed cast (`e as T`).
+  -/
+  | typeError
+  deriving Repr, BEq, DecidableEq
+
+/-
+`Value`, `LoweredExpr` and `EctxItem` are mutually inductive: a value may hold a captured
+continuation (a list of evaluation context items), and evaluation context items hold the
+expressions still to be evaluated.
+-/
+mutual
+
+/--
+A run-time value: in the specification's terms, an object. The null object, booleans and error
+objects are represented directly; other objects live in the heap and are referred to by location.
+-/
+public inductive Value where
+  /-- The null object. -/
+  | null
+  /-- The object `true` or `false`. -/
+  | bool (b : Bool)
+  /-- A reference to the object stored at location `ℓ`. -/
+  | obj (ℓ : Loc)
+  /-- The object thrown when dynamic error `e` occurs. -/
+  | error (e : DynamicError)
+  /--
+  A captured continuation: the evaluation context items around a suspended computation,
+  innermost first. Reserved for constructs that capture continuations (such as `await`); nothing
+  creates one yet.
+  -/
+  | cont (k : List EctxItem)
 
 /--
 Lowered, fully type-checked AST form.
@@ -55,7 +100,27 @@ public inductive LoweredExpr where
   (after any promotion) is `T`.
   -/
   | propertyGet (m : LoweredExpr) (p : Property) (T : τ)
-  deriving Repr, BEq
+
+/--
+An evaluation context item: an expression with a hole in the position that evaluates next. See
+`EctxItem.fill`.
+-/
+public inductive EctxItem where
+  /-- `□!` -/
+  | nullCheck
+  /-- `□ as T` -/
+  | as (T : τ)
+  /-- `□ is T` -/
+  | is (T : τ)
+  /-- `cond(□, m₂, m₃)` (of type `T`) -/
+  | cond (m₂ m₃ : LoweredExpr) (T : τ)
+  /-- `□.p` (of type `T`) -/
+  | propertyGet (p : Property) (T : τ)
+
+end
+
+deriving instance Repr for Value, LoweredExpr, EctxItem
+deriving instance BEq for Value, LoweredExpr, EctxItem
 
 local notation "LoweredExpr" => LoweredExpr (τ := τ)
 
