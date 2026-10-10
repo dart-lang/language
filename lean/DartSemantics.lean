@@ -1,6 +1,7 @@
 module
 public import DartLang
 public import DartSemantics.Resolve
+public import DartSemantics.State
 
 /-!
 # The Dart run-time semantics
