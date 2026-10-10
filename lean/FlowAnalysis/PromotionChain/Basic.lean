@@ -2,11 +2,12 @@ module
 import Aesop
 import Batteries.Data.List.Basic
 import Batteries.Data.List.Lemmas
-public import FlowAnalysis.Types
+public import DartLang.Types
 public import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Set.Finite.Basic
 
 namespace FlowAnalysis
+open DartLang
 
 -- Allows the use of `<+` notation for `List.Sublist`.
 open scoped List

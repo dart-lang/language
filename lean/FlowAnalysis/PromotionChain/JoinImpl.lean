@@ -1,6 +1,6 @@
 module
 public import FlowAnalysis.PromotionChain.Basic
-public import FlowAnalysis.Types
+public import DartLang.Types
 public import FlowAnalysis.WP
 public import Lean
 import Mathlib.Tactic.Order
@@ -8,6 +8,7 @@ import Mathlib.Tactic.Order
 open Std.Do
 
 namespace FlowAnalysis.PromotionChain
+open DartLang
 
 variable {τ : Type} [DartTypeRepr τ]
 

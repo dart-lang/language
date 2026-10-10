@@ -2,7 +2,7 @@ module
 public import Mathlib.Basic.Unique
 public import Mathlib.Order.Defs.PartialOrder
 
-namespace FlowAnalysis
+namespace DartLang
 
 /--
 The Lean model of flow analysis uses a typeclass to abstract the representation of Dart types. This
@@ -59,4 +59,4 @@ public instance instDecidableLE : DecidableLE τ := decideLE
 public instance instDecidableLT : DecidableLT τ := decideLT
 
 end DartTypeRepr
-end FlowAnalysis
+end DartLang

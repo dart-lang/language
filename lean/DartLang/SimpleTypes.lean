@@ -1,7 +1,7 @@
 module
-public import FlowAnalysis.Types
+public import DartLang.Types
 
-namespace FlowAnalysis
+namespace DartLang
 
 /--
 A minimal type system sufficient for studying flow analysis.
@@ -143,4 +143,4 @@ public theorem ObjectQ.eq :
 
 end instSimpleTypeRepr
 end SimpleType
-end FlowAnalysis
+end DartLang
