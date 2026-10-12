@@ -190,15 +190,13 @@ memberedDeclarationBody ::=
     '{' memberDeclarations '}'
   | ';'
 
-memberDeclarations ::= (metadata memberDeclaration)*
+memberDeclarations ::= (metadata 'augment'? memberDeclaration)*
 
 primaryConstructorBodySignature ::= // From primary constructors specification
     'this' initializers?
 
-memberDeclaration ::=
-    'augment'? declaration
-  | 'augment'? methodSignature functionBody
-  | primaryConstructorBodySignature ';'
+memberDeclaration ::= declaration
+  | methodSignature functionBody
 
 declaration ::=
     'external'? factoryConstructorSignature ';'
@@ -223,6 +221,7 @@ declaration ::=
   | redirectingFactoryConstructorSignature ';'
   | constantConstructorSignature (redirection | initializers)? ';'
   | constructorSignature (redirection | initializers)? ';'
+  | primaryConstructorBodySignature ';'
 ```
 
 *As introduced by the primary constructor feature, introductory extension type
@@ -252,19 +251,25 @@ Likewise, the grammar for an augmenting `mixin` declaration does not allow
 specifying an `on` clause. Only the introductory declaration permits that. We
 could relax this restriction if compelling use cases arise.
 
-It's a **compile-time error** if a class or extension type declaration marked
-`augment` has a primary constructor (`primaryConstructor`) or contains a primary
-constructor initializer block (`primaryConstructorBodySignature`).
+It's a **compile-time error** if:
 
-*Only the introductory declaration of a class or extension type may declare a
-primary constructor or its initializer block. Allowing primary constructors in
-augmentations raises tricky questions around how field parameters behave and
-what it means to augment a primary constructor. We could allow this in a future
-version, but for now at least, we avoid that complexity by limiting primary
-constructors to the introductory declaration.*
+*   A class or extension type declaration marked `augment` has a primary
+    constructor (`primaryConstructor`) or contains a primary constructor
+    initializer block (`primaryConstructorBodySignature`).
 
-*A mixin is already forbidden from having any kind of constructor declaration,
-primary or not, so this compile error doesn't have to cover mixins.*
+    *Only the introductory declaration of a class or extension type may declare a
+    primary constructor or its initializer block. Allowing primary constructors in
+    augmentations raises tricky questions around how field parameters behave and
+    what it means to augment a primary constructor. We could allow this in a future
+    version, but for now at least, we avoid that complexity by limiting primary
+    constructors to the introductory declaration.*
+
+    *A mixin is already forbidden from having any kind of constructor declaration,
+    primary or not, so this compile error doesn't have to cover mixins.*
+
+*   A `primaryConstructorBodySignature` is marked `augment`. *Even within the
+    introductory declaration of a class, you can't augment a primary constructor
+    `this` block.*
 
 ### Enums
 
