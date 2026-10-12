@@ -1518,7 +1518,8 @@ and assume the third point is always true.
     `augment`.
 
 *   Clarify that the setter implicitly induced by a variable declaration has a
-    `covariant` parameter if the variable is `covariant`.
+    `covariant` parameter if the variable is `covariant` and that its return
+    type is `void`.
 
 *   Clarify that `const` declarations don't induce an implicit setter, and
     remove a redundant specification for declarations that induce a setter.
