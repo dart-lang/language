@@ -1006,10 +1006,7 @@ defining a getter and optionally a setter if the variable is not `final` or
     variable. If the variable is `covariant`, then the setter parameter is also
     `covariant`.
 
-*   The setter has no return type. *That means it is implicitly `void` but is
-    not explicitly written as such. This distinction matters because
-    augmentations must have the same type as the introductory declaration, and
-    "same type" doesn't operate on inferred omitted type annotations.*
+*   The return type of the setter is `void`.
 
 *   If the variable is `abstract`, the getter and setter (if any) are
     incomplete, otherwise they are complete. *For non-abstract variables, the
