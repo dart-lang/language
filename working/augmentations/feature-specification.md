@@ -1009,27 +1009,36 @@ It's a **compile-time** error if:
 ### Augmenting variables, getters, and setters
 
 For purposes of augmentation, a variable declaration is treated as implicitly
-defining a getter whose return type is the type of the variable. If the variable
-is not `final` or `const`, or is `late` without an initializer, then the
-variable declaration also implicitly defines a setter with a parameter named `_`
-whose type is the type of the variable. Likewise, a declaring parameter in a
-primary constructor induces an introductory instance variable declaration which
-in turn has a complete getter and a complete setter if not `final`.
+defining a getter and optionally a setter if the variable is not `final` or
+`const`, or is `late` without an initializer.
 
-If the variable is `abstract`, the getter and setter (if any) are incomplete,
-otherwise they are complete. *For non-abstract variables, the compiler
-synthesizes a getter that accesses the backing storage and a setter that updates
-it, so these members have bodies.*
+*   The return type of the getter is the type of the variable.
+
+*   The setter has a single parameter named `_` whose type is the type of the
+    variable. If the variable is `covariant`, then the setter parameter is also
+    `covariant`.
+
+*   The return type of the setter is `void`.
+
+*   If the variable is `abstract`, the getter and setter (if any) are
+    incomplete, otherwise they are complete. *For non-abstract variables, the
+    compiler synthesizes a getter that accesses the backing storage and a setter
+    that updates it, so these members have bodies. For external variables, the
+    compiler synthesizes some kind of body for the members.*
+
+    *Since non-abstract variables are complete, that implies that it is an error
+    to augment a non-abstract variable declaration with a complete getter,
+    setter, or variable declaration. Likewise, it is an error to augment a
+    complete getter or setter with a non-abstract variable declaration.*
+
+Likewise, a declaring parameter in a primary constructor induces an introductory
+instance variable declaration which in turn has a complete getter and a complete
+setter if not `final`.
 
 A getter can be augmented by another getter, and likewise a setter can be
 augmented by a setter. This is true whether the getter or setter is explicitly
 declared or implicitly declared using a variable declaration or declaring
 parameter.
-
-*Since non-abstract variables are complete, that implies that it is an error to
-augment a non-abstract variable declaration with a complete getter, setter, or
-variable declaration. Likewise, it is an error to augment a complete getter or
-setter with a non-abstract variable declaration.*
 
 It's a **compile-time error** if:
 
@@ -1528,6 +1537,10 @@ and assume the third point is always true.
 *   Don't allow `augment` before a primary constructor initializer. This
     clarifies the grammar and also ensures that even the introductory
     declaration can't augment a primary constructor.
+
+*   Clarify that the setter implicitly induced by a variable declaration has a
+    `covariant` parameter if the variable is `covariant` and that its return
+    type is `void`.
 
 *   Clarify that `const` declarations don't induce an implicit setter, and
     remove a redundant specification for declarations that induce a setter.
