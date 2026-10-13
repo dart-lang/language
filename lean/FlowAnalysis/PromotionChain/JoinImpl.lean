@@ -1,6 +1,6 @@
 module
 public import FlowAnalysis.PromotionChain.Basic
-public import FlowAnalysis.Types
+public import DartLang.Types
 public import FlowAnalysis.WP
 public import Lean
 import Mathlib.Tactic.Order
@@ -8,6 +8,7 @@ import Mathlib.Tactic.Order
 open Std.Do
 
 namespace FlowAnalysis.PromotionChain
+open DartLang
 
 variable {τ : Type} [DartTypeRepr τ]
 
@@ -234,7 +235,7 @@ public theorem joinPromotedTypesImpl_correct [Monad m] [Lean.Order.MonadTail m]
     · order
     · rename_i r; mrename_i h; mcases h with ⟨hstate, hresult⟩
       mconstructor; massumption; mpure_intro
-      rw [join_comm]; assumption
+      rwa [join_comm]
   case hifFalse =>
     intro hc₁_shorter; mintro hstate; simp; mspec joinPromotedTypesImpl'_correct
     · grind

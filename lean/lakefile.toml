@@ -1,11 +1,14 @@
 name = "flow_analysis"
 version = "0.1.0"
-defaultTargets = ["flow_analysis"]
+defaultTargets = ["DartLang", "flow_analysis"]
 
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "v4.32.0"
+rev = "v4.34.1"
+
+[[lean_lib]]
+name = "DartLang"
 
 [[lean_lib]]
 name = "FlowAnalysis"
