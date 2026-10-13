@@ -21978,7 +21978,9 @@ However, their subtype relations are specified without restrictions.
     \forall i \in 1..s\!:\;\MutualSubtype{\Delta'}{B_i}{B'\!_i} &
     \Subtype{\Delta'}{S_0}{T_0} &
     \forall j \in 1 .. n\!:\;\Subtype{\Delta'}{T_j}{S_j}\\
-    \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\}\\
+    \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\}\qquad%
+    \forall q \in 1..k_1\!:\;r_{n+q} = \REQUIRED\;\Rightarrow
+    x_{n+q} \in \{\,\List{y}{n+1}{n+k_2}\,\}\\
     \forall p \in 1 .. k_2, q \in 1 .. k_1:\quad%
     y_{n+p} = x_{n+q}\quad\Rightarrow\quad%
     (\Subtype{\Delta'}{T_{n+p}}{S_{n+q}})\;\wedge\;%
