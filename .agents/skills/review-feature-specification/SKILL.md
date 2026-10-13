@@ -7,7 +7,8 @@ description: >-
 
 # Instructions
 
-Use this skill to review a new `feature-specification.md` file or an in-progress
+Use this skill to review a Dart language proposal or feature specification
+Markdown file (typically named `feature-specification.md`) or an in-progress
 modification to one. (The user should make it clear whether they want you to
 review the entire proposal or just the in-progress changes to it. If it's not
 clear, ask them or use `git status` to see if there are changes.)
@@ -90,12 +91,6 @@ order of importance:
 Be thorough. A mistake in a language feature can be costly.
 
 ## Report
-
-Write the review to a Markdown file named `agent-review-yyyy-mm-dd.md` in the
-same directory as the `feature-specification.md` file where `yyyy-mm-dd` is the
-current date. (You are allowed to write this file even if in "read-only" mode.)
-If there is already a file with that name, add a `-1`, `-2`, etc. suffix to
-avoid a collision.
 
 The report should be organized into sections roughly according to the above
 goals.
