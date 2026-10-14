@@ -4,7 +4,7 @@ Author: Bob Nystrom
 
 Status: In-progress
 
-Version 0.1 (see [CHANGELOG](#CHANGELOG) at end)
+Version 0.2 (see [CHANGELOG](#CHANGELOG) at end)
 
 Experiment flag: remove-old-function-syntax
 
@@ -27,7 +27,7 @@ a variable that holds an integer. Likewise, Dart has always had first-class
 functions ("lambdas", "closures", "callbacks", etc.). But when the language was
 first launched, it had no type annotation syntax for a function type. If you
 wanted to, say, store a callback in an instance variable, there was nothing you
-could write at that variable's declaration to describe the callback functions's
+could write at that variable's declaration to describe the callback function's
 type.
 
 This is obviously a problem for a language that does have first-class functions,
@@ -96,7 +96,7 @@ typedef T Combine<T>(T a, T b);
 With this, you can use `Combine<int>` to refer to a function type that takes two
 integers and returns one. But there's no way to use this to refer to a *generic*
 function type with type parameter `T`. It's the typedef itself that's generic,
-not the function type it assigns a name too. If you just say `Combine`, the
+not the function type it assigns a name to. If you just say `Combine`, the
 compiler implicitly fills in the missing type argument with `dynamic`.
 
 That meant this old syntax didn't let you create an alias to a generic function
@@ -233,7 +233,7 @@ discussed future features like [destructuring in parameter lists][],
 function-typed parameter syntax frees up space in the parameter list grammar for
 other new language features like those.
 
-[super parameters]: https://github.com/dart-lang/language/blob/master/accepted/2.17/super-parameters/feature-specification.md
+[super parameters]: https://github.com/dart-lang/language/blob/main/accepted/2.17/super-parameters/feature-specification.md
 [private named parameters]: https://github.com/dart-lang/language/blob/main/accepted/3.12/private-named-parameters/feature-specification.md
 [primary constructors]: https://github.com/dart-lang/language/blob/main/accepted/3.13/primary-constructors/feature-specification.md
 [destructuring in parameter lists]: https://github.com/dart-lang/language/issues/3001
@@ -290,6 +290,8 @@ Probably the clearest way to show the grammar changes is a diff:
 -
 -functionTypeAlias ::= functionPrefix formalParameterPart ';'
 +    'typedef' typeWithParameters '=' type ';'
+-
+-functionPrefix ::= type identifier | identifier
 ```
 
 Or, in prose:
@@ -304,6 +306,8 @@ Or, in prose:
 *   Remove the `declaringFunctionFormalParameter` rule.
 *   From `typeAlias`, remove the `'typedef' functionTypeAlias` branch.
 *   Remove the `functionTypeAlias` rule.
+*   Remove the `functionPrefix` rule, which was only used by
+    `functionTypeAlias`.
 
 ## Compatibility and migration
 
@@ -316,7 +320,7 @@ syntax.
 
 We already have lints to help users move off the old syntax:
 
-*   [`use_function_type_syntax_for_parameters`][use_function_type_syntax_for_parameters]:
+*   [`use_function_type_syntax_for_parameters`][use_function_type_syntax_for_parameters]
     warns when a user uses a function-typed parameter. This lint is in the
     recommended lints.
 
@@ -333,6 +337,16 @@ scoring so users are strongly encouraged to avoid the lint firing. Both lints
 have an associated quick fix that will mechanically migrate the offending code
 to the newer general syntax. Migrating your code off the removed syntax is as
 simple as running `dart fix`.
+
+### Promoting the lints to warnings
+
+The syntax really is going away and using it is no longer allowed in the
+language version this proposal ships in. In that sense, it is a deprecated
+language feature.
+
+To emphasize that, the lints should be converted to deprecation warnings that
+make it unequivocal to users that they will have to migrate off the syntax
+before they can update to the latest language version.
 
 ### SDK code libraries
 
@@ -359,6 +373,12 @@ issue][3671] for this.
 [3671]: https://github.com/dart-lang/dartdoc/issues/3671
 
 ## Changelog
+
+### 0.2
+
+-   Suggest that the lints be promoted to deprecation warnings.
+
+-   Fix typos and other minor clarifications.
 
 ### 0.1
 
