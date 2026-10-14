@@ -516,196 +516,85 @@ It's a **compile-time error** if an abstract variable augments a getter and a
 setter where the getter's return type and the setter's parameter type are not
 the same type.
 
-
 ### Same types
 
-An augmentation can't change the types of what it is augmenting. For example,
-an augmentation of a function must have the same return type as the introductory
-declaration of the function. This requires a precise notion of "same type". We
-define it like so:
-
-First, replace all aliases in the types with their definitions. Then:
-
-*   A type is *nullable* if it is `Null` or ends in one or more `?`. If `A` is
-    nullable and `B` is not, or vice versa, then they aren't the same type.
-    *Obviously, if they agree in nullability they may still not be the same type
-    in other ways. `Null`, `Null?`, and `Null??` are all the same type, as are
-    `int?` and `int???`. But `int` and `int?` are not and `int?` and `String?`
-    are not.*
-
-*   If `A` and `B` are not the same kind (named type, function type, or record
-    type), then they aren't the same type. *Note that nullability is considered
-    a property of types, not a separate kind. `int?` and `int` are the same
-    kind, as are `(int,)?` and `(int,)`. `FutureOr` is considered a named type.*
-
-*   If `A` and `B` are both named types:
-
-    *   `A` and `B` aren't the same type unless their type names either:
-
-        *   Refer to the same declaration. *For example:*
-
-            ```dart
-            import 'dart:async';
-            import 'dart:async' as a;
-
-            foo(Timer t) {}
-            augment foo(a.Timer t);
-            ```
-
-            *This is OK since `Timer` and `a.Timer` refer to the same
-            declaration.*
-
-        *   Refer to corresponding type parameters in an enclosing generic
-            declaration. *For example:*
-
-            ```dart
-            class C<T> {
-              foo(T t) {}
-            }
-
-            augment class C<T> {
-              augment foo(T t);
-            }
-            ```
-
-            *This is OK since `T` in the two functions each refer to the same
-            corresponding `T` in the two declarations of `C`. (Or, equivalently,
-            the two declarations of `C` are considered one declaration and there
-            is really only one `T` that both refer to.)*
-
-        *   Refer to corresponding type parameters in a surrounding generic
-            function type in `A` and `B`. *For example:*
-
-            ```dart
-            foo(Function<T>(T parameter) f) {}
-            augment foo(Function<X>(X parameter) f);
-            ```
-
-            *This is OK because the `T` and `X` types on `parameter` refer to
-            corresponding type parameters in the surrounding function types.
-            However, this is not OK:*
-
-            ```dart
-            foo(Function<T, R>(T parameter) f) {}
-            augment foo(Function<X, T>(T parameter) f); // Error.
-            ```
-
-            *Here, `T` in each parameter refers to a different type parameter in
-            the surrounding function types.*
-
-        *In short, uses of names must be [alpha-equivalent][].*
-
-        [alpha-equivalent]: https://en.wikipedia.org/wiki/Lambda_calculus_definition#%CE%B1-conversion
-
-    *   If `A` and `B` have a different number of type arguments, then they
-        aren't the same type.
-
-    *   If any corresponding pair of type arguments aren't the same type, then
-        `A` and `B` aren't the same type.
-
-*   If `A` and `B` are both function types:
-
-    *   If `A` and `B` have a different number of type parameters, then they
-        aren't the same type.
-
-    *   For each corresponding pair of type parameters `TA` and `TB`:
-
-        *   If one has a bound and the other doesn't (even if the bound is
-            `extends Object?`), then `A` and `B` aren't the same type.
-
-        *   If both have bounds and the bounds aren't the same type, then `A`
-            and `B` aren't the same type.
-
-    *   If the return types of `A` and `B` aren't the same type, then `A` and
-        `B` aren't the same type.
-
-    *   If `A` and `B` have a different number of positional parameters, then
-        they aren't the same type.
-
-    *   If `A` and `B` have a different set of named parameter names, then they
-        aren't the same type.
-
-    *   For each corresponding pair of parameters `PA` and `PB` where positional
-        parameters are paired by position and named parameters by name:
-
-        *   If the types of `PA` and `PB` aren't the same type, then `A` and `B`
-            aren't the same type.
-
-        *   If `PA` is optional and `PB` is required, or vice versa, then they
-            aren't the same type.
-
-        *Note that named parameter order does not affect two types being the
-        same. `Function({int x, int y})` and `Function({int y, int x})` are the
-        same type.*
-
-    *This disregards the specific syntax used to write the function type, so
-    function-typed parameters and normal function type syntax can yield the same
-    type. `Function(int callback())` and `Function(int Function() callback)` are
-    the same type.*
-
-*   If `A` and `B` are both record types:
-
-    *   If `A` and `B` have a different number of positional fields, then they
-        aren't the same type.
-
-    *   If `A` and `B` have a different set of named field names, then they
-        aren't the same type.
-
-    *   For each corresponding pair of fields `FA` and `FB` where positional
-        fields are paired by position and named fields by name:
-
-        *   If the types of `FA` and `FB` aren't the same type, then `A` and `B`
-            aren't the same type.
-
-        *This means that named field order does not affect two types being the
-        same. `({int x, int y})` and `({int y, int x})` are the same type.*
-
-*   Otherwise, `A` and `B` are the same type.
-
-*In short, two types are the same if they are structurally identical, ignoring
-unimportant syntactic distinctions like named parameter order. This definition
-is more precise than mutual subtyping. `void`, `dynamic`, `Object`, `Object?`,
-`FutureOr<Object?>`, `FutureOr<FutureOr<Object?>>`, etc. are all different
-types.*
-
-In places where a type annotation is optional, an omitted type is only the same
-as another omitted type. *For example:*
+An introductory declaration defines the types of its various components: return
+type, parameter types, type parameter bounds, etc. All augmentations of that
+declaration must have the same types for those components. These errors are
+specified later in this proposal by saying the introductory declaration and
+augmentation component must have the "same type". *For example:*
 
 ```dart
-foo();
-augment dynamic foo() {} // Error: "dynamic" is not the same as "".
+int foo() => 0;
+augment int foo(); // OK.
+augment String foo(); // Error: String isn't the same type as int.
+```
 
+The definition of "same type" used for this purpose is the "Same Type" section
+(§20.11) in the language specification. *Roughly, it is alpha-equivalence of
+type terms after typedefs have been expanded. It is _not_ mutual subtyping or
+**NORM()**-equivalence.*
+
+In both the introductory declaration and augmentations, types are often written
+explicitly but in some places may be omitted and are filled in by type inference
+or some default type. When checking that an augmentation's type matches the
+introductory declaration's, these implicitly provided types are used when the
+type annotation is omitted.
+
+*Some examples:*
+
+```dart
+foo() {}
+augment dynamic foo(); // OK.
+```
+
+*Here, the introductory declaration gets an implicit default return type of
+`dynamic` so the augmentation has the same return type and is OK.*
+
+```dart
 class B {
   void bar(int x);
 }
 
 class C extends B {
-  void bar(x); // Through override inference, "x" has type "int".
+  void bar(x);
 }
 
 augment class C {
-  augment void bar(int x); // Error: "int" is not the same as "".
+  augment void bar(String x); // Error.
 }
 ```
 
-*In other words, "same type" is defined in terms of the types the user _wrote_,
-and not types that may have been filled in by inference.*
+*Here, the introductory declaration of `bar(x)` declares `x` to have type `int`
+through override inference from `B`. Since `String` isn't the same as `int`, the
+augmentation has an error.*
 
-*The rule for omitted types applies even if one of the declarations uses an
-initializing formal or super parameter, which typically don't have a type
-annotation:*
+```dart
+var x = 1;
+
+augment String get x => "not int"; // Error.
+augment set x(String value); // Error.
+```
+
+*Here, the variable `x` is inferred to have type `int` from its initializer. The
+induced getter and setter thus have a return type and parameter type of `int`,
+respectively. Therefore, the two augmentations are both erroneous since `String`
+isn't `int`.*
 
 ```dart
 class C {
+  num x;
   new(int x);
 }
 
 augment class C {
-  int x;
-  augment new(this.x); // Error: Need type annotation here
-                       // to match introductory declaration.
+  augment new(this.x);
 }
 ```
+
+*Here, the initializing formal `this.x` in the augmentation is inferred to have
+type `int` from the corresponding field. That's the same type as the type of `x`
+in the introductory declaration, so this code is fine.*
 
 ## Applying augmentations
 
@@ -1052,9 +941,8 @@ all meaningful ways. We say that an augmenting function or constructor's
 signature *matches* an introductory signature if:
 
 *   It has the same number of type parameters with the same type parameter names
-    (same identifiers) and bounds (after type annotation inheritance), if any
-    (same *types*, even if they may not be written exactly the same in case one
-    of the declarations needs to refer to a type using an import prefix).
+    (same identifiers) and any bounds have the same types (after type annotation
+    inheritance).
 
 *   The return type (if not omitted) is the same as the introductory
     declaration's return type.
@@ -1713,8 +1601,6 @@ and assume the third point is always true.
 
 ### 1.47
 
-*   Add a complete specification of "same type" (#4621).
-
 *   Aside from `values`, the members implicitly induced by an enum declaration
     are not treated as being introductory in the enum itself. This avoids a
     breaking change where you can currently override a member like `index` in an
@@ -1730,6 +1616,8 @@ and assume the third point is always true.
 *   Don't allow `augment` before a primary constructor initializer. This
     clarifies the grammar and also ensures that even the introductory
     declaration can't augment a primary constructor.
+
+*   Clarify what "same type" means (#4621).
 
 *   Clarify that the setter implicitly induced by a variable declaration has a
     `covariant` parameter if the variable is `covariant` and that its return
