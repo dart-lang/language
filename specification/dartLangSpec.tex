@@ -36,9 +36,13 @@
 % version of the language which will actually be specified by the next stable
 % release of this document.
 %
+% Oct 2026
+% - Perform several corrections in the subtype rules.
+%
 % Jul 2026
 % - Remove the getter/setter signature mismatch error. It is no longer required
-%   that the getter return type and setter parameter type are related in any way.
+%   that the getter return type and setter parameter type are related in any
+%   way.
 %
 % Jan 2026
 % - Specify that collection elements are allowed to have type `void` in a
@@ -21918,7 +21922,8 @@ However, their subtype relations are specified without restrictions.
     % ------------------------------------------------ Right Object
     % TODO(eernst): Come records, treat \RECORD{} the same as \FUNCTION.
     \RuleRaw{\SrnRightObjectFour}{%
-      \mbox{$S$ is an interface type or \FUNCTION}}{S}{\code{Object}}
+      \mbox{$S$ is an interface type, a function type, or \FUNCTION}%
+    }{S}{\code{Object}}
     % ------------------------------------------------ Left Null 1
     \Axiom{\SrnNullOne}{\code{Null}}{\code{$T$?}}
   \end{minipage}
@@ -21978,7 +21983,9 @@ However, their subtype relations are specified without restrictions.
     \forall i \in 1..s\!:\;\MutualSubtype{\Delta'}{B_i}{B'\!_i} &
     \Subtype{\Delta'}{S_0}{T_0} &
     \forall j \in 1 .. n\!:\;\Subtype{\Delta'}{T_j}{S_j}\\
-    \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\}\\
+    \{\,\List{y}{n+1}{n+k_2}\,\} \subseteq \{\,\List{x}{n+1}{n+k_1}\,\}\qquad%
+    \forall q \in 1..k_1\!:\;r_{n+q} = \REQUIRED\;\Rightarrow
+    x_{n+q} \in \{\,\List{y}{n+1}{n+k_2}\,\}\\
     \forall p \in 1 .. k_2, q \in 1 .. k_1:\quad%
     y_{n+p} = x_{n+q}\quad\Rightarrow\quad%
     (\Subtype{\Delta'}{T_{n+p}}{S_{n+q}})\;\wedge\;%
@@ -23728,8 +23735,8 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
 \begin{itemize}
 \item
   \textbf{Reflexivity (\SrnReflexivity):}
-  if $T_0$ and $T_1$ are the same type (\ref{sameType})
-  then \SubtypeNE{T_0}{T_1}.
+  if $S$ and $T$ are the same type (\ref{sameType})
+  then \SubtypeNE{S}{T}.
 
   \commentary{%
     Note that this check is necessary as the base case for atomic types
@@ -23759,8 +23766,8 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
     if $S$ is an unpromoted type variable with bound $B$
     then \SubtypeNE{S}{T} if{}f \SubtypeNE{B}{\code{Object}}.
   \item
-    if $S$ is a promoted type variable \code{$X$\,\&\,$S$}
-    then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{\code{Object}}.
+    if $S$ is a promoted type variable \code{$X$\,\&\,$U$}
+    then \SubtypeNE{S}{T} if{}f \SubtypeNE{U}{\code{Object}}.
   \item
     if $S$ is \code{FutureOr<$U$>} for some $U$,
     then \SubtypeNE{S}{T} if{}f \SubtypeNE{U}{\code{Object}}.
@@ -23802,20 +23809,12 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
   if $S$ is a type variable $X$
   or a promoted type variable \code{$X$\,\&\,$U$} and $T$ is $X$
   then \SubtypeNE{S}{T}.
-
-  \commentary{%
-    Note that this rule is admissible, and can be safely elided if desired.%
-  }
 \item
   \textbf{Type Variable Reflexivity 2 (\SrnRightPromotedVariable*):}
   if $S$ is a type variable $X$
   or a promoted type variable \code{$X$\,\&\,$U$}
   and $T$ is \code{$X$\,\&\,$V$}
   then \SubtypeNE{S}{T} if{}f \SubtypeNE{S}{V}.
-
-  \commentary{%
-    Note that this rule is admissible, and can be safely elided if desired.%
-  }
 \item
   \textbf{Right Promoted Variable (\SrnRightPromotedVariable):}
   if $T$ is a promoted type variable \code{$X$\,\&\,$U$}
@@ -23920,7 +23919,7 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
 
   where $r_{1j}$ is empty or \REQUIRED{} for $j \in n+1 .. q$
   then \SubtypeNE{S}{T} if{}f the following criteria are all satisfied,
-  where \List{Z}{1}{k} are fresh type variables with bounds
+  where \List{Z}{0}{k} are fresh type variables with bounds
   $[Z_0/X_0, \ldots, Z_k/X_k]B_{0i}$:
 
   \begin{itemize}
@@ -23930,7 +23929,7 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
     \SubtypeNE{[Z_0/Y_0, \ldots, Z_k/Y_k]S_i}{[Z_0/X_0, \ldots, Z_k/X_k]V_i}
     for $i \in 0 .. n$.
   \item \SubtypeNE{[Z_0/Y_0, \ldots, Z_k/Y_k]S_i}{[Z_0/X_0, \ldots, Z_k/X_k]V_j}
-    for $i \in n+1 .. q$, and $y_j = x_i$.
+    for $i \in n+1 .. q$, and $y_i = x_j$.
   \item
     for each $j$ such that $r_{0j}$ is \REQUIRED, there exists an
     $i \in n+1 .. q$ such that $x_j = y_i$, and $r_{1i}$ is \REQUIRED.
@@ -23944,7 +23943,7 @@ abbreviated to \SubtypeNE{S}{T} when the environment is unused) when:
   \end{itemize}
 
   \commentary{%
-    The requirement that \List{Z}{1}{k} are fresh names is as usual required
+    The requirement that \List{Z}{0}{k} are fresh names is as usual required
     such that type variable names do not get captured.
     It is valid to choose $Z_i$ to be $X_i$ or $Y_i$,
     so long as capture is avoided.%
