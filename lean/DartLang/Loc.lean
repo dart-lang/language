@@ -12,9 +12,12 @@ Flow analysis never produces locations; they appear in `LoweredExpr`s only at ru
 **Local variables live in heap cells.** The semantics has no stack frames or environments.
 Instead, declaring a local variable allocates a fresh heap cell for it, and replaces each
 reference to the variable in its scope with a reference to the cell's location. Reads and writes
-of the variable are then reads and writes of the cell. This is the usual way to model local state
-in Iris-based semantics (it's how Iris's HeapLang handles mutable state), and it has several
-advantages:
+of the variable are then reads and writes of the cell. Each time a declaration is executed, it
+allocates a new cell, so (once the semantics has function calls and loops) each call of a function,
+and each iteration of a loop, gets its own cells for the variables it declares, and closures
+created in different calls or iterations capture different cells. This is the usual way to model
+local state in Iris-based semantics (it's how Iris's HeapLang handles mutable state), and it has
+several advantages:
 - Stack frames are an implementation technique of particular back ends, not part of Dart's
   meaning, so a precise definition of Dart doesn't need them.
 - Variables captured by closures need no separate treatment: a closure created in the variable's
