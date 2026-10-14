@@ -97,8 +97,12 @@ What exists so far:
   outcomes (`Outcome`).
 - `FlowAnalysis` has the model of promotion chains. The rest of the model of flow analysis, which
   produces `LoweredExpr`s from surface Dart, is being developed separately and isn't here yet.
-- `DartSemantics` and `Tests` are set up, with iris-lean as a dependency. The semantics itself, the
-  interpreter and the program logic come next.
+- `DartSemantics` has the run-time semantics of `LoweredExpr`: the run-time state (`State`), how
+  declarations resolve variable references to heap cells (`Resolve`), and the head-step relation
+  (`HeadStep`), which is the definition of the semantics, made into an iris-lean language
+  (`Language`). It also has the interpreter (`Interpreter`), proved to agree with the semantics.
+  The program logic comes next.
+- `Tests` has tests of the run-time subtype check and of the interpreter.
 - The Kernel translator hasn't been started.
 
 ## Documentation conventions
