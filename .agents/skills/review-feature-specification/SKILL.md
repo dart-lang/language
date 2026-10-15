@@ -8,16 +8,16 @@ description: >-
 # Instructions
 
 Use this skill to review a Dart language proposal or feature specification
-Markdown file (typically named `feature-specification.md`) or an in-progress
-modification to one. (The user should make it clear whether they want you to
-review the entire proposal or just the in-progress changes to it. If it's not
-clear, ask them or use `git status` to see if there are changes.)
+Markdown file (typically named `feature-specification.md`), or a change to one
+(such as uncommitted local edits, a commit, or a pull request). If it's not
+clear whether the user wants you to review the entire proposal or just a
+specific change to it, check the version control state or ask them.
 
 ## Goals
 
-You are helping make this proposal as valuable of an addition to the Dart
-language as possible. Provide feedback on the following criteria, in descending
-order of importance:
+You are helping make this proposal as valuable an addition to the Dart language
+as possible. Provide feedback on the following criteria, in descending order of
+importance:
 
 -   **Unintended changes:** Does the proposal change the behavior of the
     existing Dart language in ways that don't appear to be deliberate? Pay
@@ -75,9 +75,7 @@ order of importance:
 
     References:
 
-    -   The language specification in `specification/dartLangSpec.tex`. (This
-        file is large, so use `grep` to look for specific grammar rules or
-        headings.)
+    -   The language specification in `specification/dartLangSpec.tex`.
 
     -   Previously shipped feature specifications in `accepted/`.
 
@@ -92,14 +90,14 @@ Be thorough. A mistake in a language feature can be costly.
 
 ## Report
 
-The report should be organized into sections roughly according to the above
-goals.
+Unless the user (or their personal agent configuration) specifies a different
+review structure or style, organize the report into sections roughly according
+to the above goals, and keep the Markdown simple and clear (avoiding numbers in
+headings, emoji, etc.).
 
-Keep the Markdown simple and clear. Avoid numbers in headings, emoji, excessive
-use of links, etc. When referring to parts of the `feature-specification.md`,
-override the system prompt link rules and mention line numbers but don't link
-them. Include a couple of lines of the document as a quoted reference (since
-line numbers will change as we edit the file), like:
+When referring to specific parts of the proposal, mention line numbers and
+include a couple of lines of the document as a quoted reference (since line
+numbers will change as the file is edited), like:
 
 ```
 Typo on line 185:
