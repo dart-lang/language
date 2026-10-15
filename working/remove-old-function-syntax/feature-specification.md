@@ -348,12 +348,15 @@ To emphasize that, the lints should be converted to deprecation warnings that
 make it unequivocal to users that they will have to migrate off the syntax
 before they can update to the latest language version.
 
-### SDK code libraries
+### Dart migrate
 
-Our own core library implementations still use the old function-typed parameter
-syntax. (I believe Lasse liked it because it's more concise.) We will have to
-migrate that. Again, that's just a matter of re-enabling the lint and running
-`dart fix`.
+The `dart migrate` command runs a set of automated quick fixes to upgrade code
+to a given SDK version. When this feature ships, we should add the
+`use_function_type_syntax_for_parameters` and
+`prefer_generic_function_type_aliases` lints to the preparatory changes list
+for the version of the SDK this feature ships in. That way, `dart migrate` will
+automatically move off the old syntax before updating the code to the SDK where
+it's no longer allowed.
 
 ### Dartdoc
 
@@ -377,6 +380,10 @@ issue][3671] for this.
 ### 0.2
 
 -   Suggest that the lints be promoted to deprecation warnings.
+
+-   Add the migration lints to `dart migrate`.
+
+-   Remove SDK migration section now that that migration is already done.
 
 -   Fix typos and other minor clarifications.
 
