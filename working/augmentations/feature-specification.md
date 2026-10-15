@@ -516,6 +516,86 @@ It's a **compile-time error** if an abstract variable augments a getter and a
 setter where the getter's return type and the setter's parameter type are not
 the same type.
 
+### Same types
+
+An introductory declaration defines the types of its various components: return
+type, parameter types, type parameter bounds, etc. All augmentations of that
+declaration must have the same types for those components. These errors are
+specified later in this proposal by saying the introductory declaration and
+augmentation component must have the "same type". *For example:*
+
+```dart
+int foo() => 0;
+augment int foo(); // OK.
+augment String foo(); // Error: String isn't the same type as int.
+```
+
+The definition of "same type" used for this purpose is the "Same Type" section
+(§20.11) in the language specification. *Roughly, it is alpha-equivalence of
+type terms after typedefs have been expanded. It is _not_ mutual subtyping or
+**NORM()**-equivalence.*
+
+In both the introductory declaration and augmentations, types are often written
+explicitly but in some places may be omitted and are filled in by type inference
+or some default type. When checking that an augmentation's type matches the
+introductory declaration's, these implicitly provided types are used when the
+type annotation is omitted.
+
+*Some examples:*
+
+```dart
+foo() {}
+augment dynamic foo(); // OK.
+```
+
+*Here, the introductory declaration gets an implicit default return type of
+`dynamic` so the augmentation has the same return type and is OK.*
+
+```dart
+class B {
+  void bar(int x);
+}
+
+class C extends B {
+  void bar(x);
+}
+
+augment class C {
+  augment void bar(String x); // Error.
+}
+```
+
+*Here, the introductory declaration of `bar(x)` declares `x` to have type `int`
+through override inference from `B`. Since `String` isn't the same as `int`, the
+augmentation has an error.*
+
+```dart
+var x = 1;
+
+augment String get x => "not int"; // Error.
+augment set x(String value); // Error.
+```
+
+*Here, the variable `x` is inferred to have type `int` from its initializer. The
+induced getter and setter thus have a return type and parameter type of `int`,
+respectively. Therefore, the two augmentations are both erroneous since `String`
+isn't `int`.*
+
+```dart
+class C {
+  num x;
+  new(int x);
+}
+
+augment class C {
+  augment new(this.x);
+}
+```
+
+*Here, the initializing formal `this.x` in the augmentation is inferred to have
+type `int` from the corresponding field. That's the same type as the type of `x`
+in the introductory declaration, so this code is fine.*
+
 ## Applying augmentations
 
 An augmentation declaration *D* is a declaration marked with the built-in
@@ -861,9 +941,8 @@ all meaningful ways. We say that an augmenting function or constructor's
 signature *matches* an introductory signature if:
 
 *   It has the same number of type parameters with the same type parameter names
-    (same identifiers) and bounds (after type annotation inheritance), if any
-    (same *types*, even if they may not be written exactly the same in case one
-    of the declarations needs to refer to a type using an import prefix).
+    (same identifiers) and any bounds have the same types (after type annotation
+    inheritance).
 
 *   The return type (if not omitted) is the same as the introductory
     declaration's return type.
@@ -1383,6 +1462,8 @@ and assume the third point is always true.
 *   Don't allow `augment` before a primary constructor initializer. This
     clarifies the grammar and also ensures that even the introductory
     declaration can't augment a primary constructor.
+
+*   Clarify what "same type" means (#4621).
 
 *   Clarify that the setter implicitly induced by a variable declaration has a
     `covariant` parameter if the variable is `covariant` and that its return
