@@ -313,8 +313,8 @@ Or, in prose:
 
 This is a language versioned change, so no existing code is broken by this
 proposal, not even code that uses the old syntax. Only when a user upgrades to
-the Dart version this proposal ships in do they have to migrate off the old
-syntax.
+the Dart language version that this proposal ships in do they have to migrate
+off the old syntax.
 
 ### Lints and quick fixes
 
@@ -346,7 +346,9 @@ language feature.
 
 To emphasize that, the lints should be converted to deprecation warnings that
 make it unequivocal to users that they will have to migrate off the syntax
-before they can update to the latest language version.
+before they can update to the latest language version. (We may choose to ship
+these warnings prior to shipping the feature in order to give users more
+advance notice.)
 
 ### Dart migrate
 
