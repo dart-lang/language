@@ -476,46 +476,6 @@ augment class C {
 }
 ```
 
-### Type annotation inheritance
-
-An augmenting declaration may omit type annotations for a return type, variable
-type, parameter type, or type parameter bound. In the last case, that includes
-omitting the `extends` keyword. For a variable, a `var` keyword replaces the
-type if the variable isn't `final`.
-
-If a type annotation or type parameter bound is omitted in the augmenting
-declaration, it is inferred to be the same as the corresponding type annotation
-or type parameter bound in the declaration being augmented.
-
-If the type annotation or type parameter bound is *not* omitted, then it's a
-**compile-time error** if the type denoted by the augmenting declaration is not
-the same type as the type in the corresponding declaration being augmented.
-
-*In short, an augmenting declaration can omit type annotations, but if it
-doesn't, it must repeat the type from the augmented definition.*
-
-#### Inheriting combined getter setter signatures
-
-An instance getter and instance setter can be augmented with an abstract
-variable declaration because the latter is syntactic sugar for an abstract
-getter and setter declaration. This leads to a tricky edge case where the
-augmenting abstract variable may want to inherit a type but the getter and
-setter it inherits from have different types:
-
-```dart
-class C {
-  int get x => 1;
-  set x(String value) {}
-
-  @metadataToAdd
-  augment abstract var x; // What type is inherited here?
-}
-```
-
-It's a **compile-time error** if an abstract variable augments a getter and a
-setter where the getter's return type and the setter's parameter type are not
-the same type.
-
 ### Same types
 
 An introductory declaration defines the types of its various components: return
@@ -583,7 +543,7 @@ isn't `int`.*
 
 ```dart
 class C {
-  num x;
+  int x;
   new(int x);
 }
 
@@ -595,6 +555,26 @@ augment class C {
 *Here, the initializing formal `this.x` in the augmentation is inferred to have
 type `int` from the corresponding field. That's the same type as the type of `x`
 in the introductory declaration, so this code is fine.*
+
+#### Same type parameters
+
+When an augmentation must have the "same type parameters" as an introductory
+declaration, that means:
+
+*   They must have the same number of type parameters (which may be zero).
+
+*   For each corresponding pair of type parameters:
+
+    *   They must have the same name (same identifier).
+
+    *   They must either both have no bound, or must both have bounds that are
+        the same type.
+
+*Since repeating the type parameters is, by definition, redundant, requiring the
+augmentation to restate them doesn't accomplish anything semantically. It
+ensures that anyone reading the augmenting type can see the declarations of any
+type parameters that it uses in its body, and avoids potential confusion with
+imported names that might be in scope in the library of the augmentation.*
 
 ## Applying augmentations
 
@@ -906,30 +886,8 @@ It's a **compile-time** error if:
     what is known from reading the introductory declaration will still be true
     after augmentation.*
 
-*   The type parameters of the augmenting declaration do not match the
-    introductory declaration's type parameters. This means there must be the
-    same number of type parameters with the exact same type parameter names
-    (same identifiers) and bounds if any (same *types*, even if they may not be
-    written exactly the same in case one of the declarations needs to refer to a
-    type using an import prefix).
-
-    *Since repeating the type parameters is, by definition, redundant, this
-    restriction doesn't accomplish anything semantically. It ensures that
-    anyone reading the augmenting type can see the declarations of any type
-    parameters that it uses in its body, and avoids potential confusion with
-    imported names that might be in scope in the library of the augmentation.*
-
-    The augmenting declaration may choose to omit the bound on any type
-    parameter, in which case it will be inherited from the introductory
-    declaration.
-
-    ```dart
-    foo<X extends num, Y extends X>();
-    augment foo<X extends num, Y>() { ... }
-    ```
-
-    *Here, `Y` in the augmentation inherits `extends X` from the introductory
-    declaration.*
+*   The introductory declaration and augmenting declaration don't have the same
+    type parameters.
 
 ### Function and constructor signature matching
 
@@ -940,12 +898,9 @@ constructor (generative, factory, etc.) the parameter lists must be the same in
 all meaningful ways. We say that an augmenting function or constructor's
 signature *matches* an introductory signature if:
 
-*   It has the same number of type parameters with the same type parameter names
-    (same identifiers) and any bounds have the same types (after type annotation
-    inheritance).
+*   The two declarations have the same type parameters.
 
-*   The return type (if not omitted) is the same as the introductory
-    declaration's return type.
+*   The return type is the same as the introductory declaration's return type.
 
 *   It has the same number of positional parameters as the introductory
     declaration, and the same number of those are optional.
@@ -958,7 +913,7 @@ signature *matches* an introductory signature if:
 
 *   For each corresponding pair of parameters:
 
-    *   They have the same type (or the augmenting declaration omits the type).
+    *   They have the same type.
 
     *   They both have the modifier `covariant`, or none of them have it.
 
@@ -1016,7 +971,7 @@ int y = 42;
 
 void g(int y);
 
-augment g(_) {
+augment void g(int _) {
   print(y); // OK, prints '42'.
 }
 ```
@@ -1036,7 +991,7 @@ class Person {
 
 // Provide a body for `toJson()`:
 augment class Person {
-  augment toJson() => {'name': name, 'age': age};
+  augment Map<String, Object?> toJson() => {'name': name, 'age': age};
 }
 ```
 
@@ -1051,9 +1006,9 @@ class C {
 }
 
 augment class C {
-  augment m1([i = 1]) {}
-  augment m2({name = "John"}) {}
-  augment m3({otherName}) {}
+  augment void m1([int i = 1]) {}
+  augment void m2({String name = "John"}) {}
+  augment void m3({String otherName}) {}
 }
 ```
 
@@ -1155,12 +1110,10 @@ _abstract_ overrides of those members.*
 *Declaring an instance member named `values` will conflict with the
 static `values` declaration as a normal scope name conflict.*
 
-It's a **compile-time error** if:
-
-*   An enum doesn't have any values after all augmentations are applied. *The
-    grammar allows an enum declaration to not have any values so that other
-    declarations of the same enum can add them, but ultimately the enum must
-    end up with at least one value.*
+It's a **compile-time error** if an enum doesn't have any values after all
+augmentations are applied. *The grammar allows an enum declaration to not have
+any values so that other declarations of the same enum can add them, but
+ultimately the enum must end up with at least one value.*
 
 ### Augmenting constructors
 
@@ -1441,6 +1394,15 @@ and assume the third point is always true.
 ## Changelog
 
 ### 1.47
+
+*   Remove omitted type annotation inheritance and consolidate specification of
+    type parameter bound matching (#4764).
+
+    (A missing type annotation might be filled in by inferring a variable's type
+    from its initializer, using override inference on an instance member
+    signature, or using a default type like `dynamic`. Having yet another axis
+    for filling in a missing type causes more complexity and confusion for
+    relatively little value.)
 
 *   Remove most of dynamic semantics section. It wasn't clear if it was
     normative or not, and should be unnecessary. Once augmentations have been
