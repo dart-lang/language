@@ -9,9 +9,9 @@ needs: the run-time subtype check, which is-expressions and cast expressions per
 semantics also uses it for *promotion checks*: checks that a variable's value has the promoted
 type that flow analysis recorded for it. Promotion checks aren't part of Dart. The semantics can
 make them so that an unsound promotion makes a program get stuck, which turns the soundness of
-flow analysis into a safety property. Turning the soundness of flow analysis into a safety
-property means that a proof that the semantics is type safe (with promotion checks enabled)
-includes a proof that flow analysis is sound: one can't be proved without the other.
+flow analysis into a safety property: a proof that the semantics is type safe (with promotion
+checks enabled) includes a proof that flow analysis is sound, and one can't be proved without the
+other.
 
 Subtyping in Dart is undecidable in general, so a run-time subtype check need not terminate. The
 semantics therefore uses a *specification* of the check, the relation `RtSub`, rather than an
