@@ -1,4 +1,5 @@
 module
+public import DartLang.RuntimeTypes
 public import DartLang.Types
 
 namespace DartLang
@@ -142,5 +143,27 @@ public theorem ObjectQ.eq :
     (inferInstance : DartTypeRepr SimpleType).ObjectQ = ObjectQ := by rfl
 
 end instSimpleTypeRepr
+
+/-- For `SimpleType`, subtyping is decidable, so the run-time check always terminates. -/
+public instance instDartRuntimeTypeRepr : DartRuntimeTypeRepr SimpleType where
+  RtSub S T b := decide (S ≤ T) = b
+  rtSub_true h := by simpa using h
+  rtSub_false h := by simpa using h
+  rtSub_of_le h := by simpa using h
+
+/-- For `SimpleType`, the run-time check answers immediately, using no fuel. -/
+public instance instRtSubChecker : RtSubChecker SimpleType where
+  check fuel S T := some (decide (S ≤ T), fuel)
+  check_fuel_le h := by
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    omega
+  check_mono k h := by
+    simp only [Option.some.injEq, Prod.mk.injEq] at h ⊢
+    exact ⟨h.1, by rw [h.2]⟩
+  check_sound h := by
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    exact h.1
+  check_complete h := ⟨0, 0, by simp only [Option.some.injEq, Prod.mk.injEq]; exact ⟨h, trivial⟩⟩
+
 end SimpleType
 end DartLang
