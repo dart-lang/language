@@ -68,15 +68,20 @@ public def joinPromotedTypesImpl {m} [Monad m] (ts₁ ts₂ : List τ) : m (List
 /--
 Helper theorem for proving the correctness of `joinPromotedTypesImpl`:
 
-Given a promotion chain `c`, index `i`, and type `T`, if `i` is a valid index into `c` and `T` is
-the `i`th type in `c`, this theorem can be used to split the promotion chain at `T`, obtaining the
-equivalence `c.drop i = T :: c.drop (i+1)`.
+Given a promotion chain `c`, index `i`, and type `T`, if `i` is a valid index into `c` (`hrange`)
+and `T` is the `i`th type in `c` (`hT`), this theorem can be used to split the promotion chain at
+`T`, obtaining the equivalence `c.drop i = T :: c.drop (i+1)`.
 -/
 theorem drop_eq_getElem_cons {i} {T : τ} {c : PromotionChain} (hrange : i < c.val.length)
     (hT : T = c.val[i] := by rfl) : ∃ hvalid, c.drop i = ⟨T :: c.drop (i+1), hvalid⟩ := by
   rcases c with ⟨ts, hvalid⟩; simp_all
 
-/-- Specification (and correctness proof) for `joinPromotedTypesImpl'`. -/
+/--
+Specification (and correctness proof) for `joinPromotedTypesImpl'`: if `c₁` is non-empty
+(`0 < c₁.val.length`) and no longer than `c₂` (`c₁.val.length ≤ c₂.val.length`), then
+`joinPromotedTypesImpl'` leaves the state unchanged (`stateIs s₀`) and returns the join of the two
+chains (`r = (c₁.join c₂).val`).
+-/
 theorem joinPromotedTypesImpl'_correct [Monad m] [Lean.Order.MonadTail m]
     [WPMonad m ps] (c₁ c₂ : PromotionChain) :
     0 < c₁.val.length → c₁.val.length ≤ c₂.val.length →
@@ -213,7 +218,10 @@ theorem joinPromotedTypesImpl'_correct [Monad m] [Lean.Order.MonadTail m]
   -- Proof that the exceptional postcondition is satisfied.
   case post.except => simp
 
-/-- Specification (and correctness proof) for `joinPromotedTypesImpl`. -/
+/--
+Specification (and correctness proof) for `joinPromotedTypesImpl`: it leaves the state unchanged
+(`stateIs s₀`) and returns the join of the two chains (`r = (c₁.join c₂).val`).
+-/
 public theorem joinPromotedTypesImpl_correct [Monad m] [Lean.Order.MonadTail m]
     [WPMonad m ps] (c₁ c₂ : PromotionChain) :
     ⦃stateIs s₀⦄ (joinPromotedTypesImpl c₁.val c₂.val : m _)

@@ -54,12 +54,15 @@ public class DartRuntimeTypeRepr (τ : Type) extends DartTypeRepr τ where
 
 export DartRuntimeTypeRepr (RtSub)
 
-/-- The run-time check says that `S` is a subtype of `T` exactly when it is. -/
+/-- The run-time subtype check answers yes (`RtSub S T true`) exactly when `S ≤ T`. -/
 public theorem rtSub_true_iff {τ : Type} [DartRuntimeTypeRepr τ] {S T : τ} :
     RtSub S T true ↔ S ≤ T :=
   ⟨DartRuntimeTypeRepr.rtSub_true, DartRuntimeTypeRepr.rtSub_of_le⟩
 
-/-- The run-time subtype check has at most one answer. -/
+/--
+The run-time subtype check has at most one answer: if it answers both `b₁` (`h₁`) and `b₂` (`h₂`),
+they're the same (`b₁ = b₂`).
+-/
 public theorem rtSub_unique {τ : Type} [DartRuntimeTypeRepr τ] {S T : τ} {b₁ b₂ : Bool}
     (h₁ : RtSub S T b₁) (h₂ : RtSub S T b₂) : b₁ = b₂ := by
   cases b₁ <;> cases b₂
