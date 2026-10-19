@@ -1495,6 +1495,8 @@ continuation.
   - `PASSTHRU[F, fn[x] => x.m(ARGS(args))]`
 - If `e` translates to `F` then `e(args)` translates to:
   - `PASSTHRU[F, fn[x] => x(ARGS(args))]`
+- If `e` translates to `F` then `e<typeArgs>` translates to:
+  - `PASSTHRU[F, fn[x] => x<typeArgs>]`
 - If `e1` translates to `F` then `e1?[e2]` translates to:
   - `SHORT[EXP(e1), fn[x] => x[EXP(e2)]]`
 - If `e1` translates to `F` then `e1[e2]` translates to:
