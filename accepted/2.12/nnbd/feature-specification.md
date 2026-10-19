@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2026.10.22
+  - Include an actual type argument list in the specification of null-shorting,
+    which is needed for generic function instantiation and generic invocations.
+
 2026.10.20
   - Update null promotion to match the implemented behavior. In particular,
     no promotion occurs in the `true` continuation of `e == null`.
