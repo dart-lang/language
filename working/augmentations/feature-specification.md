@@ -958,6 +958,13 @@ signature *matches* an introductory signature if:
 
 *   For each corresponding pair of parameters:
 
+    *   They have the same name (same identifier). *For named parameters, this
+        is implicit since the parameters are paired by name anyway. But for
+        positional parameters, this means that they must agree on parameter
+        name. This restriction isn't needed for correctness, but is consistent
+        with the idea that an augmentation is the same declaration and should
+        agree with the introductory declaration when possible.*
+
     *   They have the same type (or the augmenting declaration omits the type).
 
     *   They both have the modifier `covariant`, or none of them have it.
@@ -973,53 +980,10 @@ signature *matches* an introductory signature if:
     or super parameters and all other declarations for the same constructor
     must declare the corresponding parameters as regular parameters.*
 
-*   For all positional parameters:
-
-    *   The name of the augmenting parameter declaration is `_`, or
-
-    *   The name of the augmenting parameter declaration is the same as the name
-        of the corresponding parameter declaration in every preceding
-        declaration that doesn't have `_` as its name.
-
-    *In other words, a declaration can ignore a positional parameter's name by
-    using `_`, but all declarations in the chain that specify a name which is
-    not `_` must agree on it.*
-
-    ```dart
-    f1(int _) {} // OK, this declaration doesn't care about the name.
-    augment f1(int x); // OK, first declaration to introduce a name.
-    augment f1(int _); // OK.
-    augment f1(int y); // Error, can't change the name.
-    augment f1(int _); // OK.
-    ```
-
-    *If an augmentation specifies `_` as the name of a parameter, a non-`_` name
-    is not "inherited" from a preceding declaration for use in the
-    augmentation's body. The name of the parameter for that augmentation is `_`,
-    which can't be accessed because it's a wildcard:*
-
-    ```dart
-    f(int x);
-    augment f(int _) { print(x); } // Error.
-    ```
-
 In this definition, the properties of the introductory declaration may
 correspond to an explicitly declared property _(such as an explicitly stated
 return type)_ or an inferred property _(such as a parameter type which has been
 obtained by override inference)_.
-
-In a declaration where a parameter named `n` is declared using `_`, the
-name `n` is not in scope and may be resolved elsewhere. *For example:*
-
-```dart
-int y = 42;
-
-void g(int y);
-
-augment g(_) {
-  print(y); // OK, prints '42'.
-}
-```
 
 ### Augmenting functions
 
@@ -1093,9 +1057,14 @@ defining a getter and optionally a setter if the variable is not `final` or
 
 *   The return type of the getter is the type of the variable.
 
-*   The setter has a single parameter named `_` whose type is the type of the
-    variable. If the variable is `covariant`, then the setter parameter is also
-    `covariant`.
+*   The setter has a single parameter named `value` whose type is the type of
+    the variable. If the variable is `covariant`, then the setter parameter is
+    also `covariant`.
+
+    *The name `value` is somewhat arbitrary, but is the most common name for
+    setter parameters in the wild (61%, based on a corpus of pub packages). The
+    setter must have _some_ name because it may be augmenting or augmented by
+    some other setter whose parameter name must agree with it.*
 
 *   The return type of the setter is `void`.
 
@@ -1462,6 +1431,11 @@ and assume the third point is always true.
 *   Don't allow `augment` before a primary constructor initializer. This
     clarifies the grammar and also ensures that even the introductory
     declaration can't augment a primary constructor.
+
+*   Remove the special rules around `_`-named parameters and augmenting them
+    with other names (#4786). Those rules were motivated by not knowing what
+    name to pick for a setter induced from a variable declaration. Instead, we
+    just pick a name: `value`.
 
 *   Clarify what "same type" means (#4621).
 
