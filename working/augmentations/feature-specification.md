@@ -953,9 +953,6 @@ signature *matches* an introductory signature if:
 *   It has the same set of named parameter names as the introductory
     declaration.
 
-    **TODO:** How does this interact with private named parameters? See:
-    https://github.com/dart-lang/language/issues/4710.
-
 *   For each corresponding pair of parameters:
 
     *   They have the same type (or the augmenting declaration omits the type).
@@ -1020,6 +1017,51 @@ augment g(_) {
   print(y); // OK, prints '42'.
 }
 ```
+
+#### Private named parameters
+
+All corresponding parameter names must be the same in the introductory
+declaration and all augmentations. When augmenting or being augmented by a
+declaration with a private named parameter, the private name is what is matched
+against, not the corresponding public name:
+
+```dart
+class C {
+  int? _x;
+
+  new({this._x});
+}
+
+augment class C {
+  /// Adding a doc comment.
+  @andSomeMetadata
+  augment new({int? _x}); // Private name here.
+}
+```
+
+Currently, in Dart, this is an error because you can only use a private named
+parameter if the parameter is an initializing formal or declaring parameter.
+But you can't use either of those in both the introductory and augmenting
+declaration because doing so would make both constructors complete, and it's an
+error to augment a complete declaration with another complete declaration.
+
+We address that by clarifying that the requirement about a private named
+parameter being an initializing formal or declaring parameter is checked *after*
+augmentations are applied. *In the example here, the resulting semantic
+declaration looks like:*
+
+```dart
+class C {
+  int? _x;
+
+  /// Adding a doc comment.
+  @andSomeMetadata
+  new({this._x});
+}
+```
+
+*Now there is a single constructor whose parameter is a private named
+initializing formal, so there is no error.*
 
 ### Augmenting functions
 
@@ -1462,6 +1504,8 @@ and assume the third point is always true.
 *   Don't allow `augment` before a primary constructor initializer. This
     clarifies the grammar and also ensures that even the introductory
     declaration can't augment a primary constructor.
+
+*   Clarify how private named parameters work with signature matching (#4710).
 
 *   Clarify what "same type" means (#4621).
 
