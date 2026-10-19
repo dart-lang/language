@@ -1,17 +1,32 @@
 name = "flow_analysis"
 version = "0.1.0"
-defaultTargets = ["DartLang", "flow_analysis"]
+defaultTargets = ["DartLang", "DartSemantics", "flow_analysis"]
+testDriver = "Tests"
 
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
 rev = "v4.34.1"
 
+[[require]]
+name = "iris"
+git.url = "https://github.com/leanprover-community/iris-lean.git"
+git.subDir = "Iris"
+rev = "v4.34.1"
+
 [[lean_lib]]
 name = "DartLang"
 
 [[lean_lib]]
+name = "DartSemantics"
+
+[[lean_lib]]
 name = "FlowAnalysis"
+
+# Tests: the package's `testDriver`, so `lake test` builds this library, and fails if any check
+# in it fails.
+[[lean_lib]]
+name = "Tests"
 
 [[lean_exe]]
 name = "flow_analysis"
