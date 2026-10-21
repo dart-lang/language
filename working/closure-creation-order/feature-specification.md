@@ -203,13 +203,14 @@ new errors; see [Impact](#impact).)
 
 ### Exclusive groups
 
-An *exclusive group* is a construct consisting of one or more *arms*, such
-that once control enters an arm, no part of the group that follows the end of
-that arm (in the analysis order) executes during the same execution of the
-group.
+An *exclusive group* is a construct containing one or more *arms*, such that
+once control enters an arm, no part of the group that follows the end of that
+arm (in the analysis order) executes during the same execution of the group.
 
 _Arms are syntactic: a program point or a write is inside an arm if it is
-located within the source text of that arm._
+located within the source text of that arm. A group may also contain parts
+that aren't in any arm, such as the condition of an `if` statement, or the
+patterns and guards of a `switch` statement._
 
 The exclusive groups are:
 
