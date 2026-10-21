@@ -7,9 +7,8 @@ Status: Draft
 ## CHANGELOG
 
 2026.10.20
-  - Remove the null promotion rule: It is said a few lines below that this
-    is specified in the flow analysis feature specification, and the rule
-    in that document is what is actually implemented.
+  - Update null promotion to match the implemented behavior. In particular,
+    no promotion occurs in the `true` continuation of `e == null`.
 
 2026.07.22
   - Remove the compile-time error for a getter/setter pair where the return type
