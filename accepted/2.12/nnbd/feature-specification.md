@@ -6,6 +6,11 @@ Status: Draft
 
 ## CHANGELOG
 
+2026.10.20
+  - Remove the null promotion rule: It is said a few lines below that this
+    is specified in the flow analysis feature specification, and the rule
+    in that document is what is actually implemented.
+
 2026.07.22
   - Remove the compile-time error for a getter/setter pair where the return type
     of the getter is not a subtype of the parameter type of the setter.
@@ -606,7 +611,7 @@ unreachable.
 It is an error if the static type of `e` in the expression `throw e` is not
 assignable to `Object`.
 
-It is not an error for the initializing expression of a `late` instance 
+It is not an error for the initializing expression of a `late` instance
 variable to reference `this`.
 
 It is an error for a variable to be declared as `late` in any of the following
@@ -1040,14 +1045,18 @@ based on nullability checks subject to the same set of restrictions as normal
 promotion.  The relevant checks and the types they are considered to promote to
 are as follows.
 
-A check of the form `e == null` or of the form `e is Null` where `e` has static
-type `T` promotes the type of `e` to `Null` in the `true` continuation, and to
-**NonNull**(`T`) in the
-`false` continuation.
+A check of the form `e is Null` where `e` has static type `T` promotes the
+type of `e` to `Null` in the `true` continuation.
+
+A check of the form `e == null` or of the form `e is Null` where `e` has
+static type `T` promotes the type of `e` to **NonNull**(`T`) in the `false`
+continuation.
 
 A check of the form `e != null` or of the form `e is T` where `e` has static
-type `T?` promotes the type of `e` to `T` in the `true` continuation, and to
-`Null` in the `false` continuation.
+type `T?` promotes the type of `e` to `T` in the `true` continuation.
+
+A check of the form `e is T` where `e` has static type `T?` promotes the type
+of `e` to `Null` in the `false` continuation.
 
 The static type of an expression `e!` is **NonNull**(`T`) where `T` is the
 static type of `e`.
