@@ -351,7 +351,7 @@ String asciiCharType(int char) {
 ### Cast pattern
 
 ```
-castPattern ::= primaryPattern 'as' type
+castPattern ::= primaryPattern 'as' typeNotVoid
 ```
 
 A cast pattern is similar to an object pattern in that it checks the matched
@@ -3559,6 +3559,12 @@ Here is one way it could be broken down into separate pieces:
     *   Parenthesized patterns
 
 ## Changelog
+
+### 2.35 (after shipping)
+
+-   Change the grammar rule for the right-hand side of a cast pattern from
+    `type` to `typeNotVoid`. This is consistent with the grammar for `as`
+    expressions and is what the implementers actually implemented.
 
 ### 2.34 (after shipping)
 
