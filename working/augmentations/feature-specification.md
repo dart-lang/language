@@ -953,9 +953,6 @@ signature *matches* an introductory signature if:
 *   It has the same set of named parameter names as the introductory
     declaration.
 
-    **TODO:** How does this interact with private named parameters? See:
-    https://github.com/dart-lang/language/issues/4710.
-
 *   For each corresponding pair of parameters:
 
     *   They have the same type (or the augmenting declaration omits the type).
@@ -1020,6 +1017,89 @@ augment g(_) {
   print(y); // OK, prints '42'.
 }
 ```
+
+#### Private named parameters
+
+All corresponding parameter names must be the same in the introductory
+declaration and all augmentations. When augmenting or being augmented by a
+declaration with a private named parameter, the private name is what is matched
+against, not the corresponding public name:
+
+```dart
+class C {
+  int? _x;
+  new({this._x});
+}
+
+augment class C {
+  /// Adding a doc comment.
+  @andSomeMetadata
+  augment new({int? _x}); // Private name here.
+}
+```
+
+In Dart today, a private named parameter must either be an initializing formal
+or a declaring parameter. Since `_x` in the augmenting constructor is neither,
+that declaration would be an error. We address that by loosening the restriction
+on private named parameters. A private named parameter must be either:
+
+*   An initializing formal.
+*   A declaring parameter.
+*   In an augmenting declaration.
+
+Thus, the above example is allowed since the second `_x` is in an augmentation.
+
+*The above rule doesn't directly forbid an augmenting declaration from having a
+private named parameter that is an initializing formal, but there is no valid
+way to define one:*
+
+*   *The introductory declaration can't use a normal but private named parameter
+    because that's only allowed for an augmenting declaration:*
+
+    ```dart
+    class C {
+      new({int? _x}); // Error, can't use normal private named parameter.
+    }
+
+    augment class C {
+      int? _x;
+      augment new({this._x});
+    }
+    ```
+
+*   *The introductory declaration can't use the corresponding public name
+    because private named parameters are matched by private name:*
+
+    ```dart
+    class C {
+      new({int? x});
+    }
+
+    augment class C {
+      int? _x;
+      augment new({this._x}); // Error, `_x` doesn't match `x`.
+    }
+    ```
+
+*   *The introductory declaration can't also use an initializing formal or
+    declaring parameter because then both declarations are complete:*
+
+    ```dart
+    class C {
+      int? _x;
+      new({this._x});
+    }
+
+    augment class C {
+      augment new({this._x}); // Error, both declarations are complete.
+    }
+    ```
+
+*In practice, this means that the introductory declaration controls which
+parameters are private and named, and only does so because that declaration
+itself wants to initialize or declare a field. Augmentations of such
+constructors are only allowed to write a private named parameter in order to
+match the introductory constructor's signature.*
 
 ### Augmenting functions
 
@@ -1462,6 +1542,8 @@ and assume the third point is always true.
 *   Don't allow `augment` before a primary constructor initializer. This
     clarifies the grammar and also ensures that even the introductory
     declaration can't augment a primary constructor.
+
+*   Clarify how private named parameters work with signature matching (#4710).
 
 *   Clarify what "same type" means (#4621).
 
