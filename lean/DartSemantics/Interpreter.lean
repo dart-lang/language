@@ -311,9 +311,9 @@ theorem promotionCheck_eq_next {fuel : Nat} {σ σ' : State} {v : Value} {T : τ
 Completeness of `headStep`: if `e` takes a head step to `e'` (`h`), then either:
 - `headStep` finds it, given enough fuel, and never reports that `e` is stuck
   (`Converges (headStep · e σ) (.next e' σ')`); or
-- the step is one that a check that doesn't terminate takes, which goes nowhere
-  (`e' = e ∧ σ' = σ`), and `headStep` runs out of fuel there, however much it has
-  (`∀ fuel, headStep fuel e σ = .outOfFuel`).
+- the step is one that a check that doesn't terminate takes, which goes nowhere: it leaves the
+  expression (`e' = e`) and the state (`σ' = σ`) unchanged, and `headStep` runs out of fuel there,
+  however much it has (`∀ fuel, headStep fuel e σ = .outOfFuel`).
 -/
 theorem headStep_complete {e e' : LoweredExpr} {σ σ' : State} (h : HeadStep e σ e' σ') :
     Converges (headStep · e σ) (.next e' σ') ∨
@@ -441,27 +441,26 @@ theorem stepIn_sound {Ki : EctxItem} {e e' : LoweredExpr} {σ σ' : State} {r : 
   | stuck | outOfFuel => cases h
 
 /--
-**Soundness of the interpreter**: every step that `primStep` takes
-(`primStep fuel e σ = .next e' σ'`) is a step of the semantics (`(e, σ) -<[]>-> (e', σ', [])`).
+**Soundness of the interpreter**: every step that `primStep` takes from `e` in state `σ`, to `e'` in
+state `σ'` (`h`), is a step of the semantics (`(e, σ) -<[]>-> (e', σ', [])`).
 -/
-public theorem primStep_sound {fuel : Nat} : ∀ (e : LoweredExpr) {σ : State} {e' : LoweredExpr}
-    {σ' : State}, primStep fuel e σ = .next e' σ' → (e, σ) -<[]>-> (e', σ', [])
-  | e, σ, e', σ', h => by
-    rw [primStep.eq_def] at h
-    cases e <;> dsimp only at h <;>
-      repeat' first
-        | exact (headStep_sound h).primStep
-        | (have := stepIn_sound (primStep_sound _) h; exact this)
-        | split at h
+public theorem primStep_sound {fuel : Nat} (e : LoweredExpr) {σ : State} {e' : LoweredExpr}
+    {σ' : State} (h : primStep fuel e σ = .next e' σ') : (e, σ) -<[]>-> (e', σ', []) := by
+  rw [primStep.eq_def] at h
+  cases e <;> dsimp only at h <;>
+    repeat' first
+      | exact (headStep_sound h).primStep
+      | (have := stepIn_sound (primStep_sound _) h; exact this)
+      | split at h
 
 /--
 **Completeness of the interpreter**: if `e` takes a step to `e'` (`h`), then the step makes no
-observations and forks no threads (`obs = [] ∧ efs = []`), and either:
+observations (`obs = []`) and forks no threads (`efs = []`), and either:
 - `primStep` finds it, given enough fuel, and never reports that `e` is stuck
   (`Converges (primStep · e σ) (.next e' σ')`); or
-- the step is one that a run-time subtype check that doesn't terminate takes, which goes nowhere
-  (`e' = e ∧ σ' = σ`), and `primStep` runs out of fuel there, however much it has
-  (`∀ fuel, primStep fuel e σ = .outOfFuel`).
+- the step is one that a run-time subtype check that doesn't terminate takes, which goes nowhere:
+  it leaves the expression (`e' = e`) and the state (`σ' = σ`) unchanged, and `primStep` runs out
+  of fuel there, however much it has (`∀ fuel, primStep fuel e σ = .outOfFuel`).
 -/
 public theorem primStep_complete {e e' : LoweredExpr} {σ σ' : State} {obs : List Obs}
     {efs : List LoweredExpr} (h : (e, σ) -<obs>-> (e', σ', efs)) :
