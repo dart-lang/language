@@ -53,27 +53,30 @@ theorem nil : isPromotionChain ([] : List τ) := by
 theorem singleton : ∀ T : τ, isPromotionChain [T] := by
   simp [isPromotionChain]
 
-/-- The tail of a promotion chain is also a promotion chain. -/
+/-- The tail of a promotion chain (`hvalid`) is also a promotion chain. -/
 public theorem of_cons {T : τ} {ts : List τ} (hvalid : isPromotionChain (T::ts)) :
     isPromotionChain ts := by
   simp [iff_isChain] at hvalid ⊢
   exact List.IsChain.of_cons hvalid
 
-/-- The head of a promotion chain is a strict supertype of every type in the tail. -/
+/--
+The head of a promotion chain (`hvalid`) is a strict supertype of every type in the tail
+(`∀ T' ∈ ts, T' < T`).
+-/
 public theorem lt_of_mem_tail {T : τ} {ts : List τ} (hvalid : isPromotionChain (T::ts)) :
     ∀ T' ∈ ts, T' < T := by
   simp [iff_pairwise] at hvalid
   aesop
 
-/-- The head of a promotion chain is not in the tail. -/
+/-- The head of a promotion chain (`hvalid`) is not in the tail (`T ∉ ts`). -/
 public theorem head_not_mem_tail {T : τ} {ts : List τ} (hvalid : isPromotionChain (T::ts)) :
     T ∉ ts := by
   have := hvalid.lt_of_mem_tail T
   grind
 
 /--
-Consing a type onto a promotion chain produces a promotion chain, provided that the new head is a
-strict supertype of all the other types.
+Consing a type `T` onto a promotion chain (`hvalid`) produces a promotion chain, provided that the
+new head is a strict supertype of all the other types (`hbounds`).
 -/
 public theorem cons {T : τ} {ts : List τ} (hbounds : ∀ T' ∈ ts, T' < T)
     (hvalid : isPromotionChain ts) :
@@ -81,7 +84,7 @@ public theorem cons {T : τ} {ts : List τ} (hbounds : ∀ T' ∈ ts, T' < T)
   simp [iff_pairwise] at hvalid ⊢; grind
 
 /--
-Any sublist of a promotion chain is also a promotion chain.
+Any sublist (`hsublist`) of a promotion chain (`hvalid₂`) is also a promotion chain.
 
 In the spec we use the term `subsequence` since `sublist` in programming usually implies contiguity.
 We use the term `sublist` here to match Lean's terminology.
@@ -164,13 +167,16 @@ public theorem drop_of_val {n : Nat} {c : PromotionChain}
 public instance instEmptyCollection : EmptyCollection (PromotionChain) where
   emptyCollection := empty
 
+/-- The promotion chain with no types is the empty promotion chain. -/
 @[simp]
 public theorem eq_empty {h : isPromotionChain []} : (⟨[], h⟩ : PromotionChain) = ∅ :=
   by rfl
 
+/-- The empty promotion chain has no types. -/
 @[simp]
 public theorem val_empty : (∅ : PromotionChain).val = [] := by rfl
 
+/-- A promotion chain with no types (`c.val = []`) is the empty promotion chain. -/
 public theorem empty_of_val_nil {c : PromotionChain} :
     c.val = [] → c = ∅ := by
   intro h; apply ext; simp_all
@@ -178,6 +184,7 @@ public theorem empty_of_val_nil {c : PromotionChain} :
 /-- A promotion chain containing a single type. -/
 public def single (T : τ) : PromotionChain := ⟨[T], by simp⟩
 
+/-- The types in `single T` are just `T`. -/
 @[simp]
 public theorem val_single {T : τ} : (single T).val = [T] := by rfl
 
@@ -280,7 +287,7 @@ public theorem exists_is_greatest_common_sublist (c₁ c₂ : PromotionChain) :
     ∃ c : PromotionChain, c.is_greatest_common_sublist c₁ c₂ :=
   ⟨c₁.join c₂, join_is_greatest_common_sublist c₁ c₂⟩
 
-/-- The join is the unique greatest common sublist. -/
+/-- The join is the unique greatest common sublist: any `c` that is one (`h`) is `c₁.join c₂`. -/
 public theorem is_greatest_common_sublist.unique {c c₁ c₂ : PromotionChain}
     (h : c.is_greatest_common_sublist c₁ c₂) : c = c₁.join c₂ := by
   have hc' := join_is_greatest_common_sublist c₁ c₂
@@ -296,13 +303,13 @@ public theorem join_eq_iff_mem (c c₁ c₂ : PromotionChain) :
   · intro rfl T; simp
   · rw [ext_iff_mem]; simp
 
-/-- If `c₁` is a sublist of `c₂`, their join is `c₁`. -/
+/-- If `c₁` is a sublist of `c₂` (`h`), their join is `c₁`. -/
 @[simp]
 public theorem join_eq_left_of_sublist {c₁ c₂ : PromotionChain} (h : c₁.val <+ c₂.val) :
     c₁.join c₂ = c₁ := by
   rw [join_eq_iff_mem]; intro T; grind
 
-/-- If `c₂` is a sublist of `c₁`, their join is `c₂`. -/
+/-- If `c₂` is a sublist of `c₁` (`h`), their join is `c₂`. -/
 @[simp]
 public theorem join_eq_right_of_sublist {c₁ c₂ : PromotionChain} (h : c₂.val <+ c₁.val) :
     c₁.join c₂ = c₂ := by
@@ -384,7 +391,7 @@ lemma isPromotionChain_cons_join {T : τ} {ts₁' ts₂' : List τ}
   apply hvalid₁.lt_of_mem_tail; assumption
 
 /--
-Recurrence relation for `join` when `T₁ = T₂`.
+Recurrence relation for `join` when `T₁ = T₂`: keep the common head `T`.
 
 This is used to prove correctness of the Dart implementation.
 -/
@@ -397,7 +404,7 @@ public theorem join.heads_eq {T : τ} {ts₁' ts₂' : List τ}
   constructor <;> simp <;> grind
 
 /--
-Recurrence relation for `join` when `T₁ ≤ T₂`.
+Recurrence relation for `join` when `T₁ ≠ T₂` (`hne`) and `T₁ ≤ T₂` (`hle`): drop `T₂`.
 
 This is used to prove correctness of the Dart implementation.
 -/
@@ -413,7 +420,7 @@ public theorem join.heads_ne_le {T₁ T₂ : τ} {ts₁' ts₂' : List τ}
   grind
 
 /--
-Recurrence relation for `join` when `¬T₁ ≤ T₂`.
+Recurrence relation for `join` when `T₁ ≠ T₂` (`hne`) and `¬T₁ ≤ T₂` (`hnotLe`): drop `T₁`.
 
 This is used to prove correctness of the Dart implementation.
 -/

@@ -23,6 +23,7 @@ public inductive SimpleType where
 
 namespace SimpleType
 
+/-- `==` on `SimpleType` is reflexive (`(T == T) = true`). -/
 public theorem instLawfulBEq_rfl {T : SimpleType} : (T == T) = true := by
   cases T <;> simp [BEq.beq, instBEqSimpleType.beq]
   case List T' => apply instLawfulBEq_rfl
@@ -31,6 +32,7 @@ public theorem instLawfulBEq_rfl {T : SimpleType} : (T == T) = true := by
     · apply instLawfulBEq_rfl
     · apply instLawfulBEq_rfl
 
+/-- Types that `==` says are equal (`instBEqSimpleType.beq T₁ T₂ = true`) are equal (`T₁ = T₂`). -/
 public theorem instLawfulBEq_eq_of_beq {T₁ T₂ : SimpleType} :
     instBEqSimpleType.beq T₁ T₂ = true → T₁ = T₂ := by
   cases T₁ <;> cases T₂ <;> simp [instBEqSimpleType.beq]
@@ -56,11 +58,16 @@ public def isSubtype : SimpleType -> SimpleType -> Bool
   | Map K₁ V₁, Map K₂ V₂ => isSubtype K₁ K₂ && isSubtype V₁ V₂
   | _,         _         => false
 
+/-- `isSubtype` is reflexive (`T.isSubtype T = true`). -/
 public theorem isSubtype_refl (T : SimpleType) : T.isSubtype T = true := by
   cases T <;> try simp [isSubtype]
   case List T' => apply isSubtype_refl
   case Map K V => constructor <;> apply isSubtype_refl
 
+/--
+`isSubtype` is transitive: if `T` is a subtype of `U` (`T.isSubtype U = true`) and `U` is a subtype
+of `V` (`U.isSubtype V = true`), then `T` is a subtype of `V` (`T.isSubtype V = true`).
+-/
 public theorem isSubtype_trans :
     ∀ (T U V : SimpleType), T.isSubtype U = true → U.isSubtype V = true → T.isSubtype V = true := by
   intro T U V
@@ -115,29 +122,36 @@ public instance instSimpleTypeRepr : DartTypeRepr SimpleType where
 
 namespace instSimpleTypeRepr
 
+/-- `T ≤ U` holds for `SimpleType` exactly when `T.isSubtype U`. -/
 @[simp]
 public theorem le.iff {T U : SimpleType} : T ≤ U ↔ T.isSubtype U := by rfl
 
+/-- `T < U` holds for `SimpleType` exactly when `T.isSubtype U` and not `U.isSubtype T`. -/
 @[simp]
 public theorem lt.iff {T U : SimpleType} :
     T < U ↔ T.isSubtype U ∧ ¬U.isSubtype T := by rfl
 
+/-- The `dynamic` type of the `DartTypeRepr` instance is `SimpleType.dynamic`. -/
 @[simp]
 public theorem dynamic.eq :
     (inferInstance : DartTypeRepr SimpleType).dynamic = dynamic := by rfl
 
+/-- The `int` type of the `DartTypeRepr` instance is `SimpleType.int`. -/
 @[simp]
 public theorem int.eq :
     (inferInstance : DartTypeRepr SimpleType).int = int := by rfl
 
+/-- The `Map` type constructor of the `DartTypeRepr` instance is `SimpleType.Map`. -/
 @[simp]
 public theorem Map.eq :
     (inferInstance : DartTypeRepr SimpleType).Map = Map := by rfl
 
+/-- The `Object` type of the `DartTypeRepr` instance is `SimpleType.Object`. -/
 @[simp]
 public theorem Object.eq :
     (inferInstance : DartTypeRepr SimpleType).Object = Object := by rfl
 
+/-- The `Object?` type of the `DartTypeRepr` instance is `SimpleType.ObjectQ`. -/
 @[simp]
 public theorem ObjectQ.eq :
     (inferInstance : DartTypeRepr SimpleType).ObjectQ = ObjectQ := by rfl

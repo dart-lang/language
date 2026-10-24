@@ -7,7 +7,8 @@ namespace FlowAnalysis
 
 /--
 Helper theorem for proving the weakest precondition of a monadic program whose next operation is an
-if/then/else ("ite") test.
+if/then/else ("ite") test: `P` entails the weakest precondition of `if c then t else e` for `Q` if
+it entails that of `t` when `c` holds (`hifTrue`), and that of `e` when it doesn't (`hifFalse`).
 
 (The standard Lean approach to such proofs is to use `simp` to move the if/then/else to a point
 where it can be split using the `split` tactic, but there doesn't appear to be a way to do this
@@ -24,6 +25,10 @@ public theorem WP_ite [Monad m] [WP m ps] {t e : m α} [Decidable c]
 
 public abbrev stateIs {σs} (s : SVal.StateTuple σs) : SPred σs := SVal.curry (fun s' => ⟨s' = s⟩)
 
+/--
+A state-independent value `v` (`SVal.curry fun _ => ULift.up v`) evaluates to `v'` (`evalsTo`)
+exactly when `v = v'` (`⌜v = v'⌝`).
+-/
 @[simp]
 public theorem curry_evalsTo_pure :
     (((SVal.curry fun _ => ULift.up v)).evalsTo (ULift.up v') : SPred σs) = ⌜v = v'⌝ := by
