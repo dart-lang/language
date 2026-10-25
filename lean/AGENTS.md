@@ -30,6 +30,13 @@ find obvious.
       (h₁ : RtSub S T b₁) (h₂ : RtSub S T b₂) : b₁ = b₂ := by
   ```
 
+- **Name every hypothesis, and refer to each one by name.** Bind hypotheses as named parameters
+  before the colon (`(helab : ElabExpr …) (hnp : e.NoProperties) : …`), not as unnamed arrows after
+  it (`: ∀ …, ElabExpr … → e.NoProperties → …`). A proof by recursion on a hypothesis then uses an
+  explicit `match` (`match helab, hnp with …`) rather than pattern-matching equations, and a tactic
+  proof that needs a hypothesis back in the goal (for example, so that `cases` specializes it)
+  starts with `revert`. Explain every conjunct of the conclusion, in English with the Lean term in
+  parentheses, as a bulleted list if there are several.
 - **Long statements become bulleted lists**: the conclusion, then "if:", then one bullet per
   hypothesis (ending in `;`, with `and` before the last).
 - **Don't pad trivial statements.** If the English already is the Lean term (for example,
