@@ -10,6 +10,11 @@ a head-step relation (`HeadStep`) and evaluation context items (`EctxItem`). iri
 from it the full step relation (a head step inside any evaluation context), and the program logic
 built on it.
 
+iris-lean writes a step of a program as `(e, σ) -<obs>-> (e', σ', efs)`: in state `σ`, the
+expression `e` takes one step (a head step inside some evaluation context) to `e'`, leaving state
+`σ'`, making the observations `obs` (see `Obs`) and forking the threads `efs`. The semantics makes
+no observations and forks no threads, so both lists are always empty.
+
 iris-lean's *values* are `Outcome`s: an expression that has thrown an exception counts as a value,
 as well as one that has completed normally. This is what makes propagating exceptions by head
 steps lawful. iris-lean requires that if `Ki.fill e` takes a head step, then `e` is a value
@@ -72,7 +77,17 @@ public theorem HeadStep.isSome_toOutcome?_of_fill {Ki : EctxItem} {e e' : Lowere
     cases Ki <;> cases Ki' <;> simp_all [EctxItem.fill, LoweredExpr.toOutcome?]
   | _ => cases Ki <;> simp_all [EctxItem.fill, LoweredExpr.toOutcome?]
 
-/-- Observations, for iris-lean's prophecy variables. The semantics makes none. -/
+/--
+Observations, which iris-lean uses to support *prophecy variables*: a proof technique for programs
+whose correctness depends on a choice they'll make later (typically a nondeterministic one), in
+which the proof predicts the choice and uses the prediction before the choice is made. Each step of
+an iris-lean language records the observations that such predictions refer to.
+
+The semantics doesn't make any observations yet: no proof so far needs to predict a choice that a
+program makes later. That may change once the semantics models nondeterminism, such as the order in
+which asynchronous code runs. `Obs` is `Unit`, and every step's list of observations is empty (see
+`BaseStepRel`).
+-/
 public abbrev Obs := Unit
 
 /-- iris-lean's head-step relation: a `HeadStep` that makes no observations and forks nothing. -/
@@ -81,20 +96,41 @@ public def BaseStepRel : LoweredExpr × State → List Obs → LoweredExpr × St
     Prop
   | (e, σ), obs, (e', σ', efs) => HeadStep e σ e' σ' ∧ obs = [] ∧ efs = []
 
-/-- The semantics as an iris-lean language. -/
+/--
+The semantics as an iris-lean language.
+
+The fields after `fillItem` are the laws that iris-lean requires of a language given by head steps
+and evaluation context items. It uses them to show that the full step relation is well behaved:
+for example, that an expression can be split into an evaluation context and a subexpression that
+takes a head step in at most one way.
+-/
 public instance instEctxItemLanguage : EctxItemLanguage LoweredExpr EctxItem State Obs Outcome where
+  -- The head-step relation is `HeadStep`, with no observations and no forked threads.
   baseStep := BaseStepRel
+  -- Plugging an expression into the hole of an evaluation context item.
   fillItem := EctxItem.fill
+  -- Plugging two different expressions into the same item gives two different expressions.
   fillItem_inj {Ki} := by
     intro e₁ e₂ h
     cases Ki <;> simp_all [EctxItem.fill]
+  -- If plugging `e` into an item gives a completed expression (a value, for iris-lean), then `e`
+  -- has completed. This holds trivially, because plugging an expression into an item never gives a
+  -- completed expression: the result is a null check, a cast, and so on, which still has a step to
+  -- take, whatever `e` is. (Only `val` and `throwing` expressions are completed.)
   fillItem_val e Ki h := by
     simp [EctxItem.toOutcome?_fill] at h
+  -- An expression can be split into an item and a subexpression that hasn't completed in at most
+  -- one way: evaluation order is deterministic.
   fillItem_no_val_inj Ki₁ Ki₂ hv₁ hv₂ heq := by
     cases Ki₁ <;> cases Ki₂ <;> simp_all [EctxItem.fill]
+  -- A completed expression takes no head step.
   val_stuck {e σ obs e' σ' eₜ} h := by
     obtain ⟨h, -, -⟩ := h
     simpa using h.toOutcome?_eq_none
+  -- If `Ki.fill e` takes a head step, then `e` has completed (normally, or by throwing). Head steps
+  -- act only on expressions whose subexpressions in evaluation position have finished; a step
+  -- inside an unfinished `e` is a head step of some part of `e`, inside a larger evaluation
+  -- context.
   base_ctx_step_val {Ki e σ obs e' σ' eₜ} h := by
     obtain ⟨h, -, -⟩ := h
     simpa using h.isSome_toOutcome?_of_fill
@@ -106,7 +142,10 @@ public theorem fill_eq_fillCtx (K : List EctxItem) (e : LoweredExpr) :
 
 open EctxItemLanguage Language.Notation
 
-/-- A head step (`h`) is a step (`(e, σ) -<[]>-> (e', σ', [])`). -/
+/--
+A head step (`h`) is a step: a step in the empty evaluation context, with no observations and no
+forked threads (`(e, σ) -<[]>-> (e', σ', [])`; see the module doc for the notation).
+-/
 public theorem HeadStep.primStep {e e' : LoweredExpr} {σ σ' : State} (h : HeadStep e σ e' σ') :
     (e, σ) -<[]>-> (e', σ', []) := by
   have := BaseStep.ContextStep.intro (Ectx := List EctxItem) (K := []) (obs := []) (eₜ := [])
