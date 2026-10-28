@@ -599,21 +599,24 @@ a downwards inference context type.
 
 Those steps are ordered like so:
 
-1.  Type inference fills in any omitted types in the introductory declaration.
+1.  Augmentations are applied. A declaration doesn't have meaningful type
+    system semantics until after augmentations are merged. *(For example, we
+    don't know the supertypes of a class until any augmentations that may add
+    `implements`, `with`, or `extends` clauses have been applied.)*
+
+2.  Type inference fills in any omitted types in the introductory declaration.
     This may come from override inference, inferring an initializing formal from
     the corresponding field type, etc. Downwards and upwards inference is
     applied to a variable declaration's type and initializer. Any other
     uninferred types get a default type like `dynamic` for type annotations or
     `Object?` for bounds.
 
-2.  Omitted types and bounds in augmenting declarations are inherited from the
+3.  Omitted types and bounds in augmenting declarations are inherited from the
     introductory declaration. Since an augmentation declaration must have types
     in all of the same places as the introductory declaration, type inheritance
     from the introductory declaration is sufficient to fill in all omitted
-    types.
-
-3.  Downwards inference is applied to the initializer of any augmenting
-    variable declaration.
+    types. Downwards inference is applied to a variable declaration's
+    initializer.
 
 4.  Augmentations are checked for "same type" conformance against the
     introductory declaration.
@@ -704,6 +707,39 @@ augment class C {
 corresponding field type `String`, so the parameters are the same type, but
 there is an error in the augmentation because it's initializing a field from the
 wrong type.*
+
+```dart
+abstract class A {
+  double get x;
+}
+
+class B {
+  final x = 12;
+}
+
+augment class B implements A;
+```
+
+*Here, we apply the augmentation first so we know that `B` implements `A`. Then
+when we infer the type of `x` in the introductory declaration of `B`, we apply
+override inference from `A` to infer type `double` for it. That `double` context
+type means that int-to-double interprets the initializer `12` as `12.0`.*
+
+```dart
+class C(this.x);
+
+augment class C {
+  final int x;
+}
+```
+
+*Here, we merge the augmentations so that the initializing formal in the
+introductory declaration refers to the field declared in the augmentation.
+Therefore, field inference applies and we infer `int` for the constructor
+parameter in the introductory declaration.*
+
+*In short, we apply augmentations first, then run inference down the
+augmentation chain in order, then check that all the types agree.*
 
 ## Applying augmentations
 
