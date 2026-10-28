@@ -9,6 +9,11 @@ https://docs.google.com/document/d/11Xs0b4bzH6DwDlcJMUcbx4BpvEKGz8MVuJWEfo_mirE/
 
 ## CHANGELOG
 
+2026.10.28
+  - Specify local variable declarations without initializers, and blocks.
+  - Clarify that `promotionInfo` may retain entries for variables that have gone
+    out of scope.
+
 2026.10.04
   - Specify the existing behavior of flow analysis for closures (function
     expressions, local function declarations, and `late` variable
@@ -269,8 +274,11 @@ point in the source code.
   elements of the `reachable` stack, since each element of the stack models the
   reachability of one control flow split from its enclosing control flow split.
 
-  - `promotionInfo` is a mapping from variables in scope at the given point to
-  their associated *promotion model*s.
+  - `promotionInfo` is a mapping from variables to their associated *promotion
+  model*s. It has an entry for every variable in scope at the given point. _It
+  may also have entries for variables that have gone out of scope (see
+  **Block**, below), but nothing can refer to those variables, so they don't
+  affect the analysis._
 
 The following functions associate flow models to nodes:
 
@@ -871,6 +879,36 @@ TODO: Add missing expressions, handle cascades and left-hand sides accurately
 - **Expression statement**: If `N` is an expression statement of the form `E` then:
   - Let `before(E) = before(N)`.
   - Let `after(N) = after(E)`.
+
+- **Local variable declaration**: If `N` is a declaration of a single local
+  variable `x` with declared type `T` and no initializer (for example, `T x;`,
+  `final T x;`, or `var x;`, in which case `T` is `dynamic`), and `before(N) =
+  FlowModel(r, PI)`, then:
+  - Let `after(N) = FlowModel(r, PI[x -> PromotionModel(T, [], [], false, true,
+    false)])`.
+
+  _The new variable starts out unpromoted, with no types of interest,
+  definitely unassigned, and not write captured. If an enclosing scope declares
+  a variable with the same name, `x` is nevertheless a different variable, so
+  the promotion model of the outer variable is unaffected, and applies again
+  once `x` goes out of scope._
+
+  _A declaration that declares more than one variable is treated as a sequence
+  of declarations, each declaring one of the variables (see **Closures and
+  suspensions**, below)._
+
+  TODO(paulberry): handle declarations with initializers.
+
+- **Block**: If `N` is a block of the form `{ S₁ S₂ ... Sₙ }`, then:
+  - If `n = 0`, let `after(N) = before(N)`.
+  - Otherwise:
+    - Let `before(S₁) = before(N)`.
+    - For each `i` such that `1 ≤ i < n`, let `before(Sᵢ₊₁) = after(Sᵢ)`.
+    - Let `after(N) = after(Sₙ)`.
+
+  _The variables declared in the block go out of scope at its end. Their
+  promotion models remain in `after(N)`, but nothing after the block can refer
+  to them._
 
 - **Break statement**: If `N` is a statement of the form `break [L];`, then:
 
