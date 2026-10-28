@@ -1022,8 +1022,8 @@ augment g(_) {
 
 All corresponding parameter names must be the same in the introductory
 declaration and all augmentations. When augmenting or being augmented by a
-declaration with a private named parameter, the private name is what is matched
-against, not the corresponding public name:
+declaration with a private named parameter, when we say "name", we mean the
+declared private name of the parameter, not it's corresponding public name:
 
 ```dart
 class C {
@@ -1039,7 +1039,7 @@ augment class C {
 ```
 
 In Dart today, a private named parameter must either be an initializing formal
-or a declaring parameter. Since `_x` in the augmenting constructor is neither,
+or a declaring parameter. Since `_x` in this augmenting constructor is neither,
 that declaration would be an error. We address that by loosening the restriction
 on private named parameters. A private named parameter must be either:
 
@@ -1053,8 +1053,8 @@ Thus, the above example is allowed since the second `_x` is in an augmentation.
 private named parameter that is an initializing formal, but there is no valid
 way to define one:*
 
-*   *The introductory declaration can't use a normal but private named parameter
-    because that's only allowed for an augmenting declaration:*
+*   *The introductory declaration can't use a non-initializing parameter that is
+    private named because that's only allowed for an augmenting declaration:*
 
     ```dart
     class C {
@@ -1077,7 +1077,8 @@ way to define one:*
 
     augment class C {
       int? _x;
-      augment new({this._x}); // Error, `_x` doesn't match `x`.
+      augment new({this._x}); // Error, the introductory declaration doesn't
+                              // have a parameter named `_x`.
     }
     ```
 
@@ -1099,7 +1100,7 @@ way to define one:*
 parameters are private and named, and only does so because that declaration
 itself wants to initialize or declare a field. Augmentations of such
 constructors are only allowed to write a private named parameter in order to
-match the introductory constructor's signature.*
+match the introductory constructor's parameter list.*
 
 ### Augmenting functions
 
