@@ -580,7 +580,7 @@ doesn't know, but every compilation will reveal whether this particular
 configuration does satisfy the completeness requirement.)
 
 TODO Can we have a declaration which is complete in some configurations and
-incomplete in others ()
+incomplete in others
 
 #### Platform-specific helper declarations and private state
 
@@ -627,6 +627,6 @@ platforms.
 
 ### Changelog
 
-1.0 - October 28, 2026
+1.0 - October 29, 2026
 
 * First version of this document.
