@@ -6,6 +6,10 @@ Status: Draft
 
 ## CHANGELOG
 
+2026.10.22
+  - Include an actual type argument list in the specification of null-shorting,
+    which is needed for generic function instantiation and generic invocations.
+
 2026.10.20
   - Update null promotion to match the implemented behavior. In particular,
     no promotion occurs in the `true` continuation of `e == null`.
@@ -1491,10 +1495,18 @@ continuation.
   - `PASSTHRU[F, fn[x] => x.f]`
 - A null aware method call `e?.m(args)` translates to:
   - `SHORT[EXP(e), fn[x] => x.m(ARGS(args))]`
+- A null aware method call `e?.m<typeArgs>(args)` translates to:
+  - `SHORT[EXP(e), fn[x] => x.m<typeArgs>(ARGS(args))]`
 - If `e` translates to `F` then `e.m(args)` translates to:
   - `PASSTHRU[F, fn[x] => x.m(ARGS(args))]`
+- If `e` translates to `F` then `e.m<typeArgs>(args)` translates to:
+  - `PASSTHRU[F, fn[x] => x.m<typeArgs>(ARGS(args))]`
 - If `e` translates to `F` then `e(args)` translates to:
   - `PASSTHRU[F, fn[x] => x(ARGS(args))]`
+- If `e` translates to `F` then `e<typeArgs>(args)` translates to:
+  - `PASSTHRU[F, fn[x] => x<typeArgs>(ARGS(args))]`
+- If `e` translates to `F` then `e<typeArgs>` translates to:
+  - `PASSTHRU[F, fn[x] => x<typeArgs>]`
 - If `e1` translates to `F` then `e1?[e2]` translates to:
   - `SHORT[EXP(e1), fn[x] => x[EXP(e2)]]`
 - If `e1` translates to `F` then `e1[e2]` translates to:
