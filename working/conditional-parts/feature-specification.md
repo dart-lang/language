@@ -582,6 +582,48 @@ configuration does satisfy the completeness requirement.)
 TODO Can we have a declaration which is complete in some configurations and
 incomplete in others
 
+#### Drop the support for `concrete` declarations entirely
+
+This would imply that every instance member which is made conditional by
+having its implementation in a conditional part would have an undetermined
+abstractness property, which would in turn make all super-invocations
+targeting this declaration a compile-time error.
+
+This would allow us to avoid a certain amount of syntactic complexity. For
+example, developers wouldn't have to think about the meaning of this
+keyword and they wouldn't have to decide whether or not it should be used
+in each case where they are writing an introductory instance member
+declaration in a library that has conditional parts.
+
+#### Enforce `concrete` consistently
+
+We could go in the opposite direction and make the use of `concrete`
+required with all incomplete declarations. This means that a `concrete`
+declaration must be completed in some augmentation. 
+
+Conversely an introductory declaration which is not complete and does not
+include the modifier `concrete` must remain incomplete in all augmenting
+declarations, and it is a compile-time error if it is not capable of being
+abstract (e.g., if it is a static or top-level declaration).
+
+This would turn completion in augmenting declarations into a tightly
+controlled property, which means that there's no ambiguity: Abstract
+declarations can be recognized as such, and that's true for concrete
+declarations as well.
+
+### Use a different word than `concrete`
+
+Lots of possible choices. However, none of the reserved or built-in
+identifiers seem to be a very good match.
+
+#### Make `concrete` a regular identifier
+
+We could avoid making `concrete` a built-in identifier, which would allow
+us to avoid a (probably tiny) amount of breakage in existing code.
+
+On the other hand, this might give rise to less informative diagnostics in
+case of syntax errors around the word `concrete`.
+
 #### Platform-specific helper declarations and private state
 
 Disallowing introductory top-level and member declarations in conditional part
@@ -608,22 +650,27 @@ The grammar allows `concrete` on incomplete getters and setters (`concrete int
 get x;`, `concrete set x(int value);`), rather than on variable declarations. A
 variable declaration without `abstract` *(such as `int? x;` or `final int x;`)*
 already declares a complete variable with backing storage, while `concrete
-abstract int x;` would juxtapose contradictory modifiers. Under
+abstract int x;` would juxtapose apparently contradictory modifiers. Under
 [Augmentations][], explicit getter and setter declarations `concrete int get x;`
 and `concrete set x(int value);` can still be completed either by augmenting
 getters and setters or by an augmenting variable declaration `augment int x =
 0;` (subject to the restrictions on augmenting instance variables above).
 
+In other words, this proposal avoids `concrete abstract` variable
+declarations because they may seem contradictory, but the same thing can be
+expressed using an abstract `concrete` getter declaration and possibly an
+abstract `concrete` setter declaration.
+
 #### Standalone analysis of unselected conditional part files
 
 In an IDE, a developer may open a conditional part file *P* *(such as
 `channel_js.dart`)* that is not selected by the tool's default compilation
-environment. Because *P* starts with `part of 'channel.dart';`, the tool can
-locate the parent file *F*, verify that *F* contains a `<partDirective>` whose
-`<configurableUri>` lists a URI resolving to *P*, and analyze *P* directly
-against the configuration-independent static model of the unconditional files of
-the library—without needing to load or resolve conditional part files for other
-platforms.
+environment. Because *P* starts with `part of 'channel.dart';`, the tool
+can locate the parent file *F*, verify that *F* contains a
+`<partDirective>` whose `<configurableUri>` lists a URI resolving to *P*,
+and analyze *P* directly against the configuration-independent static model
+of the unconditional files of the library. In this case it doesn't need to
+load or resolve conditional part files for other platforms.
 
 ### Changelog
 
