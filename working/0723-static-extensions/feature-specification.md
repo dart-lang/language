@@ -526,15 +526,6 @@ type which is a subtype of the return type of the constructor being
 declared, which is given by the un-instantiated on-type of the
 extension.*
 
-It is a compile-time error if a factory constructor declared in an
-extension has an inferred return type which is not a subtype of the
-on-type of the extension (after inference has been performed).
-
-*Inference is performed on the body of the factory constructor, and
-the constructor is checked for errors as usual.  In addition, the
-post-inference type inferred for the constructor must be a subtype of
-the un-instantiated on-type of the extension.*
-
 #### On the naming of constructors
 
 With primary constructors and with this proposal, constructors may be
