@@ -176,32 +176,35 @@ augment Channel _openChannel(String name) {
 
 Notice two central properties illustrated by this example:
 
-1. **Configuration-independent static analysis**: Code generation must read the
-   conditional part selected by the compilation environment in order to know
-   which code to emit, but static analysis of `channel.dart` (and of any library
-   that imports `channel.dart`) does not depend on any conditional part. The
-   analyzer can ignore conditional `part` directives when summarizing
-   `channel.dart` for client libraries. To preserve this property, a conditional
-   part file cannot contain `export` directives, cannot introduce new top-level
-   or member declarations, cannot add superinterfaces (`extends`, `with`, or
-   `implements`) or enum entries, cannot specify default parameter values, and
-   cannot complete `const` constructors (because static analysis needs to
-   perform constant expression evaluation).
+1. **Configuration-independent static analysis**: Code generation must read
+   the conditional part selected by the compilation environment in order to
+   know which code to emit, but static analysis of `channel.dart` (and of
+   any library that imports `channel.dart`) does not depend on any
+   conditional part. The analyzer can ignore conditional `part` directives
+   when summarizing `channel.dart` for client libraries. To preserve this
+   property, a conditional part file cannot contain `export` directives,
+   cannot introduce new top-level or member declarations, cannot add
+   superinterfaces (`extends`, `with`, or `implements`) or enum entries,
+   cannot specify default parameter values, and cannot complete `const`
+   constructors (because static analysis needs to perform constant
+   expression evaluation).
 
-2. **The `concrete` modifier**: In `abstract class Channel`, both `send` and
-   `close` are written without a body in `channel.dart`. Without an explicit
-   distinction in `channel.dart`, static analysis ignoring conditional parts
-   could not tell whether `super.close()` in `BufferedChannel` is valid or a
-   compile-time error, nor whether a concrete subclass of `Channel` inherits an
-   implementation of `close`. Marking `concrete void close();` in `channel.dart`
-   declares that `close` is an implemented member for which a completing
-   augmentation must exist. Consequently, `super.close()` is valid, subclasses
-   inherit `close` as concrete, and a compile-time error occurs when compiling
-   any configuration whose conditional part fails to complete `Channel.close`.
-   Similarly, marking an incomplete non-`const` generative constructor with
-   `concrete` indicates that its initializer list, redirection, or body will be
-   supplied by an augmentation rather than implicitly defaulting to an empty
-   initializer list and empty body.
+2. **The `concrete` modifier**: In `abstract class Channel`, both `send`
+   and `close` are written without a body in `channel.dart`. Without an
+   explicit distinction in `channel.dart`, static analysis ignoring
+   conditional parts could not tell whether `super.close()` in
+   `BufferedChannel` is valid or a compile-time error, nor whether a
+   concrete subclass of `Channel` inherits an implementation of
+   `close`. Marking `concrete void close();` in `channel.dart` declares
+   that `close` is an implemented member for which a completing
+   augmentation must exist. Consequently, `super.close()` is valid,
+   subclasses inherit `close` as concrete, and a compile-time error occurs
+   when compiling any configuration whose conditional part fails to
+   complete `Channel.close`.  Similarly, marking an incomplete non-`const`
+   generative constructor with `concrete` indicates that its initializer
+   list, redirection, and/or body will be supplied by an augmentation
+   rather than implicitly defaulting to an empty initializer list and empty
+   body.
 
 ## Specification
 
@@ -310,12 +313,12 @@ For a library *L* with defining library file *F*<sub>0</sub>:
 
 The modifier `concrete` can be placed on an incomplete introductory
 declaration of an instance member (method, getter, setter, or operator) or
-of a non-`const` generative constructor. It indicates that the declaration
+of a non-constant generative constructor. It indicates that the declaration
 is implemented by an augmenting declaration and must be complete once all
 augmentations have been applied.
 
 *A useful intuition about this modifier is that it implies that there must
-be a complete augmenting declaration elsewhere (possibly in a conditional
+be a complete augmenting declaration elsewhere (typically in a conditional
 part), and optionally some incomplete augmenting declarations (anywhere).
 This perspective also motivates the choice to make it an error to mark a
 declaration `concrete` if it is impossible to have such augmenting
@@ -339,7 +342,7 @@ It is a **compile-time error** if:
 - A `mixin class` or `enum` declaration contains a constructor declaration
   with the modifier `concrete`. *A `mixin class` cannot declare non-trivial
   generative constructors, and generative constructors of an `enum` must be
-  `const`, hence none of them can have a complete augmenting declaration in
+  constant, hence none of them can have a complete augmenting declaration in
   a conditional part.*
 
 - A declaration with the modifier `concrete` is not complete after all
@@ -462,10 +465,10 @@ Let *P* be a conditional part file of library *L*:
    because super-parameters in other libraries may need to use this default
    value. We may be able to relax this requirement for non-constructors.*
 
-7. **No completing `const` constructors**: It is a **compile-time error**
-   if an augmenting constructor declaration in *P* has the modifier `const`
-   and is complete. *This is necessary because constant expression
-   evaluation is part of the static analysis.*
+7. **No completing constant constructors**: It is a **compile-time error**
+   if an augmenting constructor declaration in *P* is constant and is
+   complete. *This is necessary because constant expression evaluation is
+   part of the static analysis.*
 
 8. **Restrictions on augmenting instance variables**: In [Augmentations][], a
    non-`abstract` augmenting instance variable declaration completes an
@@ -473,7 +476,7 @@ Let *P* be a conditional part file of library *L*:
    It is a **compile-time error** if *P* contains a non-`abstract`,
    non-`external` augmenting instance variable declaration *v* in an augmenting
    declaration of *D*, and either:
-   - *D* declares a `const` generative constructor *(which includes the
+   - *D* declares a constant generative constructor *(which includes the
      case where *D* is an `enum`)*, or
    - *v* is `final` or has a potentially non-nullable type, *v* is not `late`,
      *v* has no initializing expression, and *D* either has no generative
@@ -481,11 +484,11 @@ Let *P* be a conditional part file of library *L*:
      that is completed *(explicitly or implicitly by default)* in the
      unconditional files of *L*.
 
-   *Adding backing storage to a class with a `const` constructor would make
-   constant evaluation and canonicalization depend on *P*. Adding an
-   uninitialized non-`late` `final` or potentially non-nullable field when *D*
-   already has a complete generative constructor in the unconditional files
-   would invalidate that constructor.*
+   *Adding backing storage to a class with a constant constructor would
+   make constant evaluation and canonicalization depend on *P*. Adding an
+   uninitialized non-`late` `final` or potentially non-nullable field when
+   *D* already has a complete generative constructor in the unconditional
+   files would invalidate that constructor.*
 
 9. **No invalidation of library-wide checks**: All existing augmentation
    and declaration rules apply to the semantic declarations obtained after
@@ -525,7 +528,7 @@ of *L*.
   conditional part files checks their directives and augmenting declarations
   against *L*<sub>*u*</sub>, applies all augmentations in augmentation
   application order, and verifies that every declaration requiring completion
-  *(top-level, `static`, `extension`, non-`const` `factory`, and `concrete`
+  *(top-level, `static`, `extension`, non-constant `factory`, and `concrete`
   declarations)* is complete.
 
 ### Dynamic semantics
@@ -551,10 +554,6 @@ file.
 
 ### Discussion
 
-TODO Make `concrete` a regular identifier, not built-in?
-TODO Drop `concrete` entirely and make it an error to super-invoke when
-underdefined.
-
 TODO Perhaps it is necessary to require that every part file in a library
 file tree is conditional if at least one of them is conditional? The
 problem is that we may not want to specify and implement what it means for
@@ -566,12 +565,9 @@ declarations even in conditional parts. But it is useful?
 TODO It must be an error for a conditional part to contain a complete
 constant constructor declaration.
 
-TODO `concrete` could just be `external`, that's what the patch mechanism
-does today.
-
 TODO Is it supported to have conditional parts of conditional parts?
 
-TODO IS it supported to have multiple conditional parts in the same
+TODO Is it supported to have multiple conditional parts in the same
 library? Do the have to use the same conditions?
 
 TODO Could we use a compile-time only check on the completeness of
@@ -580,9 +576,9 @@ doesn't know, but every compilation will reveal whether this particular
 configuration does satisfy the completeness requirement.)
 
 TODO Can we have a declaration which is complete in some configurations and
-incomplete in others
+incomplete in others?
 
-#### Drop the support for `concrete` declarations entirely
+#### Drop the support for the `concrete` modifier entirely
 
 This would imply that every instance member which is made conditional by
 having its implementation in a conditional part would have an undetermined
@@ -599,7 +595,8 @@ declaration in a library that has conditional parts.
 
 We could go in the opposite direction and make the use of `concrete`
 required with all incomplete declarations. This means that a `concrete`
-declaration must be completed in some augmentation. 
+declaration must be completed in some augmentation, and it might even be a
+requirement that the complete augmentation is in a conditional part.
 
 Conversely an introductory declaration which is not complete and does not
 include the modifier `concrete` must remain incomplete in all augmenting
@@ -611,18 +608,22 @@ controlled property, which means that there's no ambiguity: Abstract
 declarations can be recognized as such, and that's true for concrete
 declarations as well.
 
+#### Make `concrete` a regular identifier
+
+We could avoid making `concrete` a built-in identifier (it would then be a
+`<typeIdentifier>`). This would allow us to avoid a (probably tiny) amount
+of breakage in existing code.
+
+On the other hand, this might give rise to less informative diagnostics in
+case of syntax errors around the word `concrete`.
+
 ### Use a different word than `concrete`
 
 Lots of possible choices. However, none of the reserved or built-in
 identifiers seem to be a very good match.
 
-#### Make `concrete` a regular identifier
-
-We could avoid making `concrete` a built-in identifier, which would allow
-us to avoid a (probably tiny) amount of breakage in existing code.
-
-On the other hand, this might give rise to less informative diagnostics in
-case of syntax errors around the word `concrete`.
+The patch mechanism uses `external`, which is somewhat confusing
+conceptually, but should work.
 
 #### Platform-specific helper declarations and private state
 
