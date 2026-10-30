@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Draft
 
-Version: 1.0
+Version: 1.1
 
 Experiment flag: conditional-parts
 
@@ -113,27 +113,43 @@ class BufferedChannel extends Channel {
 
 Each conditional part file uses a standard `part of` directive pointing
 back to `'channel.dart'`, thus unambiguously pairing up these two files,
-and uses `import` directives and `augment` declarations to fill in the
-platform-specific implementations:
+and uses `import` directives, `augment` declarations, and private helper
+declarations to fill in the platform-specific implementations:
 
 ```dart
 // Part file "channel_io.dart".
 part of 'channel.dart';
 
 import 'dart:io';
-import 'src/io_channel_helper.dart';
 
 augment void logMessage(String message) {
   stdout.writeln(message);
+  _flushStdout();
+}
+
+void _flushStdout() {
+  // Platform-specific private helper function local to "channel_io.dart".
 }
 
 augment class Channel {
+  int _closeCount = 0;
+
   augment void close() {
-    stdout.writeln('Closing $_name');
+    _closeCount++;
+    stdout.writeln('Closing $_name: $_closeCount');
   }
 }
 
-augment Channel _openChannel(String name) => createIoChannel(name);
+class _IoChannel extends Channel {
+  _IoChannel(super.name);
+
+  @override
+  void send(String payload) {
+    stdout.writeln('[$_name] $payload');
+  }
+}
+
+augment Channel _openChannel(String name) => _IoChannel(name);
 ```
 
 ```dart
@@ -141,7 +157,6 @@ augment Channel _openChannel(String name) => createIoChannel(name);
 part of 'channel.dart';
 
 import 'dart:js_interop';
-import 'src/js_channel_helper.dart';
 
 @JS('console.log')
 augment external void logMessage(String message);
@@ -152,26 +167,32 @@ augment class Channel {
   }
 }
 
-augment Channel _openChannel(String name) => createJsChannel(name);
+class _JsChannel extends Channel {
+  _JsChannel(super.name);
+
+  @override
+  void send(String payload) {
+    logMessage('[$_name] $payload');
+  }
+}
+
+augment Channel _openChannel(String name) => _JsChannel(name);
 ```
 
 ```dart
 // Part file "channel_default.dart".
 part of 'channel.dart';
 
-augment void logMessage(String message) {
-  throw UnsupportedError('logMessage is not supported on this platform');
-}
+Never _unsupported(String member) =>
+    throw UnsupportedError('$member is not supported on this platform');
+
+augment void logMessage(String message) => _unsupported('logMessage');
 
 augment class Channel {
-  augment void close() {
-    throw UnsupportedError('Channel.close is not supported on this platform');
-  }
+  augment void close() => _unsupported('Channel.close');
 }
 
-augment Channel _openChannel(String name) {
-  throw UnsupportedError('Channel.open is not supported on this platform');
-}
+augment Channel _openChannel(String name) => _unsupported('Channel.open');
 ```
 
 Notice two central properties illustrated by this example:
@@ -183,11 +204,15 @@ Notice two central properties illustrated by this example:
    conditional part. The analyzer can ignore conditional `part` directives
    when summarizing `channel.dart` for client libraries. To preserve this
    property, a conditional part file cannot contain `export` directives,
-   cannot introduce new top-level or member declarations, cannot add
-   superinterfaces (`extends`, `with`, or `implements`) or enum entries,
-   cannot specify default parameter values, and cannot complete `const`
-   constructors (because static analysis needs to perform constant
-   expression evaluation).
+   cannot introduce public top-level or member declarations (introductory
+   declarations must have private names and are subject to constraints that
+   prevent unconditional code from depending on them), cannot add
+   superinterfaces (`extends`, `with`, or `implements`) or enum entries to
+   augmented declarations, cannot add direct subtypes to `sealed` types
+   declared in unconditional files, cannot specify default parameter values
+   on augmenting declarations, and cannot complete `const` constructors
+   (because static analysis needs to perform constant expression
+   evaluation).
 
 2. **The `concrete` modifier**: In `abstract class Channel`, both `send`
    and `close` are written without a body in `channel.dart`. Without an
@@ -413,7 +438,10 @@ directive or declaration that can alter or invalidate the static analysis of the
 unconditional files of the containing library, or of any library importing the
 containing library.*
 
-Let *P* be a conditional part file of library *L*:
+Let *P* be a conditional part file of library *L*, and let the _enclosing
+conditional subtree_ of *P* be the subtree of included part files rooted at the
+part file directly included by the first conditional `part` directive on the
+inclusion path from *F*<sub>0</sub> to *P*:
 
 1. **No `export` directives**: It is a **compile-time error** if *P*
    contains a `<libraryExport>` directive. _Exports modify the exported
@@ -424,83 +452,163 @@ Let *P* be a conditional part file of library *L*:
    combined import scope and extension availability of P and its
    sub-parts.*
 
-2. **No introductory top-level declarations**: It is a **compile-time
-   error** if *P* contains a `<topLevelDeclaration>` that is not an
-   augmenting declaration.  *That is, every top-level declaration in *P*
-   must have the modifier `augment`.*
+2. **Private names required for introductory top-level declarations**: It is a
+   **compile-time error** if *P* contains an introductory *(non-`augment`)*
+   `<topLevelDeclaration>` that does not have a private name *(an identifier
+   starting with `'_'`)*. In particular, an introductory unnamed `extension`
+   declaration (`extension on T { ... }`) in *P* is a **compile-time error**.
 
-   *Platform-specific helper declarations can instead be placed in a
-   separate library imported by *P*.*
+   *Inside an introductory top-level `class`, `mixin`, `mixin class`, `enum`,
+   `extension`, or `extension type` declaration in *P* (whose own name is
+   private), both public and private member and constructor declarations are
+   permitted—for instance, so that a private class `_IoChannel` in *P* can
+   implement a public interface declared in the unconditional files of *L*.*
 
-3. **No added superinterfaces**: It is a **compile-time error** if an
-   augmenting declaration of a `class`, `mixin`, `mixin class`, `enum`, or
-   `extension type` in *P* contains an `extends` clause, a `with` clause,
-   or an `implements` clause. *`on` clauses are already disallowed on
+3. **No added superinterfaces on augmented types**: It is a **compile-time
+   error** if an augmenting declaration of a `class`, `mixin`, `mixin class`,
+   `enum`, or `extension type` in *P* contains an `extends` clause, a `with`
+   clause, or an `implements` clause. *`on` clauses are already disallowed on
    augmenting `mixin` and `extension` declarations.*
 
-4. **No added enum entries**: It is a **compile-time error** if an augmenting
-   `enum` declaration in *P* declares one or more `<enumEntry>` elements. *Enum
-   entries affect switch exhaustiveness, static member lookup on the enum, and
-   the constant `values` list.*
+4. **No direct subtyping of `sealed` types from unconditional files**: It is a
+   **compile-time error** if an introductory `class`, `mixin`, `mixin class`,
+   `enum`, or `extension type` declaration in *P* has a `sealed` class or
+   `sealed` mixin declared in the unconditional files of *L* *(or outside *P*'s
+   enclosing conditional subtree)* as a direct superinterface *(via `extends`,
+   `with`, `implements`, or `on`)*.
 
-5. **No introductory member declarations**: It is a **compile-time error** if
-   the body of an augmenting `class`, `mixin`, `mixin class`, `enum`,
-   `extension`, or `extension type` declaration in *P* contains a member
-   declaration that is not an augmenting declaration. *That is, every member
-   declaration in *P* must have the modifier `augment`.*
+   *Adding a direct subtype to a `sealed` type would alter switch exhaustiveness
+   checking for that `sealed` type in the unconditional files of *L* and in
+   every library that imports *L*.*
 
-   *Public members would alter the interface or static namespace of the type.
-   Even private members enter the merged member namespace of the enclosing
-   declaration across the entire library, where they can change lexical
-   identifier resolution inside member bodies in the unconditional files, cause
-   override conflicts in subclasses, or add uninitialized fields.*
+5. **No added enum entries on augmented enums**: It is a **compile-time error**
+   if an augmenting `enum` declaration in *P* declares one or more `<enumEntry>`
+   elements. *Enum entries affect switch exhaustiveness, static member lookup on
+   the enum, and the constant `values` list.*
 
-6. **No default parameter values**: It is a **compile-time error** if an
-   augmenting function, method, or constructor declaration in *P* specifies a
-   default value (`=` `<expression>`) for an optional positional or named formal
-   parameter.
+6. **Private names and completeness required for introductory members in
+   augmenting declarations**: In the body of an augmenting `class`, `mixin`,
+   `mixin class`, `enum`, `extension`, or `extension type` declaration of *D* in
+   *P*, it is a **compile-time error** if an introductory *(non-`augment`)*
+   member or constructor declaration:
+   - does not have a private basename *(an identifier starting with `'_'`, or
+     for a constructor, a privately named constructor `D._n`, `new _n`,
+     `factory D._n`, or `factory _n` where `_n` starts with `'_'`)*, or
+   - is not complete after all augmentations in *P*'s enclosing conditional
+     subtree have been applied.
 
-   *This implies that default values must be declared in the unconditional
-   files of L. In particular, this is needed in generative constructors
-   because super-parameters in other libraries may need to use this default
-   value. We may be able to relax this requirement for non-constructors.*
+   *Adding an unimplemented abstract private member to *D* in *P* would cause *D*
+   or concrete subclasses of *D* in the unconditional files of *L* (or in
+   importing libraries) to fail concrete-implementation checking or alter
+   `noSuchMethod` forwarders.*
 
-7. **No completing constant constructors**: It is a **compile-time error**
-   if an augmenting constructor declaration in *P* is constant and is
-   complete. *This is necessary because constant expression evaluation is
-   part of the static analysis.*
+7. **No name or hierarchy conflicts with unconditional declarations**: It is a
+   **compile-time error** if:
+   - an introductory top-level declaration in *P* has the same basename `_n` as
+     any top-level declaration or import prefix in the unconditional files of
+     *L* *(or in any other included file of *L*)*, or
+   - an introductory member or constructor declaration with basename `_n` inside
+     an augmenting declaration of *D* in *P* has the same basename as any member
+     or constructor declared in *D*, or in any superinterface, superclass, or
+     subtype of *D* in the unconditional files of *L* *(or outside *P*'s
+     enclosing conditional subtree)*.
 
-8. **Restrictions on augmenting instance variables**: In [Augmentations][], a
-   non-`abstract` augmenting instance variable declaration completes an
-   incomplete getter (and setter, if mutable) while introducing backing storage.
-   It is a **compile-time error** if *P* contains a non-`abstract`,
-   non-`external` augmenting instance variable declaration *v* in an augmenting
-   declaration of *D*, and either:
-   - *D* declares a constant generative constructor *(which includes the
-     case where *D* is an `enum`)*, or
-   - *v* is `final` or has a potentially non-nullable type, *v* is not `late`,
-     *v* has no initializing expression, and *D* either has no generative
-     constructors or has at least one non-redirecting generative constructor
-     that is completed *(explicitly or implicitly by default)* in the
-     unconditional files of *L*.
+8. **No static resolution from unconditional files to introductory declarations
+   in *P***: It is a **compile-time error** if any identifier reference, type
+   annotation, constructor reference, or statically resolved instance member
+   access, method invocation, setter assignment, tear-off, or object pattern
+   field access in an unconditional file of *L* *(or in a conditional part file
+   outside *P*'s enclosing conditional subtree)* resolves to an introductory
+   declaration in *P* *(or to a member of an introductory `extension`
+   declaration in *P*)*.
 
-   *Adding backing storage to a class with a constant constructor would
-   make constant evaluation and canonicalization depend on *P*. Adding an
-   uninitialized non-`late` `final` or potentially non-nullable field when
-   *D* already has a complete generative constructor in the unconditional
-   files would invalidate that constructor.*
+   Furthermore, an introductory `extension` declaration in *P* is not accessible
+   for implicit extension member resolution outside *P*'s enclosing conditional
+   subtree *(equivalently, it is a **compile-time error** if an implicit
+   extension member access outside *P*'s enclosing conditional subtree resolves
+   to a member of an introductory `extension` declaration in *P* or has an
+   introductory `extension` declaration in *P* among its applicable
+   extensions)*.
 
-9. **No invalidation of library-wide checks**: All existing augmentation
-   and declaration rules apply to the semantic declarations obtained after
-   applying the augmentations in *P* *(in the standard pre-order
-   depth-first augmentation application order specified in
-   [Augmentations][])*. Any error arising from applying *P* (such as a
-   signature mismatch, completing an already-complete declaration, creating
-   a constructor redirection cycle, completing a constructor of a class
-   with a primary constructor as non-redirecting, failing to complete a
-   required incomplete declaration, or declaring an import prefix in *P*
-   with the same basename as a top-level declaration of *L*) is a
-   **compile-time error**.
+   *In particular, an introductory private declaration in *P* can never shadow a
+   top-level, imported, or inherited identifier at any reference site in the
+   unconditional files of *L*.*
+
+9. **No `dynamic` access to secret private names of *P***: A private basename
+   `_n` is a _secret private name_ of *P* if *P* contains an introductory
+   declaration with basename `_n`, other than an instance member declaration
+   inside an introductory top-level type declaration in *P* that implements or
+   overrides a member with basename `_n` declared in the unconditional files of
+   *L*.
+
+   It is a **compile-time error** if *P* has a secret private name `_n`, and *L*
+   contains an instance member access, method invocation, setter assignment,
+   tear-off, or object pattern field access with basename `_n` whose receiver
+   *(or matched value)* has static type `dynamic`.
+
+   *Although `dynamic` member accesses do not affect static type inference in
+   the unconditional files, disallowing `dynamic` access to secret private names
+   ensures that unconditional code cannot depend on secret declarations of *P*
+   even at run time.*
+
+10. **No default parameter values on augmenting declarations**: It is a
+    **compile-time error** if an augmenting function, method, or constructor
+    declaration in *P* specifies a default value (`=` `<expression>`) for an
+    optional positional or named formal parameter.
+
+    *This implies that default values for declarations in the unconditional
+    files must be declared in the unconditional files of L. In particular, this
+    is needed in generative constructors because super-parameters in other
+    libraries may need to use this default value. We may be able to relax this
+    requirement for non-constructors. (Introductory private functions, methods,
+    and constructors in *P* may specify default parameter values normally.)*
+
+11. **No completing constant constructors**: It is a **compile-time error**
+    if an augmenting constructor declaration in *P* is constant and is
+    complete. *This is necessary because constant expression evaluation is
+    part of the static analysis.*
+
+12. **Restrictions on instance variables and constructors in augmenting
+    declarations**: In an augmenting declaration of *D* in *P*:
+    - It is a **compile-time error** if *P* contains a non-`abstract`,
+      non-`external` instance variable declaration *v* *(whether introductory or
+      augmenting)*, and either:
+      - *D* declares a constant generative constructor *(which includes the
+        case where *D* is an `enum`)*, or
+      - *v* is `final` or has a potentially non-nullable type, *v* is not `late`,
+        *v* has no initializing expression, and *D* either has no generative
+        constructors or has at least one non-redirecting generative constructor
+        that is completed *(explicitly or implicitly by default)* in the
+        unconditional files of *L*.
+    - It is a **compile-time error** if *P* contains an introductory *(privately
+      named)* constructor declaration in *D*, and either:
+      - *D* is a `class` or `mixin class` that does not explicitly declare at
+        least one constructor in the unconditional files of *L* *(because
+        declaring a constructor in *P* would suppress the implicit default
+        constructor `D()` in the unconditional files)*,
+      - *D* is a `mixin class` and the constructor is generative,
+      - *D* has a primary constructor in the unconditional files of *L* *(and is
+        not an `extension type`)* and the constructor is a non-redirecting
+        generative constructor, or
+      - the constructor is `const`.
+
+    *Adding backing storage to a class with a constant constructor would
+    make constant evaluation and canonicalization depend on *P*. Adding an
+    uninitialized non-`late` `final` or potentially non-nullable field when
+    *D* already has a complete generative constructor in the unconditional
+    files would invalidate that constructor.*
+
+13. **No invalidation of library-wide checks**: All existing augmentation
+    and declaration rules apply to the semantic declarations obtained after
+    applying the augmentations in *P* *(in the standard pre-order
+    depth-first augmentation application order specified in
+    [Augmentations][])*. Any error arising from applying *P* (such as a
+    signature mismatch, completing an already-complete declaration, creating
+    a constructor redirection cycle, completing a constructor of a class
+    with a primary constructor as non-redirecting, failing to complete a
+    required incomplete declaration, or declaring an import prefix in *P*
+    with the same basename as a top-level declaration of *L*) is a
+    **compile-time error**.
 
 #### Modular static analysis
 
@@ -508,28 +616,33 @@ Let *L* be a library and let *L*<sub>*u*</sub> be the set of unconditional files
 of *L*.
 
 - **Analyzing libraries that import *L***: Because no valid conditional part
-  file of *L* can change *L*'s exported namespace, type hierarchy, member
-  signatures, abstract-versus-concrete member status, default parameter values,
-  enum entries, or constant expressions, a tool analyzing any library *L'* that
-  imports or exports *L* may ignore all conditional `part` directives in
-  *L*<sub>*u*</sub>.
+  file of *L* can change *L*'s exported namespace, public type hierarchy,
+  `sealed` subtype sets, public member signatures, abstract-versus-concrete
+  member status, default parameter values, enum entries, or constant
+  expressions, a tool analyzing any library *L'* that imports or exports *L* may
+  ignore all conditional `part` directives in *L*<sub>*u*</sub>.
 
-- **Analyzing *L*<sub>*u*</sub>**: All identifier resolution, type inference,
-  type checking, override checking, super-invocation checking, switch
-  exhaustiveness checking, and constant evaluation in *L*<sub>*u*</sub> are
-  completely determined by *L*<sub>*u*</sub> alone (ignoring conditional `part`
-  directives). If *L*<sub>*u*</sub> contains no conditional `part` directives,
-  completeness of all declarations in *L*<sub>*u*</sub> is also checked on
-  *L*<sub>*u*</sub> alone.
+- **Analyzing *L*<sub>*u*</sub>**: Because no reference in *L*<sub>*u*</sub> can
+  resolve to an introductory private declaration in a conditional part file, and
+  no introductory private declaration in a conditional part file can conflict
+  with, shadow, or add abstract members or `sealed` subtypes to declarations in
+  *L*<sub>*u*</sub>, all identifier resolution, type inference, type checking,
+  override checking, super-invocation checking, switch exhaustiveness checking,
+  and constant evaluation in *L*<sub>*u*</sub> are completely determined by
+  *L*<sub>*u*</sub> alone (ignoring conditional `part` directives). If
+  *L*<sub>*u*</sub> contains no conditional `part` directives, completeness of
+  all declarations in *L*<sub>*u*</sub> is also checked on *L*<sub>*u*</sub>
+  alone.
 
 - **Analyzing and compiling *L* in a compilation environment**: Given a
   compilation environment, each conditional `part` directive specifies a URI,
   determining the complete tree of files of *L*. Static analysis of the selected
-  conditional part files checks their directives and augmenting declarations
-  against *L*<sub>*u*</sub>, applies all augmentations in augmentation
-  application order, and verifies that every declaration requiring completion
-  *(top-level, `static`, `extension`, non-constant `factory`, and `concrete`
-  declarations)* is complete.
+  conditional part files checks their directives, introductory private
+  declarations, and augmenting declarations against *L*<sub>*u*</sub>, applies
+  all augmentations in augmentation application order, and verifies that every
+  declaration requiring completion *(top-level, `static`, `extension`,
+  non-constant `factory`, `concrete`, and introductory member declarations in
+  conditional parts)* is complete.
 
 ### Dynamic semantics
 
@@ -560,7 +673,7 @@ Lots of possible choices. However, none of the reserved or built-in
 identifiers seem to be a very good match.
 
 The patch mechanism uses `external`, which is somewhat confusing
-conceptually, but should work.
+conceptually, but seems to work fine in the context of patching.
 
 #### Make `concrete` a regular identifier
 
@@ -631,6 +744,11 @@ the non-conditional part tree into account, and which are incapable of
 being abstract (for example, top-level declarations or `static`
 declarations).
 
+These declarations would be subject to a completeness check: Each
+combination of enablement of specific conditional parts must satisfy the
+requirement that every one of these declarations has exactly one complete
+augmenting declaration.
+
 We could perform the completeness check only during compilation, or only on
 explicit developer request.
 
@@ -640,23 +758,30 @@ could be a large number of cases.
 
 #### Platform-specific helper declarations and private state
 
-Disallowing introductory top-level and member declarations in conditional part
-files keeps the library's top-level namespace and every class's member namespace
-invariant across all configurations, while remaining expressive in practice:
+Allowing introductory declarations with private names in conditional part files
+makes it straightforward to write self-contained platform implementations
+without auxiliary helper libraries, while the accompanying constraints preserve
+configuration-independent static analysis:
 
-- **Helper functions, classes, and extensions**: Because a conditional part file
-  can have its own `import` directives, any platform-specific helper classes,
-  functions, extensions, or top-level state can be placed in a separate helper
-  library *(for instance, `'src/io_helpers.dart'`)* imported only by that
-  conditional part file.
+- **Helper functions, classes, and extensions**: A conditional part file *P* can
+  declare private top-level helper functions (`void _flushStdout()`), private
+  implementation classes (`class _IoChannel extends Channel`), private
+  extensions (`extension _IoStringExt on String`), and private top-level
+  variables directly inside *P*, in addition to importing platform-specific
+  helper libraries when desired. Because no reference in the unconditional files
+  can resolve to these declarations, and private types in *P* cannot directly
+  subtype `sealed` types from the unconditional files, the static analysis of
+  the unconditional files (and of any importing library) is unaffected by their
+  presence.
 
-- **Platform-specific instance state**: When a class needs platform-specific
-  instance fields, it can either expose `factory` constructors completed in the
-  conditional part that return platform-specific subclasses declared in an
-  imported helper library, or declare a private field *(such as `final Object?
-  _handle;`)* and a `concrete` generative constructor in the unconditional
-  library file whose completing augmentation in each conditional part
-  initializes `_handle`.
+- **Platform-specific instance state and private members**: An augmenting type
+  declaration in *P* can introduce private helper methods, private instance
+  variables, and privately named constructors (provided that any new instance
+  variable is initialized or compatible with constructors completed in the
+  unconditional files, and does not add storage to a class with a `const`
+  constructor). Furthermore, prohibiting `dynamic` member accesses and tear-offs
+  in *L* using secret private names of *P* ensures that unconditional code
+  cannot depend on those conditional private declarations even at run time.
 
 #### Variable declarations and `concrete`
 
@@ -687,6 +812,13 @@ of the unconditional files of the library. In this case it doesn't need to
 load or resolve conditional part files for other platforms.
 
 ### Changelog
+
+1.1 - October 30, 2026
+
+* Allow introductory declarations with private names in conditional part files,
+  with static constraints ensuring that unconditional files and importing
+  libraries remain independent of conditional parts (and disallowing `dynamic`
+  access to secret private names of conditional parts).
 
 1.0 - October 29, 2026
 
