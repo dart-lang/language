@@ -554,42 +554,22 @@ file.
 
 ### Discussion
 
-TODO Perhaps it is necessary to require that every part file in a library
-file tree is conditional if at least one of them is conditional? The
-problem is that we may not want to specify and implement what it means for
-an analysis to take the non-conditional parts into account, and ignore the
-conditional parts.
+### Use a different word than `concrete`
 
-TODO We can allow incomplete augmenting declarations on complete
-declarations even in conditional parts. But it is useful?
-TODO It must be an error for a conditional part to contain a complete
-constant constructor declaration.
+Lots of possible choices. However, none of the reserved or built-in
+identifiers seem to be a very good match.
 
-TODO Is it supported to have conditional parts of conditional parts?
+The patch mechanism uses `external`, which is somewhat confusing
+conceptually, but should work.
 
-TODO Is it supported to have multiple conditional parts in the same
-library? Do the have to use the same conditions?
+#### Make `concrete` a regular identifier
 
-TODO Could we use a compile-time only check on the completeness of
-declarations which are required to be complete? (That is, the analyzer
-doesn't know, but every compilation will reveal whether this particular
-configuration does satisfy the completeness requirement.)
+We could avoid making `concrete` a built-in identifier (it would then be a
+`<typeIdentifier>`). This would allow us to avoid a (probably tiny) amount
+of breakage in existing code.
 
-TODO Can we have a declaration which is complete in some configurations and
-incomplete in others?
-
-#### Drop the support for the `concrete` modifier entirely
-
-This would imply that every instance member which is made conditional by
-having its implementation in a conditional part would have an undetermined
-abstractness property, which would in turn make all super-invocations
-targeting this declaration a compile-time error.
-
-This would allow us to avoid a certain amount of syntactic complexity. For
-example, developers wouldn't have to think about the meaning of this
-keyword and they wouldn't have to decide whether or not it should be used
-in each case where they are writing an introductory instance member
-declaration in a library that has conditional parts.
+On the other hand, this might give rise to less informative diagnostics in
+case of syntax errors around the word `concrete`.
 
 #### Enforce `concrete` consistently
 
@@ -608,22 +588,55 @@ controlled property, which means that there's no ambiguity: Abstract
 declarations can be recognized as such, and that's true for concrete
 declarations as well.
 
-#### Make `concrete` a regular identifier
+#### Drop the support for the `concrete` modifier entirely
 
-We could avoid making `concrete` a built-in identifier (it would then be a
-`<typeIdentifier>`). This would allow us to avoid a (probably tiny) amount
-of breakage in existing code.
+This would imply that every instance member which is made conditional by
+having its implementation in a conditional part would have an undetermined
+abstractness property, which would in turn make all super-invocations
+targeting this declaration a compile-time error.
 
-On the other hand, this might give rise to less informative diagnostics in
-case of syntax errors around the word `concrete`.
+This would allow us to avoid a certain amount of syntactic complexity. For
+example, developers wouldn't have to think about the meaning of this
+keyword and they wouldn't have to decide whether or not it should be used
+in each case where they are writing an introductory instance member
+declaration in a library that has conditional parts.
 
-### Use a different word than `concrete`
+#### Restrict parts such that a conditional part is always alone
 
-Lots of possible choices. However, none of the reserved or built-in
-identifiers seem to be a very good match.
+It might simplify things in a useful way if we introduced the restriction
+that a conditional part must be the only part in the given library.
 
-The patch mechanism uses `external`, which is somewhat confusing
-conceptually, but should work.
+There could be a tree of part files under each of the variants, but we
+would then constrain them to be reached via a non-conditional part
+directive. That is, we might have 5 different parts reached by a
+conditional part directive in the library (which would then also be the
+_only_ part directive in that library), and each of them could have a tree
+of further part files under them, but the whole subtree would always be
+enabled at the same time.
+
+The general case (as currently specified) is quite complex: There could be
+some conditional part directives and some non-conditional (normal) ones,
+and there could be any number of combinations of enablement of the
+conditional ones, including the fact that the subtrees of each conditional
+part could again be conditional, typcially based on different criteria. It
+seems likely that the full generality is difficult to implement and
+maintain, and it may not bring much value compared to the simpler
+approaches.
+
+#### Should we check completeness only during compilation?
+
+Consider all `concrete` declarations in a non-conditional file of a library
+_L_. Consider also all declarations which are incomplete when taking only
+the non-conditional part tree into account, and which are incapable of
+being abstract (for example, top-level declarations or `static`
+declarations).
+
+We could perform the completeness check only during compilation, or only on
+explicit developer request.
+
+The point is that this step needs to consider every possible combination of
+inclusion/non-inclusion of the conditional parts of this library, which
+could be a large number of cases.
 
 #### Platform-specific helper declarations and private state
 
