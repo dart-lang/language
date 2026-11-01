@@ -18,7 +18,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Build and test Lean code
-        uses: leanprover/lean-action@50fcf42d2e460296f1a34b402e990d1b24f8b596
+        uses: leanprover/lean-action@fe408643ea7367d8c0404a8be3975bb145f5fb64
         with:
           lake-package-directory: lean
           build: true
