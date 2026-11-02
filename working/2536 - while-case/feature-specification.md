@@ -172,9 +172,11 @@ Scoping closely mirrors `if-case` combined with per-iteration loop bindings:
    prior iteration cannot be referenced in `e`.*
 
 2. The `guardedPattern` introduces a new **case scope** whose enclosing scope
-   is the scope surrounding the while-case statement. Every variable subpattern
-   in `p` declares a variable in this case scope (with joint variable handling
-   for logical-or patterns identical to `if-case`).
+   is the scope surrounding the while-case statement. Every variable in the
+   **pattern variable set** of `p` (as defined in the Patterns specification,
+   which excludes wildcards, checks for duplicate bindings, and enforces
+   consistent bindings across logical-or branches) is declared in this case
+   scope.
 
    * As in `if-case` and `switch`, variables defined in the pattern are in
      scope across the entire pattern, so it is a compile-time error for a
@@ -218,7 +220,9 @@ Flow analysis treats `while (e case p when g) s` as a combination of standard
    performs the standard loop-entry split and conservative join over all
    variables assigned or write-captured anywhere within `e`, `p`, `g`, or `s`
    (demoting any outer promotions on those variables that could be invalidated
-   by a subsequent iteration).
+   by a subsequent iteration, and marking any outer variables assigned within
+   the loop as *not definitely unassigned* so that assigning to an unassigned
+   `final` local variable inside the loop is a compile-time error).
 
 2. **Scrutinee and pattern matching**: `e` is analyzed, and `p` is analyzed
    against `e` as the scrutinee:
@@ -227,6 +231,10 @@ Flow analysis treats `while (e case p when g) s` as a combination of standard
      may promote `e` via refutation in the unmatched flow state (for example,
      matching against the constant pattern `null` promotes a nullable local
      variable to its non-nullable type along the unmatched path).
+   * In the matched flow state, all variables in the pattern variable set of
+     `p` are initialized (marked as definitely assigned), and subpatterns of `p`
+     (such as the right-hand operand of `&&`) may promote pattern variables
+     declared earlier in `p`.
 
 3. **Guard (`g`)**: If `g` is present, it is analyzed starting from the
    pattern-matched flow state.
@@ -253,9 +261,11 @@ Flow analysis treats `while (e case p when g) s` as a combination of standard
 
    * *Post-loop promotion by refutation*: In
      `while (x case null) { x = next(); }`, if `x` is a promotable local
-     variable of type `T?` and the body contains no `break`, `x` is promoted to
-     `T` after the loop (because the only way to exit the loop is for
-     `x case null` to fail to match).
+     variable of type `T?`, there is no guard (or the guard's `ifFalse` flow
+     state is unreachable or also promotes `x`), and the body contains no
+     `break` where `x` is not `T`, `x` is promoted to `T` after the loop
+     (because the only way to exit the loop is for `x case null` to fail to
+     match).
    * *Infinite loops and reachability*: If `p` is unconditionally matching (for
      example `while (next() case var x)` or `while (e case _)`), there is no
      guard (or the guard's `ifFalse` state is unreachable, such as
@@ -339,23 +349,21 @@ while (e case p when g) s
 variable capture semantics, and runtime behavior to:
 
 ```dart
-L_break:
+L_loop:
 while (true) {
   if (e case p when g) {
-    L_continue: {
-      s'
-    }
+    s'
   } else {
-    break L_break;
+    break L_loop;
   }
 }
 ```
 
-where `L_break` and `L_continue` are fresh labels, and `s'` is obtained from `s`
-by replacing every `break` targeting the original `while` statement (whether
-unlabeled or referencing one of `L_1, ..., L_k`) with `break L_break;` and every
-`continue` targeting the original `while` statement (whether unlabeled or
-referencing one of `L_1, ..., L_k`) with `continue L_continue;`.
+where `L_loop` is a fresh label, and `s'` is obtained from `s` by replacing
+every `break` targeting the original `while` statement (whether unlabeled or
+referencing one of `L_1, ..., L_k`) with `break L_loop;` and every `continue`
+targeting the original `while` statement (whether unlabeled or referencing one
+of `L_1, ..., L_k`) with `continue L_loop;`.
 
 ## Changelog
 
