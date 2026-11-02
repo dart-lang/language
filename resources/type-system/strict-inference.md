@@ -303,12 +303,14 @@ void main() {
 
 ### Function return types
 
-Declaring a recursive local function, a top-level function, a method, a
-typedef, a generic function type, or a function-typed function parameter
-without a return type is an inference failure. The return type of non-recursive
-local functions can always be inferred from downwards or upwards inference, as
-it will have a body, and the return type of the body is known (even if there
-are inference failures within).
+Declaring a recursive local function, a top-level function, a static method, a
+non-overriding instance method, a type alias, a generic function type, or a
+function-typed function parameter without a return type is an inference
+failure. The return type of non-recursive local functions can always be
+inferred from downwards or upwards inference, as it will have a body, and the
+return type of the body is known (even if there are inference failures within).
+Declaring a setter without a return type is allowed; the return type is assumed
+to be void.
 
 ```dart
 f1() {                                // Inference failure
@@ -326,7 +328,14 @@ void main() {
 
 class C {
   m1() => 7;                          // Inference failure
+  get g => 7;                         // Inference failure
+  int _s;
+  set s(int value) => _s = value;     // OK (void assumed for setter)
   static m2() => 7;                   // Inference failure
+}
+
+class D extends C {
+  m1() => 9;                          // OK (overrides C.m1)
 }
 
 typedef Callback1 = Function(int);    // Inference failure
