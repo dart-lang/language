@@ -1,7 +1,9 @@
 # While-Case Statements
 
 Author: Sam Rawlins
+
 Status: Proposed
+
 Version: 1.0
 
 Specification for issue
@@ -71,26 +73,33 @@ removes a point of surprise in Dart's pattern matching support.
 
 ### Non-goals
 
-`do-while-case`: Extending `do statement while (expression);` with a `case`
-clause is intentionally omitted. In a `do-while` loop, the body executes
-*before* the condition is first evaluated. Any pattern variables declared in
-the `while` condition could not be bound on the first iteration of the body, so
-they could not be in scope (with initialized values) in the body at all.
+#### `do-while-case`
 
-#### Alternatives
+Extending `do statement while (expression);` with a `case` clause is
+intentionally omitted. In a `do-while` loop, the body executes *before* the
+condition is first evaluated. Any pattern variables declared in the `while`
+condition could not be bound on the first iteration of the body, so they could
+not be in scope (with initialized values) in the body at all.
 
-* Allow `do-while-case` with variable-binding in the `case` clause, but those
-  variables are not in-scope in the `do-while` body. This perhaps is the least
+Alternately, we could allow one of the following:
+
+* Allow `do-while-case` with variable binding in the `case` clause, but those
+  variables are not in scope in the `do-while` body. This perhaps is the least
   surprising alternative, but it is still exceptional; the variables are not
-  bound in any context except inner scopes in the `case` clause and the `when`
-  component of the clause. This may prove useful enough to justify the feature.
+  bound in any context except the `when` component of the clause. This may
+  prove useful enough to justify the feature.
 
-* Allows `do-while-case`, but without any variable-binding. The `do-while`
+* Allow `do-while-case`, but without any variable binding. The `do-while`
   condition can have a `case` clause _which does not bind any variables._ This
   also seems surprising and complicated.
 
 * Allow `do-while-case`, and initialize pattern-bound variables to `null` on
   the first iteration; this seems awkward, surprising, and complicated.
+
+#### case expression in C-style for loops
+
+Extending `for (init; condition; updaters) body` is also intentionally omitted.
+This would look like `for (init; e case p; updaters) body`.
 
 ## Syntax
 
@@ -135,8 +144,8 @@ Given a while-case statement of the form `while (e case p) s` or
      used for downwards inference on `e`, and no implicit coercions or casts
      from `dynamic` are inserted on `e`.
    * Unlike a Boolean `while` statement, `e` is *not* required to have type
-     `bool` (and may have any static type, including `void`, matching existing
-     `if-case` behavior).
+     `bool` (and may have any static type, matching existing `if-case`
+     behavior).
    * Let `M` be the static type of `e`.
 
 2.  **Pattern (`p`)**: Type check `p` and infer types for any unannotated
@@ -185,10 +194,10 @@ Scoping closely mirrors `if-case` combined with per-iteration loop bindings:
    scope is the case scope.
    * Variables declared in `p` without `final` are mutable and may be assigned
      inside `s`.
-   * Because `s` has its own inner scope enclosed by the case scope, a block
-     body `{ var x = ...; }` declares a local variable that shadows a pattern
-     variable `x` rather than colliding with it in the same scope (identical to
-     the then-branch of an `if-case` statement).
+   * Because `s` has its own inner scope enclosed by the case scope, a body like
+     `{ var x = ...; }` or `var x = ...;` declares a local variable that
+     shadows a pattern variable `x` rather than colliding with it in the same
+     scope (identical to the then-branch of an `if-case` statement).
 
 5. **Per-iteration bindings**: Each evaluation of the loop condition creates a
    fresh instance of the case scope and fresh bindings for the pattern
@@ -283,7 +292,8 @@ Executing a while-case statement `while (e case p) s` or
 1. Evaluate `e` to a value `v`.
 
 2. Create a fresh case scope for this iteration and match `p` against `v` in
-   that scope.
+   that scope. This includes the invocation cache, which is not to be shared
+   across iterations of the loop.
 
 3. If the match fails, execution of the while-case statement completes
    normally.
