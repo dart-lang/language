@@ -255,7 +255,9 @@ Flow analysis treats `while (e case p when g) s` as a combination of standard
 
 5. **Loop exit (`end`)**: The flow state immediately following the while-case
    statement is the join of the condition-exit (`unmatched`) flow state from
-   step 3 and all break flow states recorded in step 4.
+   step 3 and all break flow states recorded in step 4, and inherits tested
+   types ("types of interest") from the flow state at the end of `s` (just as a
+   standard `while` statement does via `inheritTested`).
 
    *Notable consequences of these rules:*
 
@@ -266,6 +268,15 @@ Flow analysis treats `while (e case p when g) s` as a combination of standard
      `break` where `x` is not `T`, `x` is promoted to `T` after the loop
      (because the only way to exit the loop is for `x case null` to fail to
      match).
+   * *Closure demotion across `g` and `s`*: Per the flow analysis rules for
+     closures (which include function expressions, local function declarations,
+     and `late` local variable initializers), entry to any closure performs a
+     conservative join over all variables assigned or write-captured anywhere in
+     the enclosing function (`assignedAnywhere` / `writeCapturedAnywhere`). In
+     particular, if a mutable pattern variable `x` declared in `p` is promoted
+     (in `p` or `g`) and is assigned later in `s`, that promotion is discarded
+     inside any closure in `g` or `s`, even when the closure in `g` textually
+     precedes the assignment in `s`.
    * *Infinite loops and reachability*: If `p` is unconditionally matching (for
      example `while (next() case var x)` or `while (e case _)`), there is no
      guard (or the guard's `ifFalse` state is unreachable, such as
