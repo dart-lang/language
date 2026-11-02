@@ -547,8 +547,9 @@ declaration, that means:
     *   They must have the same name (same identifier).
 
     *   Their bounds must be the same type. This is after any omitted bound in
-        an augmentation has been inherited from the introductory declaration and
-        where an omitted bound is implicitly treated as `Object?`.
+        an introductory declaration has been given a default bound of `Object?`
+        and where any omitted bound in an augmentation has been inherited from
+        the introductory declaration.
 
         *Examples:*
 
