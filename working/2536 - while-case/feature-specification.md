@@ -144,8 +144,8 @@ Given a while-case statement of the form `while (e case p) s` or
      used for downwards inference on `e`, and no implicit coercions or casts
      from `dynamic` are inserted on `e`.
    * Unlike a Boolean `while` statement, `e` is *not* required to have type
-     `bool` (and may have any static type, matching existing `if-case`
-     behavior).
+     `bool` (and may have any static type, including `void`, matching existing
+     `if-case` behavior).
    * Let `M` be the static type of `e`.
 
 2.  **Pattern (`p`)**: Type check `p` and infer types for any unannotated
@@ -267,7 +267,12 @@ Flow analysis treats `while (e case p when g) s` as a combination of standard
      state is unreachable or also promotes `x`), and the body contains no
      `break` where `x` is not `T`, `x` is promoted to `T` after the loop
      (because the only way to exit the loop is for `x case null` to fail to
-     match).
+     match). As in `if-case`, refutation uses flow analysis's `factor`
+     operation rather than `switch` exhaustiveness analysis, so matching a
+     subset of a `sealed` type's subtypes (for example,
+     `while (shape case Circle()) { ... }` where `Shape` has subtypes `Circle`
+     and `Square`) does **not** promote `shape` to the remaining subtype(s)
+     after the loop.
    * *Closure demotion across `g` and `s`*: Per the flow analysis rules for
      closures (which include function expressions, local function declarations,
      and `late` local variable initializers), entry to any closure performs a
@@ -284,7 +289,10 @@ Flow analysis treats `while (e case p when g) s` as a combination of standard
      the flow state after the while-case statement is **unreachable**. Code
      following the loop receives a dead-code warning, and an enclosing function
      with a non-nullable return type is not required to have a `return` after
-     the loop.
+     the loop. (Because flow analysis does not apply `switch` exhaustiveness to
+     `while-case`, a pattern that exhausts a `sealed` type solely by listing all
+     of its subtypes, such as `while (shape case Circle() || Square())`, is not
+     treated as unconditionally matching.)
 
 ### Exhaustiveness and warnings
 
