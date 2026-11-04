@@ -4,7 +4,7 @@ Author: Erik Ernst
 
 Status: Draft
 
-Version: 1.1
+Version: 1.2
 
 Experiment flag: conditional-parts
 
@@ -811,7 +811,751 @@ and analyze *P* directly against the configuration-independent static model
 of the unconditional files of the library. In this case it doesn't need to
 load or resolve conditional part files for other platforms.
 
+## Appendix: Justification of compile-time error rules
+
+A central design goal of conditional parts is that the choice of conditional
+part file has no effect on the static analysis of the unconditional files of a
+library *L* or of any library *L*<sub>0</sub> that imports *L*. Informally, a
+conditional part has no effect on the "type of the library" *L*.
+
+This appendix illustrates why each compile-time error rule motivated by this
+property is needed. Throughout the examples below, we consider four files:
+
+- Library *L*<sub>0</sub> in `'l0.dart'`, which imports `'l.dart'`.
+- Library *L* in `'l.dart'`, which conditionally includes either `'p1.dart'` or
+  `'p2.dart'` based on the `-DuseP2=true` compilation environment variable.
+- Conditional part *P*<sub>1</sub> in `'p1.dart'`, selected by default when
+  `useP2` is not `'true'`.
+- Conditional part *P*<sub>2</sub> in `'p2.dart'`, selected when compiled with
+  `-DuseP2=true`.
+
+```dart
+// Library file "l0.dart".
+import 'l.dart';
+// Declarations for each rule are shown below.
+```
+
+```dart
+// Library file "l.dart".
+part 'p1.dart'
+    if (useP2 == 'true') 'p2.dart';
+// Declarations for each rule are shown below.
+```
+
+```dart
+// Part file "p1.dart".
+part of 'l.dart';
+// Declarations for each rule are shown below.
+```
+
+```dart
+// Part file "p2.dart".
+part of 'l.dart';
+// Declarations for each rule are shown below.
+```
+
+For each rule, we show what happens in *L*<sub>0</sub> and *L* when that rule is
+violated, demonstrating that the static analysis of *L*<sub>0</sub> or *L* would
+differ depending on whether *P*<sub>1</sub> or *P*<sub>2</sub> is selected.
+
+### Rules on the `concrete` modifier and incomplete members
+
+#### Disallowing `concrete` on augmenting declarations
+
+An augmenting declaration cannot have the modifier `concrete`. Only an
+introductory declaration can be marked `concrete`.
+
+```dart
+// In "l.dart":
+abstract class ServiceA1 {
+  void run();
+}
+
+// In "p1.dart":
+augment abstract class ServiceA1 {
+  // Compile-time error: `concrete` on an augmenting declaration.
+  augment concrete void run() {}
+}
+
+// In "p2.dart":
+augment abstract class ServiceA1 {}
+
+// In "l0.dart":
+class MyServiceA1 extends ServiceA1 {
+  void execute() {
+    super.run();
+  }
+}
+```
+
+If `p1.dart` were allowed to add `concrete` to `ServiceA1.run`, then selecting
+*P*<sub>1</sub> would make `ServiceA1.run` concrete: `MyServiceA1` in
+*L*<sub>0</sub> would inherit a concrete implementation of `run` and
+`super.run()` would be valid. Selecting *P*<sub>2</sub> with `-DuseP2=true`
+would leave `ServiceA1.run` abstract, causing two compile-time errors in
+*L*<sub>0</sub>: `MyServiceA1` would lack a concrete implementation of `run`,
+and `super.run()` would target an abstract method.
+
+#### Requiring `concrete` declarations to be completed
+
+A declaration with the modifier `concrete` must be completed by an augmenting
+declaration, and is not implicitly completed if it is a generative constructor.
+Similarly, `concrete` is disallowed on already-complete declarations and on
+constructors of a `mixin class` or `enum`, which cannot be completed in a
+conditional part.
+
+```dart
+// In "l.dart":
+class WorkerA2 {
+  final int id;
+  concrete WorkerA2();
+  concrete int work();
+}
+
+// In "p1.dart":
+augment class WorkerA2 {
+  augment WorkerA2() : id = 0;
+  augment int work() => 42;
+}
+
+// In "p2.dart":
+// Compile-time error: `WorkerA2.new` and `WorkerA2.work` are marked
+// `concrete` in "l.dart", but are not completed when "p2.dart" is selected.
+augment class WorkerA2 {}
+
+// In "l0.dart":
+class SubWorkerA2 extends WorkerA2 {
+  @override
+  int work() => super.work() + 1;
+}
+```
+
+Static analysis of *L* and *L*<sub>0</sub> relies on the `concrete` modifier in
+`l.dart` to treat `WorkerA2.new` as initializing `id` and `WorkerA2.work` as
+implemented. When *P*<sub>1</sub> is selected, both promises are fulfilled. When
+*P*<sub>2</sub> is selected, if failing to complete a `concrete` declaration
+were not an error, `WorkerA2.new` would fail to initialize the `final` variable
+`id` in *L*, `WorkerA2` in *L* would be a concrete class with an unimplemented
+method `work`, and `super.work()` in *L*<sub>0</sub> would target an abstract
+member.
+
+#### Undetermined abstractness of unmarked incomplete members
+
+An incomplete instance member in *L* without the modifier `concrete` that is not
+completed in the unconditional files of *L* has undetermined abstractness: it
+does not satisfy concrete implementation checks, and a super-invocation in a
+subclass that would target it if it were implemented is a compile-time error,
+even if a superclass further up the hierarchy declares a concrete implementation.
+
+```dart
+// In "l.dart":
+class BaseA3 {
+  void action([int x = 0]) {}
+}
+
+abstract class MiddleA3 extends BaseA3 {
+  void action();
+}
+
+// In "p1.dart":
+augment abstract class MiddleA3 {
+  augment void action() {}
+}
+
+// In "p2.dart":
+augment abstract class MiddleA3 {}
+
+// In "l0.dart":
+class ConcreteLeafA3 extends MiddleA3 {} // Compile-time error: missing `action`.
+
+class SuperCallLeafA3 extends MiddleA3 {
+  @override
+  void action([int x = 0]) {
+    // Compile-time error: `MiddleA3.action` has undetermined abstractness.
+    super.action(x);
+  }
+}
+```
+
+Here, both `p1.dart` and `p2.dart` are valid conditional parts: because
+`MiddleA3` is `abstract` and `MiddleA3.action` is not marked `concrete`,
+*P*<sub>1</sub> is permitted to complete `MiddleA3.action` while *P*<sub>2</sub>
+is permitted to leave it abstract.
+
+- If `ConcreteLeafA3` in *L*<sub>0</sub> were not required to implement
+  `action`, it would be valid when *P*<sub>1</sub> is selected and a
+  compile-time error when *P*<sub>2</sub> is selected.
+- If `super.action(x)` in `SuperCallLeafA3` in *L*<sub>0</sub> ignored the
+  incomplete `MiddleA3.action` declaration and resolved to `BaseA3.action`, then
+  when *P*<sub>2</sub> is selected (`-DuseP2=true`), `MiddleA3.action` is
+  indeed abstract and `super.action(x)` would validly invoke
+  `BaseA3.action([int x = 0])` with one argument. When *P*<sub>1</sub> is
+  selected, however, `MiddleA3.action()` is concrete and accepts zero arguments,
+  so `super.action(x)` in *L*<sub>0</sub> would resolve to `MiddleA3.action()`
+  and fail with a compile-time error because too many positional arguments are
+  supplied.
+
+### Restrictions on conditional part files
+
+#### Rule 1: No `export` directives
+
+A conditional part file cannot contain a `<libraryExport>` directive.
+
+```dart
+// Library file "extra.dart":
+int extraValue = 42;
+
+// In "p1.dart":
+export 'extra.dart'; // Compile-time error under Rule 1.
+
+// In "p2.dart":
+// No export directive.
+
+// In "l0.dart":
+int useExtra() => extraValue;
+```
+
+If `p1.dart` were allowed to export `'extra.dart'`, then `extraValue` would be
+in the exported namespace of *L* when *P*<sub>1</sub> is selected, making
+`useExtra` in *L*<sub>0</sub> valid. When *P*<sub>2</sub> is selected with
+`-DuseP2=true`, `extraValue` is not exported by *L*, making `extraValue` in
+*L*<sub>0</sub> an unresolved identifier compile-time error.
+
+#### Rule 2: Private names required for introductory top-level declarations
+
+Every introductory top-level declaration in a conditional part file must have a
+private name; in particular, introductory unnamed `extension` declarations are
+disallowed.
+
+```dart
+// In "p1.dart":
+int publicHelper() => 1; // Compile-time error under Rule 2.
+
+extension on String { // Compile-time error under Rule 2.
+  int get customLength => length;
+}
+
+// In "p2.dart":
+// Neither declaration is present.
+
+// In "l0.dart":
+int usePublicDeclarations() => publicHelper() + 'abc'.customLength;
+```
+
+If `p1.dart` were allowed to declare `publicHelper` or the unnamed `extension`,
+both would be exported by *L* when *P*<sub>1</sub> is selected, so
+`usePublicDeclarations` in *L*<sub>0</sub> (and any call in *L*) would be valid.
+When *P*<sub>2</sub> is selected with `-DuseP2=true`, neither declaration exists,
+so both `publicHelper()` and `'abc'.customLength` in *L*<sub>0</sub> fail with
+compile-time errors.
+
+#### Rule 3: No added superinterfaces on augmented types
+
+An augmenting type declaration in a conditional part file cannot contain an
+`extends`, `with`, or `implements` clause.
+
+```dart
+// In "l.dart":
+abstract interface class Printable {}
+class Item {}
+
+// In "p1.dart":
+augment class Item implements Printable {} // Compile-time error under Rule 3.
+
+// In "p2.dart":
+augment class Item {}
+
+// In "l0.dart":
+Printable asPrintable(Item item) => item;
+```
+
+When *P*<sub>1</sub> is selected, `Item` is a subtype of `Printable`, so
+`asPrintable` in *L*<sub>0</sub> is well-typed. When *P*<sub>2</sub> is selected
+with `-DuseP2=true`, `Item` is not a subtype of `Printable`, so returning `item`
+from `asPrintable` in *L*<sub>0</sub> is a compile-time type error.
+
+#### Rule 4: No direct subtyping of `sealed` types from unconditional files
+
+An introductory type declaration in a conditional part file cannot have a
+`sealed` class or `sealed` mixin from the unconditional files of *L* as a direct
+superinterface.
+
+```dart
+// In "l.dart":
+sealed class Response {}
+class Ok extends Response {}
+
+// In "p1.dart":
+class _SecretError extends Response {} // Compile-time error under Rule 4.
+
+// In "p2.dart":
+// No subtype of Response.
+
+// In "l0.dart":
+int statusCode(Response r) => switch (r) {
+  Ok() => 200,
+};
+```
+
+Even though `_SecretError` has a private name (satisfying Rule 2), it is a
+direct subtype of the `sealed` class `Response`. When *P*<sub>2</sub> is
+selected with `-DuseP2=true`, `Ok` is the only direct subtype of `Response`, so
+the `switch` expression in `statusCode` in *L*<sub>0</sub> (and in *L*) is
+exhaustive. When *P*<sub>1</sub> is selected, `Response` has an additional
+direct subtype `_SecretError`, causing the `switch` expression in
+*L*<sub>0</sub> and *L* to fail exhaustiveness checking with a compile-time
+error.
+
+#### Rule 5: No added enum entries on augmented enums
+
+An augmenting `enum` declaration in a conditional part file cannot declare enum
+entries.
+
+```dart
+// In "l.dart":
+enum Mode { fast }
+
+// In "p1.dart":
+augment enum Mode { slow } // Compile-time error under Rule 5.
+
+// In "p2.dart":
+augment enum Mode {}
+
+// In "l0.dart":
+int speed(Mode m) => switch (m) {
+  Mode.fast => 100,
+};
+```
+
+When *P*<sub>2</sub> is selected with `-DuseP2=true`, `Mode.fast` is the sole
+value of `Mode`, and `speed` in *L*<sub>0</sub> is exhaustive. When
+*P*<sub>1</sub> is selected, `Mode` has a second value `Mode.slow`, making the
+`switch` expression in *L*<sub>0</sub> a non-exhaustive switch compile-time
+error (and conversely, an expression `Mode.slow` in *L*<sub>0</sub> would be
+valid under *P*<sub>1</sub> and a compile-time error under *P*<sub>2</sub>).
+
+#### Rule 6: Private names and completeness required for introductory members in augmenting declarations
+
+Inside an augmenting declaration of *D* in a conditional part file, every
+introductory member or constructor must have a private name and must be complete
+after applying all augmentations in the conditional part's enclosing conditional
+subtree.
+
+```dart
+// In "l.dart":
+class Box6 {
+  Box6.create();
+}
+
+// In "p1.dart":
+augment class Box6 {
+  Box6(); // Compile-time error under Rule 6: public constructor.
+  int unwrap() => 0; // Compile-time error under Rule 6: public method.
+  void _missingHook(); // Compile-time error under Rule 6: incomplete member.
+}
+
+// In "p2.dart":
+augment class Box6 {}
+
+// In "l0.dart":
+int useBox6() => Box6().unwrap();
+class SubBox6 extends Box6 {
+  SubBox6() : super.create();
+}
+```
+
+- **Public name (`Box6()` and `unwrap`)**: In *L*<sub>0</sub>, `useBox6` is
+  valid when *P*<sub>1</sub> is selected, and a compile-time error when
+  *P*<sub>2</sub> is selected with `-DuseP2=true` because neither the unnamed
+  constructor nor `unwrap` exists on `Box6`.
+- **Completeness (`_missingHook`)**: When *P*<sub>2</sub> is selected, `Box6` in
+  *L* and `SubBox6` in *L*<sub>0</sub> are valid concrete classes. When
+  *P*<sub>1</sub> is selected, `_missingHook` is an unimplemented abstract
+  private method of `Box6`, causing both `Box6` in *L* and `SubBox6` in
+  *L*<sub>0</sub> to fail concrete-class implementation checking with a
+  compile-time error.
+
+#### Rule 7: No name or hierarchy conflicts with unconditional declarations
+
+An introductory top-level declaration in a conditional part file cannot have the
+same basename as any top-level declaration or import prefix in the unconditional
+files of *L*; and an introductory member or constructor in an augmenting
+declaration of *D* cannot have the same basename as any member or constructor in
+*D* or in any superinterface, superclass, or subtype of *D* in the unconditional
+files of *L*.
+
+```dart
+// In "l.dart":
+int _topHelper() => 1;
+
+class Super7 {
+  num _calc() => 1;
+}
+
+class Mid7 extends Super7 {}
+
+class Sub7 extends Mid7 {
+  String _leafMethod() => 'ok';
+  int testCalc() => super._calc();
+  late final x = super._calc();
+}
+
+final sub7X = Sub7().x;
+
+// In "p1.dart":
+int _topHelper() => 2; // Compile-time error under Rule 7: top-level conflict.
+
+augment class Mid7 {
+  // Compile-time error under Rule 7: conflicts with `Super7._calc`.
+  int _calc() => 2;
+  // Compile-time error under Rule 7: conflicts with `Sub7._leafMethod`.
+  int _leafMethod(int a) => a;
+}
+
+// In "p2.dart":
+augment class Mid7 {}
+
+// In "l0.dart":
+int useSub7X() => sub7X;
+```
+
+- **Top-level conflict (`_topHelper`)**: *L* has a duplicate declaration
+  compile-time error when *P*<sub>1</sub> is selected, and no error when
+  *P*<sub>2</sub> is selected.
+- **Superclass conflict (`_calc`)**: In `Sub7` in *L*, `super._calc()` resolves
+  to `Mid7._calc` with return type `int` when *P*<sub>1</sub> is selected, and
+  to `Super7._calc` with return type `num` when *P*<sub>2</sub> is selected.
+  Consequently, when *P*<sub>1</sub> is selected, `testCalc` in *L* is valid and
+  `sub7X` has inferred type `int`, making `useSub7X` in *L*<sub>0</sub> valid;
+  when *P*<sub>2</sub> is selected, both `testCalc` in *L* and `useSub7X` in
+  *L*<sub>0</sub> fail with compile-time type errors.
+- **Subtype conflict (`_leafMethod`)**: When *P*<sub>2</sub> is selected,
+  `Sub7._leafMethod` in *L* is valid. When *P*<sub>1</sub> is selected,
+  `Sub7._leafMethod()` is an invalid override of `Mid7._leafMethod(int a)` in
+  *L*, causing a compile-time error in *L*.
+
+#### Rule 8: No static resolution from unconditional files to introductory declarations in a conditional part
+
+Unconditional files of *L* cannot statically resolve any identifier, type,
+constructor, member access, or object pattern field to an introductory
+declaration in a conditional part, and introductory `extension` declarations in
+a conditional part are not accessible for implicit extension resolution in the
+unconditional files of *L*.
+
+```dart
+// Library file "imported_by_l.dart":
+num _compute() => 1.5;
+
+extension ImportedExt on Object {
+  num get tag => 1.5;
+}
+
+// In "l.dart":
+import 'imported_by_l.dart';
+
+class Holder8 {}
+
+final computedValue = _compute();
+final taggedValue = 'hello'.tag;
+int readSecret(Holder8 h) => h._secret; // Compile-time error under Rule 8.
+
+// In "p1.dart":
+int _compute() => 1;
+
+extension _P1Ext on String {
+  int get tag => 1;
+}
+
+augment class Holder8 {
+  int get _secret => 42;
+}
+
+// In "p2.dart":
+augment class Holder8 {}
+
+// In "l0.dart":
+int useComputed() => computedValue;
+int useTagged() => taggedValue;
+```
+
+If unconditional files could resolve to introductory declarations in `p1.dart`:
+
+- **Shadowing imported declarations (`_compute`)**: When *P*<sub>1</sub> is
+  selected, `int _compute()` in `p1.dart` would shadow `num _compute()` imported
+  from `'imported_by_l.dart'`. The top-level variable `computedValue` in *L*
+  would have inferred type `int`, making `useComputed` in *L*<sub>0</sub> valid.
+  When *P*<sub>2</sub> is selected with `-DuseP2=true`, `_compute()` in *L*
+  resolves to `'imported_by_l.dart'`, giving `computedValue` inferred type `num`
+  and causing a compile-time type error in `useComputed` in *L*<sub>0</sub>.
+- **Implicit extension resolution (`_P1Ext`)**: When *P*<sub>1</sub> is
+  selected, `_P1Ext` on `String` is more specific than `ImportedExt` on `Object`,
+  so `'hello'.tag` in *L* would resolve to `_P1Ext.tag` with return type `int`,
+  giving `taggedValue` inferred type `int` and making `useTagged` in
+  *L*<sub>0</sub> valid. When *P*<sub>2</sub> is selected, `'hello'.tag`
+  resolves to `ImportedExt.tag` with return type `num`, causing a compile-time
+  type error in `useTagged` in *L*<sub>0</sub>.
+- **Direct member resolution (`h._secret`)**: `readSecret` in *L* would resolve
+  to `Holder8._secret` and succeed when *P*<sub>1</sub> is selected, and fail
+  with an unresolved getter compile-time error in *L* when *P*<sub>2</sub> is
+  selected.
+
+#### Rule 9: No `dynamic` access to secret private names of a conditional part
+
+It is a compile-time error if a conditional part has a secret private name `_n`
+and *L* contains a member access, method invocation, setter assignment,
+tear-off, or object pattern field access with basename `_n` on a receiver of
+static type `dynamic`.
+
+```dart
+// In "l.dart":
+class Box9 {}
+dynamic invokeSecret(dynamic d) => d._secret9();
+
+// In "p1.dart":
+augment class Box9 {
+  // Compile-time error under Rule 9: `_secret9` is a secret private name of
+  // "p1.dart", and "l.dart" accesses `_secret9` on a `dynamic` receiver.
+  int _secret9() => 1;
+}
+
+// In "p2.dart":
+augment class Box9 {}
+```
+
+Although `d._secret9()` has static type `dynamic` under both *P*<sub>1</sub> and
+*P*<sub>2</sub>, Rule 9 prevents unconditional code in *L* from using `dynamic`
+to circumvent Rule 8 and depend on secret private declarations introduced in
+*P*<sub>1</sub> that do not exist when *P*<sub>2</sub> is selected.
+
+#### Rule 10: No default parameter values on augmenting declarations
+
+An augmenting function, method, or constructor declaration in a conditional part
+cannot specify a default value for an optional parameter.
+
+```dart
+// In "l.dart":
+class Parent10 {
+  final int? value;
+  Parent10([this.value]);
+}
+
+// In "p1.dart":
+augment class Parent10 {
+  // Compile-time error under Rule 10: specifies a default parameter value.
+  augment Parent10([this.value = 0]);
+}
+
+// In "p2.dart":
+augment class Parent10 {
+  augment Parent10([this.value]);
+}
+
+// In "l0.dart":
+class Child10 extends Parent10 {
+  Child10([int super.value]);
+}
+```
+
+In `Child10` in *L*<sub>0</sub>, the optional super-parameter `int super.value`
+has a potentially non-nullable type `int` and no explicit default value. By the
+super-parameter rules, it copies the default value of the associated superclass
+constructor parameter `Parent10.value` if that default value's type is a subtype
+of `int`.
+
+- When *P*<sub>1</sub> is selected, `Parent10.value` has default value `0` of
+  type `int`, so `super.value` in `Child10` inherits the default value `0` and
+  *L*<sub>0</sub> has no compile-time errors.
+- When *P*<sub>2</sub> is selected with `-DuseP2=true`, `Parent10.value` has
+  default value `null` of type `Null`, which is not a subtype of `int`. As a
+  result, `super.value` in `Child10` has no default value and a non-nullable
+  type, causing a compile-time error in *L*<sub>0</sub>.
+
+#### Rule 11: No completing constant constructors
+
+An augmenting constructor declaration in a conditional part cannot be both
+`const` and complete.
+
+```dart
+// In "l.dart":
+class Token11 {
+  final int code;
+  const Token11(int x);
+}
+
+// In "p1.dart":
+augment class Token11 {
+  // Compile-time error under Rule 11.
+  augment const Token11(int x) : code = x;
+}
+
+// In "p2.dart":
+augment class Token11 {
+  // Compile-time error under Rule 11.
+  augment const Token11(int x) : code = 0;
+}
+
+// In "l0.dart":
+const tokenSet = {Token11(1), Token11(2)};
+```
+
+Constant expression evaluation is performed during static analysis. When
+*P*<sub>1</sub> is selected, `Token11(1)` and `Token11(2)` have distinct `code`
+values `1` and `2`, so `tokenSet` in *L*<sub>0</sub> is valid. When
+*P*<sub>2</sub> is selected with `-DuseP2=true`, both `Token11(1)` and
+`Token11(2)` evaluate to canonicalized `Token11` instances with `code == 0`,
+making `tokenSet` in *L*<sub>0</sub> a compile-time error due to equal elements
+in a constant set literal.
+
+#### Rule 12: Restrictions on instance variables and constructors in augmenting declarations
+
+Rule 12 restricts augmenting declarations in a conditional part from introducing
+instance variables or constructors that would invalidate constant constructors,
+completed generative constructors, implicit default constructors, `mixin class`
+constraints, primary constructor constraints, or mutable field checks in *L* and
+*L*<sub>0</sub>:
+
+```dart
+// In "l.dart":
+class ConstItem12 {
+  final int id;
+  const ConstItem12(this.id);
+}
+
+class Ready12 {
+  Ready12();
+}
+
+class ImplicitCtor12 {}
+
+mixin class Mixable12 {
+  Mixable12();
+}
+
+class Primary12(final int x);
+
+class Mutable12 {
+  int count = 0;
+  Mutable12();
+}
+
+// In "p1.dart":
+int _counter12 = 0;
+
+augment class ConstItem12 {
+  // Compile-time error under Rule 12: adds a field to a class with a const
+  // constructor.
+  final int _tag = _counter12++;
+}
+
+augment class Ready12 {
+  // Compile-time error under Rule 12: uninitialized non-nullable field when
+  // `Ready12.new` is already complete in "l.dart".
+  int _uninitialized;
+}
+
+augment class ImplicitCtor12 {
+  // Compile-time error under Rule 12: suppresses the implicit default
+  // constructor of `ImplicitCtor12`.
+  ImplicitCtor12._();
+}
+
+augment mixin class Mixable12 {
+  // Compile-time error under Rule 12: generative constructor in a mixin class.
+  Mixable12._(int x);
+}
+
+augment class Primary12 {
+  // Compile-time error under Rule 12: non-redirecting generative constructor
+  // in a class with a primary constructor.
+  Primary12._() : x = 0;
+}
+
+augment class Mutable12 {
+  // Compile-time error under Rule 12: `const` constructor in a class with a
+  // non-final field.
+  const Mutable12._();
+}
+
+// In "p2.dart":
+augment class ConstItem12 {}
+augment class Ready12 {}
+augment class ImplicitCtor12 {}
+augment mixin class Mixable12 {}
+augment class Primary12 {}
+augment class Mutable12 {}
+
+// In "l0.dart":
+const item12 = ConstItem12(1);
+ImplicitCtor12 makeImplicit12() => ImplicitCtor12();
+class MixedIn12 with Mixable12 {}
+```
+
+When *P*<sub>2</sub> is selected with `-DuseP2=true`, every declaration in *L*
+and *L*<sub>0</sub> is valid. When *P*<sub>1</sub> is selected, if Rule 12 did
+not reject `p1.dart`:
+
+- `ConstItem12._tag` has a non-constant initializer `_counter12++`, invalidating
+  `const ConstItem12(this.id)` in *L* and `const item12 = ConstItem12(1)` in
+  *L*<sub>0</sub>.
+- `Ready12._uninitialized` is not initialized by `Ready12()` in *L*, causing a
+  compile-time error on `Ready12()` in *L*.
+- `ImplicitCtor12._()` suppresses the implicit default constructor
+  `ImplicitCtor12()`, causing `makeImplicit12` in *L*<sub>0</sub> to fail with a
+  compile-time error.
+- `Mixable12._(int x)` violates the requirement that a `mixin class` cannot
+  declare non-trivial generative constructors, invalidating `Mixable12` in *L*
+  and `MixedIn12` in *L*<sub>0</sub>.
+- `Primary12._() : x = 0` violates the requirement that every generative
+  constructor in a class with a primary constructor must redirect to the primary
+  constructor, causing a compile-time error in *L*.
+- `const Mutable12._()` conflicts with the non-`final` instance variable
+  `int count = 0` in `Mutable12`, causing a compile-time error in *L*.
+
+#### Rule 13: No invalidation of library-wide checks
+
+All standard augmentation and declaration rules apply when a conditional part is
+applied to the unconditional files of *L*.
+
+```dart
+// In "l.dart":
+int compute13(int x);
+
+class Cycle13 {
+  Cycle13.a() : this.b();
+  Cycle13.b();
+}
+
+// In "p1.dart":
+// Compile-time error under Rule 13: return type `num` does not match `int`.
+augment num compute13(int x) => x;
+
+augment class Cycle13 {
+  // Compile-time error under Rule 13: creates a redirection cycle with
+  // `Cycle13.a`.
+  augment Cycle13.b() : this.a();
+}
+
+// In "p2.dart":
+augment int compute13(int x) => x + 1;
+
+augment class Cycle13 {
+  augment Cycle13.b();
+}
+```
+
+When *P*<sub>2</sub> is selected with `-DuseP2=true`, `compute13` is completed
+with a matching signature and `Cycle13.b` is completed without redirecting to
+`Cycle13.a`, so *L* has no compile-time errors. When *P*<sub>1</sub> is
+selected, *L* fails signature matching on `compute13` and constructor
+redirection cycle checking on `Cycle13`.
+
 ### Changelog
+
+1.2 - November 4, 2026
+
+* Add an appendix with examples justifying the compile-time error rules that
+  ensure conditional parts do not affect the static analysis of the library or
+  its importers.
 
 1.1 - October 30, 2026
 
