@@ -4,7 +4,7 @@ Author: Paul Berry
 
 Status: Draft
 
-Version 1.0 (see [Changelog](#changelog) at end)
+Version 1.1 (see [Changelog](#changelog) at end)
 
 Experiment flag: no-inferred-dynamic
 
@@ -326,6 +326,14 @@ the implementations only do this for `Null`; see
     var f = () sync* {};   // Iterable<Never> Function()
     var g = () async* {};  // Stream<Never> Function()
     ```
+
+    *A separate breaking change request, [sdk#63795][] (with specification
+    change [language#4724][]), proposes the same change without language
+    versioning. If that change is approved and implemented first, this rule
+    and the corresponding items in [Compatibility](#compatibility),
+    [Migration](#migration), [Tooling](#tooling), and
+    [Specification cleanups](#specification-cleanups) won't be needed.
+    Otherwise, this feature makes the change, with language versioning.*
 
 *   When inferring the return type of a generator function literal or local
     function, a `yield* e;` statement where the static type of `e` is `Never`
@@ -689,6 +697,35 @@ that library in these ways:
 
 Some specific cases are worth calling out:
 
+*   **Extension members.** Extension members never apply to a receiver whose
+    static type is `dynamic`, but an extension on `dynamic`, on `Object?`, or
+    on a type variable (as in `extension<T> on T`) does apply to a receiver of
+    type `Object?`. So when a receiver's type changes from `dynamic` to
+    `Object?`, a member access that used to be dynamically dispatched may
+    resolve to an extension member instead. If the object also has an instance
+    member with the same name, this silently changes behavior, with no
+    compile-time error:
+
+    ```dart
+    extension E on dynamic {
+      String foo() => 'extension';
+    }
+
+    class C {
+      String foo() => 'instance';
+    }
+
+    void main() {
+      List l = [C()];
+      print(l[0].foo());
+      // Today: 'instance' (l is List<dynamic>; dynamic dispatch)
+      // With this feature: 'extension' (l is List<Object?>)
+    }
+    ```
+
+    The migration (see [Migration](#migration)) preserves the old behavior,
+    since it makes the `dynamic` explicit.
+
 *   **Error handlers taking `Function`.** The parameter of `Future.catchError`,
     the `onError` parameter of `Future.then`, and the `onError` parameter of
     `Stream.listen`
@@ -779,10 +816,30 @@ Some fixes can do better than inserting `dynamic`:
 *   **Error handlers:** a fix can insert `Object e` (and `StackTrace s`) rather
     than `dynamic e` when the handler body doesn't rely on `e` being `dynamic`.
 
+Inserting `dynamic` everywhere is conservative. In many places, changing a
+type from `dynamic` to `Object?` would make no difference (for example, a raw
+`List` whose elements are only passed along), so the raw type could be left
+alone and simply take on its new meaning. A migration that inserts `dynamic`
+only where it matters would have to check, for each site, whether the new
+rules cause a compile-time error, resolve a member access differently (see
+the extension members case in [Compatibility](#compatibility)), or change a
+reified type argument. Writing and maintaining a dedicated tool to do that
+would probably cost more than it's worth for this migration. However, the
+author has recently started investigating how difficult it would be to add
+"what if" functionality to the analyzer, allowing lints to speculatively
+re-analyze statements and function bodies under changed circumstances. If
+those investigations pan out, it might be possible to write a migration lint
+that inserts `dynamic` only where it matters, without too high a maintenance
+burden. Even then, this would only apply to declarations that aren't visible
+outside their library, since changing the type of a public declaration
+changes what other libraries see (see
+[Language versioning](#language-versioning)).
+
 *If an author bumps a library's language version without running the
 migration, the types of its public declarations can change silently: the
 library itself may still compile, while code in other libraries that relied on
-`dynamic` breaks.*
+`dynamic` breaks, or silently changes behavior (see the extension members case
+in [Compatibility](#compatibility)).*
 
 ## Tooling
 
@@ -806,14 +863,16 @@ library itself may still compile, while code in other libraries that relied on
     *   For a generator with no `yield` and no context, the analyzer infers
         element type `dynamic` and the CFE infers `Null` (or `Never` when the end
         of the body is unreachable). Both change to `Never`.
-    *   Separately from this feature, the analyzer currently ignores a `yield*
-        e;` statement when `e` has type `dynamic` or `Never`, so it infers
+    *   Separately from this feature, the analyzer used to ignore a `yield* e;`
+        statement when `e` has type `dynamic` or `Never`, so it inferred
         `Iterable<int>` for `() sync* { yield 1; yield* d; }` where the CFE
-        infers `Iterable<dynamic>`. This is being fixed in the analyzer to match
-        the CFE ([sdk#64825][]). After that fix, `yield* (throw 'x')` alone
-        gives `Never` in both tools.
+        inferred `Iterable<dynamic>`. This has been fixed in the analyzer to
+        match the CFE ([sdk#64825][]), so `yield* (throw 'x')` alone now gives
+        `Never` in both tools.
 
 [sdk#64825]: https://github.com/dart-lang/sdk/issues/64825
+[sdk#63795]: https://github.com/dart-lang/sdk/issues/63795
+[language#4724]: https://github.com/dart-lang/language/pull/4724
 
 ## Specification cleanups
 
@@ -883,7 +942,8 @@ these updates to match:
     or not the end of the block is reachable, matching
     [Generator element types](#generator-element-types). (As written, the rule
     would also give `() sync* { yield 1; }` element type `int?`; both
-    implementations already give `int`.)
+    implementations already give `int`.) *([language#4724][] makes this
+    change.)*
 *   Its rule for `yield* e;` in function literal return type inference only
     covers an `e` whose type has `Iterable<E>` (or `Stream<E>`) as a
     superinterface. It should say that an `e` of type `dynamic` contributes
@@ -1030,6 +1090,16 @@ Considerations:
     as an exception to the parameter rule?
 
 ## Changelog
+
+### 1.1
+
+-   Note that an extension can start applying to a receiver whose type
+    changes from `dynamic` to `Object?`, silently changing behavior.
+-   Describe inserting `dynamic` only where it matters as a possible
+    refinement of the migration.
+-   Point to [sdk#63795][], which proposes the change to generators with no
+    `yield` separately.
+-   Note that [sdk#64825][] has been fixed.
 
 ### 1.0
 
