@@ -11,6 +11,10 @@ Experiment flag: TODO(paulberry): experiment name
 2026.10.04
   - Initial version.
 
+2026.10.21
+  - Place the suspension point of an `await for` loop after the stream
+    expression, and remove the suspension point after the loop.
+
 ## Summary
 
 This proposal fixes two related soundness problems in the way flow analysis
@@ -232,14 +236,22 @@ conservativeJoin(M, writtenAfter(C) ∪ writeCapturedAnywhere,
 
 where:
 
-- A *suspension point* is the end of an `await` expression, or the end of a
-  `yield` or `yield*` statement. An `await for` loop `L` (either a statement
-  or a collection element) is treated as having one suspension point at the
-  beginning of each iteration (before the implicit write to the loop variable,
-  if any, and contained by `L`), and another immediately after `L`. _An
-  `await for` loop suspends before each iteration, and before the loop exits.
-  A suspension point follows the operand of the `await` or `yield`, so
-  closures created and writes performed by the operand precede it._
+- A *suspension point* is one of the following:
+  - The end of an `await` expression, or the end of a `yield` or `yield*`
+    statement. _This suspension point follows the operand of the `await`,
+    `yield`, or `yield*` in the analysis order, so closures created and writes
+    performed by the operand precede it._
+  - The point in an `await for` loop `L` (either a statement or a collection
+    element) that follows the stream expression and precedes the loop body
+    (and the implicit write to the loop variable, if any) in the analysis
+    order. This point is contained by `L`. _This represents the suspensions
+    while `L` waits for each stream event: before each iteration, and before
+    `L` exits normally when the stream is done. If the body exits the loop
+    abruptly (for example via `break`, `return`, or a thrown exception), the
+    loop also suspends while it awaits the cancellation of the stream
+    subscription. Neither exit needs a separate suspension point, because any
+    write that executes after the loop exits is also after the suspension point
+    contained by `L`._
 - `resumableAfter(C, v)` is true if and only if there is a suspension point `s`
   such that:
   - `s` is in the body of `F`, where `F` is the function whose body or formal

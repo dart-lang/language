@@ -1109,9 +1109,11 @@ function literals, in an order determined by [horizontal inference][].
     only be affected by closures, and variables assigned in closures are
     already write captured._
 
-  _An `await for` loop also suspends, before each iteration and before the
-  loop exits, but it does not currently discard any promotions. This is
-  unsound. See https://github.com/dart-lang/sdk/issues/64466._
+  _An `await for` loop also suspends while it waits for each stream event
+  (before each iteration, and before it exits normally when the stream is
+  done), and when it is exited abruptly (while it awaits the cancellation of
+  its stream subscription), but it does not currently discard any promotions.
+  This is unsound. See https://github.com/dart-lang/sdk/issues/64466._
 
 - **Await expression**: If `N` is an expression of the form `await E1`, then:
   - Let `before(E1) = before(N)`.
