@@ -4,7 +4,7 @@ Author: Paul Berry
 
 Status: Draft
 
-Version 1.1 (see [Changelog](#changelog) at end)
+Version 1.2 (see [Changelog](#changelog) at end)
 
 Experiment flag: no-inferred-dynamic
 
@@ -42,8 +42,9 @@ This proposal removes the second meaning. Its core rule is:
 
 Propagation is still fine. If `d` has type `dynamic`, then `d.foo` and `d[0]`
 have type `dynamic`, and so does a local variable initialized from them. That
-`dynamic` can be traced back to the declaration of `d`. What changes is that
-inference no longer *invents* `dynamic` where nothing in the program says so.
+`dynamic` follows from the declaration of `d`, by way of the rules for dynamic
+invocations. What changes is that inference no longer *invents* `dynamic` where
+nothing in the program says so.
 
 ### Example: raw types silently defeat the type system
 
@@ -80,8 +81,10 @@ var x = null;   // x has type dynamic
 x.anything;     // accepted
 ```
 
-Nothing is missing from this declaration: it has an initializer, and inference
-has a perfectly good answer available. The `dynamic` is invented.
+Nothing is missing from this declaration: it has an initializer. Inference's
+obvious answer, `Null`, isn't a useful type for a variable, so it substitutes
+`dynamic`, which turns off static checking. This proposal substitutes `Object?`
+instead, which doesn't.
 
 ### Example: the implementations disagree
 
@@ -111,8 +114,8 @@ both accept a program that the specification says should be rejected.
 [language#4466]: https://github.com/dart-lang/language/issues/4466
 
 So for some programs, whether `dynamic` is invented depends on which tool is
-looking. This proposal settles all of these cases on `Object?`, as the
-specification already says.
+looking. This proposal settles all of these cases on `Object?`, as the type
+inference specification already says for greatest closures.
 
 ### Precedent
 
@@ -173,9 +176,10 @@ There are three deliberate exceptions:
 *   A variable whose initializer has type `Null` (as in `var x = null;`) gets
     type `Object?`, since the author did write an initializer.
 *   A parameter named `_` with no type and nothing to infer one from (as in
-    `void f(_) {}`) gets type `Object?`, unless it's a declaring parameter of a
-    primary constructor. As a parameter type, `Object?` accepts any argument,
-    and since such a `_` can't be referred to, nothing is lost.
+    `void f(_) {}`) gets type `Object?`, unless it's a declaring parameter
+    (which follows the general rule for parameters). As a parameter type,
+    `Object?` accepts any argument, and since such a `_` can't be referred to,
+    nothing is lost.
 *   A generator function literal or local function with no `yield` gets element
     type `Never`, since it produces no elements.
 
@@ -191,6 +195,7 @@ There are three deliberate exceptions:
 | `void f(_) {}` | `_` is `dynamic` | `_` is `Object?` |
 | `void f([x = 0]) {}` | `x` is `dynamic` | `x` is `int` |
 | `class C(var x);` (primary constructor) | `x` is `Object?` | error |
+| `class C([var x = 0]);` (primary constructor) | `x` is `int` | `x` is `int` |
 | `var g = (x) => x;` | `x` is `dynamic` | error |
 | `f() {}` (top-level) | returns `dynamic` | error |
 | `fib(int n) => ... fib(n - 1) ...;` (local) | returns `dynamic` | error |
@@ -238,8 +243,9 @@ type produced by cycle breaking that is well-bounded today remains well-bounded.
 The two forms are also mutual subtypes, so they're assignable to each other and
 compatible as override signatures.*
 
-*A bound that is written as `Object` is unaffected: `class F<T extends Object>
-{}` already instantiates to `F<Object>`.*
+*A bound that is written as `Object` or `Object?` is unaffected:
+`class F<T extends Object> {}` already instantiates to `F<Object>`, and
+`class G<T extends Object?> {}` already instantiates to `G<Object?>`.*
 
 ### Type inference
 
@@ -304,7 +310,9 @@ var x = null;  // Object?
 ```
 
 *This applies to local variables, top-level variables, and static and instance
-fields. It matches the rule the primary constructors feature uses for a
+fields. An instance variable whose type is provided by override inference gets
+that type instead, as it does today; override inference takes precedence over
+the initializer. It matches the rule the primary constructors feature uses for a
 declaring parameter whose default value is `null`. An initializer of type
 `Never` (such as `throw 'x'`) gives the variable type `Never`, as it does
 today. (The type inference specification says that `dynamic` is used whenever
@@ -315,7 +323,7 @@ the implementations only do this for `Null`; see
 #### Generator element types
 
 *   If a function literal or local function is a generator, its return type is
-    inferred from its body, and its body contains no `yield` or `yield*`
+    inferred from its body, and if its body contains no `yield` or `yield*`
     statements, then its inferred element type is `Never`, whether or not the
     end of the body is reachable. So its inferred return type is
     `Iterable<Never>` for `sync*` and `Stream<Never>` for `async*` (unless the
@@ -377,13 +385,21 @@ declaration, or a top-level, static, or instance variable declaration) declares
 a variable without a type annotation and without an initializing expression,
 unless its type is provided by override inference.
 
-*This applies whether the variable is declared with `var`, `final`, `late`,
-`abstract`, or `external`:*
+*A type annotation isn't the only way for a variable to get a declared type: an
+instance variable can inherit its type from its superinterfaces through
+override inference, as `Sub.i` does below.*
+
+*The rule applies whether the variable is declared with `var`, `final`, `late`,
+`abstract`, or `external`. (A variable declared with no keyword at all must
+have a type annotation, and a `const` variable must have an initializer, so
+neither can be affected.) It applies to each variable separately: in
+`var x = 1, y;`, `y` has no initializing expression, so it's an error.*
 
 ```dart
 var a;            // Error.
 final b;          // Error.
 late var c;       // Error.
+var d = 1, e;     // Error (for `e`).
 
 class C {
   static var s;   // Error.
@@ -403,9 +419,12 @@ class Sub extends Base {
 ```
 
 *Variables that get their types from an enclosing construct aren't variable
-declarations in this sense, and are unaffected: a `for`-in loop variable gets
-its type from the iterable, a `catch` clause's variables are `Object` and
-`StackTrace`, and a pattern variable gets its type from the matched value.*
+declarations in this sense, and are unaffected: a `for`-`in` loop variable is
+initialized from the elements of the iterable; a `catch` clause's exception
+variable gets the type in its `on` clause (or `Object`, if there's no `on`
+clause), and its stack trace variable gets type `StackTrace`; and a pattern
+variable gets its type from the matched value. (A pattern variable declaration
+such as `var (x, y) = (1, 0);` always has an initializer.)*
 
 *The rationale for making these declarations errors is that Dart doesn't narrow
 a variable's declared type when a value is assigned to it, so giving such a
@@ -414,14 +433,15 @@ the error at the declaration site rather than the usage sites is more useful. A
 side benefit of making these declarations errors is that it opens up the
 possibility of a future language change that would make some of these
 declarations valid again (e.g., by letting the type be determined by the first
-assignment).*
+assignment). An alternative, giving them type `Object?` instead, is discussed
+under [Open questions](#open-questions).*
 
 #### Parameters
 
 A formal parameter with no type annotation gets its type from the first of the
 following that applies:
 
-1.  Override inference (*including from a combined member signature*).
+1.  Override inference.
 2.  For an initializing formal (`this.x`) or a super parameter (`super.x`), the
     corresponding field or super constructor parameter.
 3.  For a parameter of a function literal whose context type is a function type
@@ -430,9 +450,9 @@ following that applies:
     value. Its type is the static type of the default value expression,
     inferred in the empty context, or `Object?` if that type is `Null`.
 5.  If the parameter's name is the wildcard `_` and it isn't a declaring
-    parameter of a primary constructor, `Object?`. *(A declaring parameter
-    named `_` declares a field or representation variable named `_`, which can
-    be read, so it's treated like any other declaring parameter.)*
+    parameter, `Object?`. *(A declaring parameter named `_` declares a field or
+    representation variable named `_`, which can be read, so it's treated like
+    any other declaring parameter.)*
 
 If none of these applies, it's a compile-time error.
 
@@ -528,7 +548,7 @@ and its return type isn't provided by override inference:
     other than `[]=`,
 *   a top-level, static, or instance getter,
 *   an old-style function-typed formal parameter (`void f(int callback())`),
-*   a generic function type (`Function(int)`), or
+*   a function type written with `Function` (`Function(int)`), or
 *   an old-style typedef (`typedef F(int x);`).
 
 *Setters and `operator []=` aren't affected: when their return type is omitted
@@ -548,7 +568,8 @@ void main() {
 ```
 
 *`main` isn't special: `main() {}` is an error. See [Migration](#migration) for
-how this is handled.*
+how this is handled. An alternative, giving an omitted return type a default
+such as `void` instead, is discussed under [Open questions](#open-questions).*
 
 #### Recursive local functions
 
@@ -570,17 +591,37 @@ type `dynamic`, and that `dynamic` becomes the function's inferred return type
 whenever the call's result is returned. This rule makes the error simple and
 syntactic.*
 
+#### Augmenting declarations
+
+The rules in this section apply to introductory declarations. An augmenting
+declaration that omits a type gets it from the declaration it augments, as
+specified by the [augmentations][] feature, so it isn't affected. Since an
+augmentation can't supply the introductory declaration's type, an introductory
+declaration whose type can't be determined is an error even if it's augmented:
+
+```dart
+var x;              // Error: no type and no initializer.
+augment var x = 42;
+
+int y;              // OK.
+augment var y = 42;
+```
+
+[augmentations]: ../augmentations/feature-specification.md
+
 ### What doesn't change
 
 *   **Explicit `dynamic`** keeps its meaning, and so does everything derived from
     it: member accesses, calls, and index operations on `dynamic` still have
     type `dynamic`.
-*   **`for`-in over a `dynamic` iterable.** The language specification says that
-    when the static type of the iterable is a top type, the loop treats it as
-    `Iterable<dynamic>`. But it's a compile-time error unless that type is
+*   **`for`-`in` over a `dynamic` iterable.** The language specification says
+    that when the static type of the iterable is a top type, the loop treats it
+    as `Iterable<dynamic>`. But it's a compile-time error unless that type is
     assignable to `Iterable<dynamic>`, so the only valid case is iterating a
-    `dynamic` value, and the loop variable's `dynamic` comes from that value.
-    This is propagation, not invention, and it's unchanged.
+    `dynamic` value. Giving the loop variable type `dynamic` then is a
+    deliberate choice that follows from the iterable being `dynamic`, not an
+    invented `dynamic` (the author has said "trust me", and the elements are
+    trusted the same way). It's unchanged.
 
     ```dart
     for (var item in decoded['items']) {  // decoded is dynamic
@@ -610,7 +651,8 @@ Object f() sync* { yield 1; }  // returns an Iterable<Object?> (was Iterable<dyn
 
 `dynamic` and `Object?` are mutual subtypes, so `is` and `as` checks behave the
 same either way. The difference can only be observed through `Type` objects,
-for example `runtimeType`, `toString()`, or `==` on `Type` values.
+for example obtained using `runtimeType`, and inspected using `==` or
+`toString()`.
 
 The runtime type of a torn-off method's parameters follows the method's
 declaration. *Today the language specification says that a parameter with no
@@ -1088,8 +1130,68 @@ Considerations:
     gives such a parameter type `Object?` and doesn't involve `dynamic` at all.
     Is that change worth making, or should declaring parameters keep `Object?`
     as an exception to the parameter rule?
+*   **Defaults instead of errors.** This proposal makes a declaration an error
+    when its type can't be determined, so authors have to write types they may
+    not care about, especially `void` return types, and return types in
+    function types and old-style typedefs. Some alternatives:
+    *   *`void` when a block body has no `return e;`.* A top-level function or
+        method with no declared return type (and none from override
+        inference) that has a block body containing no `return e;` statements,
+        and isn't a generator, gets return type `void` (`Future<void>` if it's
+        `async`). This matches what the author evidently meant. But it would be
+        the first rule that infers part of a function or method declaration's
+        type from its body (the closest precedent is a variable's type coming
+        from its initializer). Dart has generally taken the position that you
+        shouldn't have to look at a function's body to understand its type,
+        and with this rule, adding a `return e;` to a body would silently
+        change the function's signature.
+    *   *`void` whenever there's no declared return type.* A function or method
+        with no declared return type (and none from override inference) gets
+        return type `void`, regardless of its body, perhaps `Future<void>` if
+        it's `async`. This keeps a declaration's type independent of its body.
+        A block body that returns a value becomes an error, telling the author
+        to write the return type. Generators and getters would presumably
+        still need a declared return type.
+
+    Either of these would make `main() {}` valid, with the meaning that
+    [Migration](#migration) would otherwise give it.
+
+    Other defaults have also been suggested, some for return types and some
+    for other kinds of declarations:
+    *   `Object?` as the return type when the body has `return e;` statements
+        or is an expression body.
+    *   `void` as the return type in function types and old-style typedefs (so
+        `Function(int)` means `void Function(int)`). This would avoid requiring
+        return types in function types, which reduces verbosity, but it's also
+        the biggest change in meaning, since code that calls such a function
+        can use its result today.
+    *   `Object?` for a variable with no type and no initializer, letting later
+        errors tell the author if they need something more specific. Today
+        `var x;` and `var x = null;` mean the same thing; under this proposal,
+        the first is an error and the second has type `Object?`.
+    *   `void` rather than `Object?` for an untyped parameter named `_`.
+    *   For a recursive local function, `void` as the type of the recursive
+        references (or of the function itself), so that a function that never
+        uses the result of its recursive calls, such as an in-order tree
+        traversal, remains valid.
+
+    Note that it's also an option to make these declarations errors now, and
+    then relax the errors by adding defaults in a future language version.
+    That wouldn't be a breaking change (whereas going from a default to an
+    error would). But the advantage of adding defaults now is potentially less
+    migration churn.
 
 ## Changelog
+
+### 1.2
+
+-   Add an open question about defaults instead of errors (such as `void`
+    for omitted return types).
+-   Specify that the rules for declarations without a type apply to
+    introductory declarations, not augmenting declarations.
+-   Clarify wording in several places, including the types of `catch`
+    clause variables, which variables a declaration needs a type for, and
+    why `for`-`in` over `dynamic` keeps `dynamic`.
 
 ### 1.1
 
