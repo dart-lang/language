@@ -51,12 +51,6 @@ same outcome no matter which part _Pj_ is chosen. This is achieved
 by specifying conditional part files such that it is a compile-time error
 for them to contain anything that violates this property.
 
-Moreover, separate libraries cannot access library-private declarations of
-the importing library, and they cannot provide platform-specific
-implementations for members of a class declared in the importing library
-without duplicating the entire declaration or forwarding through extra
-wrapper interfaces.
-
 Conditional parts address both limitations. A `part` directive can now use the
 same configurable URI syntax as a conditional `import` or `export` directive to
 select a platform-specific part file, while static restrictions on conditional
@@ -82,8 +76,8 @@ abstract class Channel {
 
   factory Channel.open(String name) => _openChannel(name);
 
-  // Abstract method: subclasses must implement this, and `super.send` is
-  // a compile-time error.
+  // Method with undetermined abstractness: subclasses must
+  // implement it, and `super.send...` is a compile-time error.
   void send(String payload);
 
   // Implemented in a conditional part: subclasses inherit a concrete
@@ -106,7 +100,7 @@ class BufferedChannel extends Channel {
   @override
   void close() {
     _buffer.clear();
-    super.close(); // OK because `Channel.close` has the modifier `concrete`.
+    super.close(); // OK: `Channel.close` is `concrete`.
   }
 }
 ```
@@ -231,6 +225,14 @@ Notice two central properties illustrated by this example:
    rather than implicitly defaulting to an empty initializer list and empty
    body.
 
+   *TODO: Can we eliminate abstractness control on constructors entirely?
+   A constructor which is introduced in unconditional code may be
+   generative with no initializer list and no body. Some instance variables
+   may then be left uninitialized according to unconditional code. We can
+   make it `concrete` and check that the missing initializer list elements
+   are added in an augmentation in the conditional code. Is this enough
+   to motivate having `concrete` support for constructors?*
+
 ## Specification
 
 ### Syntax
@@ -292,25 +294,23 @@ A `<partDirective>` of the form `<metadata> 'part' <uri> ';'` *(with zero
 `<partDirective>` with one or more `<configurationUri>` clauses is a
 _conditional part directive_.
 
-As specified for configurable URIs in the language specification, it is a
-**compile-time error** if any string literal occurring as a `<uri>` or in a
-`<uriTest>` of a `<partDirective>` contains a string interpolation.
+*As specified for configurable URIs in the language specification, it is a
+compile-time error if any string literal occurring as a `<uri>` or in a
+`<uriTest>` of a `<partDirective>` contains a string interpolation.*
 
-In a given compilation environment, the `<configurableUri>` of a
-`<partDirective>` _specifies a URI_ *U* using the same URI selection rules as
+*In a given compilation environment, the `<configurableUri>` of a
+`<partDirective>` specifies a URI U using the same URI selection rules as
 `import` and `export` directives: the default `<uri>` is chosen unless one or
 more `<configurationUri>` tests evaluate to true in the compilation environment,
 in which case the `<uri>` of the first such `<configurationUri>` in source order
-is chosen.
+is chosen.*
 
 We say that a Dart file *F* _includes_ the part file *P* denoted by the URI *U*
 specified by a `<partDirective>` in *F* (resolved relative to the URI of *F*).
 
 - It is a **compile-time error** if *P* does not parse as a `<partDeclaration>`,
   or if the `<uri>` in the leading `<partHeader>` (`part of <uri>;`) of *P*,
-  resolved relative to *U*, does not denote *F*. *In particular, the `part`
-  directive in *F* and the `part of` directive in *P* must agree, forming a loop
-  of length 2.*
+  resolved relative to *U*, does not denote *F*.
 
 - All part-tree well-formedness rules from [Parts with Imports][] apply to the
   tree of included part files of a library *L*: it is a **compile-time error**
@@ -326,8 +326,8 @@ For a library *L* with defining library file *F*<sub>0</sub>:
   `part` directives.
 
 - A _conditional part file_ of *L* (in a given compilation environment) is any
-  part file of *L* that is not an unconditional file of *L*. 
-  
+  part file of *L* that is not an unconditional file of *L*.
+
   *Equivalently, a part file of *L* is a conditional part file if and only
   if the path of `part` directives from *F*<sub>0</sub> to that file
   contains at least one conditional `part` directive. Every sub-part
@@ -416,15 +416,17 @@ library and when analyzing any library that imports it)*:
 - If *D* is not an `extension type`, an incomplete instance member of *D*
   whose introductory declaration does not have the modifier `concrete`, and
   which is not completed by an augmentation in the unconditional files of
-  the library, is considered to be a member of *D* whose abstractness is
-  undetermined. A super-invocation which would invoke this member if it
+  the library, is considered to be a member of *D* whose _abstractness is
+  undetermined_. A super-invocation which would invoke this member if it
   were implemented is a **compile-time error**. *In particular, we do not
   ignore it and proceed to use a declaration in a further superclass.*
 
 - A generative constructor of *D* whose introductory declaration has the
   modifier `concrete` (and is not completed in the unconditional files of
   the library) is treated during static analysis of the unconditional files
-  as a complete generative constructor.
+  as a complete generative constructor. It is assumed that it initializes
+  every instance variable of the enclosing membered declaration that needs
+  to be initialized.
 
 During static analysis of a conditional part _P_, all conditional parts in
 the parent chain from _P_ up to the library are considered to be
@@ -444,7 +446,7 @@ part file directly included by the first conditional `part` directive on the
 inclusion path from *F*<sub>0</sub> to *P*:
 
 1. **No `export` directives**: It is a **compile-time error** if *P*
-   contains a `<libraryExport>` directive. _Exports modify the exported
+   contains a `<libraryExport>` directive. *Exports modify the exported
    namespace of L, which is observable in importers of L.*
 
    *`import` directives and `part` directives are permitted in P. Under
@@ -452,17 +454,17 @@ inclusion path from *F*<sub>0</sub> to *P*:
    combined import scope and extension availability of P and its
    sub-parts.*
 
-2. **Private names required for introductory top-level declarations**: It is a
-   **compile-time error** if *P* contains an introductory *(non-`augment`)*
-   `<topLevelDeclaration>` that does not have a private name *(an identifier
-   starting with `'_'`)*. In particular, an introductory unnamed `extension`
-   declaration (`extension on T { ... }`) in *P* is a **compile-time error**.
+2. **Private names required for introductory top-level declarations**: It
+   is a **compile-time error** if *P* contains an introductory
+   `<topLevelDeclaration>` that does not have a private name. Moreover, an
+   introductory `extension` declaration in *P* is a **compile-time error**
+   even in the case where its name is private.
 
    *Inside an introductory top-level `class`, `mixin`, `mixin class`, `enum`,
-   `extension`, or `extension type` declaration in *P* (whose own name is
-   private), both public and private member and constructor declarations are
-   permitted—for instance, so that a private class `_IoChannel` in *P* can
-   implement a public interface declared in the unconditional files of *L*.*
+   `extension`, or `extension type` declaration in *P* *(whose own name is
+   private)*, both public and private member and constructor declarations are
+   permitted *(for instance, so that a private class `_IoChannel` in P can
+   implement a public interface declared in the unconditional files of L)*.
 
 3. **No added superinterfaces on augmented types**: It is a **compile-time
    error** if an augmenting declaration of a `class`, `mixin`, `mixin class`,
@@ -522,17 +524,13 @@ inclusion path from *F*<sub>0</sub> to *P*:
    declaration in *P* *(or to a member of an introductory `extension`
    declaration in *P*)*.
 
-   Furthermore, an introductory `extension` declaration in *P* is not accessible
-   for implicit extension member resolution outside *P*'s enclosing conditional
-   subtree *(equivalently, it is a **compile-time error** if an implicit
-   extension member access outside *P*'s enclosing conditional subtree resolves
-   to a member of an introductory `extension` declaration in *P* or has an
-   introductory `extension` declaration in *P* among its applicable
-   extensions)*.
+   It is a **compile-time error** if an implicit extension member access
+   outside *P*'s enclosing conditional subtree resolves to an introductory
+   member of an `extension` declaration in *P*, or has such an `extension`
+   declaration among its applicable extensions.
 
-   *In particular, an introductory private declaration in *P* can never shadow a
-   top-level, imported, or inherited identifier at any reference site in the
-   unconditional files of *L*.*
+   *In particular, an introductory declaration in P can never shadow a
+   declaration in the unconditional files of L.*
 
 9. **No `dynamic` access to secret private names of *P***: A private basename
    `_n` is a _secret private name_ of *P* if *P* contains an introductory
@@ -569,7 +567,8 @@ inclusion path from *F*<sub>0</sub> to *P*:
     part of the static analysis.*
 
 12. **Restrictions on instance variables and constructors in augmenting
-    declarations**: In an augmenting declaration of *D* in *P*:
+    declarations**: In an augmenting declaration of *D* in *P*, when at
+    least one generative constructor in unconditional code is not `concrete`:
     - It is a **compile-time error** if *P* contains a non-`abstract`,
       non-`external` instance variable declaration *v* *(whether introductory or
       augmenting)*, and either:
@@ -586,7 +585,8 @@ inclusion path from *F*<sub>0</sub> to *P*:
         least one constructor in the unconditional files of *L* *(because
         declaring a constructor in *P* would suppress the implicit default
         constructor `D()` in the unconditional files)*,
-      - *D* is a `mixin class` and the constructor is generative,
+      - *D* is a `mixin class` and the constructor is generative *(a mixin
+        class cannot initialize instance variables in a constructor)*,
       - *D* has a primary constructor in the unconditional files of *L* *(and is
         not an `extension type`)* and the constructor is a non-redirecting
         generative constructor, or
@@ -684,6 +684,19 @@ of breakage in existing code.
 On the other hand, this might give rise to less informative diagnostics in
 case of syntax errors around the word `concrete`.
 
+#### Drop the support for the `concrete` modifier entirely
+
+This would imply that every instance member which is made conditional by
+having its implementation in a conditional part would have an undetermined
+abstractness property, which would in turn make all super-invocations
+targeting this declaration a compile-time error.
+
+This would allow us to avoid a certain amount of syntactic complexity. For
+example, developers wouldn't have to think about the meaning of this
+keyword and they wouldn't have to decide whether or not it should be used
+in each case where they are writing an introductory instance member
+declaration in a library that has conditional parts.
+
 #### Enforce `concrete` consistently
 
 We could go in the opposite direction and make the use of `concrete`
@@ -700,19 +713,6 @@ This would turn completion in augmenting declarations into a tightly
 controlled property, which means that there's no ambiguity: Abstract
 declarations can be recognized as such, and that's true for concrete
 declarations as well.
-
-#### Drop the support for the `concrete` modifier entirely
-
-This would imply that every instance member which is made conditional by
-having its implementation in a conditional part would have an undetermined
-abstractness property, which would in turn make all super-invocations
-targeting this declaration a compile-time error.
-
-This would allow us to avoid a certain amount of syntactic complexity. For
-example, developers wouldn't have to think about the meaning of this
-keyword and they wouldn't have to decide whether or not it should be used
-in each case where they are writing an introductory instance member
-declaration in a library that has conditional parts.
 
 #### Restrict parts such that a conditional part is always alone
 
@@ -919,8 +919,9 @@ augment class WorkerA2 {
 }
 
 // In "p2.dart":
-// Compile-time error: `WorkerA2.new` and `WorkerA2.work` are marked
-// `concrete` in "l.dart", but are not completed when "p2.dart" is selected.
+// Compile-time error: `WorkerA2.new` and `WorkerA2.work` are
+// marked `concrete` in "l.dart", but are not completed when
+// "p2.dart" is selected.
 augment class WorkerA2 {}
 
 // In "l0.dart":
@@ -1024,7 +1025,7 @@ in the exported namespace of *L* when *P*<sub>1</sub> is selected, making
 #### Rule 2: Private names required for introductory top-level declarations
 
 Every introductory top-level declaration in a conditional part file must have a
-private name; in particular, introductory unnamed `extension` declarations are
+private name. Moreover, introductory unnamed `extension` declarations are
 disallowed.
 
 ```dart
@@ -1238,9 +1239,7 @@ int useSub7X() => sub7X;
 
 Unconditional files of *L* cannot statically resolve any identifier, type,
 constructor, member access, or object pattern field to an introductory
-declaration in a conditional part, and introductory `extension` declarations in
-a conditional part are not accessible for implicit extension resolution in the
-unconditional files of *L*.
+declaration in a conditional part.
 
 ```dart
 // Library file "imported_by_l.dart":
