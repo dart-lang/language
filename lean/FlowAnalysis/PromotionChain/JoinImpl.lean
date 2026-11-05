@@ -5,6 +5,20 @@ public import FlowAnalysis.WP
 public import Lean
 import Mathlib.Tactic.Order
 
+/-!
+# The Dart implementation's algorithm for joining promotion chains
+
+This file models the Dart implementation's `PromotionModel.joinPromotedTypes`, which computes the
+join of two promotion chains, as a Lean program (`joinPromotedTypesImpl`) that follows the Dart
+code's structure: it walks the two chains in step, with mutable indices, rather than filtering one
+chain by membership in the other, as the specification's `PromotionChain.join` does.
+
+`joinPromotedTypesImpl_correct` proves that the two agree: run on two promotion chains, the
+algorithm returns their join. The program is written in an arbitrary monad, and the proof is stated
+as a Hoare triple using Lean's `Std.Do` framework (see `FlowAnalysis.WP`), so that the program can
+use loops and mutable variables as the Dart code does.
+-/
+
 open Std.Do
 
 namespace FlowAnalysis.PromotionChain
@@ -78,16 +92,14 @@ theorem drop_eq_getElem_cons {i} {T : τ} {c : PromotionChain} (hrange : i < c.v
 
 /--
 Specification (and correctness proof) for `joinPromotedTypesImpl'`: if `c₁` is non-empty
-(`0 < c₁.val.length`) and no longer than `c₂` (`c₁.val.length ≤ c₂.val.length`), then
-`joinPromotedTypesImpl'` leaves the state unchanged (`stateIs s₀`) and returns the join of the two
-chains (`r = (c₁.join c₂).val`).
+(`hc₁_nonEmpty`) and no longer than `c₂` (`hc₁_smaller`), then `joinPromotedTypesImpl'` leaves the
+state unchanged (`stateIs s₀`) and returns the join of the two chains (`r = (c₁.join c₂).val`).
 -/
 theorem joinPromotedTypesImpl'_correct [Monad m] [Lean.Order.MonadTail m]
-    [WPMonad m ps] (c₁ c₂ : PromotionChain) :
-    0 < c₁.val.length → c₁.val.length ≤ c₂.val.length →
+    [WPMonad m ps] (c₁ c₂ : PromotionChain) (hc₁_nonEmpty : 0 < c₁.val.length)
+    (hc₁_smaller : c₁.val.length ≤ c₂.val.length) :
     ⦃stateIs s₀⦄ (joinPromotedTypesImpl' c₁.val c₂.val : m _)
     ⦃⇓ r => stateIs s₀ ∧ ⌜r = (c₁.join c₂).val⌝⦄ := by
-  intro hc₁_nonEmpty hc₁_smaller
   mintro hstate
   unfold joinPromotedTypesImpl'
   simp
