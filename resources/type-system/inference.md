@@ -347,13 +347,17 @@ imposed return type schema.
   - If the enclosing function is marked `sync*`, then for each `yield* e;`
     statement in the block, let `S` be the inferred type of `e`, using the
     local type inference algorithm described below with a typing context of
-    `Iterable<K>`; let `E` be the type such that `Iterable<E>` is a
-    super-interface of `S`; and update `T` to be `UP(E, T)`.
+    `Iterable<K>`; if `S` is `dynamic` then let `E` be `dynamic`; if `S` is
+    `Never` then let `E` be `Never`; otherwise, let `E` be the type such that
+    `Iterable<E>` is a super-interface of `S`. Finally, update `T` to be
+    `UP(E, T)`.
   - If the enclosing function is marked `async*`, then for each `yield* e;`
     statement in the block, let `S` be the inferred type of `e`, using the
     local type inference algorithm described below with a typing context of
-    `Stream<K>`; let `E` be the type such that `Stream<E>` is a super-interface
-    of `S`; and update `T` to be `UP(E, T)`.
+    `Stream<K>`; if `S` is `dynamic` then let `E` be `dynamic`; if `S` is
+    `Never` then let `E` be `Never`; otherwise, let `E` be the type such that
+    `Stream<E>` is a super-interface of `S`. Finally, update `T` to be
+    `UP(E, T)`.
 
 In these rules, 'in the block' refers to return and yield statements that
 will complete the execution of the function literal under inference, not
