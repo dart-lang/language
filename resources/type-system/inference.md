@@ -6,7 +6,7 @@ Status: Draft
 
 ## CHANGELOG
 
-2026.07.09
+2026.11.06
   - Remove a spurious `Null` from the element type inferred for a generator
     function literal when the end of the body is reachable.
 
@@ -329,9 +329,8 @@ follows.
     - Let `T` be `Never` if every control path through the block exits the
       block without reaching the end of the block, as computed by the
       **definite completion** analysis specified elsewhere.
-    - Let `T` be `Null` if any control path reaches the end of the block
-      without exiting the block, as computed by the **definite completion**
-      analysis specified elsewhere.
+    - Let `T` be `Null` if any control path reaches the end of the block, as
+      computed by the **definite completion** analysis specified elsewhere.
 
 Let `K` be the typing context for the function body as computed above from the
 imposed return type schema.
