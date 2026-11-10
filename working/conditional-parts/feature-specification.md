@@ -440,13 +440,13 @@ directive or declaration that can alter or invalidate the static analysis of the
 unconditional files of the containing library, or of any library importing the
 containing library.*
 
-- It is a compile-time error for a conditional part to contain an
+- It is a **compile-time error** for a conditional part to contain an
   `export` directive.
 
-- It is a compile-time error for a conditional part to contain an
+- It is a **compile-time error** for a conditional part to contain an
   introductory top-level declaration with a public name.
 
-- It is a compile-time error if an introductory `extension` declaration
+- It is a **compile-time error** if an introductory `extension` declaration
   in a conditional part is applicable to an implicit extension member
   access in an unconditional file, or is referenced by an explicit
   extension member application in an unconditional file.
@@ -456,24 +456,24 @@ containing library.*
   alternative is to make every introductory `extension` declaration in a
   conditional part a compile-time error.*
 
-- It is a compile-time error for an augmenting type declaration in a
+- It is a **compile-time error** for an augmenting type declaration in a
   conditional part that augments a declaration in an unconditional file
   to have an `extends`, `with`, or `implements` clause.
 
-- It is a compile-time error for an introductory type declaration in a
+- It is a **compile-time error** for an introductory type declaration in a
   conditional part to have a `sealed` class or `sealed` mixin declared
   in an unconditional file as a direct superinterface.
 
-- It is a compile-time error for an augmenting `enum` declaration in a
+- It is a **compile-time error** for an augmenting `enum` declaration in a
   conditional part that augments an `enum` declaration in an unconditional
   file to declare any enum entries.
 
-- It is a compile-time error for an augmenting declaration in a
+- It is a **compile-time error** for an augmenting declaration in a
   conditional part that augments a declaration in an unconditional file
   to contain an introductory member or constructor declaration with a
   public name *(including an constructor whose uniform name is `new`)*.
 
-- It is a compile-time error for an augmenting declaration in a
+- It is a **compile-time error** for an augmenting declaration in a
   conditional part that augments a declaration in an unconditional file
   to contain an introductory instance member declaration that is not
   complete after all augmentations in the conditional part have been
@@ -487,7 +487,7 @@ containing library.*
   of the same library can be analyzed without inspecting conditional
   parts.*
 
-- It is a compile-time error for an augmenting declaration of a type `D`
+- It is a **compile-time error** for an augmenting declaration of a type `D`
   in a conditional part to contain an introductory private instance
   member declaration `m` with name `n` *(where a non-final variable with
   identifier `_v` introduces both a getter with name `_v` and a setter
@@ -498,7 +498,7 @@ containing library.*
   signature of `n` in `D` in the unconditional files, including
   identical `covariant` parameter modifiers.
 
-- It is a compile-time error for an augmenting declaration of a type `D`
+- It is a **compile-time error** for an augmenting declaration of a type `D`
   in a conditional part to contain an introductory private instance
   member declaration with name `n` if `D` does not have a member with
   name `n` in its interface in the unconditional files, and a subtype of
@@ -506,7 +506,7 @@ containing library.*
   omits its return type, its variable type, or any formal parameter
   type.
 
-- It is a compile-time error if an identifier reference, type
+- It is a **compile-time error** if an identifier reference, type
   annotation, constructor reference or invocation, super-constructor
   invocation, redirecting constructor invocation, initializing formal
   parameter, or statically resolved member access, method invocation,
@@ -514,16 +514,16 @@ containing library.*
   unconditional file resolves to an introductory declaration in a
   conditional part.
 
-- It is a compile-time error for an augmenting generative constructor
+- It is a **compile-time error** for an augmenting generative constructor
   declaration in a conditional part that augments a constructor declared
   in an unconditional file to specify a default value for an optional
   formal parameter.
 
-- It is a compile-time error for an augmenting constructor declaration
+- It is a **compile-time error** for an augmenting constructor declaration
   in a conditional part that augments a constructor declared in an
   unconditional file to be `const` and complete.
 
-- It is a compile-time error for an augmenting declaration of a type `D`
+- It is a **compile-time error** for an augmenting declaration of a type `D`
   in a conditional part to declare a non-`abstract`, non-`external`
   instance variable whose initializing expression references a parameter
   of a `const` primary constructor of `D`.
@@ -541,7 +541,7 @@ containing library.*
   non-`abstract`, non-`external` instance variable when `D` declares a
   `const` generative constructor.*
 
-- It is a compile-time error for an augmenting declaration of a `class`
+- It is a **compile-time error** for an augmenting declaration of a `class`
   or `mixin class` `D` in a conditional part to contain an introductory
   constructor declaration if `D` does not explicitly declare any
   constructor in an unconditional file.
@@ -557,10 +557,10 @@ Some constraints apply for the unconditional files:
   an inherited implementation, even in the situation where it would be a
   correct override of the member signature of the indeterminately
   abstract member.* If `C` is concrete this may cause the declaration of
-  `C` to have a compile-time error because it does not fully implement
+  `C` to have a **compile-time error** because it does not fully implement
   its interface.
 
-- It is a compile-time error if a super-invocation in a class, mixin, mixin
+- It is a **compile-time error** if a super-invocation in a class, mixin, mixin
   class, or enum `C` targets an instance member with indeterminate
   abstractness, or if an instance member with indeterminate abstractness in
   a superclass overrides the concrete member in a further superclass that
@@ -574,7 +574,7 @@ Some constraints apply for the unconditional files:
   `m` with indeterminate abstractness in `S` *(or in a superclass of
   `S`)* is not considered to be implemented in `S`, and "kills" any
   implementation of `m` in a further superclass of `S`. Consequently,
-  the mixin application `S with M` has a compile-time error because `S`
+  the mixin application `S with M` has a **compile-time error** because `S`
   does not provide a concrete implementation of the super-invoked member
   `m`.
 
