@@ -440,175 +440,143 @@ directive or declaration that can alter or invalidate the static analysis of the
 unconditional files of the containing library, or of any library importing the
 containing library.*
 
-Let *P* be a conditional part file of library *L*, and let the _enclosing
-conditional subtree_ of *P* be the subtree of included part files rooted at the
-part file directly included by the first conditional `part` directive on the
-inclusion path from *F*<sub>0</sub> to *P*:
+- It is a compile-time error for a conditional part to contain an
+  `export` directive.
 
-1. **No `export` directives**: It is a **compile-time error** if *P*
-   contains a `<libraryExport>` directive. *Exports modify the exported
-   namespace of L, which is observable in importers of L.*
+- It is a compile-time error for a conditional part to contain an
+  introductory top-level declaration with a public name.
 
-   *`import` directives and `part` directives are permitted in P. Under
-   [Parts with Imports][], `import` directives in P affect only the
-   combined import scope and extension availability of P and its
-   sub-parts.*
+- It is a compile-time error if an introductory `extension` declaration
+  in a conditional part is applicable to an implicit extension member
+  access in an unconditional file, or is referenced by an explicit
+  extension member application in an unconditional file.
+  *This allows unnamed and privately named `extension` declarations in a
+  conditional part as long as they do not participate in extension
+  resolution in unconditional files. A simpler, less expressive
+  alternative is to make every introductory `extension` declaration in a
+  conditional part a compile-time error.*
 
-2. **Private names required for introductory top-level declarations**: It
-   is a **compile-time error** if *P* contains an introductory
-   `<topLevelDeclaration>` that does not have a private name. Moreover, an
-   introductory `extension` declaration in *P* is a **compile-time error**
-   even in the case where its name is private.
+- It is a compile-time error for an augmenting type declaration in a
+  conditional part that augments a declaration in an unconditional file
+  to have an `extends`, `with`, or `implements` clause.
 
-   *Inside an introductory top-level `class`, `mixin`, `mixin class`, `enum`,
-   `extension`, or `extension type` declaration in *P* *(whose own name is
-   private)*, both public and private member and constructor declarations are
-   permitted *(for instance, so that a private class `_IoChannel` in P can
-   implement a public interface declared in the unconditional files of L)*.
+- It is a compile-time error for an introductory type declaration in a
+  conditional part to have a `sealed` class or `sealed` mixin declared
+  in an unconditional file as a direct superinterface.
 
-3. **No added superinterfaces on augmented types**: It is a **compile-time
-   error** if an augmenting declaration of a `class`, `mixin`, `mixin class`,
-   `enum`, or `extension type` in *P* contains an `extends` clause, a `with`
-   clause, or an `implements` clause. *`on` clauses are already disallowed on
-   augmenting `mixin` and `extension` declarations.*
+- It is a compile-time error for an augmenting `enum` declaration in a
+  conditional part that augments an `enum` declaration in an unconditional
+  file to declare any enum entries.
 
-4. **No direct subtyping of `sealed` types from unconditional files**: It is a
-   **compile-time error** if an introductory `class`, `mixin`, `mixin class`,
-   `enum`, or `extension type` declaration in *P* has a `sealed` class or
-   `sealed` mixin declared in the unconditional files of *L* *(or outside *P*'s
-   enclosing conditional subtree)* as a direct superinterface *(via `extends`,
-   `with`, `implements`, or `on`)*.
+- It is a compile-time error for an augmenting declaration in a
+  conditional part that augments a declaration in an unconditional file
+  to contain an introductory member or constructor declaration with a
+  public name *(including an constructor whose uniform name is `new`)*.
 
-   *Adding a direct subtype to a `sealed` type would alter switch exhaustiveness
-   checking for that `sealed` type in the unconditional files of *L* and in
-   every library that imports *L*.*
+- It is a compile-time error for an augmenting declaration in a
+  conditional part that augments a declaration in an unconditional file
+  to contain an introductory instance member declaration that is not
+  complete after all augmentations in the conditional part have been
+  applied.
+  *Note that for downstream code in other libraries, an unimplemented
+  private member in an `abstract` class does not cause a compile-time
+  error in concrete subclasses in other libraries, and if a concrete
+  subclass is in the same library then standard completeness rules
+  already report an error when the conditional part is included. This
+  rule is only needed so that concrete subclasses in unconditional files
+  of the same library can be analyzed without inspecting conditional
+  parts.*
 
-5. **No added enum entries on augmented enums**: It is a **compile-time error**
-   if an augmenting `enum` declaration in *P* declares one or more `<enumEntry>`
-   elements. *Enum entries affect switch exhaustiveness, static member lookup on
-   the enum, and the constant `values` list.*
+- It is a compile-time error for an augmenting declaration of a type `D`
+  in a conditional part to contain an introductory private instance
+  member declaration `m` with name `n` *(where a non-final variable with
+  identifier `_v` introduces both a getter with name `_v` and a setter
+  with name `_v=`)* if `D` has a member with name `n` in its interface
+  in the unconditional files, unless `D` inherits a concrete
+  implementation of `n` in the unconditional files and `m` is a complete
+  declaration whose member signature is identical to the member
+  signature of `n` in `D` in the unconditional files, including
+  identical `covariant` parameter modifiers.
 
-6. **Private names and completeness required for introductory members in
-   augmenting declarations**: In the body of an augmenting `class`, `mixin`,
-   `mixin class`, `enum`, `extension`, or `extension type` declaration of *D* in
-   *P*, it is a **compile-time error** if an introductory *(non-`augment`)*
-   member or constructor declaration:
-   - does not have a private basename *(an identifier starting with `'_'`, or
-     for a constructor, a privately named constructor `D._n`, `new _n`,
-     `factory D._n`, or `factory _n` where `_n` starts with `'_'`)*, or
-   - is not complete after all augmentations in *P*'s enclosing conditional
-     subtree have been applied.
+- It is a compile-time error for an augmenting declaration of a type `D`
+  in a conditional part to contain an introductory private instance
+  member declaration with name `n` if `D` does not have a member with
+  name `n` in its interface in the unconditional files, and a subtype of
+  `D` in an unconditional file declares a member with name `n` that
+  omits its return type, its variable type, or any formal parameter
+  type.
 
-   *Adding an unimplemented abstract private member to *D* in *P* would cause *D*
-   or concrete subclasses of *D* in the unconditional files of *L* (or in
-   importing libraries) to fail concrete-implementation checking or alter
-   `noSuchMethod` forwarders.*
+- It is a compile-time error if an identifier reference, type
+  annotation, constructor reference or invocation, super-constructor
+  invocation, redirecting constructor invocation, initializing formal
+  parameter, or statically resolved member access, method invocation,
+  setter assignment, tear-off, or object pattern field access in an
+  unconditional file resolves to an introductory declaration in a
+  conditional part.
 
-7. **No name or hierarchy conflicts with unconditional declarations**: It is a
-   **compile-time error** if:
-   - an introductory top-level declaration in *P* has the same basename `_n` as
-     any top-level declaration or import prefix in the unconditional files of
-     *L* *(or in any other included file of *L*)*, or
-   - an introductory member or constructor declaration with basename `_n` inside
-     an augmenting declaration of *D* in *P* has the same basename as any member
-     or constructor declared in *D*, or in any superinterface, superclass, or
-     subtype of *D* in the unconditional files of *L* *(or outside *P*'s
-     enclosing conditional subtree)*.
+- It is a compile-time error for an augmenting generative constructor
+  declaration in a conditional part that augments a constructor declared
+  in an unconditional file to specify a default value for an optional
+  formal parameter.
 
-8. **No static resolution from unconditional files to introductory declarations
-   in *P***: It is a **compile-time error** if any identifier reference, type
-   annotation, constructor reference, or statically resolved instance member
-   access, method invocation, setter assignment, tear-off, or object pattern
-   field access in an unconditional file of *L* *(or in a conditional part file
-   outside *P*'s enclosing conditional subtree)* resolves to an introductory
-   declaration in *P* *(or to a member of an introductory `extension`
-   declaration in *P*)*.
+- It is a compile-time error for an augmenting constructor declaration
+  in a conditional part that augments a constructor declared in an
+  unconditional file to be `const` and complete.
 
-   It is a **compile-time error** if an implicit extension member access
-   outside *P*'s enclosing conditional subtree resolves to an introductory
-   member of an `extension` declaration in *P*, or has such an `extension`
-   declaration among its applicable extensions.
+- It is a compile-time error for an augmenting declaration of a type `D`
+  in a conditional part to declare a non-`abstract`, non-`external`
+  instance variable whose initializing expression references a parameter
+  of a `const` primary constructor of `D`.
+  *Adding an instance variable with a non-constant
+  initializer to a class with a `const` constructor is already a
+  compile-time error in the library itself, and adding a `final`
+  instance variable with a constant initializer that does not depend on
+  constructor parameters gives every constant instance of `D` the same
+  field value, preserving constant equality in downstream code. However,
+  if constant evaluation of `D` in downstream code is performed without
+  inspecting conditional parts at all, or to prevent primary constructor
+  parameters from varying the field value across constant instances, one
+  can more broadly make it a compile-time error for an augmenting
+  declaration of `D` in a conditional part to declare any
+  non-`abstract`, non-`external` instance variable when `D` declares a
+  `const` generative constructor.*
 
-   *In particular, an introductory declaration in P can never shadow a
-   declaration in the unconditional files of L.*
+- It is a compile-time error for an augmenting declaration of a `class`
+  or `mixin class` `D` in a conditional part to contain an introductory
+  constructor declaration if `D` does not explicitly declare any
+  constructor in an unconditional file.
 
-9. **No `dynamic` access to secret private names of *P***: A private basename
-   `_n` is a _secret private name_ of *P* if *P* contains an introductory
-   declaration with basename `_n`, other than an instance member declaration
-   inside an introductory top-level type declaration in *P* that implements or
-   overrides a member with basename `_n` declared in the unconditional files of
-   *L*.
+Some constraints apply for the unconditional files:
 
-   It is a **compile-time error** if *P* has a secret private name `_n`, and *L*
-   contains an instance member access, method invocation, setter assignment,
-   tear-off, or object pattern field access with basename `_n` whose receiver
-   *(or matched value)* has static type `dynamic`.
+- An instance member with indeterminate abstractness in the superclass
+  of a class, mixin class, or enum `C` *(including in any mixin applied
+  to `C`)* is not considered to be implemented in `C` unless `C`
+  declares an implementation. *It is not sufficient that there exists a
+  further superclass of said superclass that implements the instance
+  member. In other words, an indeterminately abstract member will "kill"
+  an inherited implementation, even in the situation where it would be a
+  correct override of the member signature of the indeterminately
+  abstract member.* If `C` is concrete this may cause the declaration of
+  `C` to have a compile-time error because it does not fully implement
+  its interface.
 
-   *Although `dynamic` member accesses do not affect static type inference in
-   the unconditional files, disallowing `dynamic` access to secret private names
-   ensures that unconditional code cannot depend on secret declarations of *P*
-   even at run time.*
+- It is a compile-time error if a super-invocation in a class, mixin, mixin
+  class, or enum `C` targets an instance member with indeterminate
+  abstractness, or if an instance member with indeterminate abstractness in
+  a superclass overrides the concrete member in a further superclass that
+  would otherwise be the target of the super-invocation. *In other words,
+  an instance member with indeterminate abstractness also "kills" any
+  inherited implementation in a further superclass for the purpose of
+  resolving super-invocations.*
 
-10. **No default parameter values on augmenting declarations**: It is a
-    **compile-time error** if an augmenting function, method, or constructor
-    declaration in *P* specifies a default value (`=` `<expression>`) for an
-    optional positional or named formal parameter.
-
-    *This implies that default values for declarations in the unconditional
-    files must be declared in the unconditional files of L. In particular, this
-    is needed in generative constructors because super-parameters in other
-    libraries may need to use this default value. We may be able to relax this
-    requirement for non-constructors. (Introductory private functions, methods,
-    and constructors in *P* may specify default parameter values normally.)*
-
-11. **No completing constant constructors**: It is a **compile-time error**
-    if an augmenting constructor declaration in *P* is constant and is
-    complete. *This is necessary because constant expression evaluation is
-    part of the static analysis.*
-
-12. **Restrictions on instance variables and constructors in augmenting
-    declarations**: In an augmenting declaration of *D* in *P*, when at
-    least one generative constructor in unconditional code is not `concrete`:
-    - It is a **compile-time error** if *P* contains a non-`abstract`,
-      non-`external` instance variable declaration *v* *(whether introductory or
-      augmenting)*, and either:
-      - *D* declares a constant generative constructor *(which includes the
-        case where *D* is an `enum`)*, or
-      - *v* is `final` or has a potentially non-nullable type, *v* is not `late`,
-        *v* has no initializing expression, and *D* either has no generative
-        constructors or has at least one non-redirecting generative constructor
-        that is completed *(explicitly or implicitly by default)* in the
-        unconditional files of *L*.
-    - It is a **compile-time error** if *P* contains an introductory *(privately
-      named)* constructor declaration in *D*, and either:
-      - *D* is a `class` or `mixin class` that does not explicitly declare at
-        least one constructor in the unconditional files of *L* *(because
-        declaring a constructor in *P* would suppress the implicit default
-        constructor `D()` in the unconditional files)*,
-      - *D* is a `mixin class` and the constructor is generative *(a mixin
-        class cannot initialize instance variables in a constructor)*,
-      - *D* has a primary constructor in the unconditional files of *L* *(and is
-        not an `extension type`)* and the constructor is a non-redirecting
-        generative constructor, or
-      - the constructor is `const`.
-
-    *Adding backing storage to a class with a constant constructor would
-    make constant evaluation and canonicalization depend on *P*. Adding an
-    uninitialized non-`late` `final` or potentially non-nullable field when
-    *D* already has a complete generative constructor in the unconditional
-    files would invalidate that constructor.*
-
-13. **No invalidation of library-wide checks**: All existing augmentation
-    and declaration rules apply to the semantic declarations obtained after
-    applying the augmentations in *P* *(in the standard pre-order
-    depth-first augmentation application order specified in
-    [Augmentations][])*. Any error arising from applying *P* (such as a
-    signature mismatch, completing an already-complete declaration, creating
-    a constructor redirection cycle, completing a constructor of a class
-    with a primary constructor as non-redirecting, failing to complete a
-    required incomplete declaration, or declaring an import prefix in *P*
-    with the same basename as a top-level declaration of *L*) is a
-    **compile-time error**.
+- In a mixin application `S with M`, where `M` is a `mixin` declaration
+  that contains a super-invocation of a member `m`, an instance member
+  `m` with indeterminate abstractness in `S` *(or in a superclass of
+  `S`)* is not considered to be implemented in `S`, and "kills" any
+  implementation of `m` in a further superclass of `S`. Consequently,
+  the mixin application `S with M` has a compile-time error because `S`
+  does not provide a concrete implementation of the super-invoked member
+  `m`.
 
 #### Modular static analysis
 
