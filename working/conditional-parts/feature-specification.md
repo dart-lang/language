@@ -460,9 +460,10 @@ containing library.*
   conditional part that augments a declaration in an unconditional file
   to have an `extends`, `with`, or `implements` clause.
 
-- It is a **compile-time error** for an introductory type declaration in a
-  conditional part to have a `sealed` class or `sealed` mixin declared
-  in an unconditional file as a direct superinterface.
+- It is a **compile-time error** for a type declaration in a conditional
+  part, whether introductory or augmenting, to have a `sealed` class or
+  `sealed` mixin declared in an unconditional file as a direct
+  superinterface.
 
 - It is a **compile-time error** for an augmenting `enum` declaration in a
   conditional part that augments an `enum` declaration in an unconditional
@@ -491,20 +492,26 @@ containing library.*
   in a conditional part to contain an introductory private instance
   member declaration `m` with name `n` *(where a non-final variable with
   identifier `_v` introduces both a getter with name `_v` and a setter
-  with name `_v=`)* if `D` has a member with name `n` in its interface
-  in the unconditional files, unless `D` inherits a concrete
-  implementation of `n` in the unconditional files and `m` is a complete
-  declaration whose member signature is identical to the member
-  signature of `n` in `D` in the unconditional files, including
-  identical `covariant` parameter modifiers.
+  with name `_v=`)* if `D` is an `extension type` declared in an
+  unconditional file, if `D` can be extended, implemented, or mixed in
+  by declarations in other libraries, or if `D` has a member with name
+  `n` in its interface in the unconditional files, unless `D` is not an
+  `extension type`, `D` has a member with name `n` in its interface in
+  the unconditional files, `D` inherits a concrete implementation of `n`
+  in the unconditional files whose member signature is a valid override
+  of the member signature of `n` in `D` in the unconditional files, and
+  `m` is a complete declaration whose member signature is identical to
+  the member signature of `n` in `D` in the unconditional files,
+  including identical `covariant` parameter modifiers.
 
 - It is a **compile-time error** for an augmenting declaration of a type `D`
   in a conditional part to contain an introductory private instance
-  member declaration with name `n` if `D` does not have a member with
-  name `n` in its interface in the unconditional files, and a subtype of
-  `D` in an unconditional file declares a member with name `n` that
-  omits its return type, its variable type, or any formal parameter
-  type.
+  member declaration with name `n` *(with base name `b`, where `b` is `n`
+  without a trailing `=` if `n` is a setter name)* if `D` does not have a
+  member with name `n` in its interface in the unconditional files, and a
+  subtype of `D` in an unconditional file declares a member with name `b`
+  or `b=` that omits its return type, its variable type, or any formal
+  parameter type.
 
 - It is a **compile-time error** if an identifier reference, type
   annotation, constructor reference or invocation, super-constructor
@@ -525,19 +532,20 @@ containing library.*
 
 - It is a **compile-time error** for an augmenting declaration of a type `D`
   in a conditional part to declare a non-`abstract`, non-`external`
-  instance variable whose initializing expression references a parameter
-  of a `const` primary constructor of `D`.
+  instance variable when `D` declares a `const` generative constructor,
+  unless the variable has an initializing expression that is a constant
+  expression and does not reference any constructor parameter or type
+  parameter of `D`.
   *Adding an instance variable with a non-constant
   initializer to a class with a `const` constructor is already a
   compile-time error in the library itself, and adding a `final`
   instance variable with a constant initializer that does not depend on
-  constructor parameters gives every constant instance of `D` the same
-  field value, preserving constant equality in downstream code. However,
-  if constant evaluation of `D` in downstream code is performed without
-  inspecting conditional parts at all, or to prevent primary constructor
-  parameters from varying the field value across constant instances, one
-  can more broadly make it a compile-time error for an augmenting
-  declaration of `D` in a conditional part to declare any
+  constructor parameters or type parameters gives every constant
+  instance of `D` the same field value and cannot fail during
+  downstream constant evaluation. However, if constant evaluation of `D`
+  in downstream code is performed without inspecting conditional parts
+  at all, one can more broadly make it a compile-time error for an
+  augmenting declaration of `D` in a conditional part to declare any
   non-`abstract`, non-`external` instance variable when `D` declares a
   `const` generative constructor.*
 
