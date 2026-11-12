@@ -4,7 +4,7 @@ Author: Paul Berry
 
 Status: Draft
 
-Version 1.2 (see [Changelog](#changelog) at end)
+Version 1.3 (see [Changelog](#changelog) at end)
 
 Experiment flag: no-inferred-dynamic
 
@@ -137,11 +137,15 @@ Before that, null safety removed several places where Dart invented `dynamic`:
 |---|---|---|
 | `catch (e)` | `dynamic` | `Object` |
 | Parameter of `operator ==` | `dynamic` | `Object` |
+| Bound of a type parameter with no declared bound | `dynamic` | `Object?` |
 | Function literal parameter whose context type is a subtype of `Null` | `dynamic` | `Object?` |
 | Recursive call to a local function with no declared return type | `dynamic` | inference failure (as specified; see [Recursive local functions](#recursive-local-functions)) |
 
-The third row is exactly the change this proposal makes elsewhere, and the
-fourth is a precedent for making inference failures into compile-time errors.
+The third and fourth rows are exactly the change this proposal makes
+elsewhere, and the fifth is a precedent for making inference failures into
+compile-time errors. *(The change to type parameter bounds didn't reach
+instantiate to bound, which still uses `dynamic` for an omitted bound; see
+[Instantiate to bound](#instantiate-to-bound).)*
 
 ## Overview
 
@@ -749,7 +753,7 @@ Some specific cases are worth calling out:
     compile-time error:
 
     ```dart
-    extension E on dynamic {
+    extension E on Object? {
       String foo() => 'extension';
     }
 
@@ -791,6 +795,24 @@ Some specific cases are worth calling out:
     compile-time error with this feature. Such code should be rare. *(The change
     to generators declared to return a supertype of `Object` can't break code at
     compile time; see [Runtime semantics](#runtime-semantics).)*
+*   **`Type` objects as map keys.** Although `dynamic` and `Object?` are mutual
+    subtypes, the `Type` objects for two types that differ only in `dynamic`
+    versus `Object?` aren't equal: for example, on the Dart VM, a `Type` object
+    for `C<dynamic>` isn't `==` to one for `C<Object?>`. So code that uses
+    `Type` objects as map keys can fail to find an entry, if the code that adds
+    the entry and the code that looks it up reify different type arguments.
+    This can't happen as a direct result of a migration that makes every
+    `dynamic` explicit (though it can if the migration uses one of the
+    shortcuts described in [Migration](#migration)). But it can happen later,
+    during an incremental migration, if a raw type is written (or the
+    migration's `<dynamic>` is removed) in a library that has the feature
+    enabled, while a library that hasn't been migrated, or that still says
+    `<dynamic>`, refers to the same type. Examples of code that is exposed to
+    this include dependency injection frameworks that key providers by `Type`
+    literals, and mocking libraries that keep a registry of values keyed by
+    type (such as `package:mockito`'s `provideDummy`, which stores dummy value
+    builders in a `Map<Type, ...>` and looks them up using a type argument).
+    See also [Open questions](#open-questions).
 
 ## Migration
 
@@ -807,9 +829,20 @@ Under this approach, a site where the feature reports an error costs the same
 to migrate as a site where it changes a type to `Object?`: both are fixed by
 writing `dynamic`.
 
-| Change | Existing lint | Fix |
+The migration uses a new set of lints, written for this purpose, rather than
+the existing diagnostics that detect similar cases (listed in the table below
+for reference). Changing what the existing diagnostics report, or which fixes
+they offer, would be a breaking change for the projects that already enable
+them. The migration lints only report in libraries where the feature isn't
+enabled; in a library where it is enabled, there's nothing left to migrate, so
+they report nothing. Being new, they can also cover cases that the existing
+diagnostics don't. For example, `strict-raw-types` doesn't flag a raw type
+used as a type literal (`var t = List;`) or in a type test (`o is List`), but
+both change meaning under this feature.
+
+| Change | Similar existing diagnostic | Fix |
 |---|---|---|
-| Raw types (including in `with` clauses) | `strict-raw-types` | `List` → `List<dynamic>` |
+| Raw types (including in `with` clauses, type literals, and type tests) | `strict-raw-types` (except type literals and type tests) | `List` → `List<dynamic>` |
 | Object patterns with an unconstrained type argument (`case Foo(:var x):`) | none | `Foo` → `Foo<dynamic>` |
 | Unconstrained generic inference, empty collection literals | `inference_failure_on_function_invocation`, `inference_failure_on_generic_invocation`, `inference_failure_on_instance_creation`, `inference_failure_on_collection_literal` | add explicit type arguments |
 | Variables with no type and no initializer | `inference_failure_on_uninitialized_variable` | add `dynamic` |
@@ -823,11 +856,10 @@ writing `dynamic`.
 | Greatest closure (function literal returns) | none | add explicit types |
 | Generators with no `yield` (function literals and local functions) | none | local functions: add a return type such as `Iterable<dynamic>`; function literals can't declare a return type, so they need an explicit context type or manual attention |
 
-None of the existing diagnostics has a quick fix today, so the fixes need to be
-written, and several lints are new. Fixes that would insert `Object?` (which
-some existing tools do when adding a type annotation) aren't
-semantics-preserving where the current type is `dynamic`; the migration must
-insert `dynamic` there.
+None of the existing diagnostics has a quick fix today, so all the fixes need
+to be written. Fixes that would insert `Object?` (which some existing tools do
+when adding a type annotation) aren't semantics-preserving where the current
+type is `dynamic`; the migration must insert `dynamic` there.
 
 Two cases don't need migration:
 
@@ -877,6 +909,31 @@ outside their library, since changing the type of a public declaration
 changes what other libraries see (see
 [Language versioning](#language-versioning)).
 
+Even without "what if" analysis, there are two ways to avoid inserting
+`dynamic` in some common cases:
+
+*   **Discarded results.** Some invocations can be recognized as safe to leave
+    alone just by looking at the invocation and the declaration it invokes.
+    For example, a type parameter that only appears in the return type doesn't
+    matter if the return value is discarded. Similarly, a type parameter that
+    only appears in the types of optional parameters doesn't matter if no
+    arguments are passed for them. `Future.delayed(duration)` is a common case
+    of both: `T` appears only in the return type `Future<T>` and in the
+    omitted callback parameter, and the result is usually discarded (as in
+    `await Future.delayed(duration);`).
+*   **Classes designed to be used raw.** Some generic classes are meant to be
+    used without type arguments. (The analyzer lets such a class be annotated
+    with `@optionalTypeArgs`, from `package:meta`, so that `strict-raw-types`
+    doesn't flag raw uses of it.) If such a class's type parameter has no
+    bound, its author can change the declaration from `class C<T>` to
+    `class C<T extends Object?>` before migrating. Raw uses of `C` then mean
+    `C<Object?>` under the old rules as well as the new ones, so the migration
+    has nothing to insert at those uses. *This is a far less invasive
+    migration than inserting `<dynamic>` at every raw use, since only the
+    declaration has to change. (The change takes effect immediately, in every
+    library that uses `C` raw, so those uses still need to be checked, but
+    they don't need to be edited.)*
+
 *If an author bumps a library's language version without running the
 migration, the types of its public declarations can change silently: the
 library itself may still compile, while code in other libraries that relied on
@@ -887,9 +944,32 @@ in [Compatibility](#compatibility)).*
 
 *This section is not normative.*
 
-*   **Analyzer options.** The existing `strict-inference` and `strict-raw-types`
-    analyzer options become redundant for code with the feature enabled. They
-    can be deprecated, pointing users at the feature.
+*   **Analyzer options.** The `strict-raw-types` and `strict-inference`
+    analyzer modes flag places where Dart invents `dynamic`. In a library where
+    the feature is enabled, those places don't exist: a raw type or an
+    unconstrained type argument means `Object?`, and a declaration whose type
+    can't be determined is a compile-time error. So in such a library, the
+    analyzer shouldn't report the diagnostics associated with these modes
+    (`strict_raw_type` and the `inference_failure_on_*` diagnostics), even if
+    the modes are enabled in `analysis_options.yaml`.
+
+    *Some of this follows from what the diagnostics already check: for
+    example, `strict_raw_type` is only reported when instantiate to bound
+    produces `dynamic`. But some of the `inference_failure_on_*` diagnostics
+    (such as `inference_failure_on_function_invocation`) are reported whenever
+    inference leaves a type argument unconstrained, whatever type fills it in,
+    so they need an explicit change.*
+
+    *This supports the following workflow. A developer runs `dart migrate`,
+    which changes `void f(List items)` to `void f(List<dynamic> items)`. After
+    the library's language version is bumped, they decide that `List<Object?>`
+    is what they want, and delete `<dynamic>`. The result means what they
+    intend, so it shouldn't be flagged, even if their `analysis_options.yaml`
+    still enables `strict-raw-types`.*
+
+    Once the feature is enabled by default, and the `analysis_options.yaml`
+    files in the ecosystem have been cleaned up, `strict-raw-types` and
+    `strict-inference` can be deprecated.
 *   **`avoid_init_to_null`.** This lint flags `var x = null;` and suggests
     removing `= null`. With the feature enabled, that would turn a valid
     declaration into an error, so the lint shouldn't fire on `var` declarations
@@ -1180,8 +1260,47 @@ Considerations:
     That wouldn't be a breaking change (whereas going from a default to an
     error would). But the advantage of adding defaults now is potentially less
     migration churn.
+*   **Normalizing `dynamic` and `Object?` at runtime.** Should `Type` objects
+    for types that differ only in `dynamic` versus `Object?` be equal, so that,
+    for example, the `Type` objects for `List<dynamic>` and `List<Object?>` are
+    `==` and have the same `hashCode`? That would remove the hazard for
+    `Type`-keyed maps described in [Compatibility](#compatibility), and it's
+    arguably what users would expect, since the two types are mutual subtypes
+    and behave the same in `is` and `as` checks. It could be done by
+    normalizing reified types (replacing `dynamic`, and perhaps `void`, with
+    `Object?`), or only in `Type.operator ==` and `Type.hashCode`. But either
+    way, it would change runtime behavior for all code, regardless of language
+    version, so it would need its own breaking change review, and it would
+    need to be implemented on every platform.
+*   **Core libraries.** Some declarations in the core libraries introduce
+    `dynamic` into user code. For example, several members in `dart:async`
+    (such as `StreamConsumer.close`) are declared to return a raw `Future`,
+    and `jsonDecode` in `dart:convert` returns `dynamic`. When the core
+    libraries are opted into this feature, the raw types would change meaning
+    (from `Future<dynamic>` to `Future<Object?>`) unless they're migrated to
+    `Future<dynamic>`. Should the core libraries be migrated mechanically,
+    preserving their current types, or should some of these declarations be
+    changed alongside this feature (for example, to `Future<void>`, or to
+    return `Object?`), each of which would be a breaking change of its own?
 
 ## Changelog
+
+### 1.3
+
+-   Specify that the `strict-raw-types` and `strict-inference` analyzer
+    modes don't report in libraries with the feature enabled, and when
+    they can be deprecated.
+-   Specify that the migration uses a new set of lints rather than the
+    existing diagnostics.
+-   Describe two ways for the migration to avoid inserting `dynamic`:
+    invocations whose results are discarded, and adding `extends Object?`
+    to classes designed to be used raw.
+-   Note the hazard for maps keyed by `Type` objects during an incremental
+    migration.
+-   Add open questions about normalizing `dynamic` and `Object?` at
+    runtime, and about changing core library declarations.
+-   Add the default bound of type parameters to the precedents, and use
+    `on Object?` in the extension example.
 
 ### 1.2
 
