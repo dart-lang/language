@@ -14,11 +14,16 @@ git.url = "https://github.com/leanprover-community/iris-lean.git"
 git.subDir = "Iris"
 rev = "v4.34.1"
 
+# In `DartLang`, `DartSemantics` and `Tests`, warnings are errors. In particular, a `sorry` fails
+# the build, including one that Lean inserts silently: a `local notation` that mentions a section
+# variable, used in a `variable` binder, elaborates that variable to `sorry` without an error.
 [[lean_lib]]
 name = "DartLang"
+leanOptions = { warningAsError = true }
 
 [[lean_lib]]
 name = "DartSemantics"
+leanOptions = { warningAsError = true }
 
 [[lean_lib]]
 name = "FlowAnalysis"
@@ -27,6 +32,7 @@ name = "FlowAnalysis"
 # in it fails.
 [[lean_lib]]
 name = "Tests"
+leanOptions = { warningAsError = true }
 
 [[lean_exe]]
 name = "flow_analysis"
