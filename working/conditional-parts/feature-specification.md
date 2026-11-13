@@ -446,6 +446,18 @@ containing library.*
 - It is a **compile-time error** for a conditional part to contain an
   introductory top-level declaration with a public name.
 
+- It is a **compile-time error** for a conditional part _F_ to contain an
+  introductory declaration _D_ whose name _n_ is private, unless one of the
+  following conditions hold:
+  - The name _n_ does not occur in an unconditional file in the file tree
+    of the enclosing library.
+  - The declaration _D_ is an overriding declaration with the same
+    signature as the combined member signature _s_ of the enclosing
+    type-introducing declaration _Dt_. Moreover, if _Dt_ inherits an
+    implementation of _n_ then it must have the same signature as _D_,
+    and _D_ must be complete, or it must be completed by an augmentation
+    in the same conditional part file _F_.
+
 - It is a **compile-time error** if an introductory `extension` declaration
   in a conditional part is applicable to an implicit extension member
   access in an unconditional file, or is referenced by an explicit
