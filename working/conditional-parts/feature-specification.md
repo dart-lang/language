@@ -201,7 +201,7 @@ Notice two central properties illustrated by this example:
    cannot introduce public top-level or member declarations (introductory
    declarations must have private names and are subject to constraints that
    prevent unconditional code from depending on them), cannot add
-   superinterfaces (`extends`, `with`, or `implements`) or enum entries to
+   superinterfaces (`extends`, `on`, `with`, or `implements`) or enum entries to
    augmented declarations, cannot add direct subtypes to `sealed` types
    declared in unconditional files, cannot specify default parameter values
    on augmenting declarations, and cannot complete `const` constructors
@@ -458,7 +458,7 @@ containing library.*
 
 - It is a **compile-time error** for an augmenting type declaration in a
   conditional part that augments a declaration in an unconditional file
-  to have an `extends`, `with`, or `implements` clause.
+  to have an `extends`, `on`, `with`, or `implements` clause.
 
 - It is a **compile-time error** for a type declaration in a conditional
   part, whether introductory or augmenting, to have a `sealed` class or
@@ -468,6 +468,11 @@ containing library.*
 - It is a **compile-time error** for an augmenting `enum` declaration in a
   conditional part that augments an `enum` declaration in an unconditional
   file to declare any enum entries.
+
+- It is a **compile-time error** for an augmenting variable declaration in
+  a conditional part that augments a variable declaration in an
+  unconditional file to have an initializing expression if the augmented
+  variable declaration in the unconditional file omits its type annotation.
 
 - It is a **compile-time error** for an augmenting declaration in a
   conditional part that augments a declaration in an unconditional file
@@ -493,25 +498,38 @@ containing library.*
   member declaration `m` with name `n` *(where a non-final variable with
   identifier `_v` introduces both a getter with name `_v` and a setter
   with name `_v=`)* if `D` is an `extension type` declared in an
-  unconditional file, if `D` can be extended, implemented, or mixed in
-  by declarations in other libraries, or if `D` has a member with name
-  `n` in its interface in the unconditional files, unless `D` is not an
-  `extension type`, `D` has a member with name `n` in its interface in
-  the unconditional files, `D` inherits a concrete implementation of `n`
-  in the unconditional files whose member signature is a valid override
-  of the member signature of `n` in `D` in the unconditional files, and
-  `m` is a complete declaration whose member signature is identical to
-  the member signature of `n` in `D` in the unconditional files,
-  including identical `covariant` parameter modifiers.
+  unconditional file, if `D` or any subtype of `D` declared in the library
+  can be extended, implemented, or mixed in by declarations in other
+  libraries, or if `D` has a member with name `n` in its interface in the
+  unconditional files, unless `D` is not an `extension type`, `D` has a
+  member with name `n` in its interface in the unconditional files, `D`
+  inherits a concrete implementation of `n` in the unconditional files
+  whose member signature is a valid override of the member signature of
+  `n` in `D` in the unconditional files, `m` is a complete declaration
+  whose member signature is identical to the member signature of `n` in
+  `D` in the unconditional files, including identical `covariant`
+  parameter modifiers, and either `m` is a `final` instance variable or no
+  declaration in an unconditional file declares a non-`abstract`,
+  non-`external`, non-`late` `final` instance variable with name `n`.
 
 - It is a **compile-time error** for an augmenting declaration of a type `D`
   in a conditional part to contain an introductory private instance
   member declaration with name `n` *(with base name `b`, where `b` is `n`
   without a trailing `=` if `n` is a setter name)* if `D` does not have a
   member with name `n` in its interface in the unconditional files, and a
-  subtype of `D` in an unconditional file declares a member with name `b`
-  or `b=` that omits its return type, its variable type, or any formal
-  parameter type.
+  subtype of `D` in an unconditional file either has a member with name `n`
+  in its interface in the unconditional files or declares a member with
+  name `b` or `b=` that omits its return type, its variable type, or any
+  formal parameter type.
+
+- It is a **compile-time error** for a declaration in a conditional part,
+  whether introductory or augmenting, to declare a non-`final` instance
+  variable or concrete instance getter with a private name `_x`, or for a
+  class or enum declaration in a conditional part, whether introductory or
+  augmenting, to induce a `noSuchMethod` forwarder for a getter with a
+  private name `_x`, if any declaration in an unconditional file declares
+  a non-`abstract`, non-`external`, non-`late` `final` instance variable
+  with name `_x`.
 
 - It is a **compile-time error** if an identifier reference, type
   annotation, constructor reference or invocation, super-constructor
@@ -530,24 +548,32 @@ containing library.*
   in a conditional part that augments a constructor declared in an
   unconditional file to be `const` and complete.
 
+- It is a **compile-time error** for an augmenting declaration of a `mixin`
+  or `mixin class` `D` in a conditional part that augments a declaration
+  in an unconditional file to declare a non-`abstract`, non-`external`
+  instance variable.
+
 - It is a **compile-time error** for an augmenting declaration of a type `D`
   in a conditional part to declare a non-`abstract`, non-`external`
   instance variable when `D` declares a `const` generative constructor,
   unless the variable has an initializing expression that is a constant
-  expression and does not reference any constructor parameter or type
-  parameter of `D`.
+  expression, neither the initializing expression nor the type of the
+  variable references any constructor parameter or type parameter of `D`,
+  and the initializing expression evaluates without error as a constant
+  expression to a constant value whose type is a subtype of the
+  variable's type.
   *Adding an instance variable with a non-constant
   initializer to a class with a `const` constructor is already a
   compile-time error in the library itself, and adding a `final`
-  instance variable with a constant initializer that does not depend on
-  constructor parameters or type parameters gives every constant
-  instance of `D` the same field value and cannot fail during
-  downstream constant evaluation. However, if constant evaluation of `D`
-  in downstream code is performed without inspecting conditional parts
-  at all, one can more broadly make it a compile-time error for an
-  augmenting declaration of `D` in a conditional part to declare any
-  non-`abstract`, non-`external` instance variable when `D` declares a
-  `const` generative constructor.*
+  instance variable with a validated constant initializer whose type and
+  expression do not depend on constructor parameters or type parameters
+  gives every constant instance of `D` the same field value and cannot
+  fail during downstream constant evaluation. However, if constant
+  evaluation of `D` in downstream code is performed without inspecting
+  conditional parts at all, one can more broadly make it a compile-time
+  error for an augmenting declaration of `D` in a conditional part to
+  declare any non-`abstract`, non-`external` instance variable when `D`
+  declares a `const` generative constructor.*
 
 - It is a **compile-time error** for an augmenting declaration of a `class`
   or `mixin class` `D` in a conditional part to contain an introductory
@@ -1029,7 +1055,7 @@ compile-time errors.
 #### Rule 3: No added superinterfaces on augmented types
 
 An augmenting type declaration in a conditional part file cannot contain an
-`extends`, `with`, or `implements` clause.
+`extends`, `on`, `with`, or `implements` clause.
 
 ```dart
 // In "l.dart":
