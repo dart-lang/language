@@ -480,15 +480,10 @@ containing library.*
   conditional part that augments an `enum` declaration in an unconditional
   file to declare any enum entries.
 
-- It is a **compile-time error** for an augmenting variable declaration in
-  a conditional part that augments a variable declaration in an
-  unconditional file to have an initializing expression if the augmented
-  variable declaration in the unconditional file omits its type annotation.
-
 - It is a **compile-time error** for an augmenting declaration in a
   conditional part that augments a declaration in an unconditional file
   to contain an introductory member or constructor declaration with a
-  public name *(including an constructor whose uniform name is `new`)*.
+  public name, which includes a constructor whose uniform name is `new`.
 
 - It is a **compile-time error** for an augmenting declaration in a
   conditional part that augments a declaration in an unconditional file
@@ -589,11 +584,11 @@ Some constraints apply for the unconditional files:
   resolving super-invocations.*
 
 - In a mixin application `S with M`, where `M` is a `mixin` declaration
-  that contains a super-invocation of a member `m`, an instance member
-  `m` with indeterminate abstractness in `S` *(or in a superclass of
-  `S`)* is not considered to be implemented in `S`, and "kills" any
-  implementation of `m` in a further superclass of `S`. Consequently,
-  the mixin application `S with M` has a **compile-time error** because `S`
+  that contains a super-invocation of a member `m`, an instance member `m`
+  with indeterminate abstractness in `S` (or in a superclass of `S` and not
+  overridden) is not considered to be implemented in `S`, and "kills" any
+  implementation of `m` in a further superclass of `S`. Consequently, the
+  mixin application `S with M` has a **compile-time error** because `S`
   does not provide a concrete implementation of the super-invoked member
   `m`.
 
