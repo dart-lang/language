@@ -460,8 +460,7 @@ containing library.*
 
 - It is a **compile-time error** if an introductory `extension` declaration
   in a conditional part is applicable to an implicit extension member
-  access in an unconditional file, or is referenced by an explicit
-  extension member application in an unconditional file.
+  access in an unconditional file.
   *This allows unnamed and privately named `extension` declarations in a
   conditional part as long as they do not participate in extension
   resolution in unconditional files. A simpler, less expressive
@@ -507,32 +506,14 @@ containing library.*
 
 - It is a **compile-time error** for an augmenting declaration of a type `D`
   in a conditional part to contain an introductory private instance
-  member declaration `m` with name `n` *(where a non-final variable with
+  member declaration with name `n` *(where a non-final variable with
   identifier `_v` introduces both a getter with name `_v` and a setter
   with name `_v=`)* if `D` is an `extension type` declared in an
   unconditional file, if `D` or any subtype of `D` declared in the library
   can be extended, implemented, or mixed in by declarations in other
   libraries, or if `D` has a member with name `n` in its interface in the
-  unconditional files, unless `D` is not an `extension type`, `D` has a
-  member with name `n` in its interface in the unconditional files, `D`
-  inherits a concrete implementation of `n` in the unconditional files
-  whose member signature is a valid override of the member signature of
-  `n` in `D` in the unconditional files, `m` is a complete declaration
-  whose member signature is identical to the member signature of `n` in
-  `D` in the unconditional files, including identical `covariant`
-  parameter modifiers, and either `m` is a `final` instance variable or no
-  declaration in an unconditional file declares a non-`abstract`,
-  non-`external`, non-`late` `final` instance variable with name `n`.
-
-- It is a **compile-time error** for an augmenting declaration of a type `D`
-  in a conditional part to contain an introductory private instance
-  member declaration with name `n` *(with base name `b`, where `b` is `n`
-  without a trailing `=` if `n` is a setter name)* if `D` does not have a
-  member with name `n` in its interface in the unconditional files, and a
-  subtype of `D` in an unconditional file either has a member with name `n`
-  in its interface in the unconditional files or declares a member with
-  name `b` or `b=` that omits its return type, its variable type, or any
-  formal parameter type.
+  unconditional files, unless `D` inherits a concrete implementation of `n`
+  in the unconditional files.
 
 - It is a **compile-time error** for a declaration in a conditional part,
   whether introductory or augmenting, to declare a non-`final` instance
@@ -542,14 +523,6 @@ containing library.*
   private name `_x`, if any declaration in an unconditional file declares
   a non-`abstract`, non-`external`, non-`late` `final` instance variable
   with name `_x`.
-
-- It is a **compile-time error** if an identifier reference, type
-  annotation, constructor reference or invocation, super-constructor
-  invocation, redirecting constructor invocation, initializing formal
-  parameter, or statically resolved member access, method invocation,
-  setter assignment, tear-off, or object pattern field access in an
-  unconditional file resolves to an introductory declaration in a
-  conditional part.
 
 - It is a **compile-time error** for an augmenting generative constructor
   declaration in a conditional part that augments a constructor declared
