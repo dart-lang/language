@@ -125,7 +125,7 @@ void _flushStdout() {
   // Platform-specific private helper function local to "channel_io.dart".
 }
 
-augment class Channel {
+augment abstract class Channel {
   int _closeCount = 0;
 
   augment void close() {
@@ -155,7 +155,7 @@ import 'dart:js_interop';
 @JS('console.log')
 augment external void logMessage(String message);
 
-augment class Channel {
+augment abstract class Channel {
   augment void close() {
     logMessage('Closing $_name');
   }
@@ -182,7 +182,7 @@ Never _unsupported(String member) =>
 
 augment void logMessage(String message) => _unsupported('logMessage');
 
-augment class Channel {
+augment abstract class Channel {
   augment void close() => _unsupported('Channel.close');
 }
 
@@ -511,12 +511,27 @@ same declaration.*
   in a conditional part that augments an unconditional declaration to
   contain an introductory private instance member declaration with name
   `n` *(where a non-final variable with identifier `_v` introduces both a
-  getter with name `_v` and a setter with name `_v=`)* unless `D` is not an
-  `extension type` and `D` inherits a concrete implementation of `n` in the
-  unconditional files, or neither `D` nor any subtype of `D` in the library
-  has a public name or is aliased by a `typedef` with a public name in the
-  library and `D` does not have a member with name `n` in its interface in
-  the unconditional files.
+  getter with name `_v` and a setter with name `_v=`)* unless one of the
+  following conditions holds:
+  - `D` is not an `extension type`, and `D` inherits a concrete
+    implementation of `n` in the unconditional files.
+  - Neither `D` nor any subtype of `D` in the library has a public name or
+    is aliased by a `typedef` with a public name in the library, and `D`
+    does not have a member with name `n` in its interface in the
+    unconditional files.
+  - `D` is not a `mixin` or `mixin class`, the basename of `n` does not
+    occur in an unconditional file, and no augmenting declaration in a
+    conditional part in the same compilation environment that augments an
+    unconditional declaration of a type other than `D` contains an
+    introductory instance member declaration with the same basename as
+    `n`.
+    *In other words, a conditional part can add a private instance member
+    with a fresh name to a single type declared in an unconditional file.
+    Introductory type declarations in the conditional part can override
+    it. Note that if a concrete class in the unconditional files
+    implements `D` without inheriting the new member then standard
+    completeness rules report an error when the conditional part is
+    included.*
 
 - It is a **compile-time error** for a declaration in a conditional part,
   whether introductory or augmenting, to declare a non-`final` instance
@@ -639,6 +654,18 @@ Some constraints apply for the unconditional files:
   would override an inherited concrete declaration treats a member with
   indeterminate abstractness as concrete. `C` can avoid the error by
   declaring `m`.*
+
+- It is a **compile-time error** if a mixin application `S with M` occurs
+  in a library other than the library that declares `M`, `M` declares an
+  instance member with a private name `_n`, and `S` has an instance member
+  with the same name whose abstractness is indeterminate *(declared in
+  `S`, or declared in a superclass of `S` or in a mixin applied to it, and
+  not overridden)*.
+  *In this situation it is already an error if `S` has a concrete member
+  named `_n`: the analyzer reports a private name collision in a mixin
+  application. In other words, that error treats a member with
+  indeterminate abstractness as concrete, such that it does not depend on
+  whether a conditional part completes the member.*
 
 #### Modular static analysis
 
