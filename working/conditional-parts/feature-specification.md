@@ -506,8 +506,9 @@ containing library.*
   getter with name `_v` and a setter with name `_v=`)* unless `D` is not an
   `extension type` and `D` inherits a concrete implementation of `n` in the
   unconditional files, or neither `D` nor any subtype of `D` in the library
-  has a public name and `D` does not have a member with name `n` in its
-  interface in the unconditional files.
+  has a public name or is aliased by a `typedef` with a public name in the
+  library and `D` does not have a member with name `n` in its interface in
+  the unconditional files.
 
 - It is a **compile-time error** for a declaration in a conditional part,
   whether introductory or augmenting, to declare a non-`final` instance
