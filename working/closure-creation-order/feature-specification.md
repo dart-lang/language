@@ -11,6 +11,10 @@ Experiment flag: closure-creation-order
 2026.10.04
   - Initial version.
 
+2026.10.21
+  - Use the "write" terminology in the discussion of local functions that call
+    themselves or each other.
+
 ## Summary
 
 This proposal allows a local variable to keep its type promotion inside a
@@ -107,11 +111,11 @@ when the declaration is reached._
 
 Local functions that call themselves, or each other, need no special treatment
 (setting aside [language#4779][], which is addressed by [closure promotion
-soundness][]). Any assignment that executes as a result of invoking a closure
-`D` is inside `D` (or inside some closure that `D` invokes). If the variable it
-assigns to is declared outside that closure, then the variable is write
-captured anyway; otherwise, each invocation of the closure has its own copy of
-the variable.
+soundness][]). Any write that executes as a result of invoking a closure `D` is
+inside `D` (or inside some closure that `D` invokes). If the variable it writes
+to is declared outside that closure, then the variable is write captured
+anyway; otherwise, each invocation of the closure has its own copy of the
+variable.
 
 ### Analysis order
 
