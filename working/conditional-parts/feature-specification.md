@@ -440,6 +440,15 @@ directive or declaration that can alter or invalidate the static analysis of the
 unconditional files of the containing library, or of any library importing the
 containing library.*
 
+We say that an augmenting declaration *D* _augments an unconditional
+declaration_ if the introductory declaration with the same name as *D* in
+the augmentation context of *D* occurs in an unconditional file.
+*The declaration which is augmented by *D* according to [Augmentations][]
+can itself be an augmenting declaration in a conditional part. The rules
+below refer to the introductory declaration, such that they also apply
+when a conditional part contains several augmenting declarations of the
+same declaration.*
+
 - It is a **compile-time error** for a conditional part to contain an
   `export` directive.
 
@@ -468,8 +477,8 @@ containing library.*
   conditional part a compile-time error.*
 
 - It is a **compile-time error** for an augmenting type declaration in a
-  conditional part that augments a declaration in an unconditional file
-  to have an `extends`, `on`, `with`, or `implements` clause.
+  conditional part that augments an unconditional declaration to have an
+  `extends`, `on`, `with`, or `implements` clause.
 
 - It is a **compile-time error** for a type declaration in a conditional
   part, whether introductory or augmenting, to have a `sealed` class or
@@ -477,19 +486,18 @@ containing library.*
   superinterface.
 
 - It is a **compile-time error** for an augmenting `enum` declaration in a
-  conditional part that augments an `enum` declaration in an unconditional
-  file to declare any enum entries.
+  conditional part that augments an unconditional declaration to declare
+  any enum entries.
 
 - It is a **compile-time error** for an augmenting declaration in a
-  conditional part that augments a declaration in an unconditional file
-  to contain an introductory member or constructor declaration with a
-  public name, which includes a constructor whose uniform name is `new`.
+  conditional part that augments an unconditional declaration to contain
+  an introductory member or constructor declaration with a public name,
+  which includes a constructor whose uniform name is `new`.
 
 - It is a **compile-time error** for an augmenting declaration in a
-  conditional part that augments a declaration in an unconditional file
-  to contain an introductory instance member declaration that is not
-  complete after all augmentations in the conditional part have been
-  applied.
+  conditional part that augments an unconditional declaration to contain
+  an introductory instance member declaration that is not complete after
+  all augmentations in the conditional part have been applied.
   *Note that for downstream code in other libraries, an unimplemented
   private member in an `abstract` class does not cause a compile-time
   error in concrete subclasses in other libraries, and if a concrete
@@ -500,8 +508,8 @@ containing library.*
   parts.*
 
 - It is a **compile-time error** for an augmenting declaration of a type `D`
-  in a conditional part that augments a declaration in an unconditional file
-  to contain an introductory private instance member declaration with name
+  in a conditional part that augments an unconditional declaration to
+  contain an introductory private instance member declaration with name
   `n` *(where a non-final variable with identifier `_v` introduces both a
   getter with name `_v` and a setter with name `_v=`)* unless `D` is not an
   `extension type` and `D` inherits a concrete implementation of `n` in the
@@ -515,9 +523,16 @@ containing library.*
   variable or concrete instance getter with a private name `_x`, or for a
   class or enum declaration in a conditional part, whether introductory or
   augmenting, to induce a `noSuchMethod` forwarder for a getter with a
-  private name `_x`, if any declaration in an unconditional file declares
-  a non-`abstract`, non-`external`, non-`late` `final` instance variable
-  with name `_x`.
+  private name `_x`, if `_x` is promotable in the unconditional files.
+  *That is, if a property access to `_x` is subject to promotion when the
+  unconditional files are analyzed with every conditional part directive
+  ignored. This includes the case where the unconditional files declare
+  `_x` as a `late final` instance variable, an `abstract final` instance
+  variable, or an abstract getter.*
+  For this purpose, an instance getter in an unconditional file whose
+  introductory declaration has the modifier `concrete` is a concrete
+  getter. *Hence `_x` is not promotable in the unconditional files, and a
+  conditional part can complete the getter without restrictions.*
 
 - It is a **compile-time error** for an augmenting generative constructor
   declaration in a conditional part that augments a constructor declared
@@ -530,15 +545,31 @@ containing library.*
   unconditional file to be `const` and complete.
 
 - It is a **compile-time error** for an augmenting declaration of a type `D`
-  in a conditional part that augments a declaration in an unconditional file
-  to complete a declaration of `operator ==` or `hashCode` *(including by an
+  in a conditional part that augments an unconditional declaration to
+  complete a declaration of `operator ==` or `hashCode` *(including by an
   augmenting instance variable declaration `hashCode`)* unless the
   introductory declaration of that member has the modifier `concrete`.
 
 - It is a **compile-time error** for an augmenting declaration of a `mixin`
-  or `mixin class` `D` in a conditional part that augments a declaration
-  in an unconditional file to declare a non-`abstract`, non-`external`
-  instance variable.
+  or `mixin class` `D` in a conditional part that augments an unconditional
+  declaration to declare a non-`abstract`, non-`external` instance
+  variable.
+
+- It is a **compile-time error** for an augmenting `mixin` declaration in a
+  conditional part that augments an unconditional declaration to contain a
+  super-invocation of a member named `n`, unless a declaration of that
+  mixin in an unconditional file contains a super-invocation of a member
+  named `n`.
+  *For example, `super.m()` and `super.m` invoke the member named `m`,
+  `super.m = e` invokes the member named `m=`, and `super + e` invokes the
+  member named `+`. This ensures that the set of super-invoked members of
+  a mixin is determined by the unconditional files, such that the
+  requirements on the superclass in a mixin application do not depend on
+  a conditional part. A simpler, less expressive alternative is to make
+  every super-invocation in such an augmenting `mixin` declaration a
+  compile-time error. A `mixin class` needs no such rule because its
+  superclass is `Object`, and every superclass in a mixin application has
+  a concrete implementation of each member of `Object`.*
 
 - It is a **compile-time error** for an augmenting declaration of a type `D`
   in a conditional part to declare a non-`abstract`, non-`external`
@@ -598,6 +629,16 @@ Some constraints apply for the unconditional files:
   mixin application `S with M` has a **compile-time error** because `S`
   does not provide a concrete implementation of the super-invoked member
   `m`.
+
+- It is a **compile-time error** if a name `m` is noSuchMethod forwarded in
+  a concrete class or enum `C`, and a superclass of `C` *(including any
+  mixin applied to `C`)* has an accessible declaration of `m` with
+  indeterminate abstractness which is not a correct override of the member
+  signature named `m` in the interface of `C`.
+  *In other words, the existing error about a noSuchMethod forwarder that
+  would override an inherited concrete declaration treats a member with
+  indeterminate abstractness as concrete. `C` can avoid the error by
+  declaring `m`.*
 
 #### Modular static analysis
 
