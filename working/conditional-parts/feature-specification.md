@@ -500,15 +500,14 @@ containing library.*
   parts.*
 
 - It is a **compile-time error** for an augmenting declaration of a type `D`
-  in a conditional part to contain an introductory private instance
-  member declaration with name `n` *(where a non-final variable with
-  identifier `_v` introduces both a getter with name `_v` and a setter
-  with name `_v=`)* if `D` is an `extension type` declared in an
-  unconditional file, if `D` or any subtype of `D` declared in the library
-  can be extended, implemented, or mixed in by declarations in other
-  libraries, or if `D` has a member with name `n` in its interface in the
-  unconditional files, unless `D` inherits a concrete implementation of `n`
-  in the unconditional files.
+  in a conditional part that augments a declaration in an unconditional file
+  to contain an introductory private instance member declaration with name
+  `n` *(where a non-final variable with identifier `_v` introduces both a
+  getter with name `_v` and a setter with name `_v=`)* unless `D` is not an
+  `extension type` and `D` inherits a concrete implementation of `n` in the
+  unconditional files, or neither `D` nor any subtype of `D` in the library
+  has a public name and `D` does not have a member with name `n` in its
+  interface in the unconditional files.
 
 - It is a **compile-time error** for a declaration in a conditional part,
   whether introductory or augmenting, to declare a non-`final` instance
@@ -522,11 +521,18 @@ containing library.*
 - It is a **compile-time error** for an augmenting generative constructor
   declaration in a conditional part that augments a constructor declared
   in an unconditional file to specify a default value for an optional
-  formal parameter.
+  formal parameter, or to declare an optional formal parameter as a
+  super-parameter (`super.p`).
 
 - It is a **compile-time error** for an augmenting constructor declaration
   in a conditional part that augments a constructor declared in an
   unconditional file to be `const` and complete.
+
+- It is a **compile-time error** for an augmenting declaration of a type `D`
+  in a conditional part that augments a declaration in an unconditional file
+  to complete a declaration of `operator ==` or `hashCode` *(including by an
+  augmenting instance variable declaration `hashCode`)* unless the
+  introductory declaration of that member has the modifier `concrete`.
 
 - It is a **compile-time error** for an augmenting declaration of a `mixin`
   or `mixin class` `D` in a conditional part that augments a declaration
@@ -536,12 +542,12 @@ containing library.*
 - It is a **compile-time error** for an augmenting declaration of a type `D`
   in a conditional part to declare a non-`abstract`, non-`external`
   instance variable when `D` declares a `const` generative constructor,
-  unless the variable has an initializing expression that is a constant
-  expression, neither the initializing expression nor the type of the
-  variable references any constructor parameter or type parameter of `D`,
-  and the initializing expression evaluates without error as a constant
-  expression to a constant value whose type is a subtype of the
-  variable's type.
+  unless the variable is an introductory private `final` instance variable,
+  has an initializing expression that is a constant expression, neither the
+  initializing expression nor the type of the variable references any
+  constructor parameter or type parameter of `D`, and the initializing
+  expression evaluates without error as a constant expression to a constant
+  value whose type is a subtype of the variable's type.
   *Adding an instance variable with a non-constant
   initializer to a class with a `const` constructor is already a
   compile-time error in the library itself, and adding a `final`
