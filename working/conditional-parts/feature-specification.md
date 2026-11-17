@@ -19,6 +19,18 @@ This specification builds on [Parts with Imports][] and [Augmentations][].
 [Parts with Imports]: ../../accepted/future-releases/parts-with-imports/feature-specification.md
 [Augmentations]: ../augmentations/feature-specification.md
 
+Similar ideas have been discussed in the language team for a while. For
+example, [Sealed Parts][] is a proposal where private declarations in the
+sealed parts are not exposed to the parent library. The proposal in this
+document uses a different approach in that private declarations in
+conditional parts are available to the enclosing library, but it is
+enforced that they do not influence downstream code by putting restrictions
+on the code in conditional part files. This allows the compilation to
+proceed in exactly the same manner as with regular part files when the
+choice of which alternative to use has been made.
+
+[Sealed Parts]: https://github.com/dart-lang/language/issues/3810
+
 ## Introduction
 
 Dart supports platform-dependent libraries through configurable URIs in `import`
@@ -51,12 +63,11 @@ same outcome no matter which part _Pj_ is chosen. This is achieved
 by specifying conditional part files such that it is a compile-time error
 for them to contain anything that violates this property.
 
-Conditional parts address both limitations. A `part` directive can now use the
-same configurable URI syntax as a conditional `import` or `export` directive to
-select a platform-specific part file, while static restrictions on conditional
-part files ensure that static analysis of the containing library as a whole—and
-of every library importing it—is independent of which conditional part file is
-selected.
+A `part` directive can now use the same configurable URI syntax as a
+conditional `import` or `export` directive to select a platform-specific
+part file, while static restrictions on conditional part files ensure that
+static analysis of the containing library as a whole—and of every library
+importing it—is independent of which conditional part file is selected.
 
 Consider a library that exposes a platform-specific logger and an extensible
 `Channel` class:
@@ -122,7 +133,7 @@ augment void logMessage(String message) {
 }
 
 void _flushStdout() {
-  // Platform-specific private helper function local to "channel_io.dart".
+  // Platform-specific private helper local to "channel_io.dart".
 }
 
 augment abstract class Channel {
@@ -186,7 +197,8 @@ augment abstract class Channel {
   augment void close() => _unsupported('Channel.close');
 }
 
-augment Channel _openChannel(String name) => _unsupported('Channel.open');
+augment Channel _openChannel(String name) =>
+    _unsupported('Channel.open');
 ```
 
 Notice two central properties illustrated by this example:
@@ -258,15 +270,16 @@ from the language specification:
   | ('external' 'static'? | 'static' | 'concrete')? <functionSignature> ';'
   | ('external' | 'concrete')? <operatorSignature> ';'
   | ...
+  ;
+
+<configurableUri> ::= // Modified rule.
+    <uri>? <configurationUri>*;
 ```
 
 For easy reference, the above grammar rules rely on the following existing
 grammar rules:
 
 ```ebnf
-<configurableUri> ::=
-    <uri> <configurationUri>*;
-
 <configurationUri> ::=
     'if' '(' <uriTest> ')' <uri>;
 
@@ -308,9 +321,17 @@ is chosen.*
 We say that a Dart file *F* _includes_ the part file *P* denoted by the URI *U*
 specified by a `<partDirective>` in *F* (resolved relative to the URI of *F*).
 
+- It is a **compile-time error** if a `<configurableUri>` is empty, or it
+  has no `<uri>` at the front and none of the `<configurationUri>` clauses
+  is selected.
+
 - It is a **compile-time error** if *P* does not parse as a `<partDeclaration>`,
   or if the `<uri>` in the leading `<partHeader>` (`part of <uri>;`) of *P*,
   resolved relative to *U*, does not denote *F*.
+
+- It is a **compile-time error** if a the parent chain from any part file
+  contains more than one conditional part directive. *Nested conditional
+  parts are not supported.*
 
 - All part-tree well-formedness rules from [Parts with Imports][] apply to the
   tree of included part files of a library *L*: it is a **compile-time error**
@@ -407,11 +428,9 @@ library and when analyzing any library that imports it)*:
     super-operator invocations) targeting the member are permitted, subject
     to the usual signature checks.
 
-- If *D* is an `extension type`, an instance member declaration of *D*
-  whose introductory declaration has the modifier `concrete` (or which is
-  completed by an augmentation in the unconditional files of the library)
-  is considered to be a concrete extension instance member declaration of
-  *D*.
+- It is a **compile-time error** if *D* is an `extension type` and *D* has
+  an introductory instance member declaration with the modifier `concrete`.
+  *Extension instance members cannot be abstract.*
 
 - If *D* is not an `extension type`, and *D* is declared in a library
   whose unconditional files contain a conditional `part` directive, an
@@ -466,11 +485,12 @@ same declaration.*
   - The name _n_ does not occur in an unconditional file in the file tree
     of the enclosing library.
   - The declaration _D_ is an overriding declaration with the same
-    signature as the combined member signature _s_ of the enclosing
-    type-introducing declaration _Dt_. Moreover, if _Dt_ inherits an
-    implementation of _n_ then it must have the same signature as _D_,
-    and _D_ must be complete, or it must be completed by an augmentation
-    in the same conditional part file _F_.
+    member signature as the combined member signature _s_ of the same name
+    in the direct superinterfaces of the enclosing type-introducing 
+    declaration _Dt_. Moreover, if _Dt_ inherits an implementation of _n_ 
+    then it must have the same signature as _D_, and _D_ must be complete, 
+    or it must be completed by an augmentation in the same conditional 
+    part file _F_.
 
 - It is a **compile-time error** if an introductory `extension` declaration
   in a conditional part is applicable to an implicit extension member
@@ -518,8 +538,8 @@ same declaration.*
   `n` *(where a non-final variable with identifier `_v` introduces both a
   getter with name `_v` and a setter with name `_v=`)* unless one of the
   following conditions holds:
-  - `D` is not an `extension type` nor a `mixin`, and `D` inherits a concrete
-    implementation of `n` in the unconditional files.
+  - `D` is not an `extension type` nor a `mixin`, and `D` inherits a
+    concrete implementation of `n` in the unconditional files.
   - Neither `D` nor any subtype of `D` in the library has a public name or
     is aliased by a `typedef` with a public name in the library, and `D`
     does not have a member with name `n` in its interface in the
@@ -595,11 +615,9 @@ same declaration.*
   in a conditional part to declare a non-`abstract`, non-`external`
   instance variable when `D` declares a `const` generative constructor,
   unless the variable is an introductory private `final` instance variable,
-  has an initializing expression that is a constant expression, neither the
-  initializing expression nor the type of the variable references any
-  constructor parameter or type parameter of `D`, and the initializing
-  expression evaluates without error as a constant expression to a constant
-  value whose type is a subtype of the variable's type.
+  has an initializing expression that is a constant expression, and the
+  initializing expression evaluates without error as a constant expression 
+  to a constant value whose type is a subtype of the variable's type.
   *Adding an instance variable with a non-constant
   initializer to a class with a `const` constructor is already a
   compile-time error in the library itself, and adding a `final`
@@ -826,33 +844,6 @@ explicit developer request.
 The point is that this step needs to consider every possible combination of
 inclusion/non-inclusion of the conditional parts of this library, which
 could be a large number of cases.
-
-#### Platform-specific helper declarations and private state
-
-Allowing introductory declarations with private names in conditional part files
-makes it straightforward to write self-contained platform implementations
-without auxiliary helper libraries, while the accompanying constraints preserve
-configuration-independent static analysis:
-
-- **Helper functions, classes, and extensions**: A conditional part file *P* can
-  declare private top-level helper functions (`void _flushStdout()`), private
-  implementation classes (`class _IoChannel extends Channel`), private
-  extensions (`extension _IoStringExt on String`), and private top-level
-  variables directly inside *P*, in addition to importing platform-specific
-  helper libraries when desired. Because no reference in the unconditional files
-  can resolve to these declarations, and private types in *P* cannot directly
-  subtype `sealed` types from the unconditional files, the static analysis of
-  the unconditional files (and of any importing library) is unaffected by their
-  presence.
-
-- **Platform-specific instance state and private members**: An augmenting type
-  declaration in *P* can introduce private helper methods, private instance
-  variables, and privately named constructors (provided that any new instance
-  variable is initialized or compatible with constructors completed in the
-  unconditional files, and does not add storage to a class with a `const`
-  constructor). Furthermore, prohibiting `dynamic` member accesses and tear-offs
-  in *L* using secret private names of *P* ensures that unconditional code
-  cannot depend on those conditional private declarations even at run time.
 
 #### Variable declarations and `concrete`
 
