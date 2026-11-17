@@ -413,13 +413,18 @@ library and when analyzing any library that imports it)*:
   is considered to be a concrete extension instance member declaration of
   *D*.
 
-- If *D* is not an `extension type`, an incomplete instance member of *D*
-  whose introductory declaration does not have the modifier `concrete`, and
-  which is not completed by an augmentation in the unconditional files of
-  the library, is considered to be a member of *D* whose _abstractness is
-  undetermined_. A super-invocation which would invoke this member if it
-  were implemented is a **compile-time error**. *In particular, we do not
-  ignore it and proceed to use a declaration in a further superclass.*
+- If *D* is not an `extension type`, and *D* is declared in a library
+  whose unconditional files contain a conditional `part` directive, an
+  incomplete instance member of *D* whose introductory declaration does not
+  have the modifier `concrete`, and which is not completed by an
+  augmentation in the unconditional files of the library, is considered to
+  be a member of *D* whose _abstractness is undetermined_. A
+  super-invocation which would invoke this member if it were implemented is
+  a **compile-time error**. *In particular, we do not ignore it and proceed
+  to use a declaration in a further superclass.*
+  *In a library that has no conditional `part` directive, no conditional
+  part can complete an incomplete instance member. Hence, such a member is
+  abstract, and its treatment is unchanged.*
 
 - A generative constructor of *D* whose introductory declaration has the
   modifier `concrete` (and is not completed in the unconditional files of
@@ -613,7 +618,16 @@ same declaration.*
   constructor declaration if `D` does not explicitly declare any
   constructor in an unconditional file.
 
-Some constraints apply for the unconditional files:
+Some constraints apply to declarations that depend on an instance member
+with indeterminate abstractness. They apply in the library that declares
+the member, and in every other library:
+
+*The general principle is that the implementation of a member with
+indeterminate abstractness is treated as absent when it is required to be
+present, and as present when it is required to be absent. Hence, every
+construct which is only correct when the member is abstract, or only
+correct when the member is concrete, is a compile-time error. The
+constraints below apply this principle.*
 
 - An instance member with indeterminate abstractness in the superclass
   of a class, mixin class, or enum `C` *(including in any mixin applied
