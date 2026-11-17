@@ -1004,15 +1004,15 @@ undefined function with `p1.dart`.
 > It is a **compile-time error** for a conditional part _F_ to contain an
 > introductory declaration _D_ whose name _n_ is private, unless one of the
 > following conditions hold:
-> - The name _n_ does not occur in an unconditional file in the file tree
->   of the enclosing library.
+> - No name whose basename is the basename of _n_ occurs in an
+>   unconditional file in the file tree of the enclosing library.
 > - The declaration _D_ is an overriding declaration with the same
 >   member signature as the combined member signature _s_ of the same name
 >   in the direct superinterfaces of the enclosing type-introducing
 >   declaration _Dt_. Moreover, if _Dt_ inherits an implementation of _n_
 >   then it must have the same signature as _D_, and _D_ must be complete,
 >   or it must be completed by an augmentation in the same conditional
->   part file _F_.
+>   part file _F_ or in a file in the file tree under _F_.
 
 ```dart
 // In 'l.dart'.
@@ -1156,7 +1156,9 @@ make the expression `Mode.slow` in `main.dart` correct with `p2.dart` only.
 > following conditions hold:
 > - `n` is not `==`, `hashCode`, or `noSuchMethod`.
 > - `D` inherits a concrete implementation of `n` in the unconditional
->   files, and the declaration is complete.
+>   files, and the declaration is complete, or it is completed by an
+>   augmenting declaration in the same conditional part file or in the file
+>   tree under it.
 > - The declaration has the same member signature as that implementation,
 >   and as the combined member signature of the same name in the direct
 >   superinterfaces of `D`.
@@ -1374,13 +1376,13 @@ error. If the analysis of `l.dart` ignored `p2.dart` and promoted
 `_value` twice, obtains `1` and then `null`, and returns `null` with the
 static type `int`.
 
-#### Default values and super-parameters of constructors
+#### Default values and super-parameters
 
 > It is a **compile-time error** for an augmenting generative constructor
-> declaration in a conditional part that augments a constructor declared
-> in an unconditional file to specify a default value for an optional
-> formal parameter, or to declare an optional formal parameter as a
-> super-parameter (`super.p`).
+> declaration or member declaration in a conditional part that augments a
+> constructor or member declared in an unconditional file to specify a
+> default value for an optional formal parameter, or (for the constructor)
+> to declare an optional formal parameter as a super-parameter (`super.p`).
 
 ```dart
 // In 'l.dart'.
@@ -1605,10 +1607,11 @@ the type parameter `T`. When
 
 #### Suppressing the default constructor
 
-> It is a **compile-time error** for an augmenting declaration of a `class`
-> or `mixin class` `D` in a conditional part to contain an introductory
-> constructor declaration if `D` does not explicitly declare any
-> constructor in an unconditional file.
+> It is a **compile-time error** for an augmenting declaration `D` of a
+> `class`, `mixin class`, or `enum` in a conditional part that augments an
+> unconditional declaration to contain an introductory constructor
+> declaration if `D` does not explicitly declare any constructor in an
+> unconditional file.
 
 ```dart
 // In 'l.dart'.
