@@ -515,9 +515,30 @@ same declaration.*
   any enum entries.
 
 - It is a **compile-time error** for an augmenting declaration in a
-  conditional part that augments an unconditional declaration to contain
-  an introductory member or constructor declaration with a public name,
-  which includes a constructor whose uniform name is `new`.
+  conditional part that augments an unconditional declaration `D` to
+  contain an introductory member or constructor declaration with a public
+  name, which includes a constructor whose uniform name is `new`. However,
+  it is not an error for the augmenting declaration to contain an
+  introductory instance member declaration with a public name `n` if `D`
+  is an `enum`, or a `class` which is not a `mixin class`, and all of the
+  following conditions hold:
+  - `n` is not `==`, `hashCode`, or `noSuchMethod`.
+  - `D` inherits a concrete implementation of `n` in the unconditional
+    files, and the declaration is complete.
+  - The declaration has the same member signature as that implementation,
+    and as the combined member signature of the same name in the direct
+    superinterfaces of `D`.
+  - No top-level declaration, import prefix, or imported declaration with
+    the basename of `n` is in scope at an unconditional declaration of `D`.
+
+  *In other words, a conditional part can override an inherited public
+  instance member of a class or an enum when the override changes neither
+  the interface of `D` nor the abstractness of the member. The member
+  signature includes the modifier `covariant` on each parameter. The last
+  condition ensures that an unqualified occurrence of the name in a member
+  of an unconditional declaration of `D` denotes the instance member
+  whether or not the conditional part is included. The rules about
+  instance variables below apply to such a declaration as well.*
 
 - It is a **compile-time error** for an augmenting declaration in a
   conditional part that augments an unconditional declaration to contain
@@ -538,8 +559,13 @@ same declaration.*
   `n` *(where a non-final variable with identifier `_v` introduces both a
   getter with name `_v` and a setter with name `_v=`)* unless one of the
   following conditions holds:
-  - `D` is not an `extension type` nor a `mixin`, and `D` inherits a
-    concrete implementation of `n` in the unconditional files.
+  - `D` is not an `extension type` nor a `mixin`, `D` inherits a concrete
+    implementation of `n` in the unconditional files, and no top-level
+    declaration or import prefix with the basename of `n` is in scope at
+    an unconditional declaration of `D`.
+    *The last requirement ensures that an unqualified occurrence of the
+    name in a member of an unconditional declaration of `D` has the same
+    meaning whether or not the conditional part is included.*
   - Neither `D` nor any subtype of `D` in the library has a public name or
     is aliased by a `typedef` with a public name in the library, and `D`
     does not have a member with name `n` in its interface in the
@@ -968,11 +994,12 @@ undefined function with `p1.dart`.
 > - The name _n_ does not occur in an unconditional file in the file tree
 >   of the enclosing library.
 > - The declaration _D_ is an overriding declaration with the same
->   signature as the combined member signature _s_ of the enclosing
->   type-introducing declaration _Dt_. Moreover, if _Dt_ inherits an
->   implementation of _n_ then it must have the same signature as _D_,
->   and _D_ must be complete, or it must be completed by an augmentation
->   in the same conditional part file _F_.
+>   member signature as the combined member signature _s_ of the same name
+>   in the direct superinterfaces of the enclosing type-introducing
+>   declaration _Dt_. Moreover, if _Dt_ inherits an implementation of _n_
+>   then it must have the same signature as _D_, and _D_ must be complete,
+>   or it must be completed by an augmentation in the same conditional
+>   part file _F_.
 
 ```dart
 // In 'l.dart'.
@@ -1107,9 +1134,21 @@ make the expression `Mode.slow` in `main.dart` correct with `p2.dart` only.
 #### Public members and constructors
 
 > It is a **compile-time error** for an augmenting declaration in a
-> conditional part that augments an unconditional declaration to contain
-> an introductory member or constructor declaration with a public name,
-> which includes a constructor whose uniform name is `new`.
+> conditional part that augments an unconditional declaration `D` to
+> contain an introductory member or constructor declaration with a public
+> name, which includes a constructor whose uniform name is `new`. However,
+> it is not an error for the augmenting declaration to contain an
+> introductory instance member declaration with a public name `n` if `D`
+> is an `enum`, or a `class` which is not a `mixin class`, and all of the
+> following conditions hold:
+> - `n` is not `==`, `hashCode`, or `noSuchMethod`.
+> - `D` inherits a concrete implementation of `n` in the unconditional
+>   files, and the declaration is complete.
+> - The declaration has the same member signature as that implementation,
+>   and as the combined member signature of the same name in the direct
+>   superinterfaces of `D`.
+> - No top-level declaration, import prefix, or imported declaration with
+>   the basename of `n` is in scope at an unconditional declaration of `D`.
 
 ```dart
 // In 'l.dart'.
@@ -1128,6 +1167,36 @@ The interface of `Box` has a member named `unwrap` only when `p2.dart` is
 selected. Hence `useBox` has no errors with `p2.dart`, and it has a
 compile-time error with `p1.dart`. The same holds for a public constructor
 such as `Box.named();`, and an invocation `Box.named()` in `main.dart`.
+
+The rule has an exception for a declaration that overrides an inherited
+concrete member of a class or an enum without changing its member
+signature. The requirements of the exception are needed for the following
+reasons:
+
+- A `mixin` and a `mixin class` are excluded because the implementation
+  which is overridden is not known when they are applied as mixins. Assume
+  that `l.dart` declares `class A { void foo() {} }` and `mixin M on A {}`,
+  and `p2.dart` adds `void foo() {}` to `M`. Moreover, `main.dart` declares
+  `abstract class S implements A {}` and `class C extends S with M {}`. In
+  this case `C` has no errors with `p2.dart`, and it has a compile-time
+  error with `p1.dart` because it does not implement `foo`.
+
+- `operator ==`, `hashCode`, and `noSuchMethod` are excluded because a
+  declaration that overrides the implementation in `Object` changes
+  whether the instances of `D` have primitive equality, respectively
+  whether `D` has a non-trivial `noSuchMethod`.
+
+- The member signature must be the same as the signature of the inherited
+  implementation because a super-invocation in a subclass of `D` is
+  checked against the declaration that it invokes.
+
+- The last condition is concerned with lexical scopes. Assume that `l.dart`
+  imports `dart:math`, a class `S` declares `num max(num a, num b) => a;`,
+  and `class D extends S` declares `late final x = max(1, 2);`. An
+  inherited member is not in the lexical scope of the body of `D`, so `max`
+  denotes the imported function, and `D.x` has the inferred type `int`. If
+  `p2.dart` adds an overriding declaration of `max` to `D` then `max`
+  denotes that instance member, and `D.x` has the inferred type `num`.
 
 #### Incomplete introductory instance members
 
@@ -1168,8 +1237,10 @@ private member of `l.dart`.
 > `n` *(where a non-final variable with identifier `_v` introduces both a
 > getter with name `_v` and a setter with name `_v=`)* unless one of the
 > following conditions holds:
-> - `D` is not an `extension type` nor a `mixin`, and `D` inherits a
->   concrete implementation of `n` in the unconditional files.
+> - `D` is not an `extension type` nor a `mixin`, `D` inherits a concrete
+>   implementation of `n` in the unconditional files, and no top-level
+>   declaration or import prefix with the basename of `n` is in scope at
+>   an unconditional declaration of `D`.
 > - Neither `D` nor any subtype of `D` in the library has a public name or
 >   is aliased by a `typedef` with a public name in the library, and `D`
 >   does not have a member with name `n` in its interface in the
@@ -1209,8 +1280,8 @@ combined member signature, which is a compile-time error. `ReadWriter`
 cannot resolve the conflict by declaring a member named `_position`
 because that name is private to `l.dart`.
 
-The conditions exclude some kinds of declarations because a single added
-member is sufficient to cause an error in another library:
+The conditions contain further requirements because a single added member
+can be sufficient to cause an error in another library:
 
 - An `extension type` cannot rely on the first condition. Assume that
   `l.dart` declares `class A { void _m() {} }` and
@@ -1226,6 +1297,17 @@ member is sufficient to cause an error in another library:
   this case `class Base with M {}` followed by
   `class Derived extends Base with M {}` in `main.dart` has a private name
   collision in the mixin application `Base with M`.
+
+- The first condition requires that no top-level declaration or import
+  prefix with the same basename is in scope. Assume that `l.dart` declares
+  `int _helper() => 1;`, `class S { String _helper() => 's'; }`, and
+  `class D extends S { late final x = _helper(); }`. An inherited member is
+  not in the lexical scope of the body of `D`, so `_helper()` invokes the
+  top-level function, and `D.x` has the inferred type `int`. If `p2.dart`
+  adds `String _helper() => 'd';` to `D` then `_helper()` invokes that
+  instance method, and `D.x` has the inferred type `String`. Hence,
+  `int useX(D d) => d.x;` in `main.dart` has a compile-time error with
+  `p2.dart` only.
 
 #### Promotion of private instance variables
 
@@ -1473,11 +1555,9 @@ implementation.
 > in a conditional part to declare a non-`abstract`, non-`external`
 > instance variable when `D` declares a `const` generative constructor,
 > unless the variable is an introductory private `final` instance variable,
-> has an initializing expression that is a constant expression, neither the
-> initializing expression nor the type of the variable references any
-> constructor parameter or type parameter of `D`, and the initializing
-> expression evaluates without error as a constant expression to a constant
-> value whose type is a subtype of the variable's type.
+> has an initializing expression that is a constant expression, and the
+> initializing expression evaluates without error as a constant expression
+> to a constant value whose type is a subtype of the variable's type.
 
 ```dart
 // In 'l.dart'.
@@ -1503,8 +1583,9 @@ const box = Box<String>();
 ```
 
 `Box._default` satisfies the rule about private instance members because
-`Box` inherits a concrete implementation of `_default`. However, its type
-and its initializing expression reference the type parameter `T`. When
+`Box` inherits a concrete implementation of `_default`. However, its
+initializing expression is not a constant expression because it references
+the type parameter `T`. When
 `p1.dart` is selected, `Box<String>()` is a constant expression. When
 `p2.dart` is selected, the evaluation of `Box<String>()` evaluates
 `_zero as String?`, which fails, and this is a compile-time error in
