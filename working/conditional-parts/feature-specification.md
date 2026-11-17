@@ -513,7 +513,7 @@ same declaration.*
   `n` *(where a non-final variable with identifier `_v` introduces both a
   getter with name `_v` and a setter with name `_v=`)* unless one of the
   following conditions holds:
-  - `D` is not an `extension type`, and `D` inherits a concrete
+  - `D` is not an `extension type` nor a `mixin`, and `D` inherits a concrete
     implementation of `n` in the unconditional files.
   - Neither `D` nor any subtype of `D` in the library has a public name or
     is aliased by a `typedef` with a public name in the library, and `D`
@@ -867,6 +867,887 @@ can locate the parent file *F*, verify that *F* contains a
 and analyze *P* directly against the configuration-independent static model
 of the unconditional files of the library. In this case it doesn't need to
 load or resolve conditional part files for other platforms.
+
+### Appendix: Justification of the restrictions on conditional part files
+
+This appendix revisits each error specification in the section
+'Restrictions on conditional part files'. For each of them it shows the
+error specification *(without its commentary)*, an example which is
+accepted if that error specification is removed, and an explanation of how
+the example then allows the choice of conditional part to influence the
+static analysis of code outside the conditional parts.
+
+Every example uses the following four files:
+
+```dart
+// Library file 'l.dart'.
+part 'p1.dart'
+    if (useP2 == 'true') 'p2.dart';
+
+// Followed by the declarations shown as "In 'l.dart'".
+```
+
+```dart
+// Part file 'p1.dart', selected by default.
+part of 'l.dart';
+
+// Followed by the declarations shown as "In 'p1.dart'".
+```
+
+```dart
+// Part file 'p2.dart', selected when `useP2` is 'true'.
+part of 'l.dart';
+
+// Followed by the declarations shown as "In 'p2.dart'".
+```
+
+```dart
+// Library file 'main.dart'.
+import 'l.dart';
+
+// Followed by the declarations shown as "In 'main.dart'".
+```
+
+A part file which is not shown in an example contains no declarations.
+
+The first group of examples is concerned with the rules about the contents
+of a conditional part. In each of these examples, `p1.dart` satisfies every
+rule, and `p2.dart` violates the rule under consideration and no other
+rule. Without that rule, `l.dart` has no compile-time errors with `p1.dart`
+and no compile-time errors with `p2.dart`, but the static analysis of
+`main.dart` depends on which part is selected. *The rule about incomplete
+introductory instance members is an exception, as explained below.*
+
+#### Export directives
+
+> It is a **compile-time error** for a conditional part to contain an
+> `export` directive.
+
+```dart
+// Library file 'extra.dart'.
+int extraValue = 42;
+
+// In 'p2.dart'.
+export 'extra.dart';
+
+// In 'main.dart'.
+int useExtra() => extraValue;
+```
+
+When `p2.dart` is selected, the exported namespace of `l.dart` contains
+`extraValue`, and `useExtra` has no errors. When `p1.dart` is selected,
+`extraValue` is an undefined name in `main.dart`.
+
+#### Public top-level declarations
+
+> It is a **compile-time error** for a conditional part to contain an
+> introductory top-level declaration with a public name.
+
+```dart
+// In 'p2.dart'.
+int publicHelper() => 1;
+
+// In 'main.dart'.
+int usePublicHelper() => publicHelper();
+```
+
+`publicHelper` is exported by `l.dart` only when `p2.dart` is selected.
+Hence `usePublicHelper` has no errors with `p2.dart`, and it invokes an
+undefined function with `p1.dart`.
+
+#### Private declarations whose name occurs in an unconditional file
+
+> It is a **compile-time error** for a conditional part _F_ to contain an
+> introductory declaration _D_ whose name _n_ is private, unless one of the
+> following conditions hold:
+> - The name _n_ does not occur in an unconditional file in the file tree
+>   of the enclosing library.
+> - The declaration _D_ is an overriding declaration with the same
+>   signature as the combined member signature _s_ of the enclosing
+>   type-introducing declaration _Dt_. Moreover, if _Dt_ inherits an
+>   implementation of _n_ then it must have the same signature as _D_,
+>   and _D_ must be complete, or it must be completed by an augmentation
+>   in the same conditional part file _F_.
+
+```dart
+// In 'l.dart'.
+class A {
+  int _value() => 1;
+}
+
+class B extends A {
+  late final x = _value();
+}
+
+// In 'p2.dart'.
+String _value() => 'two';
+
+// In 'main.dart'.
+int useX(B b) => b.x;
+```
+
+The name `_value` occurs in `l.dart`, and the declaration in `p2.dart` is
+not an overriding declaration. When `p1.dart` is selected, `_value()` in
+`B` invokes the inherited method `A._value`, so `B.x` has the inferred type
+`int`, and `useX` has no errors. When `p2.dart` is selected, the lexical
+lookup of `_value` in the body of `B` finds the top-level function, so
+`B.x` has the inferred type `String`, and `useX` has a compile-time error.
+
+#### Extensions which are applicable in unconditional files
+
+> It is a **compile-time error** if an introductory `extension` declaration
+> in a conditional part is applicable to an implicit extension member
+> access in an unconditional file.
+
+```dart
+// In 'l.dart'.
+extension ObjectTag on Object {
+  num get tag => 1.5;
+}
+
+final taggedValue = 'hello'.tag;
+
+// In 'p2.dart'.
+extension _StringTag on String {
+  int get tag => 1;
+}
+
+// In 'main.dart'.
+int useTagged() => taggedValue;
+```
+
+When `p1.dart` is selected, `'hello'.tag` invokes `ObjectTag.tag`, so
+`taggedValue` has the inferred type `num`, and `useTagged` has a
+compile-time error. When `p2.dart` is selected, `_StringTag` is more
+specific than `ObjectTag`, `'hello'.tag` invokes `_StringTag.tag`, so
+`taggedValue` has the inferred type `int`, and `useTagged` has no errors.
+
+#### Superinterfaces of augmented type declarations
+
+> It is a **compile-time error** for an augmenting type declaration in a
+> conditional part that augments an unconditional declaration to have an
+> `extends`, `on`, `with`, or `implements` clause.
+
+```dart
+// In 'l.dart'.
+abstract interface class Printable {}
+
+class Item {}
+
+// In 'p2.dart'.
+augment class Item implements Printable {}
+
+// In 'main.dart'.
+Printable asPrintable(Item item) => item;
+```
+
+`Item` is a subtype of `Printable` only when `p2.dart` is selected. Hence
+`asPrintable` has no errors with `p2.dart`, and it has a compile-time error
+with `p1.dart`.
+
+#### Direct subtypes of sealed types
+
+> It is a **compile-time error** for a type declaration in a conditional
+> part, whether introductory or augmenting, to have a `sealed` class or
+> `sealed` mixin declared in an unconditional file as a direct
+> superinterface.
+
+```dart
+// In 'l.dart'.
+sealed class Response {}
+
+class Ok extends Response {}
+
+// In 'p2.dart'.
+class _Pending extends Response {}
+
+// In 'main.dart'.
+int statusCode(Response response) => switch (response) {
+  Ok() => 200,
+};
+```
+
+When `p1.dart` is selected, `Ok` is the only direct subtype of `Response`,
+and the switch expression is exhaustive. When `p2.dart` is selected,
+`_Pending` is another direct subtype of `Response`, and the switch
+expression has a compile-time error because it is not exhaustive. Moreover,
+`main.dart` cannot denote `_Pending` in a case.
+
+#### Enum entries
+
+> It is a **compile-time error** for an augmenting `enum` declaration in a
+> conditional part that augments an unconditional declaration to declare
+> any enum entries.
+
+```dart
+// In 'l.dart'.
+enum Mode { fast }
+
+// In 'p2.dart'.
+augment enum Mode { _slow }
+
+// In 'main.dart'.
+int speed(Mode mode) => switch (mode) {
+  Mode.fast => 100,
+};
+```
+
+When `p1.dart` is selected, `Mode.fast` is the only value of `Mode`, and
+the switch expression is exhaustive. When `p2.dart` is selected, `Mode` has
+a second value, and the switch expression has a compile-time error because
+it is not exhaustive. The entry has a private name in order to show that
+the rule is needed for every entry. A public entry `slow` would in addition
+make the expression `Mode.slow` in `main.dart` correct with `p2.dart` only.
+
+#### Public members and constructors
+
+> It is a **compile-time error** for an augmenting declaration in a
+> conditional part that augments an unconditional declaration to contain
+> an introductory member or constructor declaration with a public name,
+> which includes a constructor whose uniform name is `new`.
+
+```dart
+// In 'l.dart'.
+class Box {}
+
+// In 'p2.dart'.
+augment class Box {
+  int unwrap() => 0;
+}
+
+// In 'main.dart'.
+int useBox() => Box().unwrap();
+```
+
+The interface of `Box` has a member named `unwrap` only when `p2.dart` is
+selected. Hence `useBox` has no errors with `p2.dart`, and it has a
+compile-time error with `p1.dart`. The same holds for a public constructor
+such as `Box.named();`, and an invocation `Box.named()` in `main.dart`.
+
+#### Incomplete introductory instance members
+
+> It is a **compile-time error** for an augmenting declaration in a
+> conditional part that augments an unconditional declaration to contain
+> an introductory instance member declaration that is not complete after
+> all augmentations in the conditional part have been applied.
+
+```dart
+// In 'l.dart'.
+abstract class Shape {}
+
+class Circle extends Shape {}
+
+// In 'p2.dart'.
+augment abstract class Shape {
+  void _draw();
+}
+```
+
+This rule differs from the other rules: It protects the unconditional files
+of the same library, and the example is not free of errors without it. If
+the rule is removed then `p2.dart` violates no rule about conditional
+parts. However, `Circle` is then a concrete class which does not implement
+`Shape._draw`. `Circle` is correct according to the unconditional files, so
+this is a compile-time error in `l.dart` which only exists when `p2.dart`
+is selected. In other words, `l.dart` could not be analyzed without
+inspecting its conditional parts. With the rule, the error is reported in
+`p2.dart`. A library that imports `l.dart` is not affected: A concrete
+subclass of `Shape` in another library is not required to implement a
+private member of `l.dart`.
+
+#### Private instance members
+
+> It is a **compile-time error** for an augmenting declaration of a type `D`
+> in a conditional part that augments an unconditional declaration to
+> contain an introductory private instance member declaration with name
+> `n` *(where a non-final variable with identifier `_v` introduces both a
+> getter with name `_v` and a setter with name `_v=`)* unless one of the
+> following conditions holds:
+> - `D` is not an `extension type` nor a `mixin`, and `D` inherits a
+>   concrete implementation of `n` in the unconditional files.
+> - Neither `D` nor any subtype of `D` in the library has a public name or
+>   is aliased by a `typedef` with a public name in the library, and `D`
+>   does not have a member with name `n` in its interface in the
+>   unconditional files.
+> - `D` is not a `mixin` or `mixin class`, the basename of `n` does not
+>   occur in an unconditional file, and no augmenting declaration in a
+>   conditional part in the same compilation environment that augments an
+>   unconditional declaration of a type other than `D` contains an
+>   introductory instance member declaration with the same basename as
+>   `n`.
+
+```dart
+// In 'l.dart'.
+class Reader {}
+
+class Writer {}
+
+// In 'p2.dart'.
+augment class Reader {
+  int _position(int offset) => offset;
+}
+
+augment class Writer {
+  String _position(String label) => label;
+}
+
+// In 'main.dart'.
+class ReadWriter extends Reader implements Writer {}
+```
+
+None of the three conditions holds for `_position`: `Reader` and `Writer`
+are public, they do not inherit a member named `_position`, and both of
+them receive a member with that name. When `p1.dart` is selected,
+`ReadWriter` has no errors. When `p2.dart` is selected, `ReadWriter` has
+two superinterfaces that declare `_position` with signatures that have no
+combined member signature, which is a compile-time error. `ReadWriter`
+cannot resolve the conflict by declaring a member named `_position`
+because that name is private to `l.dart`.
+
+The conditions exclude some kinds of declarations because a single added
+member is sufficient to cause an error in another library:
+
+- An `extension type` cannot rely on the first condition. Assume that
+  `l.dart` declares `class A { void _m() {} }` and
+  `extension type E(A a) implements A {}`, and `p2.dart` adds
+  `void _m() {}` to `E`. In this case
+  `extension type F(E e) implements E, A {}` in `main.dart` has a conflict
+  between the extension type member `E._m` and the non-extension member
+  `A._m`.
+
+- A `mixin` cannot rely on the first or the third condition, and a
+  `mixin class` cannot rely on the third condition. Assume that `p2.dart`
+  adds `void _m() {}` to a mixin `M` which is declared in `l.dart`. In
+  this case `class Base with M {}` followed by
+  `class Derived extends Base with M {}` in `main.dart` has a private name
+  collision in the mixin application `Base with M`.
+
+#### Promotion of private instance variables
+
+> It is a **compile-time error** for a declaration in a conditional part,
+> whether introductory or augmenting, to declare a non-`final` instance
+> variable or concrete instance getter with a private name `_x`, or for a
+> class or enum declaration in a conditional part, whether introductory or
+> augmenting, to induce a `noSuchMethod` forwarder for a getter with a
+> private name `_x`, if `_x` is promotable in the unconditional files.
+> For this purpose, an instance getter in an unconditional file whose
+> introductory declaration has the modifier `concrete` is a concrete
+> getter.
+
+```dart
+// In 'l.dart'.
+class A {
+  final int? _value;
+  A(this._value);
+}
+
+A makeA();
+
+final valueOrZero = (A a) => a._value != null ? a._value : 0;
+
+// In 'p1.dart'.
+augment A makeA() => A(1);
+
+// In 'p2.dart'.
+class _B extends A {
+  bool _toggle = false;
+
+  _B() : super(null);
+
+  @override
+  int? get _value => (_toggle = !_toggle) ? 1 : null;
+}
+
+augment A makeA() => _B();
+
+// In 'main.dart'.
+int value = valueOrZero(makeA());
+```
+
+`_value` is promotable in the unconditional files. When `p1.dart` is
+selected, the second occurrence of `a._value` is promoted to `int`, so
+`valueOrZero` has the inferred type `int Function(A)`, and `main.dart` has
+no errors. When `p2.dart` is selected, the concrete getter `_B._value`
+prevents promotion of `_value` in the entire library, so `valueOrZero` has
+the inferred type `int? Function(A)`, and `main.dart` has a compile-time
+error. If the analysis of `l.dart` ignored `p2.dart` and promoted
+`a._value` then the program would be unsound: `valueOrZero(makeA())` reads
+`_value` twice, obtains `1` and then `null`, and returns `null` with the
+static type `int`.
+
+#### Default values and super-parameters of constructors
+
+> It is a **compile-time error** for an augmenting generative constructor
+> declaration in a conditional part that augments a constructor declared
+> in an unconditional file to specify a default value for an optional
+> formal parameter, or to declare an optional formal parameter as a
+> super-parameter (`super.p`).
+
+```dart
+// In 'l.dart'.
+class Parent {
+  final int? value;
+  concrete Parent([int? value]);
+}
+
+// In 'p1.dart'.
+augment class Parent {
+  augment Parent([this.value]);
+}
+
+// In 'p2.dart'.
+augment class Parent {
+  augment Parent([this.value = 0]);
+}
+
+// In 'main.dart'.
+class Child extends Parent {
+  Child([int super.value]);
+}
+```
+
+The super-parameter `int super.value` in `Child` specifies no default
+value, so it obtains the default value of the corresponding parameter of
+`Parent`, if that value has the type `int`. When `p2.dart` is selected, the
+default value is `0`, and `Child` has no errors. When `p1.dart` is
+selected, the default value is `null`, and `Child` has a compile-time error
+because an optional parameter of type `int` has no default value.
+
+The same difference arises with a super-parameter. Assume that `Parent`
+has a superclass `GrandParent` whose constructor has the parameter list
+`([this.value = 0])`, `p1.dart` contains
+`augment Parent([int? value]) : super(value);`, and `p2.dart` contains
+`augment Parent([super.value]);`. In this case the parameter of `Parent`
+has the default value `0` with `p2.dart`, and `null` with `p1.dart`.
+
+#### Constant constructors
+
+> It is a **compile-time error** for an augmenting constructor declaration
+> in a conditional part that augments a constructor declared in an
+> unconditional file to be `const` and complete.
+
+```dart
+// In 'l.dart'.
+class Token {
+  const Token(int code);
+}
+
+// In 'p2.dart'.
+augment class Token {
+  augment const Token(int code) : assert(code > 0);
+}
+
+// In 'main.dart'.
+const zero = Token(0);
+```
+
+Constant expressions are evaluated during static analysis. When `p1.dart`
+is selected, the constructor of `Token` is implicitly completed, and
+`Token(0)` is a constant expression. When `p2.dart` is selected, the
+evaluation of `Token(0)` fails because the assertion fails, which is a
+compile-time error in `main.dart`.
+
+#### Completing `operator ==` and `hashCode`
+
+> It is a **compile-time error** for an augmenting declaration of a type `D`
+> in a conditional part that augments an unconditional declaration to
+> complete a declaration of `operator ==` or `hashCode` *(including by an
+> augmenting instance variable declaration `hashCode`)* unless the
+> introductory declaration of that member has the modifier `concrete`.
+
+```dart
+// In 'l.dart'.
+class Key {
+  const Key();
+  bool operator ==(Object other);
+}
+
+// In 'p2.dart'.
+augment class Key {
+  augment bool operator ==(Object other) => other is Key;
+}
+
+// In 'main.dart'.
+const keys = {Key()};
+```
+
+When `p1.dart` is selected, `Key` inherits `operator ==` from `Object`, so
+`Key` has primitive equality, and `keys` has no errors. When `p2.dart` is
+selected, `Key` overrides `operator ==`, so it does not have primitive
+equality, and `keys` has a compile-time error because an element of a
+constant set must have primitive equality. If the declaration in `l.dart`
+has the modifier `concrete` then it is known from the unconditional files
+that `Key` does not have primitive equality.
+
+#### Instance variables of mixins
+
+> It is a **compile-time error** for an augmenting declaration of a `mixin`
+> or `mixin class` `D` in a conditional part that augments an unconditional
+> declaration to declare a non-`abstract`, non-`external` instance
+> variable.
+
+```dart
+// In 'l.dart'.
+mixin Counter {
+  int get count;
+}
+
+// In 'p2.dart'.
+augment mixin Counter {
+  augment final int count = 0;
+}
+
+// In 'main.dart'.
+class Tally with Counter {
+  const Tally();
+
+  @override
+  int get count => 0;
+}
+```
+
+The constructor `const Tally()` invokes a forwarding constructor of the
+mixin application `Object with Counter`, and that constructor is constant
+only if `Counter` declares no instance variables. When `p1.dart` is
+selected, `Counter` declares no instance variables, and `Tally` has no
+errors. When `p2.dart` is selected, `Counter` declares the instance
+variable `count`, and `const Tally()` is a compile-time error.
+
+#### Super-invocations in mixins
+
+> It is a **compile-time error** for an augmenting `mixin` declaration in a
+> conditional part that augments an unconditional declaration to contain a
+> super-invocation of a member named `n`, unless a declaration of that
+> mixin in an unconditional file contains a super-invocation of a member
+> named `n`.
+
+```dart
+// In 'l.dart'.
+class Resource {
+  void close() {}
+}
+
+mixin AutoFlush on Resource {
+  concrete void flush();
+}
+
+// In 'p1.dart'.
+augment mixin AutoFlush {
+  augment void flush() {}
+}
+
+// In 'p2.dart'.
+augment mixin AutoFlush {
+  augment void flush() {
+    super.close();
+  }
+}
+
+// In 'main.dart'.
+abstract class Base implements Resource {}
+
+class Buffer extends Base with AutoFlush {
+  @override
+  void close() {}
+}
+```
+
+A mixin application `S with M` is a compile-time error if `M` contains a
+super-invocation of a member `m` and `S` does not have a concrete
+implementation of `m`. When `p1.dart` is selected, `AutoFlush` contains no
+super-invocations, and `Base with AutoFlush` has no errors. When `p2.dart`
+is selected, `AutoFlush` contains a super-invocation of `close`, and
+`Base with AutoFlush` is a compile-time error because `Base` has no
+concrete implementation of `close`. If the analysis of `main.dart` ignored
+`p2.dart` then `Buffer().flush()` would invoke a member that has no
+implementation.
+
+#### Instance variables of classes with constant constructors
+
+> It is a **compile-time error** for an augmenting declaration of a type `D`
+> in a conditional part to declare a non-`abstract`, non-`external`
+> instance variable when `D` declares a `const` generative constructor,
+> unless the variable is an introductory private `final` instance variable,
+> has an initializing expression that is a constant expression, neither the
+> initializing expression nor the type of the variable references any
+> constructor parameter or type parameter of `D`, and the initializing
+> expression evaluates without error as a constant expression to a constant
+> value whose type is a subtype of the variable's type.
+
+```dart
+// In 'l.dart'.
+class Base<T> {
+  const Base();
+  T? get _default => null;
+}
+
+class Box<T> extends Base<T> {
+  const Box();
+}
+
+// In 'p2.dart'.
+const Object _zero = 0;
+
+augment class Box<T> {
+  @override
+  final T? _default = _zero as T?;
+}
+
+// In 'main.dart'.
+const box = Box<String>();
+```
+
+`Box._default` satisfies the rule about private instance members because
+`Box` inherits a concrete implementation of `_default`. However, its type
+and its initializing expression reference the type parameter `T`. When
+`p1.dart` is selected, `Box<String>()` is a constant expression. When
+`p2.dart` is selected, the evaluation of `Box<String>()` evaluates
+`_zero as String?`, which fails, and this is a compile-time error in
+`main.dart`. In contrast, `Box<int>()` has no errors with either part.
+
+#### Suppressing the default constructor
+
+> It is a **compile-time error** for an augmenting declaration of a `class`
+> or `mixin class` `D` in a conditional part to contain an introductory
+> constructor declaration if `D` does not explicitly declare any
+> constructor in an unconditional file.
+
+```dart
+// In 'l.dart'.
+class Widget {}
+
+// In 'p2.dart'.
+augment class Widget {
+  Widget._internal();
+}
+
+// In 'main.dart'.
+Widget makeWidget() => Widget();
+```
+
+When `p1.dart` is selected, `Widget` declares no constructors, so it has a
+default constructor, and `makeWidget` has no errors. When `p2.dart` is
+selected, `Widget` declares a constructor, so it has no default
+constructor, and `Widget()` is a compile-time error.
+
+#### Constraints on members with indeterminate abstractness
+
+The remaining error specifications are concerned with declarations that
+depend on a member with indeterminate abstractness. In each of the
+following examples, both parts satisfy every rule, and `p2.dart` completes
+a member which `p1.dart` leaves abstract. The constraint under
+consideration makes a declaration in `main.dart` an error no matter which
+part is selected. Without the constraint, that declaration has an error
+with one of the parts, and no errors with the other part.
+
+#### Implementing a member with indeterminate abstractness
+
+> An instance member with indeterminate abstractness in the superclass
+> of a class, mixin class, or enum `C` *(including in any mixin applied
+> to `C`)* is not considered to be implemented in `C` unless `C`
+> declares an implementation. If `C` is concrete this may cause the
+> declaration of `C` to have a **compile-time error** because it does not
+> fully implement its interface.
+
+```dart
+// In 'l.dart'.
+abstract class Middle {
+  void action();
+}
+
+mixin Indexed {
+  int get index;
+}
+
+// In 'p2.dart'.
+augment abstract class Middle {
+  augment void action() {}
+}
+
+augment mixin Indexed {
+  augment int get index => 0;
+}
+
+// In 'main.dart'.
+class Leaf extends Middle {}
+
+enum Color with Indexed { red }
+```
+
+Without this constraint, `Leaf` has a compile-time error when `p1.dart` is
+selected because it has no implementation of `action`, and it has no errors
+when `p2.dart` is selected because it inherits `Middle.action`.
+
+`Color` shows why an implementation in a further superclass is not
+sufficient. Without this constraint, `Color` has no errors when `p1.dart`
+is selected because it inherits an implementation of `index` from the
+superclass of every enum. When `p2.dart` is selected, `Color` has a
+compile-time error because an enum cannot inherit a concrete member named
+`index` from a mixin.
+
+With this constraint, `Leaf` and `Color` have a compile-time error with
+either part because they do not declare an implementation of `action`
+respectively `index`.
+
+#### Super-invocations of a member with indeterminate abstractness
+
+> It is a **compile-time error** if a super-invocation in a class, mixin,
+> mixin class, or enum `C` targets an instance member with indeterminate
+> abstractness, or if an instance member with indeterminate abstractness in
+> a superclass overrides the concrete member in a further superclass that
+> would otherwise be the target of the super-invocation.
+
+```dart
+// In 'l.dart'.
+class Base {
+  num value() => 1.5;
+}
+
+abstract class Middle extends Base {
+  @override
+  int value();
+}
+
+// In 'p2.dart'.
+augment abstract class Middle {
+  augment int value() => 1;
+}
+
+// In 'main.dart'.
+class Leaf extends Middle {
+  @override
+  int value() => super.value();
+}
+```
+
+The lookup of the member which is invoked by a super-invocation ignores
+abstract declarations. Without this constraint, `super.value()` invokes
+`Base.value` when `p1.dart` is selected. Its return type is `num`, so
+`Leaf.value` has a compile-time error. When `p2.dart` is selected,
+`super.value()` invokes `Middle.value`. Its return type is `int`, so
+`Leaf.value` has no errors. With this constraint, `super.value()` is a
+compile-time error with either part.
+
+#### Mixin applications and members with indeterminate abstractness
+
+> In a mixin application `S with M`, where `M` is a `mixin` declaration
+> that contains a super-invocation of a member `m`, an instance member `m`
+> with indeterminate abstractness in `S` (or in a superclass of `S` and not
+> overridden) is not considered to be implemented in `S`, and "kills" any
+> implementation of `m` in a further superclass of `S`. Consequently, the
+> mixin application `S with M` has a **compile-time error** because `S`
+> does not provide a concrete implementation of the super-invoked member
+> `m`.
+
+```dart
+// In 'l.dart'.
+class Recorder {
+  void record(String event) {}
+}
+
+abstract class RemoteRecorder implements Recorder {
+  @override
+  void record(String event);
+}
+
+// In 'p2.dart'.
+augment abstract class RemoteRecorder {
+  augment void record(String event) {}
+}
+
+// In 'main.dart'.
+mixin Timestamps on Recorder {
+  @override
+  void record(String event) {
+    super.record('${DateTime.now()}: $event');
+  }
+}
+
+abstract class TimestampedRecorder extends RemoteRecorder with Timestamps {}
+```
+
+`Timestamps` contains a super-invocation of `record`, so the superclass in
+an application of `Timestamps` must have a concrete implementation of
+`record`. Without this constraint, `RemoteRecorder with Timestamps` has a
+compile-time error when `p1.dart` is selected because
+`RemoteRecorder.record` is abstract, and it has no errors when `p2.dart` is
+selected. With this constraint, the mixin application is a compile-time
+error with either part.
+
+#### `noSuchMethod` forwarders and members with indeterminate abstractness
+
+> It is a **compile-time error** if a name `m` is noSuchMethod forwarded in
+> a concrete class or enum `C`, and a superclass of `C` *(including any
+> mixin applied to `C`)* has an accessible declaration of `m` with
+> indeterminate abstractness which is not a correct override of the member
+> signature named `m` in the interface of `C`.
+
+```dart
+// In 'l.dart'.
+abstract class A {
+  void m(int i);
+}
+
+// In 'p2.dart'.
+augment abstract class A {
+  augment void m(int i) {}
+}
+
+// In 'main.dart'.
+abstract class B {
+  void m([int i]);
+}
+
+class C extends A implements B {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+```
+
+The interface of `C` has the member signature `void m([int i])`. Without
+this constraint, `C` has no errors when `p1.dart` is selected: It has no
+concrete member named `m`, so a `noSuchMethod` forwarder is induced. When
+`p2.dart` is selected, `C` inherits the concrete method `A.m`, which is
+not a correct override of `void m([int i])`. This is a compile-time error
+because an implicitly induced `noSuchMethod` forwarder cannot override a
+declared method. With this constraint, `C` has a compile-time error with
+either part, and it can avoid the error by declaring `m`.
+
+#### Private name collisions and members with indeterminate abstractness
+
+> It is a **compile-time error** if a mixin application `S with M` occurs
+> in a library other than the library that declares `M`, `M` declares an
+> instance member with a private name `_n`, and `S` has an instance member
+> with the same name whose abstractness is indeterminate *(declared in
+> `S`, or declared in a superclass of `S` or in a mixin applied to it, and
+> not overridden)*.
+
+```dart
+// In 'l.dart'.
+mixin Disposable {
+  void _release();
+}
+
+// In 'p2.dart'.
+augment mixin Disposable {
+  augment void _release() {}
+}
+
+// In 'main.dart'.
+class Base with Disposable {}
+
+class Derived extends Base with Disposable {}
+```
+
+The analyzer reports a private name collision for a mixin application
+`S with M` in a library other than the one that declares `M`, when `M`
+declares a private instance member and `S` has a concrete member with the
+same name. Without this constraint, `Base with Disposable` in the
+declaration of `Derived` has no errors when `p1.dart` is selected because
+`Base` has no concrete member named `_release`. When `p2.dart` is selected,
+`Base` has the concrete member `_release`, and the mixin application has a
+private name collision. With this constraint, the mixin application is a
+compile-time error with either part.
 
 ### Changelog
 
