@@ -220,15 +220,15 @@ Notice two central properties illustrated by this example:
    conditional part. The analyzer can ignore conditional `part` directives
    when summarizing `channel.dart` for client libraries. To preserve this
    property, a conditional part file cannot contain `export` directives,
-   cannot introduce public top-level or member declarations (introductory
-   declarations must have private names and are subject to constraints that
-   prevent unconditional code from depending on them), cannot add
-   superinterfaces (`extends`, `on`, `with`, or `implements`) or enum entries to
-   augmented declarations, cannot add direct subtypes to `sealed` types
-   declared in unconditional files, cannot specify default parameter values
-   on augmenting declarations, and cannot complete `const` constructors
-   (because static analysis needs to perform constant expression
-   evaluation).
+   constrains the introduction of public top-level or member declarations 
+   (introductory declarations must have private names and are subject to
+   constraints that prevent unconditional code from depending on them),
+   cannot add superinterfaces (`extends`, `on`, `with`, or `implements`) or
+   enum entries to augmented declarations, cannot add direct subtypes to
+   `sealed` types declared in unconditional files, cannot specify default
+   parameter values on augmenting declarations, and cannot complete `const`
+   constructors (because static analysis needs to perform constant
+   expression evaluation).
 
 2. **The `concrete` modifier**: In `abstract class Channel`, both `send`
    and `close` are written without a body in `channel.dart`. Without an
