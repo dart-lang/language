@@ -78,6 +78,9 @@ conditional `import` or `export` directive to select a platform-specific
 part file, while static restrictions on conditional part files ensure that
 static analysis of the containing library as a whole—and of every library
 importing it—is independent of which conditional part file is selected.
+The configurable URI syntax is generalized slightly, such that the
+"default" URI (at the front) is optional; if no default is specified then
+it is a compile-time error if no configuration URI is selected.
 
 Consider a library that exposes a platform-specific logger and an extensible
 `Channel` class:
@@ -220,15 +223,14 @@ Notice two central properties illustrated by this example:
    conditional part. The analyzer can ignore conditional `part` directives
    when summarizing `channel.dart` for client libraries. To preserve this
    property, a conditional part file cannot contain `export` directives,
-   constrains the introduction of public top-level or member declarations 
-   (introductory declarations must have private names and are subject to
-   constraints that prevent unconditional code from depending on them),
-   cannot add superinterfaces (`extends`, `on`, `with`, or `implements`) or
-   enum entries to augmented declarations, cannot add direct subtypes to
-   `sealed` types declared in unconditional files, cannot specify default
-   parameter values on augmenting declarations, and cannot complete `const`
-   constructors (because static analysis needs to perform constant
-   expression evaluation).
+   constrains the introduction of public declarations (introductory
+   declarations are subject to constraints that prevent unconditional code
+   from depending on them), cannot add superinterfaces (`extends`, `on`,
+   `with`, or `implements`) or enum entries to augmented declarations,
+   cannot add direct subtypes to `sealed` types declared in unconditional
+   files, cannot specify default parameter values on augmenting
+   declarations, and cannot complete `const` constructors (because static
+   analysis needs to perform constant expression evaluation).
 
 2. **The `concrete` modifier**: In `abstract class Channel`, both `send`
    and `close` are written without a body in `channel.dart`. Without an
@@ -263,8 +265,7 @@ The word `concrete` is added as a built-in identifier.
 
 The grammar of part directives (from [Parts with Imports][]) and member
 declarations (from [Augmentations][] and [Primary Constructors][]) is modified
-as follows, reusing `<configurableUri>`, `<configurationUri>`, and `<uriTest>`
-from the language specification:
+as follows:
 
 [Primary Constructors]: ../../accepted/3.13/primary-constructors/feature-specification.md
 
@@ -323,10 +324,11 @@ compile-time error if any string literal occurring as a `<uri>` or in a
 
 *In a given compilation environment, the `<configurableUri>` of a
 `<partDirective>` specifies a URI U using the same URI selection rules as
-`import` and `export` directives: the default `<uri>` is chosen unless one or
-more `<configurationUri>` tests evaluate to true in the compilation environment,
-in which case the `<uri>` of the first such `<configurationUri>` in source order
-is chosen.*
+`import` and `export` directives: the default `<uri>`, if present, is
+chosen unless one or more `<configurationUri>` tests evaluate to true in
+the compilation environment, in which case the `<uri>` of the first such
+`<configurationUri>` in source order is chosen. A compile-time error occurs
+if no default is specified and no configuration Uri is selected.*
 
 We say that a Dart file *F* _includes_ the part file *P* denoted by the URI *U*
 specified by a `<partDirective>` in *F* (resolved relative to the URI of *F*).
@@ -339,9 +341,10 @@ specified by a `<partDirective>` in *F* (resolved relative to the URI of *F*).
   or if the `<uri>` in the leading `<partHeader>` (`part of <uri>;`) of *P*,
   resolved relative to *U*, does not denote *F*.
 
-- It is a **compile-time error** if a the parent chain from any part file
-  contains more than one conditional part directive. *Nested conditional
-  parts are not supported.*
+- It is a **compile-time error** if a conditional part file contains a
+  conditional part directive. *In other words, a conditional part is
+  included together with the entire file tree under it, never just some
+  of the files in that file tree.*
 
 - All part-tree well-formedness rules from [Parts with Imports][] apply to the
   tree of included part files of a library *L*: it is a **compile-time error**
@@ -362,8 +365,8 @@ For a library *L* with defining library file *F*<sub>0</sub>:
   *Equivalently, a part file of *L* is a conditional part file if and only
   if the path of `part` directives from *F*<sub>0</sub> to that file
   contains at least one conditional `part` directive. Every sub-part
-  included by a conditional part file—whether by an unconditional or a
-  conditional `part` directive—is therefore also a conditional part file.*
+  included by a conditional part file, whether by an unconditional or a
+  conditional `part` directive, is therefore also a conditional part file.*
 
 #### The `concrete` modifier
 
@@ -438,19 +441,17 @@ library and when analyzing any library that imports it)*:
     super-operator invocations) targeting the member are permitted, subject
     to the usual signature checks.
 
-- It is a **compile-time error** if *D* is an `extension type` and *D* has
-  an introductory instance member declaration with the modifier `concrete`.
-  *Extension instance members cannot be abstract.*
+- It is a **compile-time error** if *D* is an `extension type` or an
+  `extension` and *D* has an introductory instance member declaration with
+  the modifier `concrete`.  *Extension and extension type instance members
+  cannot be abstract.*
 
 - If *D* is not an `extension type`, and *D* is declared in a library
   whose unconditional files contain a conditional `part` directive, an
   incomplete instance member of *D* whose introductory declaration does not
   have the modifier `concrete`, and which is not completed by an
   augmentation in the unconditional files of the library, is considered to
-  be a member of *D* whose _abstractness is undetermined_. A
-  super-invocation which would invoke this member if it were implemented is
-  a **compile-time error**. *In particular, we do not ignore it and proceed
-  to use a declaration in a further superclass.*
+  be a member of *D* whose _abstractness is undetermined_.
   *In a library that has no conditional `part` directive, no conditional
   part can complete an incomplete instance member. Hence, such a member is
   abstract, and its treatment is unchanged.*
@@ -463,9 +464,9 @@ library and when analyzing any library that imports it)*:
   to be initialized.
 
 During static analysis of a conditional part _P_, all conditional parts in
-the parent chain from _P_ up to the library are considered to be
-present. All other conditional parts are treated as if they were not
-present.
+the parent chain from _P_ up to the library are considered to be present,
+as well as all children of _P_. All other conditional parts are treated as
+if they were not present.
 
 #### Restrictions on conditional part files
 
@@ -492,15 +493,15 @@ same declaration.*
 - It is a **compile-time error** for a conditional part _F_ to contain an
   introductory declaration _D_ whose name _n_ is private, unless one of the
   following conditions hold:
-  - The name _n_ does not occur in an unconditional file in the file tree
-    of the enclosing library.
+  - No name whose basename is the basename of _n_ occurs in an
+    unconditional file in the file tree of the enclosing library.
   - The declaration _D_ is an overriding declaration with the same
     member signature as the combined member signature _s_ of the same name
     in the direct superinterfaces of the enclosing type-introducing
     declaration _Dt_. Moreover, if _Dt_ inherits an implementation of _n_
     then it must have the same signature as _D_, and _D_ must be complete,
     or it must be completed by an augmentation in the same conditional
-    part file _F_.
+    part file _F_ or in a file in the file tree under _F_.
 
 - It is a **compile-time error** if an introductory `extension` declaration
   in a conditional part is applicable to an implicit extension member
@@ -534,7 +535,9 @@ same declaration.*
   following conditions hold:
   - `n` is not `==`, `hashCode`, or `noSuchMethod`.
   - `D` inherits a concrete implementation of `n` in the unconditional
-    files, and the declaration is complete.
+    files, and the declaration is complete, or it is completed by an
+    augmenting declaration in the same conditional part file or in the file
+    tree under it.
   - The declaration has the same member signature as that implementation,
     and as the combined member signature of the same name in the direct
     superinterfaces of `D`.
@@ -611,10 +614,10 @@ same declaration.*
   conditional part can complete the getter without restrictions.*
 
 - It is a **compile-time error** for an augmenting generative constructor
-  declaration in a conditional part that augments a constructor declared
-  in an unconditional file to specify a default value for an optional
-  formal parameter, or to declare an optional formal parameter as a
-  super-parameter (`super.p`).
+  declaration or member declaration in a conditional part that augments a
+  constructor or member declared in an unconditional file to specify a
+  default value for an optional formal parameter, or (for the constructor)
+  to declare an optional formal parameter as a super-parameter (`super.p`).
 
 - It is a **compile-time error** for an augmenting constructor declaration
   in a conditional part that augments a constructor declared in an
@@ -667,46 +670,47 @@ same declaration.*
   declare any non-`abstract`, non-`external` instance variable when `D`
   declares a `const` generative constructor.*
 
-- It is a **compile-time error** for an augmenting declaration of a `class`
-  or `mixin class` `D` in a conditional part to contain an introductory
-  constructor declaration if `D` does not explicitly declare any
-  constructor in an unconditional file.
+- It is a **compile-time error** for an augmenting declaration `D` of a
+  `class`, `mixin class`, or `enum` in a conditional part that augments an
+  unconditional declaration to contain an introductory constructor
+  declaration if `D` does not explicitly declare any constructor in an
+  unconditional file. *This will eliminate the default constructor.*
 
 Some constraints apply to declarations that depend on an instance member
-with indeterminate abstractness. They apply in the library that declares
+with undetermined abstractness. They apply in the library that declares
 the member, and in every other library:
 
 *The general principle is that the implementation of a member with
-indeterminate abstractness is treated as absent when it is required to be
+undetermined abstractness is treated as absent when it is required to be
 present, and as present when it is required to be absent. Hence, every
 construct which is only correct when the member is abstract, or only
 correct when the member is concrete, is a compile-time error. The
 constraints below apply this principle.*
 
-- An instance member with indeterminate abstractness in the superclass
+- An instance member with undetermined abstractness in the superclass
   of a class, mixin class, or enum `C` *(including in any mixin applied
   to `C`)* is not considered to be implemented in `C` unless `C`
   declares an implementation. *It is not sufficient that there exists a
   further superclass of said superclass that implements the instance
-  member. In other words, an indeterminately abstract member will "kill"
+  member. In other words, an undeterminedly abstract member will "kill"
   an inherited implementation, even in the situation where it would be a
-  correct override of the member signature of the indeterminately
+  correct override of the member signature of the undeterminedly
   abstract member.* If `C` is concrete this may cause the declaration of
   `C` to have a **compile-time error** because it does not fully implement
   its interface.
 
 - It is a **compile-time error** if a super-invocation in a class, mixin, mixin
-  class, or enum `C` targets an instance member with indeterminate
-  abstractness, or if an instance member with indeterminate abstractness in
+  class, or enum `C` targets an instance member with undetermined
+  abstractness, or if an instance member with undetermined abstractness in
   a superclass overrides the concrete member in a further superclass that
   would otherwise be the target of the super-invocation. *In other words,
-  an instance member with indeterminate abstractness also "kills" any
+  an instance member with undetermined abstractness also "kills" any
   inherited implementation in a further superclass for the purpose of
   resolving super-invocations.*
 
 - In a mixin application `S with M`, where `M` is a `mixin` declaration
   that contains a super-invocation of a member `m`, an instance member `m`
-  with indeterminate abstractness in `S` (or in a superclass of `S` and not
+  with undetermined abstractness in `S` (or in a superclass of `S` and not
   overridden) is not considered to be implemented in `S`, and "kills" any
   implementation of `m` in a further superclass of `S`. Consequently, the
   mixin application `S with M` has a **compile-time error** because `S`
@@ -716,23 +720,23 @@ constraints below apply this principle.*
 - It is a **compile-time error** if a name `m` is noSuchMethod forwarded in
   a concrete class or enum `C`, and a superclass of `C` *(including any
   mixin applied to `C`)* has an accessible declaration of `m` with
-  indeterminate abstractness which is not a correct override of the member
+  undetermined abstractness which is not a correct override of the member
   signature named `m` in the interface of `C`.
   *In other words, the existing error about a noSuchMethod forwarder that
   would override an inherited concrete declaration treats a member with
-  indeterminate abstractness as concrete. `C` can avoid the error by
+  undetermined abstractness as concrete. `C` can avoid the error by
   declaring `m`.*
 
 - It is a **compile-time error** if a mixin application `S with M` occurs
   in a library other than the library that declares `M`, `M` declares an
   instance member with a private name `_n`, and `S` has an instance member
-  with the same name whose abstractness is indeterminate *(declared in
+  with the same name whose abstractness is undetermined *(declared in
   `S`, or declared in a superclass of `S` or in a mixin applied to it, and
   not overridden)*.
   *In this situation it is already an error if `S` has a concrete member
   named `_n`: the analyzer reports a private name collision in a mixin
   application. In other words, that error treats a member with
-  indeterminate abstractness as concrete, such that it does not depend on
+  undetermined abstractness as concrete, such that it does not depend on
   whether a conditional part completes the member.*
 
 #### Modular static analysis
@@ -792,7 +796,7 @@ file.
 
 ### Discussion
 
-### Use a different word than `concrete`
+#### Use a different word than `concrete`
 
 Lots of possible choices. However, none of the reserved or built-in
 identifiers seem to be a very good match.
@@ -845,7 +849,7 @@ It might simplify things in a useful way if we introduced the restriction
 that a conditional part must be the only part in the given library.
 
 There could be a tree of part files under each of the variants, but we
-would then constrain them to be reached via a non-conditional part
+would then constrain them to be reached via a unconditional part
 directive. That is, we might have 5 different parts reached by a
 conditional part directive in the library (which would then also be the
 _only_ part directive in that library), and each of them could have a tree
@@ -853,19 +857,19 @@ of further part files under them, but the whole subtree would always be
 enabled at the same time.
 
 The general case (as currently specified) is quite complex: There could be
-some conditional part directives and some non-conditional (normal) ones,
+some conditional part directives and some unconditional (normal) ones,
 and there could be any number of combinations of enablement of the
 conditional ones, including the fact that the subtrees of each conditional
-part could again be conditional, typcially based on different criteria. It
+part could again be conditional, typically based on different criteria. It
 seems likely that the full generality is difficult to implement and
 maintain, and it may not bring much value compared to the simpler
 approaches.
 
 #### Should we check completeness only during compilation?
 
-Consider all `concrete` declarations in a non-conditional file of a library
+Consider all `concrete` declarations in a unconditional file of a library
 _L_. Consider also all declarations which are incomplete when taking only
-the non-conditional part tree into account, and which are incapable of
+the unconditional part tree into account, and which are incapable of
 being abstract (for example, top-level declarations or `static`
 declarations).
 
@@ -1626,19 +1630,19 @@ default constructor, and `makeWidget` has no errors. When `p2.dart` is
 selected, `Widget` declares a constructor, so it has no default
 constructor, and `Widget()` is a compile-time error.
 
-#### Constraints on members with indeterminate abstractness
+#### Constraints on members with undetermined abstractness
 
 The remaining error specifications are concerned with declarations that
-depend on a member with indeterminate abstractness. In each of the
+depend on a member with undetermined abstractness. In each of the
 following examples, both parts satisfy every rule, and `p2.dart` completes
 a member which `p1.dart` leaves abstract. The constraint under
 consideration makes a declaration in `main.dart` an error no matter which
 part is selected. Without the constraint, that declaration has an error
 with one of the parts, and no errors with the other part.
 
-#### Implementing a member with indeterminate abstractness
+#### Implementing a member with undetermined abstractness
 
-> An instance member with indeterminate abstractness in the superclass
+> An instance member with undetermined abstractness in the superclass
 > of a class, mixin class, or enum `C` *(including in any mixin applied
 > to `C`)* is not considered to be implemented in `C` unless `C`
 > declares an implementation. If `C` is concrete this may cause the
@@ -1685,11 +1689,11 @@ With this constraint, `Leaf` and `Color` have a compile-time error with
 either part because they do not declare an implementation of `action`
 respectively `index`.
 
-#### Super-invocations of a member with indeterminate abstractness
+#### Super-invocations of a member with undetermined abstractness
 
 > It is a **compile-time error** if a super-invocation in a class, mixin,
-> mixin class, or enum `C` targets an instance member with indeterminate
-> abstractness, or if an instance member with indeterminate abstractness in
+> mixin class, or enum `C` targets an instance member with undetermined
+> abstractness, or if an instance member with undetermined abstractness in
 > a superclass overrides the concrete member in a further superclass that
 > would otherwise be the target of the super-invocation.
 
@@ -1724,11 +1728,11 @@ abstract declarations. Without this constraint, `super.value()` invokes
 `Leaf.value` has no errors. With this constraint, `super.value()` is a
 compile-time error with either part.
 
-#### Mixin applications and members with indeterminate abstractness
+#### Mixin applications and members with undetermined abstractness
 
 > In a mixin application `S with M`, where `M` is a `mixin` declaration
 > that contains a super-invocation of a member `m`, an instance member `m`
-> with indeterminate abstractness in `S` (or in a superclass of `S` and not
+> with undetermined abstractness in `S` (or in a superclass of `S` and not
 > overridden) is not considered to be implemented in `S`, and "kills" any
 > implementation of `m` in a further superclass of `S`. Consequently, the
 > mixin application `S with M` has a **compile-time error** because `S`
@@ -1770,12 +1774,12 @@ compile-time error when `p1.dart` is selected because
 selected. With this constraint, the mixin application is a compile-time
 error with either part.
 
-#### `noSuchMethod` forwarders and members with indeterminate abstractness
+#### `noSuchMethod` forwarders and members with undetermined abstractness
 
 > It is a **compile-time error** if a name `m` is noSuchMethod forwarded in
 > a concrete class or enum `C`, and a superclass of `C` *(including any
 > mixin applied to `C`)* has an accessible declaration of `m` with
-> indeterminate abstractness which is not a correct override of the member
+> undetermined abstractness which is not a correct override of the member
 > signature named `m` in the interface of `C`.
 
 ```dart
@@ -1809,12 +1813,12 @@ because an implicitly induced `noSuchMethod` forwarder cannot override a
 declared method. With this constraint, `C` has a compile-time error with
 either part, and it can avoid the error by declaring `m`.
 
-#### Private name collisions and members with indeterminate abstractness
+#### Private name collisions and members with undetermined abstractness
 
 > It is a **compile-time error** if a mixin application `S with M` occurs
 > in a library other than the library that declares `M`, `M` declares an
 > instance member with a private name `_n`, and `S` has an instance member
-> with the same name whose abstractness is indeterminate *(declared in
+> with the same name whose abstractness is undetermined *(declared in
 > `S`, or declared in a superclass of `S` or in a mixin applied to it, and
 > not overridden)*.
 
