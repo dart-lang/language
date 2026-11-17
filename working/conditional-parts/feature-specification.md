@@ -31,6 +31,16 @@ choice of which alternative to use has been made.
 
 [Sealed Parts]: https://github.com/dart-lang/language/issues/3810
 
+Another proposal is [Patch files using augmentation parts][], where
+a part is marked as being an `augment part` and constrained in ways
+that are similar to the constraints in the proposal in this document,
+though in a much less complete form than this document. Another
+difference is that this proposal allows several kinds of introductory
+declarations with a public name in conditional parts, aided by
+soundness restrictions.
+
+[Patch files using augmentation parts]: https://github.com/dart-lang/language/issues/4568
+
 ## Introduction
 
 Dart supports platform-dependent libraries through configurable URIs in `import`
@@ -486,10 +496,10 @@ same declaration.*
     of the enclosing library.
   - The declaration _D_ is an overriding declaration with the same
     member signature as the combined member signature _s_ of the same name
-    in the direct superinterfaces of the enclosing type-introducing 
-    declaration _Dt_. Moreover, if _Dt_ inherits an implementation of _n_ 
-    then it must have the same signature as _D_, and _D_ must be complete, 
-    or it must be completed by an augmentation in the same conditional 
+    in the direct superinterfaces of the enclosing type-introducing
+    declaration _Dt_. Moreover, if _Dt_ inherits an implementation of _n_
+    then it must have the same signature as _D_, and _D_ must be complete,
+    or it must be completed by an augmentation in the same conditional
     part file _F_.
 
 - It is a **compile-time error** if an introductory `extension` declaration
@@ -642,7 +652,7 @@ same declaration.*
   instance variable when `D` declares a `const` generative constructor,
   unless the variable is an introductory private `final` instance variable,
   has an initializing expression that is a constant expression, and the
-  initializing expression evaluates without error as a constant expression 
+  initializing expression evaluates without error as a constant expression
   to a constant value whose type is a subtype of the variable's type.
   *Adding an instance variable with a non-constant
   initializer to a class with a `const` constructor is already a
