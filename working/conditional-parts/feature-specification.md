@@ -580,15 +580,14 @@ same declaration.*
     name in a member of an unconditional declaration of `D` has the same
     meaning whether or not the conditional part is included.*
   - Neither `D` nor any subtype of `D` in the library has a public name or
-    is aliased by a `typedef` with a public name in the library, and `D`
-    does not have a member with name `n` in its interface in the
-    unconditional files.
-  - `D` is not a `mixin` or `mixin class`, the basename of `n` does not
-    occur in an unconditional file, and no augmenting declaration in a
-    conditional part in the same compilation environment that augments an
-    unconditional declaration of a type other than `D` contains an
-    introductory instance member declaration with the same basename as
-    `n`.
+    is aliased by a `typedef` with a public name in the library, and no name
+    whose basename is the basename of `n` occurs in an unconditional file.
+  - `D` is not a `mixin` or `mixin class`, no name whose basename is the
+    basename of `n` occurs in an unconditional file, and no augmenting
+    declaration in a conditional part in the same compilation environment
+    that augments an unconditional declaration of a type other than `D`
+    contains an introductory instance member declaration with the same
+    basename as `n`.
     *In other words, a conditional part can add a private instance member
     with a fresh name to a single type declared in an unconditional file.
     Introductory type declarations in the conditional part can override
@@ -1256,15 +1255,14 @@ private member of `l.dart`.
 >   declaration or import prefix with the basename of `n` is in scope at
 >   an unconditional declaration of `D`.
 > - Neither `D` nor any subtype of `D` in the library has a public name or
->   is aliased by a `typedef` with a public name in the library, and `D`
->   does not have a member with name `n` in its interface in the
->   unconditional files.
-> - `D` is not a `mixin` or `mixin class`, the basename of `n` does not
->   occur in an unconditional file, and no augmenting declaration in a
->   conditional part in the same compilation environment that augments an
->   unconditional declaration of a type other than `D` contains an
->   introductory instance member declaration with the same basename as
->   `n`.
+>   is aliased by a `typedef` with a public name in the library, and no name
+>   whose basename is the basename of `n` occurs in an unconditional file.
+> - `D` is not a `mixin` or `mixin class`, no name whose basename is the
+>   basename of `n` occurs in an unconditional file, and no augmenting
+>   declaration in a conditional part in the same compilation environment
+>   that augments an unconditional declaration of a type other than `D`
+>   contains an introductory instance member declaration with the same
+>   basename as `n`.
 
 ```dart
 // In 'l.dart'.
