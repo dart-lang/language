@@ -2,7 +2,7 @@
 
 Authors: rnystrom@google.com, jakemac@google.com, lrn@google.com, eernst@google.com
 
-Version: 1.47 (see [Changelog](#Changelog) at end)
+Version: 1.48 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
@@ -485,53 +485,50 @@ proceed as follows:
 
 1.  **Pre-resolve per-file import information:**
 
-    *   For each identifier occurrence in the library file tree that is subject
-        to lexical lookup, resolve its basename in the *combined import scope*
-        (see [parts with imports][]) of the file where that occurrence
-        syntactically appears, ignoring all declarations in the library itself.
-        Remember the result for that occurrence, which may be:
+    *   For each identifier occurrence in the library file tree that is
+        subject to lexical lookup, resolve its basename in the *combined
+        import scope* (see [parts with imports][]) of the file where that
+        occurrence syntactically appears, ignoring all declarations in the
+        library itself.  Remember the result for that occurrence, which may
+        be:
 
         *   not found,
         *   an import prefix scope from that file's combined import scope,
         *   a conflicted (ambiguous) import, or
-        *   one or two imported declarations (a getter `id`, a setter `id=`, or
-            both).
+        *   one or two imported declarations (a getter `id`, a setter
+            `id=`, or both).
 
-        This pre-resolved result may or may not be used later, depending on
-        whether the identifier is shadowed by a declaration in the library.
+        *This pre-resolved result may or may not be used later, depending
+        on whether the identifier is shadowed by a declaration in the
+        library.*
 
     *   For each expression in the library file tree that may resolve to an
-        extension instance member via implicit extension application (including
-        method, getter, setter, operator, and implicit `call` invocations),
-        record the set of extensions that are *available by import* in the file
-        where that expression syntactically occurs, as specified in
-        [parts with imports][].
+        extension instance member via implicit extension application
+        (including method, getter, setter, operator, and implicit `call`
+        invocations), record the set of extensions that are *available by
+        import* in the file where that expression syntactically occurs, as
+        specified in [parts with imports][].
 
 2.  **Apply all augmentations:** Merge all introductory and augmenting
     declarations across the library file tree into their resulting semantic
-    declarations—bringing together top-level declarations, `extends`, `with`,
-    and `implements` clauses, static and instance members, constructors, enum
-    values, primary constructor initializer scopes, default values, and
-    metadata. *When a function or constructor body is provided by an
-    augmentation, its formal parameter scope is that of the declaration
-    providing the body (for example, a `_` parameter does not bind a name from
-    an earlier declaration in the chain).*
+    declarations.
 
 3.  **Resolve identifiers and implicit extension applications in the merged
     scopes:**
 
-    *   Resolve all identifiers using standard Dart lexical lookup rules on the
-        resulting semantic declarations, modified such that *if* lexical lookup
-        does not find any declaration with that basename in the library itself
-        (local scopes, primary constructor initializer scope, enclosing type or
-        extension scopes, or the shared top-level declaration scope), then the
-        pre-resolved import result for that identifier occurrence is used.
+    *   Resolve all identifiers using standard Dart lexical lookup rules on
+        the resulting semantic declarations, modified such that *if*
+        lexical lookup does not find any declaration with that basename in
+        the library itself (local scopes, primary constructor initializer
+        scope, enclosing type or extension scopes, or the shared top-level
+        scope), then the pre-resolved imported binding for that identifier
+        occurrence is used.
 
     *   Resolve each implicit extension application using the standard Dart
-        extension resolution rules, where the set of available extensions for
-        an expression is the union of all extensions declared in the library
-        (after augmentations have been applied) and the set of imported
-        extensions recorded for that expression in step 1.
+        extension resolution rules, where the set of available extensions
+        for an expression is the union of all extensions declared in the
+        library (after augmentations have been applied) and the set of
+        imported extensions recorded for that expression in step 1.
 
 The total effect is that each identifier is resolved in a scoping structure
 whose outermost scope (the import scope) contains only the binding(s) for that
@@ -1705,6 +1702,12 @@ and assume the third point is always true.
 
 ## Changelog
 
+### 1.48
+
+*   Specify identifier and implicit extension resolution across part files
+    explicitly in terms of per-file import pre-resolution followed by
+    augmentation merging and standard resolution.
+
 ### 1.47
 
 *   Remove most of dynamic semantics section. It wasn't clear if it was
@@ -1736,10 +1739,6 @@ and assume the third point is always true.
 
 *   Clarify the ordering of type inference, type annotation inheritance, and
     same type checking.
-
-*   Specify identifier and implicit extension resolution across part files
-    explicitly in terms of per-file import pre-resolution followed by
-    augmentation merging and standard resolution.
 
 *   Clarify that the setter implicitly induced by a variable declaration has a
     `covariant` parameter if the variable is `covariant` and that its return
