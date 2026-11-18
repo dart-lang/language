@@ -912,6 +912,19 @@ and analyze *P* directly against the configuration-independent static model
 of the unconditional files of the library. In this case it doesn't need to
 load or resolve conditional part files for other platforms.
 
+### AI disclosure
+
+The compile-time error specifications in this document (in particular, the ones
+restricting the code in conditional part files) were developed in a series of
+steps where various AI agents were asked to find violations of the core property
+of this proposal, namely, that the static analysis of a library that contains
+conditional parts does not depend on which part file is chosen as the meaning of
+any given conditional part directive. The agents proposed error specifications
+and created example programs (shown in the appendix below) to illustrate the
+specific kind of violation of this "does not depend" property that the given
+error prevents. AI agents were also used to find inconsistencies and mistakes in
+the document.
+
 ### Appendix: Justification of the restrictions on conditional part files
 
 This appendix revisits each error specification in the section
