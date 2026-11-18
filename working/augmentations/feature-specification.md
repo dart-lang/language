@@ -502,12 +502,18 @@ proceed as follows:
         on whether the identifier is shadowed by a declaration in the
         library.*
 
-    *   For each expression in the library file tree that may resolve to an
-        extension instance member via implicit extension application
-        (including method, getter, setter, operator, and implicit `call`
-        invocations), record the set of extensions that are *available by
-        import* in the file where that expression syntactically occurs, as
-        specified in [parts with imports][].
+    *   For each expression and pattern in the library file tree, record
+        the set of extensions that are *available by import* in the file
+        where that expression or pattern syntactically occurs, as specified
+        in [parts with imports][].
+
+        *Because implicit extension application can arise not only from
+        explicit member accesses (`e.m`) and operators, but also from bare
+        identifiers rewritten to `this.id`, implicit `.call` tear-offs on
+        arbitrary expressions, and object or relational patterns, this set
+        is recorded for every expression and pattern rather than a syntactic
+        subset. Every expression and pattern in the same file shares the
+        same set.*
 
 2.  **Apply all augmentations:** Merge all introductory and augmenting
     declarations across the library file tree into their resulting semantic
@@ -526,17 +532,18 @@ proceed as follows:
 
     *   Resolve each implicit extension application using the standard Dart
         extension resolution rules, where the set of available extensions
-        for an expression is the union of all extensions declared in the
-        library (after augmentations have been applied) and the set of
-        imported extensions recorded for that expression in step 1.
+        for an expression or pattern is the union of all extensions declared
+        in the library (after augmentations have been applied) and the set
+        of imported extensions recorded for that expression or pattern in
+        step 1.
 
 The total effect is that each identifier is resolved in a scoping structure
 whose outermost scope (the import scope) contains only the binding(s) for that
 identifier's basename from the combined import scope of the file where the
 identifier syntactically occurs, and each implicit extension application
 considers exactly the library's own merged extensions together with the
-extensions available by import in the file where that expression syntactically
-occurs.
+extensions available by import in the file where that expression or pattern
+syntactically occurs.
 
 ### Type annotation inheritance
 
