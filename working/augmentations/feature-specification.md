@@ -1681,9 +1681,8 @@ and assume the third point is always true.
 
 ### 1.48
 
-*   Specify identifier and implicit extension resolution across part files
-    explicitly in terms of per-file import pre-resolution followed by
-    augmentation merging and standard resolution.
+*   Specify identifier resolution across part files explicitly in terms of
+    a generalized notion of lexical lookup.
 
 ### 1.47
 
