@@ -478,44 +478,42 @@ augment class C {
 
 #### Lexical lookup with augmentations
 
-Lexical lookup can proceed directly from the source code, without first
-applying augmentations, by generalizing the scopes used by lookup across each
-augmentation chain:
+Lexical lookup proceeds directly from the source code, without first
+applying augmentations, by generalizing the scopes used by lookup across
+each augmentation chain:
 
 *   **Top-level declaration namespace:** As in [parts with imports][], the
     shared top-level declaration namespace of the library contains all
-    *introductory* top-level declarations across the library file tree, and
-    excludes `augment` declarations.
+    introductory top-level declarations across the library file tree, and
+    excludes augmenting declarations.
 
-*   **Body namespaces:** For each class, mixin class, mixin, enum, extension
-    type, and extension declaration, the body namespace used by lexical lookup
-    in any contribution (introductory or augmenting) of its augmentation chain
-    is the union of the body namespaces of all contributions in the entire
-    augmentation chain. This union includes all *introductory* member
-    declarations—including implicitly induced introductory declarations such as
-    an enum's `values` and an extension type's representation getter—and
-    excludes `augment` member declarations.
+*   **Body namespaces:** For each class, mixin class, mixin, enum,
+    extension type, and extension declaration, the body namespace used by
+    lexical lookup in any contribution (introductory or augmenting) of its
+    augmentation chain is the union of the body namespaces of all
+    contributions in the given augmentation chain. This union includes all
+    introductory member declarations, including implicitly induced
+    introductory declarations such as an enum's `values` and an extension
+    type's representation getter, and excludes augmenting member
+    declarations.
 
 *   **Primary initializer scope:** For a class or enum whose introductory
     declaration has a primary constructor, the primary initializer scope of
     that primary constructor encloses the non-`late` instance variable
     initializers of every contribution in the augmentation chain.
 
-*   **Remaining scopes and per-file imports:** All other lexical scopes remain
-    unchanged at the syntactic location where the code occurs. In particular,
-    each augmenting function or constructor body uses its own formal parameter
-    scope (for example, a `_` parameter does not bind a name from an earlier
-    declaration in the chain), each file retains its own *combined import
-    scope* (including import prefixes), and each expression or pattern retains
-    the set of extensions *available by import* in its originating file as
+*   **Remaining scopes and per-file imports:** All other lexical scopes
+    remain unchanged at the syntactic location where the code occurs. In
+    particular, each augmenting function or constructor body uses its own
+    formal parameter scope, each file retains its own combined import scope
+    (including import prefixes), and each expression or pattern retains the
+    set of extensions available by import in its originating file as
     specified in [parts with imports][].
 
-*Note that while lexical lookup proceeds directly on the source code using
-these generalized scopes, member and type resolution—such as resolving
-`this.id`, `super.id`, member accesses, and implicit extension applications—
-still uses the combined superinterfaces (`extends`, `with`, and `implements`
-clauses) and combined member sets of the augmentation chains, including merged
-extensions declared in the library.*
+Similarly, member and type resolution (such as resolving `this.id`,
+`super.id`, member accesses, and implicit extension applications) use the
+combined superinterfaces (`extends`, `with`, mixin-`on`, and `implements`
+clauses) gathered from the entire augmentation chain.
 
 ### Type annotation inheritance
 
