@@ -341,17 +341,6 @@ variable declarations, because those aren't subject to augmentation.*
 
 ### Scoping
 
-It is already a **compile-time error** for multiple declarations to have
-the same name in the same scope. This error is checked on the shared
-top-level declaration namespace across all files of the library and on the
-union of the body namespaces of each augmentation chain, where both
-namespaces contain only introductory declarations. *For example, it's an
-error to introduce the same top-level name in a library and a part, the
-same top-level name in two parts, the same static or instance name inside
-an introductory declaration and an augmentation of that declaration, or the
-same static or instance name inside two augmentations of the same
-declaration.*
-
 #### Lexical lookup with augmentations
 
 Lexical lookup proceeds from the source code, without first applying
