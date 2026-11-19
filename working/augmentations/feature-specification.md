@@ -361,7 +361,10 @@ each augmentation chain:
 *   **Top-level declaration namespace:** The shared top-level declaration
     namespace of the library contains all introductory top-level
     declarations across the library file tree, excluding augmenting
-    declarations.
+    declarations. It is a **compile-time error** if the introductory
+    top-level declarations across the library file tree have a name
+    conflict, under the same rules as if they were declared in a single
+    library file.
 
 *   **Body namespaces:** For each class, mixin class, mixin, enum,
     extension type, and extension declaration, the body namespace used by
@@ -371,7 +374,9 @@ each augmentation chain:
     introductory member declarations, including implicitly induced
     introductory declarations such as an enum's `values` and an extension
     type's representation getter, and excludes all augmenting member
-    declarations.
+    declarations. It is a **compile-time error** if the introductory member
+    declarations across the augmentation chain have a name conflict, under
+    the same rules as if they were declared in a single body.
 
 *   **Primary initializer scope:** For a class or enum whose introductory
     declaration has a primary constructor, the primary initializer scope of
