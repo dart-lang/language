@@ -462,12 +462,9 @@ combined import scope of the file where the identifier occurs.*
 
 #### Primary constructor parameters
 
-When a class or enum has a primary constructor, the current scope of non-`late`
-instance variable initializers is the primary initializer scope. This is true
-even for instance variables declared in other augmentations. *In other words,
-the primary initializer scope from the introductory declaration encloses
-non-`late` instance variable initializers in every contribution of the
-augmentation chain.*
+*As mentioned in the lexical lookup section, the primary initializer scope
+from the introductory declaration encloses non-`late` instance variable
+initializers in every contribution of the augmentation chain.*
 
 *For example:*
 
