@@ -387,12 +387,8 @@ clauses) gathered from the entire augmentation chain.
 
 #### Member namespaces
 
-The static and instance member namespaces for an augmented type or
-extension declaration include all introductory member declarations across
-the introductory and augmenting declarations and excludes augmenting member
-declarations. Identifiers in the bodies of members are resolved against
-that union body namespace. *In other words, lexical lookup sees all
-introductory members from every contribution in the augmentation chain.*
+*As specified above, lexical lookup inside a member body sees all introductory
+members from every contribution in the type or extension's augmentation chain.*
 
 *For example:*
 
@@ -460,22 +456,9 @@ main.dart               : other.dart
 '---------------------' : '---------------------'
 ```
 
-The main library file has an import scope which is inherited by all of the
-part files. Each part file then has its own import scope (which are
-inherited by that part file's own further part files).
-
-The main library and all part files share and contribute to a single
-top-level declaration scope. Each type or extension declaration in there
-has a scope shared across introductory and augmenting declarations of that
-type or extension.
-
-Then inside those types and extensions are scopes for the member
-bodies. Each member has its own scope. When resolving an identifier inside
-a member, we look in the member body, then up through the union body
-namespace of the augmentation chain and the shared top-level declaration
-namespace, then through the combined import scope of the file where the
-identifier occurs (walking up through ancestor part files to the main
-library's import scope).
+*In each column, lexical lookup walks up from a member body through the union
+body namespace and shared top-level declaration namespace, then into the
+combined import scope of the file where the identifier occurs.*
 
 #### Primary constructor parameters
 
@@ -485,6 +468,7 @@ even for instance variables declared in other augmentations. *In other words,
 the primary initializer scope from the introductory declaration encloses
 non-`late` instance variable initializers in every contribution of the
 augmentation chain.*
+
 *For example:*
 
 ```dart
