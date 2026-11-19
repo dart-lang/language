@@ -476,74 +476,46 @@ augment class C {
 }
 ```
 
-#### Resolving identifiers and extensions across part files
+#### Lexical lookup with augmentations
 
-Because part files may have different import scopes while sharing merged
-declaration scopes across augmentations, lexical lookup of identifiers and
-resolution of implicitly applied extensions across the library file tree
-proceed as follows:
+Lexical lookup can proceed directly from the source code, without first
+applying augmentations, by generalizing the scopes used by lookup across each
+augmentation chain:
 
-1.  **Pre-resolve per-file import information:**
+*   **Top-level declaration namespace:** As in [parts with imports][], the
+    shared top-level declaration namespace of the library contains all
+    *introductory* top-level declarations across the library file tree, and
+    excludes `augment` declarations.
 
-    *   For each identifier occurrence in the library file tree that is
-        subject to lexical lookup, resolve its basename in the *combined
-        import scope* (see [parts with imports][]) of the file where that
-        occurrence syntactically appears, ignoring all declarations in the
-        library itself.  Remember the result for that occurrence, which may
-        be:
+*   **Body namespaces:** For each class, mixin class, mixin, enum, extension
+    type, and extension declaration, the body namespace used by lexical lookup
+    in any contribution (introductory or augmenting) of its augmentation chain
+    is the union of the body namespaces of all contributions in the entire
+    augmentation chain. This union includes all *introductory* member
+    declarations—including implicitly induced introductory declarations such as
+    an enum's `values` and an extension type's representation getter—and
+    excludes `augment` member declarations.
 
-        *   not found,
-        *   an import prefix scope from that file's combined import scope,
-        *   a conflicted (ambiguous) import, or
-        *   one or two imported declarations (a getter `id`, a setter
-            `id=`, or both).
+*   **Primary initializer scope:** For a class or enum whose introductory
+    declaration has a primary constructor, the primary initializer scope of
+    that primary constructor encloses the non-`late` instance variable
+    initializers of every contribution in the augmentation chain.
 
-        *This pre-resolved result may or may not be used later, depending
-        on whether the identifier is shadowed by a declaration in the
-        library.*
+*   **Remaining scopes and per-file imports:** All other lexical scopes remain
+    unchanged at the syntactic location where the code occurs. In particular,
+    each augmenting function or constructor body uses its own formal parameter
+    scope (for example, a `_` parameter does not bind a name from an earlier
+    declaration in the chain), each file retains its own *combined import
+    scope* (including import prefixes), and each expression or pattern retains
+    the set of extensions *available by import* in its originating file as
+    specified in [parts with imports][].
 
-    *   For each expression and pattern in the library file tree, record
-        the set of extensions that are *available by import* in the file
-        where that expression or pattern syntactically occurs, as specified
-        in [parts with imports][].
-
-        *Because implicit extension application can arise not only from
-        explicit member accesses (`e.m`) and operators, but also from bare
-        identifiers rewritten to `this.id`, implicit `.call` tear-offs on
-        arbitrary expressions, and object or relational patterns, this set
-        is recorded for every expression and pattern rather than a syntactic
-        subset. Every expression and pattern in the same file shares the
-        same set.*
-
-2.  **Apply all augmentations:** Merge all introductory and augmenting
-    declarations across the library file tree into their resulting semantic
-    declarations.
-
-3.  **Resolve identifiers and implicit extension applications in the merged
-    scopes:**
-
-    *   Resolve all identifiers using standard Dart lexical lookup rules on
-        the resulting semantic declarations, modified such that *if*
-        lexical lookup does not find any declaration with that basename in
-        the library itself (local scopes, primary constructor initializer
-        scope, enclosing type or extension scopes, or the shared top-level
-        scope), then the pre-resolved imported binding for that identifier
-        occurrence is used.
-
-    *   Resolve each implicit extension application using the standard Dart
-        extension resolution rules, where the set of available extensions
-        for an expression or pattern is the union of all extensions declared
-        in the library (after augmentations have been applied) and the set
-        of imported extensions recorded for that expression or pattern in
-        step 1.
-
-The total effect is that each identifier is resolved in a scoping structure
-whose outermost scope (the import scope) contains only the binding(s) for that
-identifier's basename from the combined import scope of the file where the
-identifier syntactically occurs, and each implicit extension application
-considers exactly the library's own merged extensions together with the
-extensions available by import in the file where that expression or pattern
-syntactically occurs.
+*Note that while lexical lookup proceeds directly on the source code using
+these generalized scopes, member and type resolution—such as resolving
+`this.id`, `super.id`, member accesses, and implicit extension applications—
+still uses the combined superinterfaces (`extends`, `with`, and `implements`
+clauses) and combined member sets of the augmentation chains, including merged
+extensions declared in the library.*
 
 ### Type annotation inheritance
 
