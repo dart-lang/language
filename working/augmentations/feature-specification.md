@@ -6,9 +6,9 @@ Version: 1.48 (see [Changelog](#Changelog) at end)
 
 Experiment flag: augmentations
 
-Augmentations allow splitting a declaration across multiple locations,
-both within a single file and across multiple files. They can add new top-level
-declarations, inject new members into classes, and provide bodies for functions.
+Augmentations allow splitting a declaration across multiple locations, both
+within a single file and across multiple files. Augmentations can inject
+new members into classes, provide bodies for functions, and more.
 
 ## Motivation
 
@@ -65,9 +65,9 @@ adding *augmentations*.
 
 ### Augmentation declarations
 
-A declaration marked with the modifier `augment` creates an *augmentation
-declaration* (or just "augmentation"). In contrast, an unmarked declaration is
-an *introductory declaration*.
+A declaration marked with the modifier `augment` creates an *augmenting
+declaration* (or just an "augmentation"). In contrast, an unmarked
+declaration is an *introductory declaration*.
 
 An augmentation declaration doesn't create a new entity in the program. Instead,
 it adds to some existing introductory declaration with the same name.
@@ -343,34 +343,47 @@ variable declarations, because those aren't subject to augmentation.*
 
 #### Lexical lookup with augmentations
 
-Lexical lookup proceeds from the source code, without first applying
-augmentations, by generalizing the scopes used by lexical lookup across
-each augmentation chain:
+Lexical lookup proceeds without first applying augmentations. The library
+namespace includes declarations from all files in the library file tree,
+generalizing [parts with imports][] to take augmenting declarations into
+account. Similarly, the membered declaration body scopes include member
+declarations from all declarations in the corresponding augmentation chain:
 
-*   **Top-level declaration namespace:** The shared top-level declaration
-    namespace of the library contains all introductory top-level
-    declarations across the library file tree, excluding augmenting
+*   **Top-level declaration namespace:** The shared top-level namespace of
+    the library contains all introductory top-level declarations from all
+    files in the library file tree. It does not include augmenting
     declarations. It is a **compile-time error** if the introductory
-    top-level declarations across the library file tree have a name
-    conflict, under the same rules as if they were declared in a single
-    library file.
+    top-level declarations from the library file tree have a name conflict.
+
+    In each Dart file in the library file tree, the library scope has
+    this namespace as its namespace, and the import prefix scope as its
+    enclosing scope.
 
 *   **Body namespaces:** For each class, mixin class, mixin, enum,
-    extension type, and extension declaration, the body namespace used by
-    lexical lookup in any contribution (introductory or augmenting) of its
-    augmentation chain is the union of the body namespaces of all
-    contributions in the given augmentation chain. This union includes all
-    introductory member declarations, including implicitly induced
-    introductory declarations such as an enum's `values` and an extension
-    type's representation getter, and excludes all augmenting member
+    extension type, and extension definition, the body namespace used by
+    lexical lookup in any declaration (introductory or augmenting) of its
+    augmentation chain contains all introductory member declarations in the
+    given augmentation chain. This includes implicitly induced introductory
+    declarations such as an enum's `values` and an extension type's
+    representation getter, and excludes all augmenting member
     declarations. It is a **compile-time error** if the introductory member
-    declarations across the augmentation chain have a name conflict, under
+    declarations from the augmentation chain have a name conflict, under
     the same rules as if they were declared in a single body.
 
-*   **Primary initializer scope:** For a class or enum whose introductory
-    declaration has a primary constructor, the primary initializer scope of
-    that primary constructor encloses the non-`late` instance variable
-    initializers of every contribution in the augmentation chain.
+    In each membered declaration body, the current scope has this
+    namespace as its namespace, with the type parameter scope of
+    the membered declaration as its enclosing scope, if present, and
+    otherwise the library scope as its enclosing scope.
+
+*   **Primary initializer scope:** For a class or enum declaration whose
+    introductory declaration has a primary constructor, the primary
+    initializer scope has the primary initializer namespace as its
+    namespace and the body scope of the enclosing class or enum declaration
+    as its enclosing scope.  The primary initializer scope is the current
+    scope for the non-`late` instance variable initializers of every
+    declaration in the augmentation chain of that class or enum, and the
+    current scope for the initializer list of an in-body part of the
+    primary constructor, if it exists.
 
 *   **Remaining scopes and per-file imports:** All other lexical scopes
     remain unchanged at the syntactic location where the code occurs. In
@@ -380,15 +393,15 @@ each augmentation chain:
     set of extensions available by import in its originating file as
     specified in [parts with imports][].
 
-Similarly, member and type resolution *(such as resolving `this.id`,
+*Similarly, member and type resolution (such as resolving `this.id`,
 `super.id`, member accesses, and implicit extension applications)* use the
 combined superinterfaces (`extends`, `with`, mixin-`on`, and `implements`
-clauses) gathered from the entire augmentation chain.
+clauses) gathered from the entire augmentation chain.*
 
 #### Member namespaces
 
 *As specified above, lexical lookup inside a member body sees all introductory
-members from every contribution in the type or extension's augmentation chain.*
+members from every declaration in the type or extension's augmentation chain.*
 
 *For example:*
 
@@ -463,7 +476,7 @@ combined import scope of the file where the identifier occurs.*
 #### Primary constructor parameters
 
 *As mentioned in the lexical lookup section, the primary initializer scope
-from the introductory declaration encloses non-`late` instance variable
+based on the introductory declaration encloses non-`late` instance variable
 initializers in every contribution of the augmentation chain.*
 
 *For example:*
@@ -621,29 +634,34 @@ a downwards inference context type.
 
 Those steps are ordered like so:
 
-1.  Augmentations are applied. A declaration doesn't have complete type
+1.  Each identifier subject to lexical lookup is resolved to denote a
+    definition, or it is marked as being an access to a member of the
+    current object `this` (which may be an extension instance member).
+    *Lexical lookup for identifiers proceeds directly on the source code
+    using each file's own combined import scope, as specified in [Lexical
+    lookup with augmentations](#lexical-lookup-with-augmentations). An
+    access to a member of `this` is resolved later.*
+
+2.  Augmentations are applied. *A declaration doesn't have complete type
     system semantics until its augmentation chain is gathered. For example,
     we don't know the supertypes of a class until any augmentations that
-    add `implements`, `with`, or `extends` clauses are included. *(Lexical
-    lookup for identifiers proceeds directly on the source code using each
-    file's own combined import scope, as specified in 
-    [Lexical lookup with augmentations](#lexical-lookup-with-augmentations).)*
+    add `implements`, `with`, or `extends` clauses are included.*
 
-2.  Type inference fills in any omitted types in the introductory
-    declaration.  This may come from override inference, inferring an
-    initializing formal from the corresponding field type, etc. Downwards
+3.  Type inference fills in any omitted types in the introductory
+    declaration.  *This may come from override inference, inferring an
+    initializing formal from the corresponding field type, etc.* Downwards
     and upwards inference is applied to a variable declaration's type and
     initializer. Any other uninferred types get a default type like
     `dynamic` for type annotations or `Object?` for bounds.
 
-3.  Omitted types and bounds in augmenting declarations are inherited from
-    the introductory declaration. Since an augmentation declaration must
+4.  Omitted types and bounds in augmenting declarations are inherited from
+    the introductory declaration. *Since an augmentation declaration must
     have types in all of the same places as the introductory declaration,
     type inheritance from the introductory declaration is sufficient to
-    fill in all omitted types. Downwards inference is applied to a variable
+    fill in all omitted types.* Downwards inference is applied to a variable
     declaration's initializer.
 
-4.  Augmentations are checked for "same type" conformance against the
+5.  Augmentations are checked for "same type" conformance against the
     introductory declaration.
 
 *Some examples:*
@@ -1617,10 +1635,10 @@ produces something that looks and behaves like a single declaration: It has
 a single name, a single type or function signature, and it's what all
 references to the *name* refers to inside and outside of the library.
 
-Once this single semantic declaration has been derived by applying all
+Once this single semantic definition has been derived by applying all
 augmentations to the introductory declaration in augmentation order (after
-static resolution), the resulting declaration has the same dynamic semantics as
-if it were a single syntactic declaration.
+static resolution), the resulting definition has the same dynamic semantics as
+if it were obtained from a single syntactic declaration.
 
 ## Tooling
 
