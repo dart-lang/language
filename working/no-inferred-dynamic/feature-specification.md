@@ -16,8 +16,8 @@ This feature removes the places where Dart's type inference produces the type
 *   When a declaration has no type annotation and inference has no way to
     determine its type, it gets a default type instead of `dynamic`: `Object?`
     for a variable or parameter, and `void` for most return types.
-*   The exception is a local variable with no type annotation and no
-    initializer, which is a compile-time error.
+*   The exception is a local variable declaration with no type annotation and
+    no initializer, which is a compile-time error.
 
 A developer who actually wants dynamic dispatch says so by writing `dynamic`.
 
@@ -162,8 +162,8 @@ The changes follow three rules:
     This covers raw types (`List` means `List<Object?>`), unconstrained type
     variables in generic inference (`var l = [];` gives `List<Object?>`), and
     greatest closures.
-*   **A local variable with no type and no initializer is a compile-time
-    error.**
+*   **A local variable declaration with no type and no initializer is a
+    compile-time error.**
 *   **Any other declaration whose type can't be determined gets a default
     type.**
     A parameter with no type and nothing to infer one from, or a top-level
@@ -184,12 +184,9 @@ reading its body. A getter or an operator exists to produce a value, though, so
 `void` would make every use of it an error; in this circumstance, `Object?` is
 used instead.
 
-Why is a local variable with no type and no initializer different? Such a
-variable starts out unassigned, and Dart doesn't narrow a variable's declared
-type when a value is assigned to it. So if it had type `Object?`, most uses of
-it would be errors, reported far from the declaration, even though the
-declaration is where the fix goes. Data from open-source code supports this;
-see [Variables](#variables).
+Why is a local variable declaration with no type and no initializer different?
+Mainly because reporting the error at the declaration puts it where the fix
+goes; see [Variables](#variables) for the full rationale and supporting data.
 
 Some notes:
 
@@ -343,7 +340,8 @@ the implementations only do this for `Null`; see
 [Specification cleanups](#specification-cleanups).)*
 
 *For a local variable, this rule deliberately differs from the rule for a
-variable with no initializer, which is an error (see [Variables](#variables)).*
+variable with no initializer, which is an error (see [Variables](#variables),
+and see also [Open questions](#open-questions)).*
 
 #### Generator element types
 
@@ -462,28 +460,26 @@ clause), and its stack trace variable gets type `StackTrace`; and a pattern
 variable gets its type from the matched value. (A pattern variable declaration
 such as `var (x, y) = (1, 0);` always has an initializer.)*
 
-*The rationale for making an untyped local variable with no initializer an
-error is that such a variable starts out unassigned, and Dart doesn't narrow a
-variable's declared type when a value is assigned to it. So giving it the type
-`Object?` would make most later uses errors anyway, reported at the usage
-sites (for example, as an error about a member that doesn't exist on
-`Object?`), far from the declaration. Reporting the error at the declaration
-site puts the error where the fix goes.*
-
-*Data from open-source code supports this. Among 275 such local variables,
+*The rationale for making an untyped local variable declaration with no
+initializer an error is that reporting the error at the declaration puts the
+error where the fix goes. Data from open-source code suggests that giving such
+a variable type `Object?` instead would usually just move the error to its
+usage sites (for example, as an error about a member that doesn't exist on
+`Object?`), far from the declaration. Among 275 such local variables,
 collected from popular pub packages and open-source Flutter apps, 56 (20%)
 would have compiled without errors with type `Object?`, and 7 more were unused
 or in code that isn't meant to compile. Each of the remaining 212 (77%) would
 have caused errors elsewhere, and in each case, the appropriate fix was to add
 a type at the declaration: a specific type in 190 cases, `dynamic` in 20, and
-a nullable type or `num` in 2. Kotlin, Swift, and C# also reject a local
-variable declaration with no type and no initializer.*
+a nullable type or `num` in 2.*
 
-*Top-level variables and fields get `Object?` instead, consistent with the
-rule for parameters (see [Parameters](#parameters)). In particular, a
-declaring parameter of a primary constructor with no type and no default
-value, as in `class C(var x);`, declares a field of type `Object?`, so
-`class C { var x; C(this.x); }` gives `x` the same type.*
+*Kotlin, Swift, and C# also reject a local variable declaration with no type
+and no initializer, although they accept one with a type and no initializer
+(checking that the variable is assigned before it's read).*
+
+*Top-level variables and fields get `Object?` instead, as parameters do.
+Whether they should be errors too is an open question (see
+[Open questions](#open-questions)).*
 
 #### Parameters
 
@@ -576,7 +572,8 @@ by [Return types](#return-types) rather than by this rule.*
 If any of the following has no declared return type and its return type isn't
 provided by override inference, its return type is `void`:
 
-*   a top-level function, a static method, or an instance method,
+*   a top-level function, a static method, or an instance method that isn't
+    an operator,
 *   an old-style function-typed formal parameter (`void f(callback())`),
 *   a function type written with `Function` (`Function(int)`), or
 *   an old-style typedef (`typedef F(int x);`).
@@ -677,7 +674,8 @@ augment f() { return 42; }  // Error: f returns void.
 ```
 
 *Augmentations are merged before type inference fills in the omitted types of
-the introductory declaration, though. So when an augmentation supplies the
+the introductory declaration, though (but see
+[Open questions](#open-questions)). So when an augmentation supplies the
 default value of an optional parameter whose introductory declaration has no
 type and no default value, the parameter's type is inferred from that default
 value, as described in [Parameters](#parameters):*
@@ -842,8 +840,8 @@ that library in these ways:
     result of a function with no declared return type can't be used, a block
     body of such a function can't contain `return e;`, and an `async` function
     with no declared return type can't be awaited.
-*   Local variables with no type and no initializer become compile-time
-    errors.
+*   Local variable declarations with no type and no initializer become
+    compile-time errors.
 *   Untyped optional parameters with a default value change from `dynamic` to
     the default value's type, so code that relied on `dynamic` (for example,
     assigning a `String` to a parameter whose default is `0`) becomes a
@@ -1094,11 +1092,12 @@ changes behavior (see the extension members case in
     analyzer modes flag places where Dart invents `dynamic`. In a library where
     the feature is enabled, those places don't exist: a raw type or an
     unconstrained type argument means `Object?`, and a declaration whose type
-    can't be determined gets a default type (or, for a local variable with no
-    initializer, is a compile-time error). So in such a library, the
-    analyzer shouldn't report the diagnostics associated with these modes
-    (`strict_raw_type` and the `inference_failure_on_*` diagnostics), even if
-    the modes are enabled in `analysis_options.yaml`.
+    can't be determined gets a default type (or, for a local variable
+    declaration with no type and no initializer, it is a compile-time error).
+    So in such a library, the analyzer shouldn't report the diagnostics
+    associated with these modes (`strict_raw_type` and the
+    `inference_failure_on_*` diagnostics), even if the modes are enabled in
+    `analysis_options.yaml`.
 
     *Some of this follows from what the diagnostics already check: for
     example, `strict_raw_type` is only reported when instantiate to bound
@@ -1196,8 +1195,8 @@ these updates to match:
     parameter in the combined member signature should follow
     [Parameters](#parameters).
 *   The rule that gives `dynamic` to an untyped variable with no initializer
-    should make it an error for a local variable, and give `Object?` otherwise
-    (see [Variables](#variables)).
+    should make it an error for a local variable declaration, and give
+    `Object?` otherwise (see [Variables](#variables)).
 *   The rule for a variable whose initializer has type `Null` should give
     `Object?`. (It currently says "a subtype of `Null`", which would include
     `Never`, although the implementations only apply the rule to `Null`.)
@@ -1347,6 +1346,32 @@ Considerations:
 *   **Breakage measurements.** How much code does each part of this change
     affect? Counts should be attributed to root causes rather than raw
     diagnostics, and the error handler case should be counted separately.
+*   **Variables initialized with `null`.** Under this proposal,
+    `var x = null;` gives `x` the type `Object?`, while `var x;` is an error
+    if `x` is a local variable. Should a local variable whose initializer has
+    type `Null` (and no type annotation) be an error too? One argument for
+    `Object?` is consistency with parameters: an untyped optional parameter
+    whose default value is `null` gets type `Object?`, as an optional
+    declaring parameter of a primary constructor with default value `null`
+    already does. Such local variables appear to be rare in practice.
+*   **Top-level variables and fields with no type and no initializer.** This
+    proposal gives them type `Object?`, as it does for parameters. Should they
+    be errors instead, like local variables, so that the error is reported at
+    the declaration? (For a field initialized by a constructor, as in
+    `class C { var x; C(this.x); }`, `Object?` matches the type a declaring
+    parameter of a primary constructor gives its field, as in
+    `class C(var x);`.) A measurement of how often such declarations occur,
+    and of how often `Object?` would cause errors elsewhere, would help
+    answer this.
+*   **Augmentations and type inference.** This proposal assumes that
+    augmentations are merged before type inference fills in the omitted types
+    of the introductory declaration (as described in the augmentations
+    feature specification), so a parameter's type can be inferred from a
+    default value supplied by an augmentation. An alternative view is that
+    the introductory declaration is inferred on its own, and augmenting
+    declarations must then match it. Which model is intended, and what does
+    it imply for parameters, fields, and top-level variables whose types are
+    omitted?
 *   **Least upper bounds that produce `Function`.** When the least upper bound
     of two function types with different shapes (different numbers of
     positional parameters, or different named parameters) is computed, the
@@ -1363,10 +1388,18 @@ Considerations:
     ```
 
     One possible fix is for the least upper bound of two such function types
-    to be `Object?` (or `Object`) instead of `Function`. That would be a
-    breaking change of its own, which needs to be measured: code that invokes
-    the result of such an expression, or passes it where a `Function` is
-    expected, would break. Should this feature include that change?
+    to be `Object` instead of `Function`. That would be a breaking change of
+    its own: code that invokes the result of such an expression, or passes it
+    where a `Function` is expected, would break. In a large internal codebase,
+    only a handful of sites rely on such a least upper bound being callable.
+    Should this feature include that change?
+
+    Another possible fix is to keep the least upper bound as it is, but stop
+    allowing dynamic invocation of an expression whose static type is
+    `Function`, so that invoking it requires a cast such as `as dynamic`.
+    `Function` would remain the supertype of all function types. That would
+    also cover code that declares a type as `Function` explicitly, so it would
+    probably be considerably more breaking, and it would need to be measured.
 
     *The analogous case for records doesn't have this problem. The least upper
     bound of two record types with different shapes is `Record`, but the only
@@ -1408,9 +1441,9 @@ Considerations:
     types (including `async` functions, function types, old-style
     typedefs, and recursive local functions); and `Object?` for the
     return types of getters and operators other than `[]=`.
--   Keep local variables with no type and no initializer as errors, with
-    a rationale based on data from open-source code, and state that
-    `var x = null;` getting type `Object?` is deliberate.
+-   Keep local variable declarations with no type and no initializer as
+    errors, with a rationale based on data from open-source code, and
+    state that `var x = null;` getting type `Object?` is deliberate.
 -   Update Compatibility, Migration (including `main`, converting
     `Future.catchError` calls to `Future.onError`, and a possible
     public-API-only migration mode), Tooling, and Specification cleanups
@@ -1423,6 +1456,9 @@ Considerations:
     default values, primary constructors, and defaults instead of errors,
     which have been resolved, and add an open question about least upper
     bounds that produce `Function`.
+-   Add open questions about variables initialized with `null`, top-level
+    variables and fields with no type and no initializer, and how
+    augmentations interact with type inference.
 
 ### 1.3
 
