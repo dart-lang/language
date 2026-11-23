@@ -1984,7 +1984,7 @@ compile-time error with either part.
 
 ### Changelog
 
-1.2 - November 16, 2026
+1.2 - November 23, 2026
 
 * Improve on the restrictions on conditional parts.
 
