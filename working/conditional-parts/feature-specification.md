@@ -504,8 +504,10 @@ same declaration.*
     part file _F_ or in a file in the file tree under _F_.
 
 - It is a **compile-time error** if an introductory `extension` declaration
-  in a conditional part is applicable to an implicit extension member
-  access in an unconditional file.
+  in a conditional part is applicable to any implicit extension member
+  resolution in an unconditional file *(including property accesses, method
+  invocations, operator invocations, function expression invocations of
+  `call`, object patterns, and relational patterns)*.
   *This allows unnamed and privately named `extension` declarations in a
   conditional part as long as they do not participate in extension
   resolution in unconditional files. A simpler, less expressive
@@ -598,10 +600,12 @@ same declaration.*
 
 - It is a **compile-time error** for a declaration in a conditional part,
   whether introductory or augmenting, to declare a non-`final` instance
-  variable or concrete instance getter with a private name `_x`, or for a
-  class or enum declaration in a conditional part, whether introductory or
-  augmenting, to induce a `noSuchMethod` forwarder for a getter with a
-  private name `_x`, if `_x` is promotable in the unconditional files.
+  variable, an `external` instance variable, a concrete instance getter, or
+  an augmenting `final` instance variable that augments an introductory
+  getter declaration, with a private name `_x`, or for a class or enum
+  declaration in a conditional part, whether introductory or augmenting, to
+  induce a `noSuchMethod` forwarder for a getter with a private name `_x`,
+  if `_x` is promotable in the unconditional files.
   *That is, if a property access to `_x` is subject to promotion when the
   unconditional files are analyzed with every conditional part directive
   ignored. This includes the case where the unconditional files declare
@@ -611,6 +615,16 @@ same declaration.*
   introductory declaration has the modifier `concrete` is a concrete
   getter. *Hence `_x` is not promotable in the unconditional files, and a
   conditional part can complete the getter without restrictions.*
+  Furthermore, field promotability in a library *L* is determined solely by
+  its unconditional files *L*<sub>*u*</sub> *(ignoring conditional parts,
+  treating `concrete` getters in *L*<sub>*u*</sub> as concrete getters, and
+  treating getters and `abstract final` instance variables with undetermined
+  abstractness as unimplemented when computing `noSuchMethod`-forwarding
+  getters, even when *L* is compiled with a conditional part included)*.
+  *This ensures that a conditional part cannot turn a private name that is
+  non-promotable in *L*<sub>*u*</sub> into a promotable one by eliminating a
+  `noSuchMethod` forwarder or completing a `concrete` getter with an
+  augmenting `final` instance variable.*
 
 - It is a **compile-time error** for an augmenting generative constructor
   declaration or member declaration in a conditional part that augments a
@@ -718,13 +732,25 @@ constraints below apply this principle.*
 
 - It is a **compile-time error** if a name `m` is noSuchMethod forwarded in
   a concrete class or enum `C`, and a superclass of `C` *(including any
-  mixin applied to `C`)* has an accessible declaration of `m` with
-  undetermined abstractness which is not a correct override of the member
-  signature named `m` in the interface of `C`.
+  mixin applied to `C`)* has an accessible declaration of `m` that is
+  either concrete or has undetermined abstractness, and which is not a
+  correct override of the member signature named `m` in the interface of
+  `C`.
   *In other words, the existing error about a noSuchMethod forwarder that
   would override an inherited concrete declaration treats a member with
-  undetermined abstractness as concrete. `C` can avoid the error by
-  declaring `m`.*
+  undetermined abstractness as concrete, and still checks any concrete
+  declaration in a further superclass that was "killed" by a member with
+  undetermined abstractness. `C` can avoid the error by declaring `m`.*
+
+- It is a **compile-time error** if an `enum` declaration `C` has a mixin
+  *(declared as a `mixin` or `mixin class`)* applied to it that declares an
+  instance member named `index` whose abstractness is undetermined.
+  *An `enum` cannot inherit a concrete member named `index` from an applied
+  mixin. When `C` declares a non-trivial `noSuchMethod`, the rule above
+  about implementing members with undetermined abstractness does not report
+  a missing-implementation error for `index`, so this constraint ensures
+  that the error does not depend on whether a conditional part completes
+  `index`.*
 
 - It is a **compile-time error** if a mixin application `S with M` occurs
   in a library other than the library that declares `M`, `M` declares an
@@ -754,10 +780,11 @@ of *L*.
   resolve to an introductory private declaration in a conditional part file, and
   no introductory private declaration in a conditional part file can conflict
   with, shadow, or add abstract members or `sealed` subtypes to declarations in
-  *L*<sub>*u*</sub>, all identifier resolution, type inference, type checking,
-  override checking, super-invocation checking, switch exhaustiveness checking,
-  and constant evaluation in *L*<sub>*u*</sub> are completely determined by
-  *L*<sub>*u*</sub> alone (ignoring conditional `part` directives). If
+  *L*<sub>*u*</sub>, all identifier resolution, field promotability, type
+  inference, type checking, override checking, super-invocation checking,
+  switch exhaustiveness checking, and constant evaluation in
+  *L*<sub>*u*</sub> are completely determined by *L*<sub>*u*</sub> alone
+  (ignoring conditional `part` directives). If
   *L*<sub>*u*</sub> contains no conditional `part` directives, completeness of
   all declarations in *L*<sub>*u*</sub> is also checked on *L*<sub>*u*</sub>
   alone.
@@ -1054,8 +1081,10 @@ lookup of `_value` in the body of `B` finds the top-level function, so
 #### Extensions which are applicable in unconditional files
 
 > It is a **compile-time error** if an introductory `extension` declaration
-> in a conditional part is applicable to an implicit extension member
-> access in an unconditional file.
+> in a conditional part is applicable to any implicit extension member
+> resolution in an unconditional file *(including property accesses, method
+> invocations, operator invocations, function expression invocations of
+> `call`, object patterns, and relational patterns)*.
 
 ```dart
 // In 'l.dart'.
@@ -1079,6 +1108,10 @@ When `p1.dart` is selected, `'hello'.tag` invokes `ObjectTag.tag`, so
 compile-time error. When `p2.dart` is selected, `_StringTag` is more
 specific than `ObjectTag`, `'hello'.tag` invokes `_StringTag.tag`, so
 `taggedValue` has the inferred type `int`, and `useTagged` has no errors.
+The same issue arises when the unconditional file resolves an extension
+implicitly via an object pattern (`switch ('hello') { String(:final tag) =>
+tag }`), a function expression invocation (`'hello'()`), an operator
+expression (`box + 1`), or a relational pattern.
 
 #### Superinterfaces of augmented type declarations
 
@@ -1340,13 +1373,21 @@ can be sufficient to cause an error in another library:
 
 > It is a **compile-time error** for a declaration in a conditional part,
 > whether introductory or augmenting, to declare a non-`final` instance
-> variable or concrete instance getter with a private name `_x`, or for a
-> class or enum declaration in a conditional part, whether introductory or
-> augmenting, to induce a `noSuchMethod` forwarder for a getter with a
-> private name `_x`, if `_x` is promotable in the unconditional files.
+> variable, an `external` instance variable, a concrete instance getter, or
+> an augmenting `final` instance variable that augments an introductory
+> getter declaration, with a private name `_x`, or for a class or enum
+> declaration in a conditional part, whether introductory or augmenting, to
+> induce a `noSuchMethod` forwarder for a getter with a private name `_x`,
+> if `_x` is promotable in the unconditional files.
 > For this purpose, an instance getter in an unconditional file whose
 > introductory declaration has the modifier `concrete` is a concrete
 > getter.
+> Furthermore, field promotability in a library *L* is determined solely by
+> its unconditional files *L*<sub>*u*</sub> *(ignoring conditional parts,
+> treating `concrete` getters in *L*<sub>*u*</sub> as concrete getters, and
+> treating getters and `abstract final` instance variables with undetermined
+> abstractness as unimplemented when computing `noSuchMethod`-forwarding
+> getters, even when *L* is compiled with a conditional part included)*.
 
 ```dart
 // In 'l.dart'.
@@ -1387,7 +1428,14 @@ the inferred type `int? Function(A)`, and `main.dart` has a compile-time
 error. If the analysis of `l.dart` ignored `p2.dart` and promoted
 `a._value` then the program would be unsound: `valueOrZero(makeA())` reads
 `_value` twice, obtains `1` and then `null`, and returns `null` with the
-static type `int`.
+static type `int`. The same problem occurs if `_B` declares
+`external final int? _value;`, or if `p2.dart` completes an abstract getter
+`int? get _value;` with `augment final int? _value = 0;` when that
+augmentation is treated as a concrete getter. Conversely, determining field
+promotability solely from the unconditional files prevents a conditional
+part from enabling promotion of a private name that is non-promotable in
+`l.dart` (for example, by completing an undetermined-abstractness getter
+with `augment final` and thereby removing a `noSuchMethod` forwarder).
 
 #### Default values and super-parameters
 
@@ -1792,9 +1840,10 @@ error with either part.
 
 > It is a **compile-time error** if a name `m` is noSuchMethod forwarded in
 > a concrete class or enum `C`, and a superclass of `C` *(including any
-> mixin applied to `C`)* has an accessible declaration of `m` with
-> undetermined abstractness which is not a correct override of the member
-> signature named `m` in the interface of `C`.
+> mixin applied to `C`)* has an accessible declaration of `m` that is
+> either concrete or has undetermined abstractness, and which is not a
+> correct override of the member signature named `m` in the interface of
+> `C`.
 
 ```dart
 // In 'l.dart'.
@@ -1824,8 +1873,51 @@ concrete member named `m`, so a `noSuchMethod` forwarder is induced. When
 `p2.dart` is selected, `C` inherits the concrete method `A.m`, which is
 not a correct override of `void m([int i])`. This is a compile-time error
 because an implicitly induced `noSuchMethod` forwarder cannot override a
-declared method. With this constraint, `C` has a compile-time error with
-either part, and it can avoid the error by declaring `m`.
+declared method. The same error occurs in the reverse direction if `l.dart`
+declares `class Base { void m(int i) {} }` and
+`abstract class Middle extends Base { @override void m([int? i]); }`, and
+`C extends Middle` declares `noSuchMethod`: when `p2.dart` completes
+`Middle.m`, `C` inherits `Middle.m` without error, whereas when `p1.dart`
+leaves `Middle.m` abstract, `C` inherits the concrete `Base.m`, which is
+not a correct override of `Middle.m`. With this constraint, `C` has a
+compile-time error with either part, and it can avoid the error by
+declaring `m`.
+
+#### Enum mixins and `index` with undetermined abstractness
+
+> It is a **compile-time error** if an `enum` declaration `C` has a mixin
+> *(declared as a `mixin` or `mixin class`)* applied to it that declares an
+> instance member named `index` whose abstractness is undetermined.
+
+```dart
+// In 'l.dart'.
+mixin Indexed {
+  int get index;
+}
+
+// In 'p2.dart'.
+augment mixin Indexed {
+  augment int get index => 0;
+}
+
+// In 'main.dart'.
+enum Color with Indexed {
+  red;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+```
+
+Because `Color` declares a non-trivial `noSuchMethod`, the constraint on
+implementing a member with undetermined abstractness does not report an
+error on `Color` for lacking an implementation of `index`, and `Indexed.index`
+matches `Color`'s interface signature `int get index`. Without this
+constraint, `Color` has no errors when `p1.dart` is selected (inheriting
+`_Enum.index`), and has a compile-time error when `p2.dart` is selected
+because an enum cannot inherit a concrete member named `index` from an
+applied mixin. With this constraint, `Color` has a compile-time error with
+either part.
 
 #### Private name collisions and members with undetermined abstractness
 
