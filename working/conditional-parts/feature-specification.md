@@ -712,8 +712,8 @@ constraints below apply this principle.*
   `C` to have a **compile-time error** because it does not fully implement
   its interface.
 
-- It is a **compile-time error** if a super-invocation in a class, mixin, mixin
-  class, or enum `C` targets an instance member with undetermined
+- It is a **compile-time error** if a super-invocation in a class, mixin,
+  mixin class, or enum `C` targets an instance member with undetermined
   abstractness, or if an instance member with undetermined abstractness in
   a superclass overrides the concrete member in a further superclass that
   would otherwise be the target of the super-invocation. *In other words,
@@ -724,11 +724,13 @@ constraints below apply this principle.*
 - In a mixin application `S with M`, where `M` is a `mixin` declaration
   that contains a super-invocation of a member `m`, an instance member `m`
   with undetermined abstractness in `S` (or in a superclass of `S` and not
-  overridden) is not considered to be implemented in `S`, and "kills" any
-  implementation of `m` in a further superclass of `S`. Consequently, the
+  overridden) is not considered to be implemented in `S`. Consequently, the
   mixin application `S with M` has a **compile-time error** because `S`
   does not provide a concrete implementation of the super-invoked member
-  `m`.
+  `m`. *In particular, it is not sufficient that the superclass of the
+  class that declares `m` with undetermined abstractness has a concrete
+  implementation of `m`, the declaration with undetermined abstractness
+  "kills" all declarations of `m` beyond the undeterminedly abstract one.*
 
 - It is a **compile-time error** if a name `m` is noSuchMethod forwarded in
   a concrete class or enum `C`, and a superclass of `C` *(including any
