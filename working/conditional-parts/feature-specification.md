@@ -1227,7 +1227,8 @@ int useBox() => Box().unwrap();
 The interface of `Box` has a member named `unwrap` only when `p2.dart` is
 selected. Hence `useBox` has no errors with `p2.dart`, and it has a
 compile-time error with `p1.dart`. The same holds for a public constructor
-such as `Box.named();`, and an invocation `Box.named()` in `main.dart`.
+such as `Box.named();` in a class that already declares a constructor in
+`l.dart`, and an invocation `Box.named()` in `main.dart`.
 
 The rule has an exception for a declaration that overrides an inherited
 concrete member of a class or an enum without changing its member
@@ -1240,7 +1241,12 @@ reasons:
   and `p2.dart` adds `void foo() {}` to `M`. Moreover, `main.dart` declares
   `abstract class S implements A {}` and `class C extends S with M {}`. In
   this case `C` has no errors with `p2.dart`, and it has a compile-time
-  error with `p1.dart` because it does not implement `foo`.
+  error with `p1.dart` because it does not implement `foo`. Similarly, if
+  `l.dart` declares `mixin class M {}`, `p2.dart` adds
+  `@override String toString() => 'M';` to `M`, and `main.dart` declares
+  `class S { @override String toString({int radix = 10}) => 'S'; }` and
+  `class C extends S with M {}`, then `C` has no errors with `p1.dart` and
+  has an invalid-override error with `p2.dart`.
 
 - `operator ==`, `hashCode`, and `noSuchMethod` are excluded because a
   declaration that overrides the implementation in `Object` changes
@@ -1482,6 +1488,14 @@ has a superclass `GrandParent` whose constructor has the parameter list
 `augment Parent([super.value]);`. In this case the parameter of `Parent`
 has the default value `0` with `p2.dart`, and `null` with `p1.dart`.
 
+For member declarations, default values are disallowed so that
+unconditional files can be analyzed without inspecting conditional parts:
+if `l.dart` declares a class `Service` with `concrete void run([int
+timeout]);`, then allowing `p2.dart` to specify `augment void run([int
+timeout = 10]) {}` while `p1.dart` specifies `augment void run([int
+timeout]) {}` would make the missing-default-value error on `Service.run`
+depend on which part is selected.
+
 #### Constant constructors
 
 > It is a **compile-time error** for an augmenting constructor declaration
@@ -1636,21 +1650,15 @@ implementation.
 
 ```dart
 // In 'l.dart'.
-class Base<T> {
-  const Base();
-  T? get _default => null;
-}
-
-class Box<T> extends Base<T> {
+class Box<T> {
   const Box();
 }
 
 // In 'p2.dart'.
-const Object _zero = 0;
+const dynamic _zero = 0;
 
 augment class Box<T> {
-  @override
-  final T? _default = _zero as T?;
+  final T _default = _zero;
 }
 
 // In 'main.dart'.
@@ -1658,13 +1666,16 @@ const box = Box<String>();
 ```
 
 `Box._default` satisfies the rule about private instance members because
-`Box` inherits a concrete implementation of `_default`. However, its
-initializing expression is not a constant expression because it references
-the type parameter `T`. When
-`p1.dart` is selected, `Box<String>()` is a constant expression. When
-`p2.dart` is selected, the evaluation of `Box<String>()` evaluates
-`_zero as String?`, which fails, and this is a compile-time error in
-`main.dart`. In contrast, `Box<int>()` has no errors with either part.
+`Box` is not a `mixin` or `mixin class`, `_default` does not occur in
+`l.dart`, and no other augmented type declares `_default`. Moreover,
+`_zero` is a constant expression of type `dynamic`, so without this rule
+`l.dart` has no compile-time errors with either `p1.dart` or `p2.dart`.
+However, `_zero` evaluates to `0`, whose type `int` is not a subtype of
+the variable's type `T`. When `p1.dart` is selected, `Box<String>()` is a
+constant expression. When `p2.dart` is selected, evaluating `Box<String>()`
+attempts to initialize `_default` of type `String` with `0`, which fails,
+and this is a compile-time error in `main.dart`. In contrast, `Box<int>()`
+has no errors with either part.
 
 #### Suppressing the default constructor
 
@@ -1717,8 +1728,9 @@ abstract class Middle {
   void action();
 }
 
-mixin Indexed {
-  int get index;
+abstract class Forwarding {
+  @override
+  dynamic noSuchMethod(Invocation invocation);
 }
 
 // In 'p2.dart'.
@@ -1726,30 +1738,36 @@ augment abstract class Middle {
   augment void action() {}
 }
 
-augment mixin Indexed {
-  augment int get index => 0;
+augment abstract class Forwarding {
+  augment dynamic noSuchMethod(Invocation invocation) => null;
 }
 
 // In 'main.dart'.
 class Leaf extends Middle {}
 
-enum Color with Indexed { red }
+abstract interface class Task {
+  void run();
+}
+
+class Proxy extends Forwarding implements Task {}
 ```
 
 Without this constraint, `Leaf` has a compile-time error when `p1.dart` is
 selected because it has no implementation of `action`, and it has no errors
 when `p2.dart` is selected because it inherits `Middle.action`.
 
-`Color` shows why an implementation in a further superclass is not
-sufficient. Without this constraint, `Color` has no errors when `p1.dart`
-is selected because it inherits an implementation of `index` from the
-superclass of every enum. When `p2.dart` is selected, `Color` has a
-compile-time error because an enum cannot inherit a concrete member named
-`index` from a mixin.
+`Proxy` shows why an implementation in a further superclass is not
+sufficient, even when its signature matches the member with undetermined
+abstractness. Without this constraint, `Proxy` has a compile-time error
+when `p1.dart` is selected because it inherits `Object.noSuchMethod` and
+therefore fails to implement `Task.run`. When `p2.dart` is selected,
+`Proxy` inherits the concrete `Forwarding.noSuchMethod`, which is
+non-trivial and induces a `noSuchMethod` forwarder for `Task.run`, so
+`Proxy` has no errors.
 
-With this constraint, `Leaf` and `Color` have a compile-time error with
+With this constraint, `Leaf` and `Proxy` have a compile-time error with
 either part because they do not declare an implementation of `action`
-respectively `index`.
+respectively `noSuchMethod`.
 
 #### Super-invocations of a member with undetermined abstractness
 
@@ -1833,8 +1851,16 @@ an application of `Timestamps` must have a concrete implementation of
 `record`. Without this constraint, `RemoteRecorder with Timestamps` has a
 compile-time error when `p1.dart` is selected because
 `RemoteRecorder.record` is abstract, and it has no errors when `p2.dart` is
-selected. With this constraint, the mixin application is a compile-time
-error with either part.
+selected. The same issue arises when a further superclass provides an
+incompatible implementation: if `Recorder` declares
+`void record(Object event) {}`, `Base` declares
+`void record(String event) {}`, and
+`RemoteRecorder extends Base implements Recorder` declares
+`void record(Object event);`, then a mixin `Timestamps on Recorder`
+invoking `super.record(42)` makes `RemoteRecorder with Timestamps` a
+compile-time error with `p1.dart` because `Base.record` does not have the
+required type `void Function(Object)`, and valid with `p2.dart`. With this
+constraint, the mixin application is a compile-time error with either part.
 
 #### `noSuchMethod` forwarders and members with undetermined abstractness
 
@@ -1914,7 +1940,7 @@ implementing a member with undetermined abstractness does not report an
 error on `Color` for lacking an implementation of `index`, and `Indexed.index`
 matches `Color`'s interface signature `int get index`. Without this
 constraint, `Color` has no errors when `p1.dart` is selected (inheriting
-`_Enum.index`), and has a compile-time error when `p2.dart` is selected
+`Enum.index`), and has a compile-time error when `p2.dart` is selected
 because an enum cannot inherit a concrete member named `index` from an
 applied mixin. With this constraint, `Color` has a compile-time error with
 either part.
