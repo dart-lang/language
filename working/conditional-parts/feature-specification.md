@@ -1815,8 +1815,7 @@ compile-time error with either part.
 > In a mixin application `S with M`, where `M` is a `mixin` declaration
 > that contains a super-invocation of a member `m`, an instance member `m`
 > with undetermined abstractness in `S` (or in a superclass of `S` and not
-> overridden) is not considered to be implemented in `S`, and "kills" any
-> implementation of `m` in a further superclass of `S`. Consequently, the
+> overridden) is not considered to be implemented in `S`. Consequently, the
 > mixin application `S with M` has a **compile-time error** because `S`
 > does not provide a concrete implementation of the super-invoked member
 > `m`.
