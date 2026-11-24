@@ -536,7 +536,7 @@ same declaration.*
   declaration to contain an introductory member or constructor declaration
   _D_<sub>m</sub> with a public name _n_, which includes a constructor
   whose uniform name is `new`, except for the following case:
-  
+
   _D_<sub>m</sub> is an instance member declaration, and all of the
   following conditions hold:
   - _D_ is an `enum` or `class` declaration which is not a `mixin class`.
@@ -1055,7 +1055,7 @@ The rule has an exception for an overriding private declaration, whose
 requirements are needed for the following reasons:
 
 - The declaration _D_ must have the same member signature as the combined
-  member signature _s_ in the direct superinterfaces of _D_<sub>t</sub>. 
+  member signature _s_ in the direct superinterfaces of _D_<sub>t</sub>.
   Assume that `l.dart` declares `class A { num _value() => 1.5; }`,
   `class B extends A {}`, and `final x = B()._value();`, and `p2.dart`
   declares `augment class B { @override int _value() => 1; }`. This
