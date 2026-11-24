@@ -9,10 +9,10 @@ Version: 1.2
 Experiment flag: conditional-parts
 
 This document specifies _conditional parts_, a feature that extends `part`
-directives with configurable URIs so that different compilation environments can
-select different part files for inclusion in a library, while guaranteeing that
-the choice of conditional part file has no effect on the static analysis of the
-containing library or of any library that imports it.
+directives with configurable URIs so that different compilation
+environments can select different part files for inclusion in a library _L_,
+while guaranteeing that the choice of conditional part file has no effect
+on the static analysis of any library that imports _L_.
 
 This specification builds on [Parts with Imports][] and [Augmentations][].
 
@@ -75,12 +75,11 @@ for them to contain anything that violates this property.
 
 A `part` directive can now use the same configurable URI syntax as a
 conditional `import` or `export` directive to select a platform-specific
-part file, while static restrictions on conditional part files ensure that
-static analysis of the containing library as a whole—and of every library
-importing it—is independent of which conditional part file is selected.
-The configurable URI syntax is generalized slightly, such that the
-"default" URI (at the front) is optional; if no default is specified then
-it is a compile-time error if no configuration URI is selected.
+part file, while compile-time restrictions on conditional part files ensure
+that the choice has no effect on downstream code. The configurable URI
+syntax is generalized slightly, such that the "default" URI (at the front)
+is optional; it is a compile-time error if no default is specified and no
+configuration URI can be selected.
 
 Consider a library that exposes a platform-specific logger and an extensible
 `Channel` class:
@@ -222,15 +221,14 @@ Notice two central properties illustrated by this example:
    any library that imports `channel.dart`) does not depend on any
    conditional part. The analyzer can ignore conditional `part` directives
    when summarizing `channel.dart` for client libraries. To preserve this
-   property, a conditional part file cannot contain `export` directives,
-   constrains the introduction of public declarations (introductory
-   declarations are subject to constraints that prevent unconditional code
-   from depending on them), cannot add superinterfaces (`extends`, `on`,
-   `with`, or `implements`) or enum entries to augmented declarations,
-   cannot add direct subtypes to `sealed` types declared in unconditional
-   files, cannot specify default parameter values on augmenting
-   declarations, and cannot complete `const` constructors (because static
-   analysis needs to perform constant expression evaluation).
+   property, a conditional part file is subject to many constraints: It
+   cannot contain `export` directives, introduction of public declarations
+   is constrained, superinterfaces (`extends`, `on`, `with`, or
+   `implements`) or enum entries cannot be added by declarations augmenting
+   declarations in unconditional files, direct subtypes cannot be added to
+   `sealed` types declared in unconditional files, formal parameter default
+   values cannot be specified in augmenting declarations, and complete
+   `const` constructors cannot be declared in conditional part files.
 
 2. **The `concrete` modifier**: In `abstract class Channel`, both `send`
    and `close` are written without a body in `channel.dart`. Without an
@@ -249,13 +247,14 @@ Notice two central properties illustrated by this example:
    rather than implicitly defaulting to an empty initializer list and empty
    body.
 
-   *TODO: Can we eliminate abstractness control on constructors entirely?
-   A constructor which is introduced in unconditional code may be
-   generative with no initializer list and no body. Some instance variables
-   may then be left uninitialized according to unconditional code. We can
-   make it `concrete` and check that the missing initializer list elements
-   are added in an augmentation in the conditional code. Is this enough
-   to motivate having `concrete` support for constructors?*
+   *One might think that abstractness control on constructors is
+   superfluous. However, a constructor which is introduced in unconditional
+   code may be generative with no initializer list and no body. Some
+   instance variables may then be left uninitialized according to
+   unconditional code. This causes the unconditional code to have a
+   compile-time error. But we can make it `concrete` and check that the
+   missing initializer list elements are added in an augmentation in the
+   conditional code of every choice of part file.*
 
 ## Specification
 
@@ -327,8 +326,7 @@ compile-time error if any string literal occurring as a `<uri>` or in a
 `import` and `export` directives: the default `<uri>`, if present, is
 chosen unless one or more `<configurationUri>` tests evaluate to true in
 the compilation environment, in which case the `<uri>` of the first such
-`<configurationUri>` in source order is chosen. A compile-time error occurs
-if no default is specified and no configuration Uri is selected.*
+`<configurationUri>` in source order is chosen.*
 
 We say that a Dart file *F* _includes_ the part file *P* denoted by the URI *U*
 specified by a `<partDirective>` in *F* (resolved relative to the URI of *F*).
@@ -342,9 +340,10 @@ specified by a `<partDirective>` in *F* (resolved relative to the URI of *F*).
   resolved relative to *U*, does not denote *F*.
 
 - It is a **compile-time error** if a conditional part file contains a
-  conditional part directive. *In other words, a conditional part is
-  included together with the entire file tree under it, never just some
-  of the files in that file tree.*
+  conditional part directive. *Hence, a conditional part is included
+  together with the entire file tree under it, never just some of the files
+  in that file tree. In other words, we cannot have nested conditional
+  parts with different conditions.*
 
 - All part-tree well-formedness rules from [Parts with Imports][] apply to the
   tree of included part files of a library *L*: it is a **compile-time error**
@@ -353,10 +352,10 @@ specified by a `<partDirective>` in *F* (resolved relative to the URI of *F*).
   included part file does not have the same language version, language-version
   override marker status, and enclosing package as its parent file.
 
-For a library *L* with defining library file *F*<sub>0</sub>:
+For a library *L* with library file *F*<sub>0</sub>:
 
 - The _unconditional files_ of *L* are *F*<sub>0</sub> together with every part
-  file reachable from *F*<sub>0</sub> through zero or more *unconditional*
+  file reachable from *F*<sub>0</sub> through one or more *unconditional*
   `part` directives.
 
 - A _conditional part file_ of *L* (in a given compilation environment) is any
@@ -364,9 +363,12 @@ For a library *L* with defining library file *F*<sub>0</sub>:
 
   *Equivalently, a part file of *L* is a conditional part file if and only
   if the path of `part` directives from *F*<sub>0</sub> to that file
-  contains at least one conditional `part` directive. Every sub-part
-  included by a conditional part file, whether by an unconditional or a
-  conditional `part` directive, is therefore also a conditional part file.*
+  contains a conditional `part` directive. Every sub-part included by a
+  conditional part file is therefore also a conditional part file.*
+
+Finally, we reduce the support for instance variable promotions: a private
+instance variable whose introductory declaration occurs in the
+unconditional files of a library with conditional parts is not promotable.
 
 #### The `concrete` modifier
 
@@ -404,6 +406,10 @@ It is a **compile-time error** if:
   constant, hence none of them can have a complete augmenting declaration in
   a conditional part.*
 
+- An `extension type` or `extension` declaration has an introductory
+  instance member declaration with the modifier `concrete`. *Extension and
+  extension type instance members cannot be abstract.*
+
 - A declaration with the modifier `concrete` is not complete after all
   augmentations in the library including those in included conditional part
   files have been applied. In particular, unlike an unmarked incomplete
@@ -416,18 +422,21 @@ It is a **compile-time error** if:
   compute. A simple case arises when there is just one conditional part in
   the entire library file set; in this case we just cover each of the
   specified choices in the conditional part directive. In the general case
-  we could skip the completeness check in the analyzer and just perform the
-  regular completeness checks for the given compilation environment during
-  compilation.*
+  we will probably have to consider all combinations of choices of a
+  conditional part file as possible outcomes and check its completeness.
+  We could skip this completeness check entirely in the analyzer, and just
+  rely on the compilers to perform the check on the specific configuration
+  which is being compiled. In this situation it is just a standard element
+  in the static analysis of a library with parts and augmentations.*
+
+For static analysis by the analyzer, every conditional part directive is
+treated as if it were not present.  *That is, all knowledge about
+completeness obtained in a conditional part is ignored, relying entirely on
+unconditional completeness, and on the modifier `concrete`.*
 
 For static analysis of a class, mixin, mixin class, enum, or extension type
 declaration *D* *(both when analyzing the unconditional files of the
 library and when analyzing any library that imports it)*:
-
-- Every conditional part directive is treated as if it were not present.
-  *That is, all knowledge about completeness obtained in a conditional part
-  is ignored, relying entirely on unconditional completeness, and on the
-  modifier `concrete`.*
 
 - If *D* is not an extension type, an instance member declaration of *D*
   whose introductory declaration has the modifier `concrete` (or which is
@@ -440,11 +449,6 @@ library and when analyzing any library that imports it)*:
   - Super-invocations (`super.m(...)`, `super.m`, `super.m = e`, and
     super-operator invocations) targeting the member are permitted, subject
     to the usual signature checks.
-
-- It is a **compile-time error** if *D* is an `extension type` or an
-  `extension` and *D* has an introductory instance member declaration with
-  the modifier `concrete`.  *Extension and extension type instance members
-  cannot be abstract.*
 
 - If *D* is not an `extension type`, and *D* is declared in a library
   whose unconditional files contain a conditional `part` directive, an
@@ -470,10 +474,10 @@ if they were not present.
 
 #### Restrictions on conditional part files
 
-*The intention is that it is a compile-time error for a conditional part file to contain any
-directive or declaration that can alter or invalidate the static analysis of the
-unconditional files of the containing library, or of any library importing the
-containing library.*
+*The intention is that it is a compile-time error for a conditional part
+file to contain any directive or declaration that can alter or invalidate
+the static analysis of the unconditional files of the containing library,
+or of any library importing the containing library.*
 
 We say that an augmenting declaration *D* _augments an unconditional
 declaration_ if the introductory declaration with the same name as *D* in
@@ -514,117 +518,82 @@ same declaration.*
   alternative is to make every introductory `extension` declaration in a
   conditional part a compile-time error.*
 
-- It is a **compile-time error** for an augmenting type declaration in a
-  conditional part that augments an unconditional declaration to have an
-  `extends`, `on`, `with`, or `implements` clause.
+- It is a **compile-time error** for an augmenting type introducing
+  declaration in a conditional part that augments an unconditional
+  declaration to have an `extends`, `on`, `with`, or `implements` clause.
 
-- It is a **compile-time error** for a type declaration in a conditional
-  part, whether introductory or augmenting, to have a `sealed` class or
-  `sealed` mixin declared in an unconditional file as a direct
+- It is a **compile-time error** for a type introducing declaration in a
+  conditional part, whether introductory or augmenting, to have a `sealed`
+  class or a `sealed` mixin declared in an unconditional file as a direct
   superinterface.
 
 - It is a **compile-time error** for an augmenting `enum` declaration in a
   conditional part that augments an unconditional declaration to declare
   any enum entries.
 
-- It is a **compile-time error** for an augmenting declaration in a
-  conditional part that augments an unconditional declaration `D` to
-  contain an introductory member or constructor declaration with a public
-  name, which includes a constructor whose uniform name is `new`. However,
-  it is not an error for the augmenting declaration to contain an
-  introductory instance member declaration with a public name `n` if `D`
-  is an `enum`, or a `class` which is not a `mixin class`, and all of the
+- It is a **compile-time error** for an augmenting type introducing
+  declaration _D_ in a conditional part that augments an unconditional
+  declaration to contain an introductory member or constructor declaration
+  _D_<sub>m</sub> with a public name _n_, which includes a constructor
+  whose uniform name is `new`, except for the following case:
+  
+  _D_<sub<m</sub> is an instance member declaration, and all of the
   following conditions hold:
-  - `n` is not `==`, `hashCode`, or `noSuchMethod`.
-  - `D` inherits a concrete implementation of `n` in the unconditional
-    files, and the declaration is complete, or it is completed by an
-    augmenting declaration in the same conditional part file or in the file
-    tree under it.
-  - The declaration has the same member signature as that implementation,
-    and as the combined member signature of the same name in the direct
-    superinterfaces of `D`.
+  - _D_ is an `enum` or `class` declaration which is not a `mixin class`.
+  - _n_ is not `==`, `hashCode`, or `noSuchMethod`.
+  - _D_ inherits a concrete implementation of _n_ in the unconditional
+    files, and _D_<sub>m</sub> is a complete declaration, or it is
+    completed by an augmenting declaration in the same conditional part
+    file or in the file tree under it. _D_<sub>m</sub> has the same member
+    signature as said inherited implementation, and as the combined member
+    signature of the same name in the direct superinterfaces of _D_. *The
+    inherited implementation must be a valid implementation of n in D.*
   - No top-level declaration, import prefix, or imported declaration with
-    the basename of `n` is in scope at an unconditional declaration of `D`.
+    the basename of _n_ is in scope at an unconditional declaration of _D_.
+    *This would cause n to be shadowed by the member declaration for code
+    in the bodies of D members.*
 
   *In other words, a conditional part can override an inherited public
   instance member of a class or an enum when the override changes neither
-  the interface of `D` nor the abstractness of the member. The member
-  signature includes the modifier `covariant` on each parameter. The last
-  condition ensures that an unqualified occurrence of the name in a member
-  of an unconditional declaration of `D` denotes the instance member
-  whether or not the conditional part is included. The rules about
-  instance variables below apply to such a declaration as well.*
+  the interface of D nor the abstractness of the member.*
 
 - It is a **compile-time error** for an augmenting declaration in a
   conditional part that augments an unconditional declaration to contain
   an introductory instance member declaration that is not complete after
   all augmentations in the conditional part have been applied.
+  *The conditional code cannot add an obligation to implement a member,
+  private or public, to be fulfilled by code in unconditional files, or
+  at some other location in downstream code.*
+
   *Note that for downstream code in other libraries, an unimplemented
   private member in an `abstract` class does not cause a compile-time
-  error in concrete subclasses in other libraries, and if a concrete
-  subclass is in the same library then standard completeness rules
-  already report an error when the conditional part is included. This
-  rule is only needed so that concrete subclasses in unconditional files
-  of the same library can be analyzed without inspecting conditional
-  parts.*
+  error in concrete subclasses in other libraries. We still maintain this
+  error in order to avoid the situation where a noSuchMethod thrower
+  is implicitly generated in such subclasses.*
 
-- It is a **compile-time error** for an augmenting declaration of a type `D`
-  in a conditional part that augments an unconditional declaration to
-  contain an introductory private instance member declaration with name
-  `n` *(where a non-final variable with identifier `_v` introduces both a
-  getter with name `_v` and a setter with name `_v=`)* unless one of the
-  following conditions holds:
-  - `D` is not an `extension type` nor a `mixin`, `D` inherits a concrete
+- It is a **compile-time error** for an augmenting declaration _D_ in a
+  conditional part that augments an unconditional declaration to contain an
+  introductory private instance member declaration with name `n` unless one
+  of the following conditions holds:
+  - _D_ is not an `extension type` nor a `mixin`, _D_ inherits a concrete
     implementation of `n` in the unconditional files, and no top-level
     declaration or import prefix with the basename of `n` is in scope at
-    an unconditional declaration of `D`.
+    an unconditional declaration of _D_.
     *The last requirement ensures that an unqualified occurrence of the
-    name in a member of an unconditional declaration of `D` has the same
+    name in a member of an unconditional declaration of _D_ has the same
     meaning whether or not the conditional part is included.*
-  - Neither `D` nor any subtype of `D` in the library has a public name or
-    is aliased by a `typedef` with a public name in the library, and no name
-    whose basename is the basename of `n` occurs in an unconditional file.
-  - `D` is not a `mixin` or `mixin class`, no name whose basename is the
-    basename of `n` occurs in an unconditional file, and no augmenting
-    declaration in a conditional part in the same compilation environment
-    that augments an unconditional declaration of a type other than `D`
-    contains an introductory instance member declaration with the same
-    basename as `n`.
-    *In other words, a conditional part can add a private instance member
-    with a fresh name to a single type declared in an unconditional file.
-    Introductory type declarations in the conditional part can override
-    it. Note that if a concrete class in the unconditional files
-    implements `D` without inheriting the new member then standard
-    completeness rules report an error when the conditional part is
-    included.*
-
-- It is a **compile-time error** for a declaration in a conditional part,
-  whether introductory or augmenting, to declare a non-`final` instance
-  variable, an `external` instance variable, a concrete instance getter, or
-  an augmenting `final` instance variable that augments an introductory
-  getter declaration, with a private name `_x`, or for a class or enum
-  declaration in a conditional part, whether introductory or augmenting, to
-  induce a `noSuchMethod` forwarder for a getter with a private name `_x`,
-  if `_x` is promotable in the unconditional files.
-  *That is, if a property access to `_x` is subject to promotion when the
-  unconditional files are analyzed with every conditional part directive
-  ignored. This includes the case where the unconditional files declare
-  `_x` as a `late final` instance variable, an `abstract final` instance
-  variable, or an abstract getter.*
-  For this purpose, an instance getter in an unconditional file whose
-  introductory declaration has the modifier `concrete` is a concrete
-  getter. *Hence `_x` is not promotable in the unconditional files, and a
-  conditional part can complete the getter without restrictions.*
-  Furthermore, field promotability in a library *L* is determined solely by
-  its unconditional files *L*<sub>*u*</sub> *(ignoring conditional parts,
-  treating `concrete` getters in *L*<sub>*u*</sub> as concrete getters, and
-  treating getters and `abstract final` instance variables with undetermined
-  abstractness as unimplemented when computing `noSuchMethod`-forwarding
-  getters, even when *L* is compiled with a conditional part included)*.
-  *This ensures that a conditional part cannot turn a private name that is
-  non-promotable in *L*<sub>*u*</sub> into a promotable one by eliminating a
-  `noSuchMethod` forwarder or completing a `concrete` getter with an
-  augmenting `final` instance variable.*
+  - Neither _D_ nor any subtype of _D_ in the library has a public name or
+    is aliased by a `typedef` with a public name in the library, and no
+    identifier whose basename is the basename of `n` occurs in an
+    unconditional file.
+  - _D_ is not a `mixin` or `mixin class`, no identifier whose basename is
+    the basename of `n` occurs in an unconditional file, and no augmenting
+    declaration in a conditional part that augments an unconditional
+    declaration of a type other than _D_ contains an introductory instance
+    member declaration with the same basename as `n`. *In other words, a
+    conditional part can add a private instance member with a fresh name to
+    a single type declared in an unconditional file.  Introductory type
+    declarations in the conditional part can override it.*
 
 - It is a **compile-time error** for an augmenting generative constructor
   declaration or member declaration in a conditional part that augments a
@@ -634,24 +603,25 @@ same declaration.*
 
 - It is a **compile-time error** for an augmenting constructor declaration
   in a conditional part that augments a constructor declared in an
-  unconditional file to be `const` and complete.
+  unconditional file to be `const` and complete. *Constant expression
+  evaluation must not depend on the selection of a conditional part.*
 
-- It is a **compile-time error** for an augmenting declaration of a type `D`
+- It is a **compile-time error** for an augmenting declaration of a type _D_
   in a conditional part that augments an unconditional declaration to
-  complete a declaration of `operator ==` or `hashCode` *(including by an
+  complete a declaration of operator `==` or `hashCode` *(including by an
   augmenting instance variable declaration `hashCode`)* unless the
   introductory declaration of that member has the modifier `concrete`.
 
 - It is a **compile-time error** for an augmenting declaration of a `mixin`
-  or `mixin class` `D` in a conditional part that augments an unconditional
+  or `mixin class` _D_ in a conditional part that augments an unconditional
   declaration to declare a non-`abstract`, non-`external` instance
   variable.
 
 - It is a **compile-time error** for an augmenting `mixin` declaration in a
   conditional part that augments an unconditional declaration to contain a
-  super-invocation of a member named `n`, unless a declaration of that
+  super-invocation of a member named _n_, unless a declaration of that
   mixin in an unconditional file contains a super-invocation of a member
-  named `n`.
+  named _n_.
   *For example, `super.m()` and `super.m` invoke the member named `m`,
   `super.m = e` invokes the member named `m=`, and `super + e` invokes the
   member named `+`. This ensures that the set of super-invoked members of
@@ -663,9 +633,9 @@ same declaration.*
   superclass is `Object`, and every superclass in a mixin application has
   a concrete implementation of each member of `Object`.*
 
-- It is a **compile-time error** for an augmenting declaration of a type `D`
+- It is a **compile-time error** for an augmenting declaration of a type _D_
   in a conditional part to declare a non-`abstract`, non-`external`
-  instance variable when `D` declares a `const` generative constructor,
+  instance variable when _D_ declares a `const` generative constructor,
   unless the variable is an introductory private `final` instance variable,
   has an initializing expression that is a constant expression, and the
   initializing expression evaluates without error as a constant expression
@@ -675,23 +645,19 @@ same declaration.*
   compile-time error in the library itself, and adding a `final`
   instance variable with a validated constant initializer whose type and
   expression do not depend on constructor parameters or type parameters
-  gives every constant instance of `D` the same field value and cannot
-  fail during downstream constant evaluation. However, if constant
-  evaluation of `D` in downstream code is performed without inspecting
-  conditional parts at all, one can more broadly make it a compile-time
-  error for an augmenting declaration of `D` in a conditional part to
-  declare any non-`abstract`, non-`external` instance variable when `D`
-  declares a `const` generative constructor.*
+  gives every constant instance of _D_ the same field value and cannot
+  fail during downstream constant evaluation.*
 
-- It is a **compile-time error** for an augmenting declaration `D` of a
+- It is a **compile-time error** for an augmenting declaration _D_ of a
   `class`, `mixin class`, or `enum` in a conditional part that augments an
   unconditional declaration to contain an introductory constructor
-  declaration if `D` does not explicitly declare any constructor in an
-  unconditional file. *This will eliminate the default constructor.*
+  declaration if _D_ does not explicitly declare any constructor in an
+  unconditional file. *This would eliminate the default constructor, which
+  can break downstream code.*
 
 Some constraints apply to declarations that depend on an instance member
 with undetermined abstractness. They apply in the library that declares
-the member, and in every other library:
+the member, and in every other library.
 
 *The general principle is that the implementation of a member with
 undetermined abstractness is treated as absent when it is required to be
@@ -771,14 +737,14 @@ constraints below apply this principle.*
 Let *L* be a library and let *L*<sub>*u*</sub> be the set of unconditional files
 of *L*.
 
-- **Analyzing libraries that import *L***: Because no valid conditional part
+- Analyzing libraries that import *L*: Because no valid conditional part
   file of *L* can change *L*'s exported namespace, public type hierarchy,
   `sealed` subtype sets, public member signatures, abstract-versus-concrete
   member status, default parameter values, enum entries, or constant
   expressions, a tool analyzing any library *L'* that imports or exports *L* may
   ignore all conditional `part` directives in *L*<sub>*u*</sub>.
 
-- **Analyzing *L*<sub>*u*</sub>**: Because no reference in *L*<sub>*u*</sub> can
+- Analyzing *L*<sub>*u*</sub>: Because no reference in *L*<sub>*u*</sub> can
   resolve to an introductory private declaration in a conditional part file, and
   no introductory private declaration in a conditional part file can conflict
   with, shadow, or add abstract members or `sealed` subtypes to declarations in
@@ -791,15 +757,20 @@ of *L*.
   all declarations in *L*<sub>*u*</sub> is also checked on *L*<sub>*u*</sub>
   alone.
 
-- **Analyzing and compiling *L* in a compilation environment**: Given a
-  compilation environment, each conditional `part` directive specifies a URI,
-  determining the complete tree of files of *L*. Static analysis of the selected
-  conditional part files checks their directives, introductory private
-  declarations, and augmenting declarations against *L*<sub>*u*</sub>, applies
-  all augmentations in augmentation application order, and verifies that every
-  declaration requiring completion *(top-level, `static`, `extension`,
-  non-constant `factory`, `concrete`, and introductory member declarations in
-  conditional parts)* is complete.
+- Analyzing and compiling *L* in a compilation environment: With a given
+  compilation environment, each conditional `part` directive specifies a
+  URI, determining the complete tree of files of *L*. Static analysis of
+  the selected conditional part files checks their directives, introductory
+  private declarations, and augmenting declarations against
+  *L*<sub>*u*</sub>, applies all augmentations in augmentation application
+  order, and verifies that every declaration requiring completion
+  *(top-level, `static`, `extension`, non-constant `factory`, `concrete`,
+  and introductory member declarations in conditional parts)* is complete.
+
+  *This process is identical to the analysis and compilation process where
+  every conditional part directive in L has been replaced by the
+  unconditional (regular) part directive specifying the same choice of part
+  file.*
 
 ### Dynamic semantics
 
@@ -818,9 +789,9 @@ This feature is language versioned.
 breaking syntactic change for pre-feature code that uses `concrete` as a type
 name or import prefix.*
 
-As required by [Parts with Imports][], every part file of a library—including
-every conditional part file—must have the same language version as its parent
-file.
+As required by [Parts with Imports][], every part file of a library,
+including every conditional part file, must have the same language version
+as its parent file.
 
 ### Discussion
 
