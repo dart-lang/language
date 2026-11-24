@@ -499,13 +499,13 @@ same declaration.*
   following conditions hold:
   - No name whose basename is the basename of _n_ occurs in an
     unconditional file in the file tree of the enclosing library.
-  - The declaration _D_ is an overriding declaration with the same
-    member signature as the combined member signature _s_ of the same name
-    in the direct superinterfaces of the enclosing type-introducing
-    declaration _Dt_. Moreover, if _Dt_ inherits an implementation of _n_
-    then it must have the same signature as _D_, and _D_ must be complete,
-    or it must be completed by an augmentation in the same conditional
-    part file _F_ or in a file in the file tree under _F_.
+  - The declaration _D_ is an overriding declaration with the same member
+    signature as the combined member signature _s_ of the same name in the
+    direct superinterfaces of the enclosing type-introducing declaration
+    _D_<sub>t</sub>. Moreover, if _D_<sub>t</sub> inherits an
+    implementation of _n_ then it must have the same signature as _D_, and
+    _D_ must be complete, or it must be completed by an augmentation in the
+    same conditional part file _F_ or in a file in the file tree under _F_.
 
 - It is a **compile-time error** if an introductory `extension` declaration
   in a conditional part is applicable to any implicit extension member
@@ -1022,10 +1022,10 @@ undefined function with `p1.dart`.
 > - The declaration _D_ is an overriding declaration with the same
 >   member signature as the combined member signature _s_ of the same name
 >   in the direct superinterfaces of the enclosing type-introducing
->   declaration _Dt_. Moreover, if _Dt_ inherits an implementation of _n_
->   then it must have the same signature as _D_, and _D_ must be complete,
->   or it must be completed by an augmentation in the same conditional
->   part file _F_ or in a file in the file tree under _F_.
+>   declaration _D_<sub>t</sub>. Moreover, if _D_<sub>t</sub> inherits an
+>   implementation of _n_ then it must have the same signature as _D_, and
+>   _D_ must be complete, or it must be completed by an augmentation in the
+>   same conditional part file _F_ or in a file in the file tree under _F_.
 
 ```dart
 // In 'l.dart'.
@@ -1055,8 +1055,8 @@ The rule has an exception for an overriding private declaration, whose
 requirements are needed for the following reasons:
 
 - The declaration _D_ must have the same member signature as the combined
-  member signature _s_ in the direct superinterfaces of _Dt_. Assume that
-  `l.dart` declares `class A { num _value() => 1.5; }`,
+  member signature _s_ in the direct superinterfaces of _D_<sub>t</sub>. 
+  Assume that `l.dart` declares `class A { num _value() => 1.5; }`,
   `class B extends A {}`, and `final x = B()._value();`, and `p2.dart`
   declares `augment class B { @override int _value() => 1; }`. This
   satisfies the rule about private instance members because `B` inherits
@@ -1065,8 +1065,8 @@ requirements are needed for the following reasons:
   `int useX() => x;` in `main.dart` has a compile-time error with `p1.dart`
   only.
 
-- If _Dt_ inherits an implementation of _n_ then it must have the same
-  signature as _D_. Assume that `l.dart` declares
+- If _D_<sub>t</sub> inherits an implementation of _n_ then it must have
+  the same signature as _D_. Assume that `l.dart` declares
   `class A { num _value() => 1.5; }`,
   `abstract interface class I { int _value(); }`,
   `abstract class B extends A implements I {}`, and
