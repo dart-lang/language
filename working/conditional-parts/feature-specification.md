@@ -710,15 +710,18 @@ constraints below apply this principle.*
   declaration in a further superclass that was "killed" by a member with
   undetermined abstractness. `C` can avoid the error by declaring _m_.*
 
-- It is a **compile-time error** if an `enum` declaration `C` has a mixin
-  *(declared as a `mixin` or `mixin class`)* applied to it that declares an
-  instance member named `index` whose abstractness is undetermined.
-  *An `enum` cannot inherit a concrete member named `index` from an applied
-  mixin. When `C` declares a non-trivial `noSuchMethod`, the rule above
-  about implementing members with undetermined abstractness does not report
-  a missing-implementation error for `index`, so this constraint ensures
-  that the error does not depend on whether a conditional part completes
-  `index`.*
+- It is a **compile-time error** if a `class` *(including an `abstract`
+  class or a mixin application class)* or `enum` declaration `C` has
+  `Enum` as a superinterface, and a superclass of `C` *(including any
+  mixin applied to `C` or to a superclass of `C`)* declares an instance
+  member named `index` whose abstractness is undetermined.
+  *A class or `enum` that implements `Enum` cannot inherit a concrete
+  member named `index` from a superclass or an applied mixin. When `C` is
+  abstract, or when `C` is an `enum` that declares a non-trivial
+  `noSuchMethod`, the rule above about implementing members with
+  undetermined abstractness does not report a missing-implementation error
+  for `index`, so this constraint ensures that the error does not depend
+  on whether a conditional part completes `index`.*
 
 - It is a **compile-time error** if a mixin application `S with M` occurs
   in a library other than the library that declares `M`, `M` declares an
@@ -1850,24 +1853,36 @@ not a correct override of `Middle.m`. With this constraint, `C` has a
 compile-time error with either part, and it can avoid the error by
 declaring _m_.
 
-#### Enum mixins and `index` with undetermined abstractness
+#### `Enum` subtypes and `index` with undetermined abstractness
 
-> It is a **compile-time error** if an `enum` declaration `C` has a mixin
-> *(declared as a `mixin` or `mixin class`)* applied to it that declares an
-> instance member named `index` whose abstractness is undetermined.
+> It is a **compile-time error** if a `class` *(including an `abstract`
+> class or a mixin application class)* or `enum` declaration `C` has
+> `Enum` as a superinterface, and a superclass of `C` *(including any
+> mixin applied to `C` or to a superclass of `C`)* declares an instance
+> member named `index` whose abstractness is undetermined.
 
 ```dart
 // In 'l.dart'.
+abstract class Base {
+  int get index;
+}
+
 mixin Indexed {
   int get index;
 }
 
 // In 'p2.dart'.
+augment abstract class Base {
+  augment int get index => 0;
+}
+
 augment mixin Indexed {
   augment int get index => 0;
 }
 
 // In 'main.dart'.
+abstract class MyEnum extends Base implements Enum {}
+
 enum Color with Indexed {
   red;
 
@@ -1876,15 +1891,16 @@ enum Color with Indexed {
 }
 ```
 
-Because `Color` declares a non-trivial `noSuchMethod`, the constraint on
-implementing a member with undetermined abstractness does not report an
-error on `Color` for lacking an implementation of `index`, and `Indexed.index`
-matches `Color`'s interface signature `int get index`. Without this
-constraint, `Color` has no errors when `p1.dart` is selected (inheriting
-`Enum.index`), and has a compile-time error when `p2.dart` is selected
-because an enum cannot inherit a concrete member named `index` from an
-applied mixin. With this constraint, `Color` has a compile-time error with
-either part.
+Because `MyEnum` is abstract and `Color` declares a non-trivial
+`noSuchMethod`, the constraint on implementing a member with undetermined
+abstractness does not report an error on either declaration for lacking an
+implementation of `index`, and `Indexed.index` matches `Color`'s interface
+signature `int get index`. Without this constraint, both `MyEnum` and
+`Color` have no errors when `p1.dart` is selected, and both have a
+compile-time error when `p2.dart` is selected because a class or enum that
+implements `Enum` cannot inherit a concrete member named `index` from a
+superclass or an applied mixin. With this constraint, both `MyEnum` and
+`Color` have a compile-time error with either part.
 
 #### Private name collisions and members with undetermined abstractness
 
