@@ -573,24 +573,24 @@ same declaration.*
 
 - It is a **compile-time error** for an augmenting declaration _D_ in a
   conditional part that augments an unconditional declaration to contain an
-  introductory private instance member declaration with name `n` unless one
+  introductory private instance member declaration with name _n_ unless one
   of the following conditions holds:
   - _D_ is not an `extension type` nor a `mixin`, _D_ inherits a concrete
-    implementation of `n` in the unconditional files, and no top-level
-    declaration or import prefix with the basename of `n` is in scope at
+    implementation of _n_ in the unconditional files, and no top-level
+    declaration or import prefix with the basename of _n_ is in scope at
     an unconditional declaration of _D_.
     *The last requirement ensures that an unqualified occurrence of the
     name in a member of an unconditional declaration of _D_ has the same
     meaning whether or not the conditional part is included.*
   - Neither _D_ nor any subtype of _D_ in the library has a public name or
     is aliased by a `typedef` with a public name in the library, and no
-    identifier whose basename is the basename of `n` occurs in an
+    identifier whose basename is the basename of _n_ occurs in an
     unconditional file.
   - _D_ is not a `mixin` or `mixin class`, no identifier whose basename is
-    the basename of `n` occurs in an unconditional file, and no augmenting
+    the basename of _n_ occurs in an unconditional file, and no augmenting
     declaration in a conditional part that augments an unconditional
     declaration of a type other than _D_ contains an introductory instance
-    member declaration with the same basename as `n`. *In other words, a
+    member declaration with the same basename as _n_. *In other words, a
     conditional part can add a private instance member with a fresh name to
     a single type declared in an unconditional file.  Introductory type
     declarations in the conditional part can override it.*
@@ -688,27 +688,27 @@ constraints below apply this principle.*
   resolving super-invocations.*
 
 - In a mixin application `S with M`, where `M` is a `mixin` declaration
-  that contains a super-invocation of a member `m`, an instance member `m`
+  that contains a super-invocation of a member _m_, an instance member _m_
   with undetermined abstractness in `S` (or in a superclass of `S` and not
   overridden) is not considered to be implemented in `S`. Consequently, the
   mixin application `S with M` has a **compile-time error** because `S`
   does not provide a concrete implementation of the super-invoked member
-  `m`. *In particular, it is not sufficient that the superclass of the
-  class that declares `m` with undetermined abstractness has a concrete
-  implementation of `m`, the declaration with undetermined abstractness
-  "kills" all declarations of `m` beyond the undeterminedly abstract one.*
+  _m_. *In particular, it is not sufficient that the superclass of the
+  class that declares _m_ with undetermined abstractness has a concrete
+  implementation of _m_, the declaration with undetermined abstractness
+  "kills" all declarations of _m_ beyond the undeterminedly abstract one.*
 
-- It is a **compile-time error** if a name `m` is noSuchMethod forwarded in
+- It is a **compile-time error** if a name _m_ is noSuchMethod forwarded in
   a concrete class or enum `C`, and a superclass of `C` *(including any
-  mixin applied to `C`)* has an accessible declaration of `m` that is
+  mixin applied to `C`)* has an accessible declaration of _m_ that is
   either concrete or has undetermined abstractness, and which is not a
-  correct override of the member signature named `m` in the interface of
+  correct override of the member signature named _m_ in the interface of
   `C`.
   *In other words, the existing error about a noSuchMethod forwarder that
   would override an inherited concrete declaration treats a member with
   undetermined abstractness as concrete, and still checks any concrete
   declaration in a further superclass that was "killed" by a member with
-  undetermined abstractness. `C` can avoid the error by declaring `m`.*
+  undetermined abstractness. `C` can avoid the error by declaring _m_.*
 
 - It is a **compile-time error** if an `enum` declaration `C` has a mixin
   *(declared as a `mixin` or `mixin class`)* applied to it that declares an
@@ -1310,21 +1310,21 @@ private member of `l.dart`.
 
 > It is a **compile-time error** for an augmenting declaration _D_ in a
 > conditional part that augments an unconditional declaration to contain an
-> introductory private instance member declaration with name `n` unless one
+> introductory private instance member declaration with name _n_ unless one
 > of the following conditions holds:
 > - _D_ is not an `extension type` nor a `mixin`, _D_ inherits a concrete
->   implementation of `n` in the unconditional files, and no top-level
->   declaration or import prefix with the basename of `n` is in scope at
+>   implementation of _n_ in the unconditional files, and no top-level
+>   declaration or import prefix with the basename of _n_ is in scope at
 >   an unconditional declaration of _D_.
 > - Neither _D_ nor any subtype of _D_ in the library has a public name or
 >   is aliased by a `typedef` with a public name in the library, and no
->   identifier whose basename is the basename of `n` occurs in an
+>   identifier whose basename is the basename of _n_ occurs in an
 >   unconditional file.
 > - _D_ is not a `mixin` or `mixin class`, no identifier whose basename is
->   the basename of `n` occurs in an unconditional file, and no augmenting
+>   the basename of _n_ occurs in an unconditional file, and no augmenting
 >   declaration in a conditional part that augments an unconditional
 >   declaration of a type other than _D_ contains an introductory instance
->   member declaration with the same basename as `n`.
+>   member declaration with the same basename as _n_.
 
 ```dart
 // In 'l.dart'.
@@ -1571,8 +1571,8 @@ class Buffer extends Base with AutoFlush {
 ```
 
 A mixin application `S with M` is a compile-time error if `M` contains a
-super-invocation of a member `m` and `S` does not have a concrete
-implementation of `m`. When `p1.dart` is selected, `AutoFlush` contains no
+super-invocation of a member _m_ and `S` does not have a concrete
+implementation of _m_. When `p1.dart` is selected, `AutoFlush` contains no
 super-invocations, and `Base with AutoFlush` has no errors. When `p2.dart`
 is selected, `AutoFlush` contains a super-invocation of `close`, and
 `Base with AutoFlush` is a compile-time error because `Base` has no
@@ -1753,12 +1753,12 @@ compile-time error with either part.
 #### Mixin applications and members with undetermined abstractness
 
 > In a mixin application `S with M`, where `M` is a `mixin` declaration
-> that contains a super-invocation of a member `m`, an instance member `m`
+> that contains a super-invocation of a member _m_, an instance member _m_
 > with undetermined abstractness in `S` (or in a superclass of `S` and not
 > overridden) is not considered to be implemented in `S`. Consequently, the
 > mixin application `S with M` has a **compile-time error** because `S`
 > does not provide a concrete implementation of the super-invoked member
-> `m`.
+> _m_.
 
 ```dart
 // In 'l.dart'.
@@ -1805,11 +1805,11 @@ constraint, the mixin application is a compile-time error with either part.
 
 #### `noSuchMethod` forwarders and members with undetermined abstractness
 
-> It is a **compile-time error** if a name `m` is noSuchMethod forwarded in
+> It is a **compile-time error** if a name _m_ is noSuchMethod forwarded in
 > a concrete class or enum `C`, and a superclass of `C` *(including any
-> mixin applied to `C`)* has an accessible declaration of `m` that is
+> mixin applied to `C`)* has an accessible declaration of _m_ that is
 > either concrete or has undetermined abstractness, and which is not a
-> correct override of the member signature named `m` in the interface of
+> correct override of the member signature named _m_ in the interface of
 > `C`.
 
 ```dart
@@ -1836,7 +1836,7 @@ class C extends A implements B {
 
 The interface of `C` has the member signature `void m([int i])`. Without
 this constraint, `C` has no errors when `p1.dart` is selected: It has no
-concrete member named `m`, so a `noSuchMethod` forwarder is induced. When
+concrete member named _m_, so a `noSuchMethod` forwarder is induced. When
 `p2.dart` is selected, `C` inherits the concrete method `A.m`, which is
 not a correct override of `void m([int i])`. This is a compile-time error
 because an implicitly induced `noSuchMethod` forwarder cannot override a
@@ -1848,7 +1848,7 @@ declares `class Base { void m(int i) {} }` and
 leaves `Middle.m` abstract, `C` inherits the concrete `Base.m`, which is
 not a correct override of `Middle.m`. With this constraint, `C` has a
 compile-time error with either part, and it can avoid the error by
-declaring `m`.
+declaring _m_.
 
 #### Enum mixins and `index` with undetermined abstractness
 
