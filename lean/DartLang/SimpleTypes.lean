@@ -32,9 +32,11 @@ public theorem instLawfulBEq_rfl {T : SimpleType} : (T == T) = true := by
     · apply instLawfulBEq_rfl
     · apply instLawfulBEq_rfl
 
-/-- Types that `==` says are equal (`instBEqSimpleType.beq T₁ T₂ = true`) are equal (`T₁ = T₂`). -/
-public theorem instLawfulBEq_eq_of_beq {T₁ T₂ : SimpleType} :
-    instBEqSimpleType.beq T₁ T₂ = true → T₁ = T₂ := by
+/-- Types that `==` says are equal (`h`) are equal (`T₁ = T₂`). -/
+public theorem instLawfulBEq_eq_of_beq {T₁ T₂ : SimpleType}
+    (h : instBEqSimpleType.beq T₁ T₂ = true) : T₁ = T₂ := by
+  -- `cases` needs the hypothesis back in the goal, so that it's specialized to each case.
+  revert h
   cases T₁ <;> cases T₂ <;> simp [instBEqSimpleType.beq]
   case List.List T₁' T₂' => apply instLawfulBEq_eq_of_beq
   case Map.Map K₁ V₁ K₂ V₂ =>
@@ -65,12 +67,13 @@ public theorem isSubtype_refl (T : SimpleType) : T.isSubtype T = true := by
   case Map K V => constructor <;> apply isSubtype_refl
 
 /--
-`isSubtype` is transitive: if `T` is a subtype of `U` (`T.isSubtype U = true`) and `U` is a subtype
-of `V` (`U.isSubtype V = true`), then `T` is a subtype of `V` (`T.isSubtype V = true`).
+`isSubtype` is transitive: if `T` is a subtype of `U` (`hTU`) and `U` is a subtype of `V` (`hUV`),
+then `T` is a subtype of `V` (`T.isSubtype V = true`).
 -/
-public theorem isSubtype_trans :
-    ∀ (T U V : SimpleType), T.isSubtype U = true → U.isSubtype V = true → T.isSubtype V = true := by
-  intro T U V
+public theorem isSubtype_trans (T U V : SimpleType) (hTU : T.isSubtype U = true)
+    (hUV : U.isSubtype V = true) : T.isSubtype V = true := by
+  -- `cases` needs the hypotheses back in the goal, so that they're specialized to each case.
+  revert hTU hUV
   cases T <;> cases U <;> cases V <;> try simp [isSubtype]
   case List.List.List T' U' V' => apply isSubtype_trans
   case Map.Map.Map K₁ V₁ K₂ V₂ K₃ V₃ =>

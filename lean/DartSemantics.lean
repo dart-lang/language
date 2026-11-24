@@ -1,8 +1,12 @@
 module
 public import DartLang
+public import DartSemantics.GhostState
 public import DartSemantics.HeadStep
+public import DartSemantics.Heap
 public import DartSemantics.Interpreter
 public import DartSemantics.Language
+public import DartSemantics.PrimitiveLaws
+public import DartSemantics.ProofMode
 public import DartSemantics.Resolve
 public import DartSemantics.State
 
