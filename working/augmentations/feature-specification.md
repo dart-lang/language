@@ -343,32 +343,31 @@ variable declarations, because those aren't subject to augmentation.*
 
 #### Lexical lookup with augmentations
 
-Lexical lookup proceeds without first applying augmentations. The library
-namespace includes declarations from all files in the library file tree,
-generalizing [parts with imports][] to take augmenting declarations into
-account. Similarly, the membered declaration body scopes include member
-declarations from all declarations in the corresponding augmentation chain:
+The library namespace includes declarations from all files in the library
+file tree, generalizing [parts with imports][] to take augmenting
+declarations into account. Similarly, the membered declaration body scope
+is generalized to include member declarations from all declarations in the
+corresponding augmentation chain:
 
-*   **Top-level declaration namespace:** The shared top-level namespace of
+*   **Top-level declaration namespace:** The _shared library namespace_ of
     the library contains all introductory top-level declarations from all
     files in the library file tree. It does not include augmenting
-    declarations. It is a **compile-time error** if the introductory
-    top-level declarations from the library file tree have a name conflict.
+    declarations. It is a **compile-time error** if this namespace
+    has two or more declarations with the same name.
 
     In each Dart file in the library file tree, the library scope has
-    this namespace as its namespace, and the import prefix scope as its
+    this namespace as its namespace, and the combined import scope as its
     enclosing scope.
 
 *   **Body namespaces:** For each class, mixin class, mixin, enum,
-    extension type, and extension definition, the body namespace used by
-    lexical lookup in any declaration (introductory or augmenting) of its
-    augmentation chain contains all introductory member declarations in the
-    given augmentation chain. This includes implicitly induced introductory
-    declarations such as an enum's `values` and an extension type's
-    representation getter, and excludes all augmenting member
-    declarations. It is a **compile-time error** if the introductory member
-    declarations from the augmentation chain have a name conflict, under
-    the same rules as if they were declared in a single body.
+    extension type, and extension definition, the _shared body namespace_
+    used by lexical lookup in any declaration (introductory or augmenting)
+    of its augmentation chain contains all introductory member declarations
+    (static or instance) in the given augmentation chain. This includes
+    implicitly induced introductory declarations such as an enum's `values`
+    and an extension type's representation getter, and excludes all
+    augmenting member declarations. It is a **compile-time error** if the
+    this namespace has two or more declarations with the same name.
 
     In each membered declaration body, the current scope has this
     namespace as its namespace, with the type parameter scope of
@@ -429,11 +428,11 @@ augment class C {
 }
 ```
 
-This program prints "member", not "top level". When `name` is resolved inside
-`test()` it walks up to the instance member scope for `C`. Since that scope
-contains the union of introductory members from all contributions in `C`'s
-augmentation chain, it finds the `name` getter added by the augmentation and
-uses that instead of continuing and finding the top level name.
+This program prints "member", not "top level". When `name` is resolved
+inside `test()` it walks up to the instance member scope for `C`. Since
+that scope contains all members from `C`'s introductory and augmenting
+declarations, it finds the `name` getter added by the augmentation and uses
+that instead of continuing and finding the top level name.
 
 You can visualize the namespace nesting sort of like this:
 
@@ -469,17 +468,18 @@ main.dart               : other.dart
 '---------------------' : '---------------------'
 ```
 
-*In each column, lexical lookup walks up from a member body through the union
-body namespace and shared top-level declaration namespace, then into the
-combined import scope of the file where the identifier occurs.*
+*In each column, lexical lookup walks up from a member body through the
+shared body namespace and shared library namespace, then into
+the combined import scope of the file where the identifier occurs.*
 
 #### Primary constructor parameters
 
-*As mentioned in the lexical lookup section, the primary initializer scope
-based on the introductory declaration encloses non-`late` instance variable
-initializers in every contribution of the augmentation chain.*
-
-*For example:*
+*When a class or enum has a primary constructor, the current scope of
+non-late instance variable initializers is the primary initializer
+scope. This is true even for instance variables declared in other
+augmentations. In other words, each instance variable initializer, even in
+an augmenting declaration, has access to primary constructor parameters.
+For example:*
 
 ```dart
 // main.dart:
@@ -636,16 +636,15 @@ Those steps are ordered like so:
 
 1.  Each identifier subject to lexical lookup is resolved to denote a
     definition, or it is marked as being an access to a member of the
-    current object `this` (which may be an extension instance member).
-    *Lexical lookup for identifiers proceeds directly on the source code
-    using each file's own combined import scope, as specified in [Lexical
-    lookup with augmentations](#lexical-lookup-with-augmentations). An
-    access to a member of `this` is resolved later.*
+    current object `this` *(that is, the access may be resolved to an
+    instance member, or to an extension instance member, in a step that
+    occurs after the lexical lookup)*.
 
-2.  Augmentations are applied. *A declaration doesn't have complete type
-    system semantics until its augmentation chain is gathered. For example,
-    we don't know the supertypes of a class until any augmentations that
-    add `implements`, `with`, or `extends` clauses are included.*
+2.  Augmentations are applied. *A declaration doesn't have meaningful type
+    system properties until its augmentation chain is applied. For
+    example, we don't know the supertypes of a class until any
+    augmentations that add `implements`, `with`, or `extends` clauses are
+    included.*
 
 3.  Type inference fills in any omitted types in the introductory
     declaration.  *This may come from override inference, inferring an
@@ -763,7 +762,7 @@ class B {
 augment class B implements A;
 ```
 
-*Here, we gather `B`'s augmentation chain first so we know that `B` implements
+*Here, we apply `B`'s augmentation chain first so we know that `B` implements
 `A`. Then when we infer the type of `x` in the introductory declaration of `B`,
 we apply override inference from `A` to infer type `double` for it. That
 `double` context type means that int-to-double interprets the initializer `12`
@@ -777,14 +776,14 @@ augment class C {
 }
 ```
 
-*Here, the union body namespace of `C`'s augmentation chain includes `x`,
+*Here, the shared body namespace of `C`'s augmentation chain includes `x`,
 so the initializing formal in the introductory declaration refers to the
 field declared in the augmentation. Consequently, we infer `int` for the
 constructor parameter in the introductory declaration.*
 
-*In short, we gather each augmentation chain's clauses and members (with
-identifiers resolved via the generalized lexical scopes), then run inference
-down the augmentation chain in order, then check that all the types agree.*
+*In short, we resolve lexical identifiers, then apply augmentations, then
+run inference down the augmentation chain in order, then check that all the
+types agree.*
 
 ## Applying augmentations
 
@@ -792,8 +791,8 @@ An augmentation declaration *D* is a declaration marked with the built-in
 identifier `augment`. We add `augment` as a built-in identifier as a language
 versioned change, to avoid breaking pre-feature code.
 
-An augmentation declaration does not introduce a new name into the surrounding
-scope. *We could say that it attaches itself to the existing name.*
+*An augmentation declaration does not introduce a new name into the surrounding
+scope. We could say that it attaches itself to the existing name.*
 
 *D* augments a declaration *I* with the same name and in the same augmentation
 context as *D*. There may be multiple augmentations in the augmentation context
@@ -1073,14 +1072,10 @@ augment class C with M2 implements I2 {}
 class C with M1, M2 implements I1, I2 {}
 ```
 
-*Note that this equivalence describes the resulting superinterfaces, not
-syntactic merging across part files: `M2` and `I2` are still resolved in the
-scope of the file where the augmenting declaration occurs.*
-
 Instance or static members defined in the body of the augmenting type,
-including enum values, contribute to the instance or static member namespace of
-the corresponding type. *In other words, the augmentation can add new members
-to an existing type.*
+including enum values, are added to to the instance or static member
+namespace of the corresponding type. *In other words, an augmentation can
+add new members to an existing type.*
 
 An instance or static member inside a class-like declaration may itself be an
 augmentation. In that case, it augments the corresponding member (the
