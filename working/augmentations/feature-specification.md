@@ -1076,18 +1076,41 @@ signature *matches* an introductory signature if:
 
 *   For each corresponding pair of parameters:
 
-    *   They have the same name (same identifier). *For named parameters, this
-        is implicit since the parameters are paired by name anyway. But for
-        positional parameters, this means that they must agree on parameter
-        name. This restriction isn't needed for correctness, but is consistent
-        with the idea that an augmentation is the same declaration and should
-        agree with the introductory declaration when possible.*
+    *   Let the *expected parameter name* be the declared name of the parameter
+        of the first declaration in the augmentation chain (including the
+        introductory declaration) whose parameter has a name, if any.
 
-    *   They have the same type (or the augmenting declaration omits the type).
+        *In most cases, this is the parameter name from the introductory
+        declaration, but may be from an augmenting declaration if the
+        introductory declaration is a setter implicitly induced from a variable
+        declaration. If the entire augmentation chain is composed of variable
+        declarations, then there is no expected parameter name.*
 
-    *   They both have the modifier `covariant`, or none of them have it.
+    *   If there is an expected parameter name and the augmenting declaration's
+        parameter has a name, then they have the same name (same identifiers).
 
-    *   They both have the modifier `required`, or none of them have it.
+        *For named parameters, this is implicit since the parameters are paired
+        by name anyway. But for positional parameters, this means that they must
+        agree on parameter name. This restriction isn't needed for correctness,
+        but is consistent with the idea that an augmentation is the same
+        declaration and should agree with the introductory declaration when
+        possible.*
+
+        *The only case where a parameter won't have a name is the parameter for
+        a setter implicitly induced by a variable declaration. A variable
+        declaration may augment or be augmented by a setter declaration. In that
+        case, the implicit setter has no parameter name, so the explicit setter
+        parameter can use whatever name it wants. But if there are multiple
+        explicit setter declarations in the augmentation chain, then they must
+        all agree on one parameter name (the expected parameter name). In other
+        words, parameters names of _explicitly written_ parameter declarations
+        must agree.*
+
+    *   They have the same type.
+
+    *   They both have the modifier `covariant`, or neither of them have it.
+
+    *   They both have the modifier `required`, or neither of them have it.
 
     *For constructors, we do not require parameters to match in uses of
     initializing formals or super parameters. In fact, they are implicitly
@@ -1272,9 +1295,9 @@ defining a getter and optionally a setter if the variable is not `final` or
 
 *   The return type of the getter is the type of the variable.
 
-*   The setter has a single parameter named `value` whose type is the type of
-    the variable. If the variable is `covariant`, then the setter parameter is
-    also `covariant`.
+*   The setter has a single parameter with no name whose type is the type of the
+    variable. If the variable is `covariant`, then the setter parameter is also
+    `covariant`.
 
     *The name `value` is somewhat arbitrary, but is the most common name for
     setter parameters in the wild (61%, based on a corpus of pub packages). The
@@ -1648,7 +1671,7 @@ and assume the third point is always true.
 *   Remove the special rules around `_`-named parameters and augmenting them
     with other names (#4786). Those rules were motivated by not knowing what
     name to pick for a setter induced from a variable declaration. Instead, we
-    just pick a name: `value`.
+    omit only implicitly induced setters from same parameter name checking.
 
 *   Clarify how private named parameters work with signature matching (#4710).
 
