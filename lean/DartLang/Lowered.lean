@@ -213,10 +213,12 @@ public def LoweredExpr.toOutcome? : LoweredExpr → Option Outcome
   | _ => none
 
 omit Γ in
+/-- Converting an outcome `o` to an expression and back gives `o`. -/
 public theorem Outcome.toOutcome?_toExpr (o : Outcome) : o.toExpr.toOutcome? = some o := by
   cases o <;> rfl
 
 omit Γ in
+/-- An expression `m` that has completed with outcome `o` (`h`) is that outcome as an expression. -/
 public theorem LoweredExpr.toExpr_of_toOutcome? {m : LoweredExpr} {o : Outcome}
     (h : m.toOutcome? = some o) : o.toExpr = m := by
   cases m <;> simp only [toOutcome?, reduceCtorEq, Option.some.injEq] at h <;> subst h <;> rfl
@@ -232,7 +234,7 @@ public def EctxItem.fill : EctxItem → LoweredExpr → LoweredExpr
   | .seq m₂, m => .seq m m₂
 
 omit Γ in
-/-- An expression with a hole plugged hasn't completed. -/
+/-- An expression with a hole plugged (`Ki.fill m`) hasn't completed (`toOutcome? = none`). -/
 public theorem EctxItem.toOutcome?_fill (Ki : EctxItem) (m : LoweredExpr) :
     (Ki.fill m).toOutcome? = none := by
   cases Ki <;> rfl

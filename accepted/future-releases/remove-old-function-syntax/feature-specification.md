@@ -377,6 +377,10 @@ issue][3671] for this.
 
 [3671]: https://github.com/dart-lang/dartdoc/issues/3671
 
+**Update 2026/10/21: This [is fixed now][dartdoc fix].**
+
+[dartdoc fix]: https://github.com/dart-lang/dartdoc/pull/4290
+
 ## Changelog
 
 ### 1.0

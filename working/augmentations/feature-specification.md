@@ -535,13 +535,124 @@ The definition of "same type" used for this purpose is the "Same Type" section
 type terms after typedefs have been expanded. It is _not_ mutual subtyping or
 **NORM()**-equivalence.*
 
-In both the introductory declaration and augmentations, types are often written
-explicitly but in some places may be omitted and are filled in by type inference
-or some default type. When checking that an augmentation's type matches the
-introductory declaration's, these implicitly provided types are used when the
-type annotation is omitted.
+#### Same type parameters
+
+When an augmentation must have the "same type parameters" as an introductory
+declaration, that means:
+
+*   They must have the same number of type parameters (which may be zero).
+
+*   For each corresponding pair of type parameters:
+
+    *   They must have the same name (same identifier).
+
+    *   Their bounds must be the same type. This is after any omitted bound in
+        an introductory declaration has been given a default bound of `Object?`
+        and where any omitted bound in an augmentation has been inherited from
+        the introductory declaration.
+
+        *Examples:*
+
+        ```dart
+        foo<T extends List<int>>();
+        augment foo<T>();
+        ```
+
+        *OK, the bound `List<int>` is inherited by the augmentation so the two
+        are the same.*
+
+        ```dart
+        foo<T>();
+        augment foo<T extends Object?>();
+        ```
+
+        *OK. An omitted bound in the introductory declaration defaults to
+        `Object?` so these bounds are the same.*
+
+        ```dart
+        foo<T>();
+        augment foo<T extends List<int>>();
+        ```
+
+        *Error, the introductory declaration has a default bound of `Object?`
+        which is not the same as `List<int>`.*
+
+        ```dart
+        foo<T extends List<int>>();
+        augment foo<T extends List<double>>();
+        ```
+
+        *Error, `List<int>` and `List<double>` are not the same type.*
+
+*Since repeating the type parameters is, by definition, redundant, requiring the
+augmentation to restate them doesn't accomplish anything semantically. It
+ensures that anyone reading the augmenting type can see the declarations of any
+type parameters that it uses in its body, and avoids potential confusion with
+imported names that might be in scope in the library of the augmentation.*
+
+### Type annotation inference and checking order
+
+In both the introductory declaration and augmentations, type annotations and
+bounds may sometimes be omitted and are filled in automatically by the compiler
+through various mechanisms. The compiler must also check that an augmentation
+and introductory declaration have the same type. And variable initializers need
+a downwards inference context type.
+
+Those steps are ordered like so:
+
+1.  Augmentations are applied. A declaration doesn't have meaningful type
+    system semantics until after augmentations are merged. *(For example, we
+    don't know the supertypes of a class until any augmentations that may add
+    `implements`, `with`, or `extends` clauses have been applied.)*
+
+2.  Type inference fills in any omitted types in the introductory declaration.
+    This may come from override inference, inferring an initializing formal from
+    the corresponding field type, etc. Downwards and upwards inference is
+    applied to a variable declaration's type and initializer. Any other
+    uninferred types get a default type like `dynamic` for type annotations or
+    `Object?` for bounds.
+
+3.  Omitted types and bounds in augmenting declarations are inherited from the
+    introductory declaration. Since an augmentation declaration must have types
+    in all of the same places as the introductory declaration, type inheritance
+    from the introductory declaration is sufficient to fill in all omitted
+    types. Downwards inference is applied to a variable declaration's
+    initializer.
+
+4.  Augmentations are checked for "same type" conformance against the
+    introductory declaration.
 
 *Some examples:*
+
+```dart
+bool isNotEven(int x);
+
+augment isNotEven(x) => x.isOdd;
+```
+
+*Here, type annotation inheritance fills in the return type `bool` and the
+parameter type `int` in the augmentation, which are then the same types as their
+corresponding types in the introductory declaration.*
+
+```dart
+double get x;
+
+augment final x = 123;
+```
+
+*Here, the getter induced by the augmenting variable declaration inherits type
+`double` from the introductory declaration so the variable has type `double`.
+That type is then also used as a downwards inference context type of the
+initializer expression, so int-to-double interprets `123` as `123.0`.*
+
+```dart
+foo<T extends Iterable<int>>();
+augment foo<T>() { ... }
+```
+
+*Here, the bound on `T` in the augmentation is inherited from the introductory
+declaration, so both declarations have a bound of `Iterable<int>` and the code
+is OK.*
 
 ```dart
 foo() {}
@@ -583,18 +694,53 @@ isn't `int`.*
 
 ```dart
 class C {
-  num x;
   new(int x);
 }
 
 augment class C {
+  String x;
   augment new(this.x);
 }
 ```
 
-*Here, the initializing formal `this.x` in the augmentation is inferred to have
-type `int` from the corresponding field. That's the same type as the type of `x`
-in the introductory declaration, so this code is fine.*
+*Here, the initializing formal `x` in the augmentation is inferred to have type
+`int` from the introductory declaration. That's not assignable to the
+corresponding field type `String`, so the parameters are the same type, but
+there is an error in the augmentation because it's initializing a field from the
+wrong type.*
+
+```dart
+abstract class A {
+  double get x;
+}
+
+class B {
+  final x = 12;
+}
+
+augment class B implements A;
+```
+
+*Here, we apply the augmentation first so we know that `B` implements `A`. Then
+when we infer the type of `x` in the introductory declaration of `B`, we apply
+override inference from `A` to infer type `double` for it. That `double` context
+type means that int-to-double interprets the initializer `12` as `12.0`.*
+
+```dart
+class C(this.x);
+
+augment class C {
+  final int x;
+}
+```
+
+*Here, we merge the augmentations so that the initializing formal in the
+introductory declaration refers to the field declared in the augmentation.
+Therefore, field inference applies and we infer `int` for the constructor
+parameter in the introductory declaration.*
+
+*In short, we apply augmentations first, then run inference down the
+augmentation chain in order, then check that all the types agree.*
 
 ## Applying augmentations
 
@@ -906,30 +1052,8 @@ It's a **compile-time** error if:
     what is known from reading the introductory declaration will still be true
     after augmentation.*
 
-*   The type parameters of the augmenting declaration do not match the
-    introductory declaration's type parameters. This means there must be the
-    same number of type parameters with the exact same type parameter names
-    (same identifiers) and bounds if any (same *types*, even if they may not be
-    written exactly the same in case one of the declarations needs to refer to a
-    type using an import prefix).
-
-    *Since repeating the type parameters is, by definition, redundant, this
-    restriction doesn't accomplish anything semantically. It ensures that
-    anyone reading the augmenting type can see the declarations of any type
-    parameters that it uses in its body, and avoids potential confusion with
-    imported names that might be in scope in the library of the augmentation.*
-
-    The augmenting declaration may choose to omit the bound on any type
-    parameter, in which case it will be inherited from the introductory
-    declaration.
-
-    ```dart
-    foo<X extends num, Y extends X>();
-    augment foo<X extends num, Y>() { ... }
-    ```
-
-    *Here, `Y` in the augmentation inherits `extends X` from the introductory
-    declaration.*
+*   The introductory declaration and augmenting declaration don't have the same
+    type parameters.
 
 ### Function and constructor signature matching
 
@@ -940,21 +1064,15 @@ constructor (generative, factory, etc.) the parameter lists must be the same in
 all meaningful ways. We say that an augmenting function or constructor's
 signature *matches* an introductory signature if:
 
-*   It has the same number of type parameters with the same type parameter names
-    (same identifiers) and any bounds have the same types (after type annotation
-    inheritance).
+*   The two declarations have the same type parameters.
 
-*   The return type (if not omitted) is the same as the introductory
-    declaration's return type.
+*   The return type is the same as the introductory declaration's return type.
 
 *   It has the same number of positional parameters as the introductory
     declaration, and the same number of those are optional.
 
 *   It has the same set of named parameter names as the introductory
     declaration.
-
-    **TODO:** How does this interact with private named parameters? See:
-    https://github.com/dart-lang/language/issues/4710.
 
 *   For each corresponding pair of parameters:
 
@@ -984,6 +1102,103 @@ In this definition, the properties of the introductory declaration may
 correspond to an explicitly declared property _(such as an explicitly stated
 return type)_ or an inferred property _(such as a parameter type which has been
 obtained by override inference)_.
+
+In a declaration where a parameter named `n` is declared using `_`, the
+name `n` is not in scope and may be resolved elsewhere. *For example:*
+
+```dart
+int y = 42;
+
+void g(int y);
+
+augment g(_) {
+  print(y); // OK, prints '42'.
+}
+```
+
+#### Private named parameters
+
+All corresponding parameter names must be the same in the introductory
+declaration and all augmentations. When augmenting or being augmented by a
+declaration with a private named parameter, when we say "name", we mean the
+declared private name of the parameter, not it's corresponding public name:
+
+```dart
+class C {
+  int? _x;
+  new({this._x});
+}
+
+augment class C {
+  /// Adding a doc comment.
+  @andSomeMetadata
+  augment new({int? _x}); // Private name here.
+}
+```
+
+In Dart today, a private named parameter must either be an initializing formal
+or a declaring parameter. Since `_x` in this augmenting constructor is neither,
+that declaration would be an error. We address that by loosening the restriction
+on private named parameters. A private named parameter must be either:
+
+*   An initializing formal.
+*   A declaring parameter.
+*   In an augmenting declaration.
+
+Thus, the above example is allowed since the second `_x` is in an augmentation.
+
+*The above rule doesn't directly forbid an augmenting declaration from having a
+private named parameter that is an initializing formal, but there is no valid
+way to define one:*
+
+*   *The introductory declaration can't use a non-initializing parameter that is
+    private named because that's only allowed for an augmenting declaration:*
+
+    ```dart
+    class C {
+      new({int? _x}); // Error, can't use normal private named parameter.
+    }
+
+    augment class C {
+      int? _x;
+      augment new({this._x});
+    }
+    ```
+
+*   *The introductory declaration can't use the corresponding public name
+    because private named parameters are matched by private name:*
+
+    ```dart
+    class C {
+      new({int? x});
+    }
+
+    augment class C {
+      int? _x;
+      augment new({this._x}); // Error, the introductory declaration doesn't
+                              // have a parameter named `_x`.
+    }
+    ```
+
+*   *The introductory declaration can't also use an initializing formal or
+    declaring parameter because then both declarations are complete:*
+
+    ```dart
+    class C {
+      int? _x;
+      new({this._x});
+    }
+
+    augment class C {
+      augment new({this._x}); // Error, both declarations are complete.
+    }
+    ```
+
+*In practice, this means that the introductory declaration controls which
+parameters are private and named, and only does so because that declaration
+itself wants to initialize or declare a field. Augmentations of such
+constructors are only allowed to write a private named parameter in order to
+match the introductory constructor's parameter list.*
 
 ### Augmenting functions
 
@@ -1124,12 +1339,10 @@ _abstract_ overrides of those members.*
 *Declaring an instance member named `values` will conflict with the
 static `values` declaration as a normal scope name conflict.*
 
-It's a **compile-time error** if:
-
-*   An enum doesn't have any values after all augmentations are applied. *The
-    grammar allows an enum declaration to not have any values so that other
-    declarations of the same enum can add them, but ultimately the enum must
-    end up with at least one value.*
+It's a **compile-time error** if an enum doesn't have any values after all
+augmentations are applied. *The grammar allows an enum declaration to not have
+any values so that other declarations of the same enum can add them, but
+ultimately the enum must end up with at least one value.*
 
 ### Augmenting constructors
 
@@ -1437,7 +1650,14 @@ and assume the third point is always true.
     name to pick for a setter induced from a variable declaration. Instead, we
     just pick a name: `value`.
 
+*   Clarify how private named parameters work with signature matching (#4710).
+
 *   Clarify what "same type" means (#4621).
+
+*   Consolidate type parameter bound matching rules.
+
+*   Clarify the ordering of type inference, type annotation inheritance, and
+    same type checking.
 
 *   Clarify that the setter implicitly induced by a variable declaration has a
     `covariant` parameter if the variable is `covariant` and that its return
