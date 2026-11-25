@@ -99,8 +99,8 @@ abstract class Channel {
 
   factory Channel.open(String name) => _openChannel(name);
 
-  // Method with undetermined abstractness: subclasses must
-  // implement it, and `super.send...` is a compile-time error.
+  // Abstract method: subclasses must implement it, and
+  // `super.send...` is a compile-time error.
   void send(String payload);
 
   // Implemented in a conditional part: subclasses inherit a concrete
@@ -219,16 +219,18 @@ Notice two central properties illustrated by this example:
    the conditional part selected by the compilation environment in order to
    know which code to emit, but static analysis of `channel.dart` (and of
    any library that imports `channel.dart`) does not depend on any
-   conditional part. The analyzer can ignore conditional `part` directives
-   when summarizing `channel.dart` for client libraries. To preserve this
-   property, a conditional part file is subject to many constraints: It
-   cannot contain `export` directives, introduction of public declarations
-   is constrained, superinterfaces (`extends`, `on`, `with`, or
-   `implements`) or enum entries cannot be added by declarations augmenting
-   declarations in unconditional files, direct subtypes cannot be added to
-   `sealed` types declared in unconditional files, formal parameter default
-   values cannot be specified in augmenting declarations, and complete
-   `const` constructors cannot be declared in conditional part files.
+   conditional part. The analyzer can ignore the conditional `part`
+   directive when summarizing `channel.dart` for client libraries. To
+   preserve this property, a conditional part file is subject to several
+   constraints: It cannot contain `export` directives, introduction of
+   public declarations is constrained, superinterfaces (`extends`, `on`,
+   `with`, or `implements`) or enum entries cannot be added by declarations
+   augmenting declarations in unconditional files, direct subtypes cannot
+   be added to `sealed` types declared in unconditional files, formal
+   parameter default values cannot be specified in augmenting declarations,
+   and augmenting declarations in conditional part files can only complete
+   unconditional instance members or constructors that are marked `concrete`
+   or are non-`const` `factory` constructors.
 
 2. **The `concrete` modifier**: In `abstract class Channel`, both `send`
    and `close` are written without a body in `channel.dart`. Without an
@@ -241,11 +243,15 @@ Notice two central properties illustrated by this example:
    augmentation must exist. Consequently, `super.close()` is valid,
    subclasses inherit `close` as concrete, and a compile-time error occurs
    when compiling any configuration whose conditional part fails to
-   complete `Channel.close`.  Similarly, marking an incomplete non-`const`
-   generative constructor with `concrete` indicates that its initializer
-   list, redirection, and/or body will be supplied by an augmentation
-   rather than implicitly defaulting to an empty initializer list and empty
-   body.
+   complete `Channel.close`. Conversely, an incomplete instance member
+   without `concrete` such as `send` cannot be completed in a conditional
+   part and remains an ordinary abstract member. Similarly, marking an
+   incomplete non-`const` generative constructor with `concrete` indicates
+   that its initializer list, redirection, and/or body will be supplied by
+   an augmentation rather than implicitly defaulting to an empty
+   initializer list and empty body, whereas an incomplete generative
+   constructor without `concrete` cannot be completed in a conditional
+   part.
 
    *One might think that abstractness control on constructors is
    superfluous. However, a constructor which is introduced in unconditional
@@ -340,10 +346,13 @@ specified by a `<partDirective>` in *F* (resolved relative to the URI of *F*).
   resolved relative to *U*, does not denote *F*.
 
 - It is a **compile-time error** if a conditional part file contains a
-  conditional part directive. *Hence, a conditional part is included
-  together with the entire file tree under it, never just some of the files
-  in that file tree. In other words, we cannot have nested conditional
-  parts with different conditions.*
+  conditional `part` directive, or if the unconditional files of a library
+  *L* together contain more than one conditional `part` directive. *Hence,
+  a library has at most one conditional `part` directive, which occurs in
+  an unconditional file, and each selected conditional part is included
+  together with the entire unconditional file tree under it. There are no
+  nested conditional parts and no combinations of independent conditional
+  `part` directives in the same library.*
 
 - All part-tree well-formedness rules from [Parts with Imports][] apply to the
   tree of included part files of a library *L*: it is a **compile-time error**
@@ -411,26 +420,16 @@ It is a **compile-time error** if:
   extension type instance members cannot be abstract.*
 
 - A declaration with the modifier `concrete` is not complete after all
-  augmentations in the library including those in included conditional part
-  files have been applied. In particular, unlike an unmarked incomplete
-  generative constructor, a `concrete` generative constructor is not implicitly
-  completed with an empty initializer list and an empty body. This
-  completeness check is performed with all possible selections of
-  conditional part files included.
+  augmentations in the library including those in the included conditional
+  part subtree have been applied. In particular, unlike an unmarked
+  incomplete generative constructor, a `concrete` generative constructor is
+  not implicitly completed with an empty initializer list and an empty
+  body. This completeness check is performed for each URI listed in the
+  library's conditional `part` directive *(if any)*, together with the
+  unconditional file tree under that URI.
 
-  *TODO: This set of inclusions can explode, and it may be non-trivial to
-  compute. A simple case arises when there is just one conditional part in
-  the entire library file set; in this case we just cover each of the
-  specified choices in the conditional part directive. In the general case
-  we will probably have to consider all combinations of choices of a
-  conditional part file as possible outcomes and check its completeness.
-  We could skip this completeness check entirely in the analyzer, and just
-  rely on the compilers to perform the check on the specific configuration
-  which is being compiled. In this situation it is just a standard element
-  in the static analysis of a library with parts and augmentations.*
-
-For static analysis by the analyzer, every conditional part directive is
-treated as if it were not present.  *That is, all knowledge about
+For static analysis by the analyzer, the conditional `part` directive *(if
+any)* is treated as if it were not present. *That is, all knowledge about
 completeness obtained in a conditional part is ignored, relying entirely on
 unconditional completeness, and on the modifier `concrete`.*
 
@@ -450,27 +449,28 @@ library and when analyzing any library that imports it)*:
     super-operator invocations) targeting the member are permitted, subject
     to the usual signature checks.
 
-- If *D* is not an `extension type`, and *D* is declared in a library
-  whose unconditional files contain a conditional `part` directive, an
-  incomplete instance member of *D* whose introductory declaration does not
-  have the modifier `concrete`, and which is not completed by an
-  augmentation in the unconditional files of the library, is considered to
-  be a member of *D* whose _abstractness is undetermined_.
-  *In a library that has no conditional `part` directive, no conditional
-  part can complete an incomplete instance member. Hence, such a member is
-  abstract, and its treatment is unchanged.*
+- If *D* is not an `extension type`, an incomplete instance member of *D*
+  whose introductory declaration does not have the modifier `concrete`, and
+  which is not completed by an augmentation in the unconditional files of
+  the library, is an abstract member of *D*. *Because a conditional part
+  cannot complete such a member, its abstractness does not depend on which
+  conditional part is selected.*
 
 - A generative constructor of *D* whose introductory declaration has the
   modifier `concrete` (and is not completed in the unconditional files of
   the library) is treated during static analysis of the unconditional files
   as a complete generative constructor. It is assumed that it initializes
   every instance variable of the enclosing membered declaration that needs
-  to be initialized.
+  to be initialized. *An unmarked incomplete generative constructor cannot
+  be completed in a conditional part, so it is implicitly completed with an
+  empty initializer list and empty body as usual.*
 
-During static analysis of a conditional part _P_, all conditional parts in
-the parent chain from _P_ up to the library are considered to be present,
-as well as all children of _P_. All other conditional parts are treated as
-if they were not present.
+During static analysis of a conditional part file _P_, the entire
+conditional part subtree containing _P_ *(that is, the branch of the
+library's conditional `part` directive containing _P_, together with all
+unconditional sub-parts under it)* is considered to be present together
+with the unconditional files of the library. All other branches of the
+conditional `part` directive are treated as if they were not present.
 
 #### Restrictions on conditional part files
 
@@ -507,16 +507,21 @@ same declaration.*
     _D_ must be complete, or it must be completed by an augmentation in the
     same conditional part file _F_ or in a file in the file tree under _F_.
 
-- It is a **compile-time error** if an introductory `extension` declaration
-  in a conditional part is applicable to any implicit extension member
-  resolution in an unconditional file *(including property accesses, method
-  invocations, operator invocations, function expression invocations of
-  `call`, object patterns, and relational patterns)*.
-  *This allows unnamed and privately named `extension` declarations in a
-  conditional part as long as they do not participate in extension
-  resolution in unconditional files. A simpler, less expressive
-  alternative is to make every introductory `extension` declaration in a
-  conditional part a compile-time error.*
+- It is a **compile-time error** for an introductory `extension` declaration
+  in a conditional part to contain an instance member declaration whose
+  name is public, or whose name is private and has the same basename as a
+  name occurring in an unconditional file in the file tree of the enclosing
+  library.
+  *Note that all operators and `call` have public names. Hence no member
+  declared in an introductory `extension` in a conditional part can match
+  any implicit extension member resolution in an unconditional file
+  (including property accesses, method invocations, operator invocations,
+  function expression invocations of `call`, object patterns, and
+  relational patterns). This avoids type-based applicability analysis over
+  unconditional files while still allowing private helper extensions local
+  to a conditional part. A simpler, less expressive alternative is to make
+  every introductory `extension` declaration in a conditional part a
+  compile-time error.*
 
 - It is a **compile-time error** for an augmenting type introducing
   declaration in a conditional part that augments an unconditional
@@ -601,21 +606,32 @@ same declaration.*
   default value for an optional formal parameter, or (for the constructor)
   to declare an optional formal parameter as a super-parameter (`super.p`).
 
-- It is a **compile-time error** for an augmenting constructor declaration
-  in a conditional part that augments a constructor declared in an
-  unconditional file to be `const` and complete. *Constant expression
-  evaluation must not depend on the selection of a conditional part.*
+- It is a **compile-time error** for an augmenting declaration in a
+  conditional part that augments an unconditional declaration _D_ to be
+  complete *(including a non-`abstract` augmenting variable declaration
+  completing an introductory getter or setter)* if:
+  - _D_ is an instance member declaration of a `class`, `mixin`,
+    `mixin class`, or `enum` whose introductory declaration does not have
+    the modifier `concrete`, or
+  - _D_ is a constructor declaration whose introductory declaration neither
+    has the modifier `concrete` nor is a non-`const` `factory` constructor.
+  *Consequently, an unmarked incomplete instance member in an unconditional
+  file remains abstract in every configuration, an unmarked incomplete
+  generative constructor remains implicitly completed, and no `const`
+  constructor (generative or `factory`) can be completed in a conditional
+  part. Top-level, `static`, `extension`, `extension type`, and
+  non-`const` `factory` declarations cannot be abstract and may be
+  completed in a conditional part without `concrete`.*
 
 - It is a **compile-time error** for an augmenting declaration of a type _D_
   in a conditional part that augments an unconditional declaration to
-  complete a declaration of operator `==` or `hashCode` *(including by an
-  augmenting instance variable declaration `hashCode`)* unless the
-  introductory declaration of that member has the modifier `concrete`.
-
-- It is a **compile-time error** for an augmenting declaration of a `mixin`
-  or `mixin class` _D_ in a conditional part that augments an unconditional
-  declaration to declare a non-`abstract`, non-`external` instance
-  variable.
+  declare a non-`abstract`, non-`external` instance variable if _D_ is a
+  `mixin`, a `mixin class`, or declares a `const` generative constructor.
+  *A `mixin` or `mixin class` with an instance variable cannot be mixed
+  into a class with a `const` constructor, and adding an instance variable
+  to a type with a `const` generative constructor can affect constant
+  evaluation in downstream code; any constant-valued field can be expressed
+  as a getter or `static const` variable instead.*
 
 - It is a **compile-time error** for an augmenting `mixin` declaration in a
   conditional part that augments an unconditional declaration to contain a
@@ -633,107 +649,12 @@ same declaration.*
   superclass is `Object`, and every superclass in a mixin application has
   a concrete implementation of each member of `Object`.*
 
-- It is a **compile-time error** for an augmenting declaration of a type _D_
-  in a conditional part to declare a non-`abstract`, non-`external`
-  instance variable when _D_ declares a `const` generative constructor,
-  unless the variable is an introductory private `final` instance variable,
-  has an initializing expression that is a constant expression, and the
-  initializing expression evaluates without error as a constant expression
-  to a constant value whose type is a subtype of the variable's type.
-  *Adding an instance variable with a non-constant
-  initializer to a class with a `const` constructor is already a
-  compile-time error in the library itself, and adding a `final`
-  instance variable with a validated constant initializer whose type and
-  expression do not depend on constructor parameters or type parameters
-  gives every constant instance of _D_ the same field value and cannot
-  fail during downstream constant evaluation.*
-
 - It is a **compile-time error** for an augmenting declaration _D_ of a
   `class`, `mixin class`, or `enum` in a conditional part that augments an
   unconditional declaration to contain an introductory constructor
   declaration if _D_ does not explicitly declare any constructor in an
   unconditional file. *This would eliminate the default constructor, which
   can break downstream code.*
-
-Some constraints apply to declarations that depend on an instance member
-with undetermined abstractness. They apply in the library that declares
-the member, and in every other library.
-
-*The general principle is that the implementation of a member with
-undetermined abstractness is treated as absent when it is required to be
-present, and as present when it is required to be absent. Hence, every
-construct which is only correct when the member is abstract, or only
-correct when the member is concrete, is a compile-time error. The
-constraints below apply this principle.*
-
-- An instance member with undetermined abstractness in the superclass
-  of a class, mixin class, or enum `C` *(including in any mixin applied
-  to `C`)* is not considered to be implemented in `C` unless `C`
-  declares an implementation. *It is not sufficient that there exists a
-  further superclass of said superclass that implements the instance
-  member. In other words, an undeterminedly abstract member will "kill"
-  an inherited implementation, even in the situation where it would be a
-  correct override of the member signature of the undeterminedly
-  abstract member.* If `C` is concrete this may cause the declaration of
-  `C` to have a **compile-time error** because it does not fully implement
-  its interface.
-
-- It is a **compile-time error** if a super-invocation in a class, mixin,
-  mixin class, or enum `C` targets an instance member with undetermined
-  abstractness, or if an instance member with undetermined abstractness in
-  a superclass overrides the concrete member in a further superclass that
-  would otherwise be the target of the super-invocation. *In other words,
-  an instance member with undetermined abstractness also "kills" any
-  inherited implementation in a further superclass for the purpose of
-  resolving super-invocations.*
-
-- In a mixin application `S with M`, where `M` is a `mixin` declaration
-  that contains a super-invocation of a member _m_, an instance member _m_
-  with undetermined abstractness in `S` (or in a superclass of `S` and not
-  overridden) is not considered to be implemented in `S`. Consequently, the
-  mixin application `S with M` has a **compile-time error** because `S`
-  does not provide a concrete implementation of the super-invoked member
-  _m_. *In particular, it is not sufficient that the superclass of the
-  class that declares _m_ with undetermined abstractness has a concrete
-  implementation of _m_, the declaration with undetermined abstractness
-  "kills" all declarations of _m_ beyond the undeterminedly abstract one.*
-
-- It is a **compile-time error** if a name _m_ is noSuchMethod forwarded in
-  a concrete class or enum `C`, and a superclass of `C` *(including any
-  mixin applied to `C`)* has an accessible declaration of _m_ that is
-  either concrete or has undetermined abstractness, and which is not a
-  correct override of the member signature named _m_ in the interface of
-  `C`.
-  *In other words, the existing error about a noSuchMethod forwarder that
-  would override an inherited concrete declaration treats a member with
-  undetermined abstractness as concrete, and still checks any concrete
-  declaration in a further superclass that was "killed" by a member with
-  undetermined abstractness. `C` can avoid the error by declaring _m_.*
-
-- It is a **compile-time error** if a `class` *(including an `abstract`
-  class or a mixin application class)* or `enum` declaration `C` has
-  `Enum` as a superinterface, and a superclass of `C` *(including any
-  mixin applied to `C` or to a superclass of `C`)* declares an instance
-  member named `index` whose abstractness is undetermined.
-  *A class or `enum` that implements `Enum` cannot inherit a concrete
-  member named `index` from a superclass or an applied mixin. When `C` is
-  abstract, or when `C` is an `enum` that declares a non-trivial
-  `noSuchMethod`, the rule above about implementing members with
-  undetermined abstractness does not report a missing-implementation error
-  for `index`, so this constraint ensures that the error does not depend
-  on whether a conditional part completes `index`.*
-
-- It is a **compile-time error** if a mixin application `S with M` occurs
-  in a library other than the library that declares `M`, `M` declares an
-  instance member with a private name `_n`, and `S` has an instance member
-  with the same name whose abstractness is undetermined *(declared in
-  `S`, or declared in a superclass of `S` or in a mixin applied to it, and
-  not overridden)*.
-  *In this situation it is already an error if `S` has a concrete member
-  named `_n`: the analyzer reports a private name collision in a mixin
-  application. In other words, that error treats a member with
-  undetermined abstractness as concrete, such that it does not depend on
-  whether a conditional part completes the member.*
 
 #### Modular static analysis
 
@@ -745,7 +666,7 @@ of *L*.
   `sealed` subtype sets, public member signatures, abstract-versus-concrete
   member status, default parameter values, enum entries, or constant
   expressions, a tool analyzing any library *L'* that imports or exports *L* may
-  ignore all conditional `part` directives in *L*<sub>*u*</sub>.
+  ignore the conditional `part` directive *(if any)* in *L*<sub>*u*</sub>.
 
 - Analyzing *L*<sub>*u*</sub>: Because no reference in *L*<sub>*u*</sub> can
   resolve to an introductory private declaration in a conditional part file, and
@@ -755,25 +676,26 @@ of *L*.
   inference, type checking, override checking, super-invocation checking,
   switch exhaustiveness checking, and constant evaluation in
   *L*<sub>*u*</sub> are completely determined by *L*<sub>*u*</sub> alone
-  (ignoring conditional `part` directives). If
-  *L*<sub>*u*</sub> contains no conditional `part` directives, completeness of
-  all declarations in *L*<sub>*u*</sub> is also checked on *L*<sub>*u*</sub>
+  (ignoring any conditional `part` directive). If *L*<sub>*u*</sub>
+  contains no conditional `part` directive, completeness of all
+  declarations in *L*<sub>*u*</sub> is also checked on *L*<sub>*u*</sub>
   alone.
 
 - Analyzing and compiling *L* in a compilation environment: With a given
-  compilation environment, each conditional `part` directive specifies a
-  URI, determining the complete tree of files of *L*. Static analysis of
-  the selected conditional part files checks their directives, introductory
-  private declarations, and augmenting declarations against
+  compilation environment, the conditional `part` directive *(if any)*
+  specifies a URI, determining the complete tree of files of *L*. Static
+  analysis of the selected conditional part files checks their directives,
+  introductory private declarations, and augmenting declarations against
   *L*<sub>*u*</sub>, applies all augmentations in augmentation application
   order, and verifies that every declaration requiring completion
-  *(top-level, `static`, `extension`, non-constant `factory`, `concrete`,
-  and introductory member declarations in conditional parts)* is complete.
+  *(top-level, `static`, `extension`, `extension type`, non-constant
+  `factory`, `concrete`, and introductory member declarations in
+  conditional parts)* is complete.
 
   *This process is identical to the analysis and compilation process where
-  every conditional part directive in L has been replaced by the
-  unconditional (regular) part directive specifying the same choice of part
-  file.*
+  the conditional `part` directive in L (if any) has been replaced by the
+  unconditional (regular) `part` directive specifying the same choice of
+  part file.*
 
 ### Dynamic semantics
 
@@ -817,75 +739,68 @@ case of syntax errors around the word `concrete`.
 
 #### Drop the support for the `concrete` modifier entirely
 
-This would imply that every instance member which is made conditional by
-having its implementation in a conditional part would have an undetermined
-abstractness property, which would in turn make all super-invocations
-targeting this declaration a compile-time error.
+Instead of requiring `concrete` to complete an unconditional instance
+member in a conditional part, we could drop `concrete` entirely and treat
+every incomplete instance member in a library with a conditional part as
+having undetermined abstractness. This would avoid a certain amount of
+syntactic complexity, since developers wouldn't have to learn or place the
+`concrete` keyword.
 
-This would allow us to avoid a certain amount of syntactic complexity. For
-example, developers wouldn't have to think about the meaning of this
-keyword and they wouldn't have to decide whether or not it should be used
-in each case where they are writing an introductory instance member
-declaration in a library that has conditional parts.
+However, undetermined abstractness requires a set of special cross-library
+constraints on subclasses, super-invocations, mixin applications,
+`noSuchMethod` forwarders, `Enum` subtypes, and private name collisions,
+making every super-invocation targeting such a member a compile-time error
+and turning every ordinary abstract member in a library into one with
+undetermined abstractness as soon as a conditional `part` directive is
+added.
 
-#### Enforce `concrete` consistently
+#### Require `concrete` on all conditionally completed declarations
 
-We could go in the opposite direction and make the use of `concrete`
-required with all incomplete declarations. This means that a `concrete`
-declaration must be completed in some augmentation, and it might even be a
-requirement that the complete augmentation is in a conditional part.
+This specification requires `concrete` on unconditional instance members
+and generative constructors completed in a conditional part, while allowing
+declarations that cannot be abstract (such as top-level, `static`,
+`extension`, `extension type`, and non-`const` `factory` declarations) to
+be completed without `concrete`.
 
-Conversely an introductory declaration which is not complete and does not
-include the modifier `concrete` must remain incomplete in all augmenting
-declarations, and it is a compile-time error if it is not capable of being
-abstract (e.g., if it is a static or top-level declaration).
+We could go further and require `concrete` on all incomplete declarations
+completed in a conditional part (or even in any augmentation), and make it
+an error for an unmarked incomplete declaration to be completed anywhere.
+That would make conditional completion syntactically uniform across all
+declaration kinds at the cost of extra `concrete` modifiers on declarations
+that are already unambiguously non-abstract.
 
-This would turn completion in augmenting declarations into a tightly
-controlled property, which means that there's no ambiguity: Abstract
-declarations can be recognized as such, and that's true for concrete
-declarations as well.
+#### Restrict parts such that a conditional part is the only part directive
 
-#### Restrict parts such that a conditional part is always alone
+This specification allows at most one conditional `part` directive in the
+unconditional files of a library, alongside any number of unconditional
+`part` directives, and each conditional part branch may itself have a tree
+of unconditional sub-parts.
 
-It might simplify things in a useful way if we introduced the restriction
-that a conditional part must be the only part in the given library.
-
-There could be a tree of part files under each of the variants, but we
-would then constrain them to be reached via a unconditional part
-directive. That is, we might have 5 different parts reached by a
-conditional part directive in the library (which would then also be the
-_only_ part directive in that library), and each of them could have a tree
-of further part files under them, but the whole subtree would always be
-enabled at the same time.
-
-The general case (as currently specified) is quite complex: There could be
-some conditional part directives and some unconditional (normal) ones,
-and there could be any number of combinations of enablement of the
-conditional ones, including the fact that the subtrees of each conditional
-part could again be conditional, typically based on different criteria. It
-seems likely that the full generality is difficult to implement and
-maintain, and it may not bring much value compared to the simpler
-approaches.
+We could go even further and require that a conditional `part` directive
+must be the _only_ `part` directive in the library, though unconditional
+`part` directives do not introduce any configuration combinations and are
+straightforward to keep. Conversely, allowing multiple independent
+conditional `part` directives in the same library would create a
+combinatorial explosion in completeness checking and would break standalone
+analysis of a single conditional part branch (for example, two independent
+conditional parts could each introduce the same fresh private instance
+member on two different classes and conflict only when both are selected
+together).
 
 #### Should we check completeness only during compilation?
 
-Consider all `concrete` declarations in a unconditional file of a library
-_L_. Consider also all declarations which are incomplete when taking only
-the unconditional part tree into account, and which are incapable of
-being abstract (for example, top-level declarations or `static`
-declarations).
+Consider all `concrete` declarations in an unconditional file of a library
+_L_, as well as all declarations which are incomplete when taking only the
+unconditional part tree into account and which are incapable of being
+abstract (for example, top-level, `static`, `extension`, `extension type`,
+or non-`const` `factory` declarations).
 
-These declarations would be subject to a completeness check: Each
-combination of enablement of specific conditional parts must satisfy the
-requirement that every one of these declarations has exactly one complete
-augmenting declaration.
-
-We could perform the completeness check only during compilation, or only on
-explicit developer request.
-
-The point is that this step needs to consider every possible combination of
-inclusion/non-inclusion of the conditional parts of this library, which
-could be a large number of cases.
+Because a library has at most one conditional `part` directive, checking
+that every branch completes all of these declarations is linear in the
+number of URIs in that directive rather than combinatorial. Even so, we
+could choose to perform this completeness check only during compilation, or
+only on explicit developer request, if loading all platform-specific part
+trees during analysis is undesirable.
 
 #### Variable declarations and `concrete`
 
@@ -970,13 +885,12 @@ import 'l.dart';
 
 A part file which is not shown in an example contains no declarations.
 
-The first group of examples is concerned with the rules about the contents
-of a conditional part. In each of these examples, `p1.dart` satisfies every
-rule, and `p2.dart` violates the rule under consideration and no other
-rule. Without that rule, `l.dart` has no compile-time errors with `p1.dart`
-and no compile-time errors with `p2.dart`, but the static analysis of
-`main.dart` depends on which part is selected. *The rule about incomplete
-introductory instance members is an exception, as explained below.*
+In each example, `p1.dart` satisfies every rule, and `p2.dart` violates the
+rule under consideration and no other rule. Without that rule, `l.dart` has
+no compile-time errors with `p1.dart` and no compile-time errors with
+`p2.dart`, but the static analysis of `main.dart` depends on which part is
+selected. *The rule about incomplete introductory instance members is an
+exception, as explained below.*
 
 #### Export directives
 
@@ -1087,13 +1001,13 @@ requirements are needed for the following reasons:
   an overriding declaration in a conditional part cannot leave the member
   abstract.
 
-#### Extensions which are applicable in unconditional files
+#### Instance members of introductory extensions
 
-> It is a **compile-time error** if an introductory `extension` declaration
-> in a conditional part is applicable to any implicit extension member
-> resolution in an unconditional file *(including property accesses, method
-> invocations, operator invocations, function expression invocations of
-> `call`, object patterns, and relational patterns)*.
+> It is a **compile-time error** for an introductory `extension` declaration
+> in a conditional part to contain an instance member declaration whose
+> name is public, or whose name is private and has the same basename as a
+> name occurring in an unconditional file in the file tree of the enclosing
+> library.
 
 ```dart
 // In 'l.dart'.
@@ -1120,7 +1034,9 @@ specific than `ObjectTag`, `'hello'.tag` invokes `_StringTag.tag`, so
 The same issue arises when the unconditional file resolves an extension
 implicitly via an object pattern (`switch ('hello') { String(:final tag) =>
 tag }`), a function expression invocation (`'hello'()`), an operator
-expression (`box + 1`), or a relational pattern.
+expression (`box + 1`), or a relational pattern, as well as when both
+extensions declare a private member `_tag` whose basename occurs in
+`l.dart`.
 
 #### Superinterfaces of augmented type declarations
 
@@ -1439,100 +1355,120 @@ timeout = 10]) {}` while `p1.dart` specifies `augment void run([int
 timeout]) {}` would make the missing-default-value error on `Service.run`
 depend on which part is selected.
 
-#### Constant constructors
+#### Completing unconditional instance members and constructors
 
-> It is a **compile-time error** for an augmenting constructor declaration
-> in a conditional part that augments a constructor declared in an
-> unconditional file to be `const` and complete.
+> It is a **compile-time error** for an augmenting declaration in a
+> conditional part that augments an unconditional declaration _D_ to be
+> complete *(including a non-`abstract` augmenting variable declaration
+> completing an introductory getter or setter)* if:
+> - _D_ is an instance member declaration of a `class`, `mixin`,
+>   `mixin class`, or `enum` whose introductory declaration does not have
+>   the modifier `concrete`, or
+> - _D_ is a constructor declaration whose introductory declaration neither
+>   has the modifier `concrete` nor is a non-`const` `factory` constructor.
 
 ```dart
 // In 'l.dart'.
+abstract class Middle {
+  void action();
+}
+
 class Token {
   const Token(int code);
 }
 
 // In 'p2.dart'.
+augment abstract class Middle {
+  augment void action() {}
+}
+
 augment class Token {
   augment const Token(int code) : assert(code > 0);
 }
 
 // In 'main.dart'.
+class Leaf extends Middle {}
+
 const zero = Token(0);
 ```
 
-Constant expressions are evaluated during static analysis. When `p1.dart`
-is selected, the constructor of `Token` is implicitly completed, and
-`Token(0)` is a constant expression. When `p2.dart` is selected, the
-evaluation of `Token(0)` fails because the assertion fails, which is a
-compile-time error in `main.dart`.
+When `p1.dart` is selected, `Middle.action` is abstract, so `Leaf` has a
+compile-time error because it does not implement `action`. When `p2.dart`
+is selected, `Middle.action` is concrete, so `Leaf` inherits an
+implementation of `action` and has no errors. Allowing an unmarked
+incomplete instance member to be completed in a conditional part would
+similarly disrupt super-invocations, mixin applications with
+super-invocations, `noSuchMethod` forwarders, `Enum` subtypes inheriting
+`index`, private name collisions in mixin applications, and primitive
+equality when completing operator `==` or `hashCode`.
 
-#### Completing operator `==` and `hashCode`
+For constructors, constant expressions are evaluated during static
+analysis. When `p1.dart` is selected, `Token`'s constructor is implicitly
+completed and `Token(0)` is a valid constant expression. When `p2.dart` is
+selected, evaluating `Token(0)` fails because the assertion fails, causing
+a compile-time error in `main.dart`. Similarly, completing an unmarked
+non-`const` generative constructor in a conditional part would make field
+initialization checks on the unconditional files depend on which
+conditional part is selected.
+
+#### Instance variables of mixins and classes with constant constructors
 
 > It is a **compile-time error** for an augmenting declaration of a type _D_
 > in a conditional part that augments an unconditional declaration to
-> complete a declaration of operator `==` or `hashCode` *(including by an
-> augmenting instance variable declaration `hashCode`)* unless the
-> introductory declaration of that member has the modifier `concrete`.
-
-```dart
-// In 'l.dart'.
-class Key {
-  const Key();
-  bool operator ==(Object other);
-}
-
-// In 'p2.dart'.
-augment class Key {
-  augment bool operator ==(Object other) => other is Key;
-}
-
-// In 'main.dart'.
-const keys = {Key()};
-```
-
-When `p1.dart` is selected, `Key` inherits `operator ==` from `Object`, so
-`Key` has primitive equality, and `keys` has no errors. When `p2.dart` is
-selected, `Key` overrides `operator ==`, so it does not have primitive
-equality, and `keys` has a compile-time error because an element of a
-constant set must have primitive equality. The same holds for `hashCode`,
-because overriding either operator `==` or `hashCode` removes primitive
-equality. If the declaration in `l.dart` has the modifier `concrete` then
-it is known from the unconditional files that `Key` does not have primitive
-equality.
-
-#### Instance variables of mixins
-
-> It is a **compile-time error** for an augmenting declaration of a `mixin`
-> or `mixin class` _D_ in a conditional part that augments an unconditional
-> declaration to declare a non-`abstract`, non-`external` instance
-> variable.
+> declare a non-`abstract`, non-`external` instance variable if _D_ is a
+> `mixin`, a `mixin class`, or declares a `const` generative constructor.
 
 ```dart
 // In 'l.dart'.
 mixin Counter {
-  int get count;
+  concrete int get count;
+}
+
+class Box<T> {
+  const Box();
+}
+
+// In 'p1.dart'.
+augment mixin Counter {
+  augment int get count => 0;
 }
 
 // In 'p2.dart'.
+const dynamic _zero = 0;
+
 augment mixin Counter {
   augment final int count = 0;
+}
+
+augment class Box<T> {
+  final T _default = _zero;
 }
 
 // In 'main.dart'.
 class Tally with Counter {
   const Tally();
-
-  @override
-  int get count => 0;
 }
+
+const box = Box<String>();
 ```
 
 The constructor `const Tally()` invokes a forwarding constructor of the
 mixin application `Object with Counter`, and that constructor is constant
-only if `Counter` declares no instance variables. When `p1.dart` is
-selected, `Counter` declares no instance variables, and `Tally` has no
-errors. When `p2.dart` is selected, `Counter` declares the instance
-variable `count`, and `const Tally()` is a compile-time error.
+only if `Counter` declares no instance variables (the same applies when
+applying a `mixin class`). When `p1.dart` is selected, `Counter` declares
+no instance variables, and `Tally` has no errors. When `p2.dart` is
+selected, `Counter` declares the instance variable `count`, and
+`const Tally()` is a compile-time error.
+
+For `Box`, `_default` satisfies the rule about private instance members
+because `Box` is not a `mixin` or `mixin class`, `_default` does not occur
+in `l.dart`, and no other augmented type declares `_default`. Moreover,
+`_zero` is a constant expression of type `dynamic`, so without this rule
+`l.dart` has no compile-time errors with either `p1.dart` or `p2.dart`.
+When `p1.dart` is selected, `Box<String>()` is a constant expression. When
+`p2.dart` is selected, evaluating `Box<String>()` attempts to initialize
+`_default` of type `String` with `0`, which fails and causes a compile-time
+error in `main.dart`.
 
 #### Super-invocations in mixins
 
@@ -1583,45 +1519,6 @@ concrete implementation of `close`. If the analysis of `main.dart` ignored
 `p2.dart` then `Buffer().flush()` would invoke a member that has no
 implementation.
 
-#### Instance variables of classes with constant constructors
-
-> It is a **compile-time error** for an augmenting declaration of a type _D_
-> in a conditional part to declare a non-`abstract`, non-`external`
-> instance variable when _D_ declares a `const` generative constructor,
-> unless the variable is an introductory private `final` instance variable,
-> has an initializing expression that is a constant expression, and the
-> initializing expression evaluates without error as a constant expression
-> to a constant value whose type is a subtype of the variable's type.
-
-```dart
-// In 'l.dart'.
-class Box<T> {
-  const Box();
-}
-
-// In 'p2.dart'.
-const dynamic _zero = 0;
-
-augment class Box<T> {
-  final T _default = _zero;
-}
-
-// In 'main.dart'.
-const box = Box<String>();
-```
-
-`Box._default` satisfies the rule about private instance members because
-`Box` is not a `mixin` or `mixin class`, `_default` does not occur in
-`l.dart`, and no other augmented type declares `_default`. Moreover,
-`_zero` is a constant expression of type `dynamic`, so without this rule
-`l.dart` has no compile-time errors with either `p1.dart` or `p2.dart`.
-However, `_zero` evaluates to `0`, whose type `int` is not a subtype of
-the variable's type `T`. When `p1.dart` is selected, `Box<String>()` is a
-constant expression. When `p2.dart` is selected, evaluating `Box<String>()`
-attempts to initialize `_default` of type `String` with `0`, which fails,
-and this is a compile-time error in `main.dart`. In contrast, `Box<int>()`
-has no errors with either part.
-
 #### Suppressing the default constructor
 
 > It is a **compile-time error** for an augmenting declaration _D_ of a
@@ -1647,296 +1544,6 @@ When `p1.dart` is selected, `Widget` declares no constructors, so it has a
 default constructor, and `makeWidget` has no errors. When `p2.dart` is
 selected, `Widget` declares a constructor, so it has no default
 constructor, and `Widget()` is a compile-time error.
-
-#### Constraints on members with undetermined abstractness
-
-The remaining error specifications are concerned with declarations that
-depend on a member with undetermined abstractness. In each of the
-following examples, both parts satisfy every rule, and `p2.dart` completes
-a member which `p1.dart` leaves abstract. The constraint under
-consideration makes a declaration in `main.dart` an error no matter which
-part is selected. Without the constraint, that declaration has an error
-with one of the parts, and no errors with the other part.
-
-#### Implementing a member with undetermined abstractness
-
-> An instance member with undetermined abstractness in the superclass
-> of a class, mixin class, or enum `C` *(including in any mixin applied
-> to `C`)* is not considered to be implemented in `C` unless `C`
-> declares an implementation. If `C` is concrete this may cause the
-> declaration of `C` to have a **compile-time error** because it does not
-> fully implement its interface.
-
-```dart
-// In 'l.dart'.
-abstract class Middle {
-  void action();
-}
-
-abstract class Forwarding {
-  @override
-  dynamic noSuchMethod(Invocation invocation);
-}
-
-// In 'p2.dart'.
-augment abstract class Middle {
-  augment void action() {}
-}
-
-augment abstract class Forwarding {
-  augment dynamic noSuchMethod(Invocation invocation) => null;
-}
-
-// In 'main.dart'.
-class Leaf extends Middle {}
-
-abstract interface class Task {
-  void run();
-}
-
-class Proxy extends Forwarding implements Task {}
-```
-
-Without this constraint, `Leaf` has a compile-time error when `p1.dart` is
-selected because it has no implementation of `action`, and it has no errors
-when `p2.dart` is selected because it inherits `Middle.action`.
-
-`Proxy` shows why an implementation in a further superclass is not
-sufficient, even when its signature matches the member with undetermined
-abstractness. Without this constraint, `Proxy` has a compile-time error
-when `p1.dart` is selected because it inherits `Object.noSuchMethod` and
-therefore fails to implement `Task.run`. When `p2.dart` is selected,
-`Proxy` inherits the concrete `Forwarding.noSuchMethod`, which is
-non-trivial and induces a `noSuchMethod` forwarder for `Task.run`, so
-`Proxy` has no errors.
-
-With this constraint, `Leaf` and `Proxy` have a compile-time error with
-either part because they do not declare an implementation of `action`
-respectively `noSuchMethod`.
-
-#### Super-invocations of a member with undetermined abstractness
-
-> It is a **compile-time error** if a super-invocation in a class, mixin,
-> mixin class, or enum `C` targets an instance member with undetermined
-> abstractness, or if an instance member with undetermined abstractness in
-> a superclass overrides the concrete member in a further superclass that
-> would otherwise be the target of the super-invocation.
-
-```dart
-// In 'l.dart'.
-class Base {
-  num value() => 1.5;
-}
-
-abstract class Middle extends Base {
-  @override
-  int value();
-}
-
-// In 'p2.dart'.
-augment abstract class Middle {
-  augment int value() => 1;
-}
-
-// In 'main.dart'.
-class Leaf extends Middle {
-  @override
-  int value() => super.value();
-}
-```
-
-The lookup of the member which is invoked by a super-invocation ignores
-abstract declarations. Without this constraint, `super.value()` invokes
-`Base.value` when `p1.dart` is selected. Its return type is `num`, so
-`Leaf.value` has a compile-time error. When `p2.dart` is selected,
-`super.value()` invokes `Middle.value`. Its return type is `int`, so
-`Leaf.value` has no errors. With this constraint, `super.value()` is a
-compile-time error with either part.
-
-#### Mixin applications and members with undetermined abstractness
-
-> In a mixin application `S with M`, where `M` is a `mixin` declaration
-> that contains a super-invocation of a member _m_, an instance member _m_
-> with undetermined abstractness in `S` (or in a superclass of `S` and not
-> overridden) is not considered to be implemented in `S`. Consequently, the
-> mixin application `S with M` has a **compile-time error** because `S`
-> does not provide a concrete implementation of the super-invoked member
-> _m_.
-
-```dart
-// In 'l.dart'.
-class Recorder {
-  void record(String event) {}
-}
-
-abstract class RemoteRecorder implements Recorder {
-  @override
-  void record(String event);
-}
-
-// In 'p2.dart'.
-augment abstract class RemoteRecorder {
-  augment void record(String event) {}
-}
-
-// In 'main.dart'.
-mixin Timestamps on Recorder {
-  @override
-  void record(String event) {
-    super.record('${DateTime.now()}: $event');
-  }
-}
-
-abstract class TimestampedRecorder extends RemoteRecorder with Timestamps {}
-```
-
-`Timestamps` contains a super-invocation of `record`, so the superclass in
-an application of `Timestamps` must have a concrete implementation of
-`record`. Without this constraint, `RemoteRecorder with Timestamps` has a
-compile-time error when `p1.dart` is selected because
-`RemoteRecorder.record` is abstract, and it has no errors when `p2.dart` is
-selected. The same issue arises when a further superclass provides an
-incompatible implementation: if `Recorder` declares
-`void record(Object event) {}`, `Base` declares
-`void record(String event) {}`, and
-`RemoteRecorder extends Base implements Recorder` declares
-`void record(Object event);`, then a mixin `Timestamps on Recorder`
-invoking `super.record(42)` makes `RemoteRecorder with Timestamps` a
-compile-time error with `p1.dart` because `Base.record` does not have the
-required type `void Function(Object)`, and valid with `p2.dart`. With this
-constraint, the mixin application is a compile-time error with either part.
-
-#### `noSuchMethod` forwarders and members with undetermined abstractness
-
-> It is a **compile-time error** if a name _m_ is noSuchMethod forwarded in
-> a concrete class or enum `C`, and a superclass of `C` *(including any
-> mixin applied to `C`)* has an accessible declaration of _m_ that is
-> either concrete or has undetermined abstractness, and which is not a
-> correct override of the member signature named _m_ in the interface of
-> `C`.
-
-```dart
-// In 'l.dart'.
-abstract class A {
-  void m(int i);
-}
-
-// In 'p2.dart'.
-augment abstract class A {
-  augment void m(int i) {}
-}
-
-// In 'main.dart'.
-abstract class B {
-  void m([int i]);
-}
-
-class C extends A implements B {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
-```
-
-The interface of `C` has the member signature `void m([int i])`. Without
-this constraint, `C` has no errors when `p1.dart` is selected: It has no
-concrete member named _m_, so a `noSuchMethod` forwarder is induced. When
-`p2.dart` is selected, `C` inherits the concrete method `A.m`, which is
-not a correct override of `void m([int i])`. This is a compile-time error
-because an implicitly induced `noSuchMethod` forwarder cannot override a
-declared method. The same error occurs in the reverse direction if `l.dart`
-declares `class Base { void m(int i) {} }` and
-`abstract class Middle extends Base { @override void m([int? i]); }`, and
-`C extends Middle` declares `noSuchMethod`: when `p2.dart` completes
-`Middle.m`, `C` inherits `Middle.m` without error, whereas when `p1.dart`
-leaves `Middle.m` abstract, `C` inherits the concrete `Base.m`, which is
-not a correct override of `Middle.m`. With this constraint, `C` has a
-compile-time error with either part, and it can avoid the error by
-declaring _m_.
-
-#### `Enum` subtypes and `index` with undetermined abstractness
-
-> It is a **compile-time error** if a `class` *(including an `abstract`
-> class or a mixin application class)* or `enum` declaration `C` has
-> `Enum` as a superinterface, and a superclass of `C` *(including any
-> mixin applied to `C` or to a superclass of `C`)* declares an instance
-> member named `index` whose abstractness is undetermined.
-
-```dart
-// In 'l.dart'.
-abstract class Base {
-  int get index;
-}
-
-mixin Indexed {
-  int get index;
-}
-
-// In 'p2.dart'.
-augment abstract class Base {
-  augment int get index => 0;
-}
-
-augment mixin Indexed {
-  augment int get index => 0;
-}
-
-// In 'main.dart'.
-abstract class MyEnum extends Base implements Enum {}
-
-enum Color with Indexed {
-  red;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
-```
-
-Because `MyEnum` is abstract and `Color` declares a non-trivial
-`noSuchMethod`, the constraint on implementing a member with undetermined
-abstractness does not report an error on either declaration for lacking an
-implementation of `index`, and `Indexed.index` matches `Color`'s interface
-signature `int get index`. Without this constraint, both `MyEnum` and
-`Color` have no errors when `p1.dart` is selected, and both have a
-compile-time error when `p2.dart` is selected because a class or enum that
-implements `Enum` cannot inherit a concrete member named `index` from a
-superclass or an applied mixin. With this constraint, both `MyEnum` and
-`Color` have a compile-time error with either part.
-
-#### Private name collisions and members with undetermined abstractness
-
-> It is a **compile-time error** if a mixin application `S with M` occurs
-> in a library other than the library that declares `M`, `M` declares an
-> instance member with a private name `_n`, and `S` has an instance member
-> with the same name whose abstractness is undetermined *(declared in
-> `S`, or declared in a superclass of `S` or in a mixin applied to it, and
-> not overridden)*.
-
-```dart
-// In 'l.dart'.
-mixin Disposable {
-  void _release();
-}
-
-// In 'p2.dart'.
-augment mixin Disposable {
-  augment void _release() {}
-}
-
-// In 'main.dart'.
-class Base with Disposable {}
-
-class Derived extends Base with Disposable {}
-```
-
-The analyzer reports a private name collision for a mixin application
-`S with M` in a library other than the one that declares `M`, when `M`
-declares a private instance member and `S` has a concrete member with the
-same name. Without this constraint, `Base with Disposable` in the
-declaration of `Derived` has no errors when `p1.dart` is selected because
-`Base` has no concrete member named `_release`. When `p2.dart` is selected,
-`Base` has the concrete member `_release`, and the mixin application has a
-private name collision. With this constraint, the mixin application is a
-compile-time error with either part.
 
 ### Changelog
 
